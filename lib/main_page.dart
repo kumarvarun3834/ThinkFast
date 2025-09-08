@@ -41,10 +41,11 @@ class _main_page extends State<main_page> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Home'),
+              leading: const Icon(Icons.login),
+              title: const Text('login'),
               onTap: () {
-                Navigator.pop(context); // close sidebar
+                // Navigator.pop(context); // close sidebar
+                widget.onStateChange("login");
                  },
             ),
             ListTile(
