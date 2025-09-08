@@ -67,44 +67,80 @@ class _Quesations extends State<Quesations> {
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-        appBar: AppBar(title: const Text("MCQ title")),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(color: Colors.blue),
-                child: Text(
-                  'My Sidebar',
-                  style: TextStyle(color: Colors.white, fontSize: 24),
+    return MaterialApp(
+        title: 'Custom AppBar',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: Scaffold(
+            appBar: AppBar(
+              titleSpacing: 0, // so title sits right after menu button
+              title: const Text("My App"),
+              leading: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () {
+                    Scaffold.of(context).openDrawer(); // open sidebar
+                  },
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.home),
-                title: const Text('Home'),
-                onTap: () {
-                  Navigator.pop(context); // close sidebar
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-        body: Container(
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red, // red button
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      // action here
+                    },
+                    child: const Text(
+                      "Action",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+        // drawer: Drawer(
+        //   child: ListView(
+        //     padding: EdgeInsets.zero,
+        //     children: [
+        //       const DrawerHeader(
+        //         decoration: BoxDecoration(color: Colors.blue),
+        //         child: Text(
+        //           'My Sidebar',
+        //           style: TextStyle(color: Colors.white, fontSize: 24),
+        //         ),
+        //       ),
+        //       ListTile(
+        //         leading: const Icon(Icons.home),
+        //         title: const Text('Home'),
+        //         onTap: () {
+        //           Navigator.pop(context); // close sidebar
+        //         },
+        //       ),
+        //       ListTile(
+        //         leading: const Icon(Icons.settings),
+        //         title: const Text('Settings'),
+        //         onTap: () {
+        //           Navigator.pop(context);
+        //         },
+        //       ),
+        //       ListTile(
+        //         leading: const Icon(Icons.logout),
+        //         title: const Text('Logout'),
+        //         onTap: () {
+        //           Navigator.pop(context);
+        //         },
+        //       ),
+        //     ],
+        //   ),
+        // ),
+
+            body: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -140,6 +176,7 @@ class _Quesations extends State<Quesations> {
       ],
     )
         )
+    )
     );
   }
 }
