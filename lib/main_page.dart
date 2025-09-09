@@ -46,22 +46,47 @@ class _main_page extends State<main_page> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.blue),
-              child: Text(
-                (_user != null)
-                    ? 'Hi, ${_user!.displayName ?? _user!.email}'
-                    : "Login to load profile",
-                style: const TextStyle(color: Colors.white, fontSize: 24),
-    ),
-
-    ),
-            ListTile(
+        DrawerHeader(
+        decoration: const BoxDecoration(color: Colors.blue),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundImage: (_user != null && _user!.photoUrl != null)
+                  ? NetworkImage(_user!.photoUrl!)
+                  : null,
+              child: (_user == null || _user!.photoUrl == null)
+                  ? const Icon(Icons.account_circle, size: 60, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              (_user != null)
+                  ? "Hi, ${_user!.displayName ?? _user!.email}"
+                  : "Hi, Guest",
+              style: const TextStyle(color: Colors.white, fontSize: 18),
+            ),
+          ],
+        ),
+      ),
+            if (_user==null)ListTile(
               leading: const Icon(Icons.login),
               title: const Text('login'),
-              onTap: () {
+              onTap: () async {
                 // Navigator.pop(context); // close sidebar
-                widget.onStateChange("login");
+                // widget.onStateChange("login");
+                try {
+                  final account = await _googleSignIn.signIn();
+                  if (account != null) {
+                    setState(() {
+                      _user = account;
+                      // widget.onStateChange("Main_Screen");
+                    });
+                  }
+                } catch (error) {
+                  print("Google login failed: $error");
+                }
                  },
             ),
             ListTile(
@@ -71,7 +96,7 @@ class _main_page extends State<main_page> {
                 Navigator.pop(context);
                 },
             ),
-            ListTile(
+            if (_user!=null)ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: ()
@@ -80,7 +105,7 @@ class _main_page extends State<main_page> {
                   await _googleSignIn.signOut();
                   setState(() {
                     _user = null;
-                    widget.onStateChange("login");
+                    // widget.onStateChange("login");
                   });
                 }
             ),

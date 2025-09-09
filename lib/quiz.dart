@@ -169,8 +169,6 @@ class _Quiz extends State<MyHomePage> {
           child:
           (currState == "Main_Screen")
               ? main_page(onStateChange: setCurrState,) :
-          (currState == "login")
-              ?glogin(onStateChange:setCurrState,currState:currState):
           (currState == "Quesation_Screen")
               ? Quesations(quizData, quizResult,onStateChange: setCurrState)
               : ResultScreen(quizData,quizResult,switchState)
