@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter/material.dart';
-
 class QuizForm extends StatefulWidget {
   const QuizForm({super.key});
 
@@ -13,12 +11,11 @@ class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
   final Set<int> _selectedAnswers = {}; // stores indexes of correct options
-  late int i;
+
   @override
   void initState() {
     super.initState();
     _addChoice(); // start with one choice
-    i=2;
   }
 
   void _addChoice() {
@@ -57,7 +54,6 @@ class _QuizFormState extends State<QuizForm> {
           icon: const Icon(Icons.remove_circle, color: Colors.red),
           onPressed: () {
             setState(() {
-              // also clean up selectedAnswers if removed
               _selectedAnswers.remove(index);
               _choiceControllers.removeAt(index);
             });
@@ -67,14 +63,14 @@ class _QuizFormState extends State<QuizForm> {
     );
   }
 
-
-  List<Widget> options_data(){
-    List<Widget> options_data=[];
-    for (int y=0;y==i;y++){
-      options_data.add(choicetemplate(y));
+  List<Widget> options_data() {
+    List<Widget> widgets = [];
+    for (int y = 0; y < _choiceControllers.length; y++) {
+      widgets.add(choicetemplate(y));
     }
-    return options_data;
+    return widgets;
   }
+
   void _saveForm() {
     final question = _questionController.text.trim();
     final choices = _choiceControllers.map((c) => c.text.trim()).toList();
@@ -109,8 +105,7 @@ class _QuizFormState extends State<QuizForm> {
           const SizedBox(height: 12),
 
           // Choices list
-          Column(
-            children: [Column(children: options_data()),
+          Column(children: options_data()),
 
           const SizedBox(height: 8),
 
@@ -119,19 +114,21 @@ class _QuizFormState extends State<QuizForm> {
             children: [
               IconButton(
                 icon: const Icon(Icons.add_circle, color: Colors.blue),
-                onPressed: (){
-                  i+=1;
-                  _addChoice();
-                  print(i);},
+                onPressed: _addChoice,
               ),
               const Text("Add Choice"),
             ],
           ),
+
           const SizedBox(height: 16),
+
+          // Save button
+          ElevatedButton(
+            onPressed: _saveForm,
+            child: const Text("Save Question"),
+          ),
         ],
       ),
-    ]
-      )
     );
   }
 }
