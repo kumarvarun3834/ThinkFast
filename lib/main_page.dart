@@ -25,7 +25,19 @@ class _main_page extends State<main_page> {
         switchToResultScreen();
     });
   }
+  GoogleSignInAccount? _user;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
+  @override
+  void initState() {
+    super.initState();
+    _googleSignIn.onCurrentUserChanged.listen((account) {
+      setState(() {
+        _user = account;
+      });
+    });
+    _googleSignIn.signInSilently(); // restore last login
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,13 +46,16 @@ class _main_page extends State<main_page> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
               child: Text(
-                'My Sidebar',
-                style: TextStyle(color: Colors.white, fontSize: 24),
-              ),
-            ),
+                (_user != null)
+                    ? 'Hi, ${_user!.displayName ?? _user!.email}'
+                    : "Login to load profile",
+                style: const TextStyle(color: Colors.white, fontSize: 24),
+    ),
+
+    ),
             ListTile(
               leading: const Icon(Icons.login),
               title: const Text('login'),
@@ -62,8 +77,6 @@ class _main_page extends State<main_page> {
               onTap: ()
                 // Navigator.pop(context);
                 async {
-                  final GoogleSignIn _googleSignIn = GoogleSignIn();
-                  GoogleSignInAccount? _user;
                   await _googleSignIn.signOut();
                   setState(() {
                     _user = null;
