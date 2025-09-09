@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/start_screen.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class main_page extends StatefulWidget {
   final void Function(String) onStateChange;
@@ -58,9 +59,17 @@ class _main_page extends State<main_page> {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
-              onTap: () {
-                Navigator.pop(context);
-                },
+              onTap: ()
+                // Navigator.pop(context);
+                async {
+                  final GoogleSignIn _googleSignIn = GoogleSignIn();
+                  GoogleSignInAccount? _user;
+                  await _googleSignIn.signOut();
+                  setState(() {
+                    _user = null;
+                    widget.onStateChange("login");
+                  });
+                }
             ),
           ],
         ),
