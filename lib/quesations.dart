@@ -39,16 +39,15 @@ class _Quesations extends State<Quesations> {
 
   void switchState() {
     setState(() {
-      if (i < dataSet.length - 1 && (quizResult[i]["selection"] as List).cast<String>().contains(quizResult[i]["answer"])) {
+      if (i < dataSet.length - 1 ) {
         currentData = dataSet[i];
         quizResult[i]["question"]=dataSet[i]["question"]!;
         quizResult[i]["answer"]=dataSet[i]["answer"]!;
-        i++;
-        currentData = dataSet[i];
-        quizResult[i]["question"]=dataSet[i]["question"]!;
-        quizResult[i]["answer"]=dataSet[i]["answer"]!;
-      } else if (i == dataSet.length - 1){
-        switchToResultScreen();
+        // currentData = dataSet[i];
+        // quizResult[i]["question"]=dataSet[i]["question"]!;
+        // quizResult[i]["answer"]=dataSet[i]["answer"]!;
+      // } else if (i == dataSet.length - 1){
+      //   switchToResultScreen();
       }
     });
   }
@@ -93,10 +92,11 @@ class _Quesations extends State<Quesations> {
                       ),
                     ),
                     onPressed: () {
+                      switchToResultScreen();
                       // action here
                     },
                     child: const Text(
-                      "Action",
+                      "SUBMIT",
                       style: TextStyle(color: Colors.white),
                     ),
                   ),
@@ -173,6 +173,47 @@ class _Quesations extends State<Quesations> {
           child: SingleChildScrollView(child:Column(children: buttons_Data(currentData)),
           )
         ),
+        Container(
+          margin: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end, // pushes to bottom
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, // left & right
+                children: [
+                  (i != 0)?ElevatedButton(
+                    onPressed: () {
+                      if(i==0){
+                      }else{
+                        i-=1;
+                        switchState();
+                      }
+                    },
+                    child: TextContainer("previous", Colors.black, 18),
+                  ):ElevatedButton(
+                    onPressed: () {},
+                    child: TextContainer("previous", Colors.transparent, 18),
+                  ),
+                  (i != dataSet.length-2)?ElevatedButton(
+                    onPressed: () {
+                      if(i==dataSet.length){
+                      }else{
+                        i+=1;
+                        switchState();
+                      }
+                    },
+                    child: TextContainer("NEXT", Colors.black, 18),
+                  ):ElevatedButton(
+                    onPressed: () {},
+                    child: TextContainer("NEXT", Colors.transparent, 18),
+                  )
+          ],
+              ),
+            ],
+          ),
+        )
+
       ],
     )
         )

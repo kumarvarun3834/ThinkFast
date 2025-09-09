@@ -13,7 +13,7 @@ class buttons_opt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     (quizResult["selection"] as List).cast<String>().contains(opt)
-        ?colour=Colors.red:colour=Colors.black;
+        ?colour=Colors.lightGreenAccent:colour=Colors.black;
 
     return Container(
         width: 350,
@@ -23,6 +23,7 @@ class buttons_opt extends StatelessWidget {
               if (!selectionList.contains(opt)) {
                 selectionList.add(opt);
               } else {
+                selectionList.remove(opt);
                 print("$opt already exists");
               }
               print(quizResult);

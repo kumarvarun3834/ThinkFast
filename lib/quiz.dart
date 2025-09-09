@@ -56,7 +56,7 @@ class _Quiz extends State<MyHomePage> {
     return [
       {
         "question": "What are the main building blocks of Flutter UIs?",
-        "answer": "Widgets",
+        "answer": ["Widgets"],
         "options": [
           "Components",
           "Blocks",
@@ -66,7 +66,7 @@ class _Quiz extends State<MyHomePage> {
       },
       {
         "question": "How are Flutter UIs built?",
-        "answer": "By combining widgets in code",
+        "answer": ["By combining widgets in code"],
         "options": [
           "By combining widgets in a visual editor",
           "By defining widgets in config files",
@@ -76,7 +76,7 @@ class _Quiz extends State<MyHomePage> {
       },
       {
         "question": "What's the purpose of a StatefulWidget?",
-        "answer": "Update UI as data changes",
+        "answer": ["Update UI as data changes"],
         "options": [
           "Update data as UI changes",
           "Ignore data changes",
@@ -86,7 +86,7 @@ class _Quiz extends State<MyHomePage> {
       },
       {
         "question": "Which widget should you try to use more often: StatelessWidget or StatefulWidget?",
-        "answer": "StatelessWidget",
+        "answer": ["StatelessWidget"],
         "options": [
           "StatefulWidget",
           "Both are equally good",
@@ -96,7 +96,7 @@ class _Quiz extends State<MyHomePage> {
       },
       {
         "question": "What happens if you change data in a StatelessWidget?",
-        "answer": "The UI is not updated",
+        "answer": ["The UI is not updated"],
         "options": [
           "The UI is updated",
           "The closest StatefulWidget is updated",
@@ -106,7 +106,7 @@ class _Quiz extends State<MyHomePage> {
       },
       {
         "question": "How should you update data inside of StatefulWidgets?",
-        "answer": "By calling setState()",
+        "answer": ["By calling setState()"],
         "options": [
           "By calling updateData()",
           "By calling updateUI()",
