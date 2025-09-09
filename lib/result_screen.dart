@@ -19,7 +19,17 @@ class ResultScreen extends StatelessWidget {
     int i = 0;
     int total_marks=0;
     while (i < quizResult.length-1){
-      total_marks+=(quizData[i]["options"] as List).cast<String>().length - (quizResult[i]["selection"] as List).cast<String>().length;
+      bool correct=false;
+      for (int y=0;y<(quizResult[i]["selection"] as List).cast<String>().length;y++){
+        if ((quizData[i]["answer"] as List).cast<String>().contains((quizResult[i]["selection"] as List).cast<String>()[y]))
+            {correct=true;
+            }else{
+          correct=false;
+          break;
+        }
+    }
+      (correct)?total_marks+=4:
+    total_marks-=1;
       i++;
     }
     i=0;
@@ -101,7 +111,7 @@ class ResultScreen extends StatelessWidget {
                         Colors.white,
                         15,
                       ),
-                      TextContainer("Correct Answer: ${resultDataset["answer"] as String}", Colors.white70, 15),
+                      // TextContainer("Correct Answer: ${resultDataset["answer"] as String}", Colors.white70, 15),
                       TextContainer("Choices Record: ", Colors.white, 15),
                       Column(
                         mainAxisAlignment: MainAxisAlignment.start,
