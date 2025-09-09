@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/main_page.dart';
 import 'package:thinkfast/quesations.dart';
+import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/result_screen.dart';
 
 class My_App extends StatelessWidget {
@@ -169,7 +169,7 @@ class _Quiz extends State<MyHomePage> {
           (currState == "Main_Screen")
               ? main_page(onStateChange: setCurrState,) :
           (currState=="QuizForm")
-              ?QuizForm():
+              ?QuizPage():
           (currState == "Quesation_Screen")
               ? Quesations(quizData, quizResult,onStateChange: setCurrState)
               : ResultScreen(quizData,quizResult,switchState)

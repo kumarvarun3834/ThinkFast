@@ -122,11 +122,7 @@ class _QuizFormState extends State<QuizForm> {
 
           const SizedBox(height: 16),
 
-          // Save button
-          ElevatedButton(
-            onPressed: _saveForm,
-            child: const Text("Save Question"),
-          ),
+
         ],
       ),
     );
