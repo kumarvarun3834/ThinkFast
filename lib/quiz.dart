@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/google_login.dart';
+import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/main_page.dart';
 import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/result_screen.dart';
@@ -40,7 +40,6 @@ class _Quiz extends State<MyHomePage> {
     quizData = shuffleQuizData(quizData);
     quizResult = quizReset(quizData);
 
-    // quizData.shuffle();
     currState = "Main_Screen";
   }
 
@@ -169,6 +168,8 @@ class _Quiz extends State<MyHomePage> {
           child:
           (currState == "Main_Screen")
               ? main_page(onStateChange: setCurrState,) :
+          (currState=="QuizForm")
+              ?QuizForm():
           (currState == "Quesation_Screen")
               ? Quesations(quizData, quizResult,onStateChange: setCurrState)
               : ResultScreen(quizData,quizResult,switchState)

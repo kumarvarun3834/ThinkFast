@@ -16,13 +16,11 @@ class main_page extends StatefulWidget {
 
 class _main_page extends State<main_page> {
 
-  void switchToResultScreen() {
-    widget.onStateChange("Quesation_Screen");
-  }
-
   void switchState() {
     setState(() {
-        switchToResultScreen();
+      // widget.onStateChange("Quesation_Screen");
+      widget.onStateChange("QuizForm");
+
     });
   }
   GoogleSignInAccount? _user;
