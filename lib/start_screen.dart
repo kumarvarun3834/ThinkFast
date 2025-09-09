@@ -16,7 +16,7 @@ class  Main_Screen extends StatelessWidget {
         children: [
           ImageContainer("assets/images/quiz-logo.png",Color.fromARGB(
               128, 255, 255, 255),350,300),
-          const SizedBox(height: 50,),
+          const SizedBox(height: 20,),
           TextContainer("Are you ready ?",Color.fromARGB(255, 255, 225, 0),30),
           const SizedBox(height: 25),
 

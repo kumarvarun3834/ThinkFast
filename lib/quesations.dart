@@ -63,6 +63,77 @@ class _Quesations extends State<Quesations> {
     return database;
   }
 
+  // Sample dynamic data with numbers instead of names
+  final List<Map<String, dynamic>> drawerItems = [
+    {"number": 1, "color": Colors.blue},
+    {"number": 2, "color": Colors.green},
+    { "number": 3, "color": Colors.red},
+    { "number": 4, "color": Colors.orange},
+    { "number": 5, "color": Colors.purple},
+  ];
+
+  // ListTile tiles(int index){
+  //   return ListTile(
+  //     // leading: const Icon(Icons.),
+  //     title: Text("$index"),
+  //     onTap: () {
+  //       i=index;
+  //     },
+  //   );
+  // }
+
+  // List<ListTile> menu_opt(){
+  //   List<ListTile> menu_opt =[];
+  //   for(int y=0;y<=dataSet.length-1;y++){
+  //     menu_opt.add(tiles(y));
+  //   }
+  //   return menu_opt;
+  // }
+
+  List<Widget> menu_opt() {
+    final List<Map<String, dynamic>> drawerItems = [
+      {"icon": Icons.looks_one, "number": 1, "color": Colors.red},
+      {"icon": Icons.looks_two, "number": 2, "color": Colors.green},
+      {"icon": Icons.looks_3, "number": 3, "color": Colors.blue},
+      {"icon": Icons.looks_4, "number": 4, "color": Colors.orange},
+      {"icon": Icons.looks_5, "number": 4, "color": Colors.orange},
+      {"icon": Icons.looks_6, "number": 4, "color": Colors.orange},
+    ];
+
+    return [
+      for (int j = 0; j < drawerItems.length; j++)
+        GestureDetector(
+          onTap: () {
+            i=j;
+            switchState();
+          },
+          child: Container(
+            width: 70,
+            height: 70,
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: drawerItems[j]["color"],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(drawerItems[j]["icon"], color: Colors.white, size: 30),
+                const SizedBox(height: 4),
+                Text(
+                  "${drawerItems[j]["number"]}",
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -72,7 +143,7 @@ class _Quesations extends State<Quesations> {
         home: Scaffold(
             appBar: AppBar(
               titleSpacing: 0, // so title sits right after menu button
-              title: const Text("My App"),
+              title: const Text("Quiz name"),
               leading: Builder(
                 builder: (context) => IconButton(
                   icon: const Icon(Icons.menu),
@@ -81,6 +152,7 @@ class _Quesations extends State<Quesations> {
                   },
                 ),
               ),
+
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 8.0),
@@ -103,42 +175,29 @@ class _Quesations extends State<Quesations> {
                 ),
               ],
             ),
-
-        // drawer: Drawer(
-        //   child: ListView(
-        //     padding: EdgeInsets.zero,
-        //     children: [
-        //       const DrawerHeader(
-        //         decoration: BoxDecoration(color: Colors.blue),
-        //         child: Text(
-        //           'My Sidebar',
-        //           style: TextStyle(color: Colors.white, fontSize: 24),
-        //         ),
-        //       ),
-        //       ListTile(
-        //         leading: const Icon(Icons.home),
-        //         title: const Text('Home'),
-        //         onTap: () {
-        //           Navigator.pop(context); // close sidebar
-        //         },
-        //       ),
-        //       ListTile(
-        //         leading: const Icon(Icons.settings),
-        //         title: const Text('Settings'),
-        //         onTap: () {
-        //           Navigator.pop(context);
-        //         },
-        //       ),
-        //       ListTile(
-        //         leading: const Icon(Icons.logout),
-        //         title: const Text('Logout'),
-        //         onTap: () {
-        //           Navigator.pop(context);
-        //         },
-        //       ),
-        //     ],
-        //   ),
-        // ),
+            drawer: Drawer(
+              child: Column(
+                children: [
+                  const DrawerHeader(
+                    decoration: BoxDecoration(color: Colors.blue),
+                    child: Text(
+                      'Questions',
+                      style: TextStyle(color: Colors.white, fontSize: 24),
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(8),
+                      child: Wrap(
+                        spacing: 10, // horizontal space between items
+                        runSpacing: 10, // vertical space between rows
+                        children: menu_opt(), // returns list of widgets
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             body: Container(
             decoration: const BoxDecoration(
@@ -152,7 +211,7 @@ class _Quesations extends State<Quesations> {
               ),
             ),
             child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Center(
@@ -170,8 +229,7 @@ class _Quesations extends State<Quesations> {
         Container(
           margin: const EdgeInsets.all(20),
           width: double.infinity,
-          child: SingleChildScrollView(child:Column(children: buttons_Data(currentData)),
-          )
+          child: SingleChildScrollView(child:Column(children: buttons_Data(currentData)),)
         ),
         Container(
           margin: const EdgeInsets.all(10),
@@ -217,7 +275,7 @@ class _Quesations extends State<Quesations> {
       ],
     )
         )
-    )
+        )
     );
   }
 }

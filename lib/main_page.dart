@@ -18,8 +18,8 @@ class _main_page extends State<main_page> {
 
   void switchState() {
     setState(() {
-      // widget.onStateChange("Quesation_Screen");
-      widget.onStateChange("QuizForm");
+      widget.onStateChange("Quesation_Screen");
+      // widget.onStateChange("QuizForm");
 
     });
   }
