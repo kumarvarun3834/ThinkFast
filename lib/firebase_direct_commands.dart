@@ -12,6 +12,7 @@ class DatabaseService {
     required List<Map<String, Object>> data,
   }) async {
     await _db.add({
+      'id': DateTime.now().millisecondsSinceEpoch.toString(), // mock ID
       'user': user,
       'title': title,
       'description': description,
@@ -61,6 +62,28 @@ class DatabaseService {
       await _db.doc(docId).delete();
     } else {
       throw Exception('Only the creator can delete this database');
+    }
+  }
+
+  // // will give total no of databases present in sever
+  // Future<int> countDataElements(String docId) async {
+  //   final doc = await _db.doc(docId).get();
+  //   if (doc.exists) {
+  //     List<dynamic> data = doc['data'];
+  //     return data.length;
+  //   } else {
+  //     throw Exception("Document not found");
+  //   }
+  // }
+
+  /// ✅ Get specific fields from data array
+  Future<List<T>> getDataField<T>(String docId, String fieldName) async {
+    final doc = await _db.doc(docId).get();
+    if (doc.exists) {
+      List<dynamic> data = doc['data'];
+      return data.map<T>((item) => item[fieldName] as T).toList();
+    } else {
+      throw Exception("Document not found");
     }
   }
 }

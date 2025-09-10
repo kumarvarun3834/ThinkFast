@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/start_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -19,8 +20,6 @@ class _main_page extends State<main_page> {
   void switchState() {
     setState(() {
       widget.onStateChange("Quesation_Screen");
-      // widget.onStateChange("QuizForm");
-
     });
   }
   GoogleSignInAccount? _user;
@@ -39,13 +38,15 @@ class _main_page extends State<main_page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sidebar Example")),
+      appBar: AppBar(
+          title: TextContainer("THINKFAST", Colors.black, 20)
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
         DrawerHeader(
-        decoration: const BoxDecoration(color: Colors.blue),
+        decoration: const BoxDecoration(color: Colors.blueAccent),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -72,8 +73,6 @@ class _main_page extends State<main_page> {
               leading: const Icon(Icons.login),
               title: const Text('login'),
               onTap: () async {
-                // Navigator.pop(context); // close sidebar
-                // widget.onStateChange("login");
                 try {
                   final account = await _googleSignIn.signIn();
                   if (account != null) {
@@ -98,12 +97,10 @@ class _main_page extends State<main_page> {
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: ()
-                // Navigator.pop(context);
                 async {
                   await _googleSignIn.signOut();
                   setState(() {
                     _user = null;
-                    // widget.onStateChange("login");
                   });
                 }
             ),
@@ -121,7 +118,7 @@ class _main_page extends State<main_page> {
             end: Alignment.bottomRight,
           ),
         ),
-        child: Column(
+        child: SingleChildScrollView(child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -131,6 +128,7 @@ class _main_page extends State<main_page> {
             ],
         )
       )
+    )
     );
   }
 }
