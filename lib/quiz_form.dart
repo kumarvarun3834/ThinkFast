@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/add_quiz_data.dart'; // import your QuizForm widget
+import 'package:thinkfast/add_quiz_data.dart';
+import 'package:thinkfast/drawer_data.dart'; // import your QuizForm widget
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  final void Function(String) onStateChange;
+    QuizPage({super.key,
+      required this.onStateChange});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -102,44 +105,11 @@ class _QuizPageState extends State<QuizPage> {
                   ],
                 ),
               ),
-              if (_user==null)ListTile(
-                leading: const Icon(Icons.login),
-                title: const Text('login'),
-                onTap: () async {
-                  // Navigator.pop(context); // close sidebar
-                  // widget.onStateChange("login");
-                  try {
-                    final account = await _googleSignIn.signIn();
-                    if (account != null) {
-                      setState(() {
-                        _user = account;
-                        // widget.onStateChange("Main_Screen");
-                      });
-                    }
-                  } catch (error) {
-                    print("Google login failed: $error");
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings),
-                title: const Text('Settings'),
-                onTap: () {
-                  Navigator.pop(context);
-                },
-              ),
-              if (_user!=null)ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('Logout'),
-                  onTap: ()
-                  // Navigator.pop(context);
-                  async {
-                    await _googleSignIn.signOut();
-                    setState(() {
-                      _user = null;
-                      // widget.onStateChange("login");
-                    });
-                  }
+              SidebarMenu(
+                googleSignIn: _googleSignIn,
+                user: _user,
+                onStateChange: widget.onStateChange,
+                refreshParent: () => setState(() {}), // refresh sidebar
               ),
             ],
           ),

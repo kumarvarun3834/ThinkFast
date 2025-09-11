@@ -4,10 +4,10 @@ import 'package:thinkfast/TextContainer.dart';
 class ResultScreen extends StatelessWidget {
   final List<Map<String,Object>> quizResult;
   final List<Map<String,Object>> quizData;
-  final VoidCallback onPressed;
+  final void Function(String) onStateChange;
   // final int originalOptionsPerQuestion;
 
-  const ResultScreen(this.quizData,this.quizResult, this.onPressed,{super.key});
+  const ResultScreen(this.quizData,this.quizResult, {super.key, required this.onStateChange});
 
   int getScoreForQuestion(List<String> result) {
     return 0;
@@ -46,7 +46,9 @@ class ResultScreen extends StatelessWidget {
     result_data.add(Container(
       alignment: Alignment.center,
       child: OutlinedButton.icon(
-        onPressed: onPressed,
+        onPressed: (){
+          onStateChange("Main_Screen");
+          },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(

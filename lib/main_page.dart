@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
+import 'package:thinkfast/drawer_data.dart';
+import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/start_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -86,23 +88,11 @@ class _main_page extends State<main_page> {
                 }
                  },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                },
-            ),
-            if (_user!=null)ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: ()
-                async {
-                  await _googleSignIn.signOut();
-                  setState(() {
-                    _user = null;
-                  });
-                }
+            SidebarMenu(
+              googleSignIn: _googleSignIn,
+              user: _user,
+              onStateChange: widget.onStateChange,
+              refreshParent: () => setState(() {}), // refresh sidebar
             ),
           ],
         ),

@@ -133,22 +133,11 @@ class _Quiz extends State<MyHomePage> {
     return quizResult;
   }
 
-  void switchState() {
-    setState(() {
-      if (currState=="Main_Screen"){
-      currState = "Quesation_Screen";
-      }else{
-        quizData = quizdatareset();
-        quizData = shuffleQuizData(quizData);
-        quizResult = quizReset(quizData);
-        currState= "Main_Screen";
-      }
-    });}
-
   void setCurrState(String newState) {
     setState(() {
       currState = newState;
     });
+    print(newState);
   }
 
   @override
@@ -169,10 +158,10 @@ class _Quiz extends State<MyHomePage> {
           (currState == "Main_Screen")
               ? main_page(onStateChange: setCurrState,) :
           (currState=="QuizForm")
-              ?QuizPage():
+              ?QuizPage(onStateChange: setCurrState,):
           (currState == "Quesation_Screen")
               ? Quesations(quizData, quizResult,onStateChange: setCurrState)
-              : ResultScreen(quizData,quizResult,switchState)
+              : ResultScreen(quizData,quizResult,onStateChange: setCurrState)
       ),
     );
   }

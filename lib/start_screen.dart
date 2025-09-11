@@ -15,6 +15,7 @@ class  Main_Screen extends StatelessWidget {
         {
           "question": "What are the main building blocks of Flutter UIs?",
           "answer": ["Widgets"],
+          "type": "multiple",
           "options": [
             "Components",
             "Blocks",
@@ -829,7 +830,6 @@ class  Main_Screen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // return Center(child: TextContainer("works", Colors.black, 50));
     return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
