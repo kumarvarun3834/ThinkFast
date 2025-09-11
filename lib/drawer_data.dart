@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/main_page.dart';
 import 'package:thinkfast/quiz_form.dart';
 
@@ -27,15 +28,18 @@ class SidebarMenu extends StatelessWidget {
             title: const Text('Login'),
             onTap: () async {
               try {
-                final account = await googleSignIn.signIn();
+                // New API: authenticate or sign in
+                final account = await GoogleSignInProvider.instance.authenticate();
+
                 if (account != null) {
+                  // Update your app state
                   onStateChange(main_page(onStateChange: onStateChange));
                   refreshParent();
                 }
               } catch (error) {
                 print("Google login failed: $error");
               }
-            },
+              },
           ),
         ListTile(
           leading: const Icon(Icons.home),

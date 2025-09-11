@@ -3,4 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 class GoogleSignInProvider {
   // singleton instance
   static final GoogleSignIn instance = GoogleSignIn.instance;
+
+  // Track current signed-in user
+  static GoogleSignInAccount? currentUser;
 }
