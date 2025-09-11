@@ -4,31 +4,33 @@ class DatabaseService {
   final CollectionReference _db =
   FirebaseFirestore.instance.collection('databases');
 
-  /// ✅ Create a new database
-  Future<void> createDatabase({
+  /// ✅ Create a new database (quiz set)
+  Future<String> createDatabase({
     required String user,
     required String title,
     required String description,
     required List<Map<String, Object>> data,
   }) async {
-    await _db.add({
-      'id': DateTime.now().millisecondsSinceEpoch.toString(), // mock ID
+    final docRef = await _db.add({
       'user': user,
       'title': title,
       'description': description,
       'visibility': 'private',
       'data': data,
+      'createdAt': FieldValue.serverTimestamp(),
     });
+    return docRef.id; // return Firestore document ID
   }
 
   /// ✅ Read all databases (real-time stream)
-  Stream<List<Map<String, Object>>> readAllDatabases() {
-    return _db.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) {
-          var data = doc.data() as Map<String, Object>;
-          data['id'] = doc.id; // include document ID
-          return data;
-        }).toList());
+  Stream<List<Map<String, dynamic>>> readAllDatabases() {
+    return _db.snapshots().map(
+          (snapshot) => snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // attach Firestore ID
+        return data;
+      }).toList(),
+    );
   }
 
   /// ✅ Update an existing database (only creator can update)
@@ -38,6 +40,7 @@ class DatabaseService {
     String? title,
     String? description,
     List<Map<String, Object>>? data,
+    String? visibility,
   }) async {
     final doc = await _db.doc(docId).get();
     if (doc.exists && doc['user'] == currentUser) {
@@ -45,6 +48,9 @@ class DatabaseService {
       if (title != null) updatedFields['title'] = title;
       if (description != null) updatedFields['description'] = description;
       if (data != null) updatedFields['data'] = data;
+      if (visibility != null) updatedFields['visibility'] = visibility;
+
+      updatedFields['updatedAt'] = FieldValue.serverTimestamp();
 
       await _db.doc(docId).update(updatedFields);
     } else {
@@ -65,22 +71,11 @@ class DatabaseService {
     }
   }
 
-  // // will give total no of databases present in sever
-  // Future<int> countDataElements(String docId) async {
-  //   final doc = await _db.doc(docId).get();
-  //   if (doc.exists) {
-  //     List<dynamic> data = doc['data'];
-  //     return data.length;
-  //   } else {
-  //     throw Exception("Document not found");
-  //   }
-  // }
-
   /// ✅ Get specific fields from data array
   Future<List<T>> getDataField<T>(String docId, String fieldName) async {
     final doc = await _db.doc(docId).get();
     if (doc.exists) {
-      List<dynamic> data = doc['data'];
+      final data = List<Map<String, dynamic>>.from(doc['data']);
       return data.map<T>((item) => item[fieldName] as T).toList();
     } else {
       throw Exception("Document not found");

@@ -5,31 +5,31 @@ import 'package:thinkfast/drawer_data.dart';
 
 class QuizPage extends StatefulWidget {
   final void Function(String) onStateChange;
-  const QuizPage({super.key,required this.onStateChange});
+  const QuizPage({super.key, required this.onStateChange});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
-
-  int i=0;
-  List<QuizForm> _forms = [QuizForm(form_data_part: form_data[i])];
-  List<Map<String,Object>> form_data =[];
+  List<Map<String, Object>> form_data = []; // ✅ only data
 
   void _addNewForm() {
-    form_data[i]={};
     setState(() {
-      _forms.add(QuizForm(form_data_part: form_data[i],));
+      form_data.add({}); // start empty data for new quiz form
     });
-    i+=1;
   }
 
   void _removeForm(int index) {
     setState(() {
-      _forms.removeAt(index);
+      form_data.removeAt(index);
     });
-    i-=1;
+  }
+
+  void _updateFormData(int index, Map<String, Object> data) {
+    setState(() {
+      form_data[index] = data;
+    });
   }
 
   GoogleSignInAccount? _user;
@@ -43,91 +43,98 @@ class _QuizPageState extends State<QuizPage> {
         _user = account;
       });
     });
-    _googleSignIn.signInSilently(); // restore last login
-    _forms.add(QuizForm(form_data_part: form_data[0]));
+    _googleSignIn.signInSilently();
+
+    // start with one form
+    form_data.add({});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          titleSpacing: 0, // so title sits right after menu button
-          title: const Text("Quiz Builder"),
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer(); // open sidebar
-              },
-            ),
+      appBar: AppBar(
+        titleSpacing: 0,
+        title: const Text("Quiz Builder"),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
           ),
-
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red, // red button
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: () {
-                  // action here
-                },
-                child: const Text(
-                  "Save",
-                  style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
+              onPressed: () {
+                print("📌 Final quiz data: $form_data");
+                // TODO: send to Firebase or save locally
+              },
+              child: const Text(
+                "Save",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: (_user != null && _user!.photoUrl != null)
+                        ? NetworkImage(_user!.photoUrl!)
+                        : null,
+                    child: (_user == null || _user!.photoUrl == null)
+                        ? const Icon(Icons.account_circle,
+                        size: 60, color: Colors.white)
+                        : null,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    (_user != null)
+                        ? "Hi, ${_user!.displayName ?? _user!.email}"
+                        : "Hi, Guest",
+                    style:
+                    const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
+            ),
+            SidebarMenu(
+              googleSignIn: _googleSignIn,
+              user: _user,
+              onStateChange: widget.onStateChange,
+              refreshParent: () => setState(() {}),
             ),
           ],
         ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: const BoxDecoration(color: Colors.blue),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: (_user != null && _user!.photoUrl != null)
-                          ? NetworkImage(_user!.photoUrl!)
-                          : null,
-                      child: (_user == null || _user!.photoUrl == null)
-                          ? const Icon(Icons.account_circle, size: 60, color: Colors.white)
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      (_user != null)
-                          ? "Hi, ${_user!.displayName ?? _user!.email}"
-                          : "Hi, Guest",
-                      style: const TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                  ],
-                ),
-              ),
-              SidebarMenu(
-                googleSignIn: _googleSignIn,
-                user: _user,
-                onStateChange: widget.onStateChange,
-                refreshParent: () => setState(() {}), // refresh sidebar
-              ),
-            ],
-          ),
-        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
-          children: List.generate(_forms.length, (index) {
+          children: List.generate(form_data.length, (index) {
             return Card(
               margin: const EdgeInsets.all(10),
               child: Column(
                 children: [
-                  _forms[index],
+                  QuizForm(
+                    form_data_part: form_data[index],
+                    onChanged: (data) => _updateFormData(index, data),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -142,16 +149,11 @@ class _QuizPageState extends State<QuizPage> {
             );
           }),
         ),
-
-      // Add new form button
-
       ),
-
-        floatingActionButton: FloatingActionButton(
-          onPressed: _addNewForm,
-          child: const Icon(Icons.add),
-        )
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addNewForm,
+        child: const Icon(Icons.add),
+      ),
     );
-
   }
 }
