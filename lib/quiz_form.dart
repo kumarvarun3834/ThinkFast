@@ -4,7 +4,7 @@ import 'package:thinkfast/add_quiz_data.dart'; // import your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
 
 class QuizPage extends StatefulWidget {
-  final void Function(String) onStateChange;
+  final Function(Widget) onStateChange;
   const QuizPage({super.key, required this.onStateChange});
 
   @override

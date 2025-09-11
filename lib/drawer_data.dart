@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:thinkfast/main_page.dart';
+import 'package:thinkfast/quiz_form.dart';
 
 class SidebarMenu extends StatelessWidget {
   final GoogleSignIn googleSignIn;
   final GoogleSignInAccount? user;
-  final Function(String) onStateChange;
+  final Function(Widget) onStateChange;
   final VoidCallback refreshParent;
 
   const SidebarMenu({
@@ -27,7 +29,7 @@ class SidebarMenu extends StatelessWidget {
               try {
                 final account = await googleSignIn.signIn();
                 if (account != null) {
-                  onStateChange("Main_Screen");
+                  onStateChange(main_page(onStateChange: onStateChange));
                   refreshParent();
                 }
               } catch (error) {
@@ -39,11 +41,11 @@ class SidebarMenu extends StatelessWidget {
           leading: const Icon(Icons.home),
           title: const Text('Home'),
           onTap: () {
-            onStateChange("Main_Screen");
+            onStateChange(main_page(onStateChange: onStateChange));
             refreshParent();
           },
         ),
-        if (user != null)
+        // if (user != null)
         // ListTile(
         //   leading: const Icon(Icons.settings),
         //   title: const Text('Settings'),
@@ -57,7 +59,7 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.add),
             title: const Text('Create New Quiz'),
             onTap: () {
-              onStateChange("QuizForm");
+              onStateChange(QuizPage(onStateChange: onStateChange));
               refreshParent();
             },
           ),

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/drawer_data.dart';
+import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/start_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class main_page extends StatefulWidget {
-  final void Function(String) onStateChange;
+  final Function(Widget)  onStateChange;
 
-  main_page({
+  const main_page({
     required this.onStateChange,
     super.key,
   });
@@ -18,9 +19,10 @@ class main_page extends StatefulWidget {
 
 class _main_page extends State<main_page> {
 
-  void switchState() {
+  void switchState(String id) {
+    List<Map<String,Object>> dataSet=[];
     setState(() {
-      widget.onStateChange("Quesation_Screen");
+      widget.onStateChange(Quesations(dataSet,onStateChange: widget.onStateChange));
     });
   }
   GoogleSignInAccount? _user;
@@ -113,7 +115,7 @@ class _main_page extends State<main_page> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
-                child: Main_Screen(onPressed: switchState)
+                child: Main_Screen(onPressed: widget.onStateChange)
               ),
             ],
         )

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/opt_buttons.dart';
+import 'package:thinkfast/result_screen.dart';
 
 class Quesations extends StatefulWidget {
   final List<Map<String, Object>> dataSet;
-  final List<Map<String, Object>> quizResult;
-  final void Function(String) onStateChange;
+  // final String dataSet;
+  // final List<Map<String, Object>> quizResult;
+  final Function(Widget) onStateChange;
 
-  Quesations(this.dataSet, this.quizResult,{
+  Quesations(this.dataSet,{
     required this.onStateChange,
     super.key,
   });
@@ -18,15 +20,32 @@ class Quesations extends StatefulWidget {
 
 class _Quesations extends State<Quesations> {
   late List<Map<String, Object>> dataSet;
-  late List<Map<String, Object>> quizResult;
+  List<Map<String, Object>> quizReset(List<Map<String, Object>> quizData) {
+    List<Map<String, Object>> quizResult = [];
+    int x = 0;
 
+    while (x <= quizData.length) {
+      //             [Q, ans, false,  selected,trials]
+      quizResult.add({
+        "question": "a",
+        "answer": "",
+        "trials": 0,
+        "selection": []
+      });
+      x++;
+    }
+    print("quiz reset");
+    return quizResult;
+  }
+
+  late List<Map<String, Object>> quizResult=quizReset(dataSet);
   int i = 0;
 
   @override
   void initState() {
     super.initState();
     dataSet = widget.dataSet;
-    quizResult = widget.quizResult;
+    // quizResult = widget.quizResult;
     // current_state = widget.currState;
     currentData = dataSet[i];
     quizResult[i]["question"]=dataSet[i]["question"]!;
@@ -34,7 +53,7 @@ class _Quesations extends State<Quesations> {
   }
   Map<String, Object> currentData={};
   void switchToResultScreen() {
-    widget.onStateChange("result_screen");
+    widget.onStateChange(ResultScreen(dataSet,quizResult,onStateChange: widget.onStateChange));
   }
 
   void switchState() {

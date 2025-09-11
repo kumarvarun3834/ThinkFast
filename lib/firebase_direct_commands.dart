@@ -72,13 +72,13 @@ class DatabaseService {
   }
 
   /// ✅ Get specific fields from data array
-  Future<List<T>> getDataField<T>(String docId, String fieldName) async {
-    final doc = await _db.doc(docId).get();
-    if (doc.exists) {
-      final data = List<Map<String, dynamic>>.from(doc['data']);
-      return data.map<T>((item) => item[fieldName] as T).toList();
-    } else {
-      throw Exception("Document not found");
-    }
-  }
+  // Future<List<T>> getDataField<T>(String docId, String fieldName) async {
+  //   final doc = await _db.doc(docId).get();
+  //   if (doc.exists) {
+  //     final data = List<Map<String, dynamic>>.from(doc['data']);
+  //     return data.map<T>((item) => item[fieldName] as T).toList();
+  //   } else {
+  //     throw Exception("Document not found");
+  //   }
+  // }
 }

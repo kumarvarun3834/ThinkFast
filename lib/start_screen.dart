@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/TextContainer.dart';
 
 class  Main_Screen extends StatelessWidget {
-  final VoidCallback onPressed;
+  // final VoidCallback onPressed;
+  final Function(Widget) onPressed;
   List<Map<String,Object>> dataset=[
     {
       'id': DateTime.now().millisecondsSinceEpoch.toString(), // mock ID
