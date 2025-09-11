@@ -18,7 +18,7 @@ class QuizForm extends StatefulWidget {
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
-  final Set<int> _selectedAnswers = {}; // stores indexes of correct options
+  Set<int> _selectedAnswers = {}; // stores indexes of correct options
   String? _selectedValue; // current selected item
   @override
   void initState() {
@@ -35,11 +35,15 @@ class _QuizFormState extends State<QuizForm> {
 
   void _toggleAnswer(int index, bool? checked) {
     setState(() {
+      if (_selectedValue=="Single Choice"){
+        _selectedAnswers={};
+        _selectedAnswers.add(index);
+      }else if (_selectedValue=="Multiple Choice"){
       if (checked == true) {
         _selectedAnswers.add(index);
       } else {
         _selectedAnswers.remove(index);
-      }
+      }}
     });
   }
 
