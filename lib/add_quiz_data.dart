@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 
 class QuizForm extends StatefulWidget {
-  Map<String, Object> form_data_part;
-  final void Function(Map<String, Object>) onChanged; // callback
-  final void Function(TextEditingController, List<TextEditingController>, Set<int>, String?) saveForm;
+  final Map<String, Object> form_data_part;
+  final void Function(Map<String, Object>) onChanged;
 
-  QuizForm({
+  const QuizForm({
     super.key,
     required this.form_data_part,
     required this.onChanged,
-    required this.saveForm,
   });
 
   @override
@@ -19,27 +17,73 @@ class QuizForm extends StatefulWidget {
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
-  Set<int> _selectedAnswers = {}; // stores indexes of correct options
-  String? _selectedValue; // current selected item
+  Set<int> _selectedAnswers = {};
+  String? _selectedValue;
 
+  @override
   @override
   void initState() {
     super.initState();
-    _addChoice();
-    _addChoice();
+
+    // load existing question
+    if (widget.form_data_part["question"] != null) {
+      _questionController.text = widget.form_data_part["question"] as String;
+    }
+
+    // load existing type
+    if (widget.form_data_part["type"] != null) {
+      _selectedValue = widget.form_data_part["type"] as String;
+    }
+
+    // load existing choices
+    if (widget.form_data_part["choices"] != null) {
+      List choices = widget.form_data_part["choices"] as List;
+      for (var choice in choices) {
+        final controller = TextEditingController(text: choice.toString());
+        _choiceControllers.add(controller);
+      }
+    } else {
+      _addChoice();
+      _addChoice();
+    }
+
+    // load existing answers
+    if (widget.form_data_part["answers"] != null) {
+      List answers = widget.form_data_part["answers"] as List;
+      for (var answer in answers) {
+        final index = (widget.form_data_part["choices"] as List).indexOf(answer);
+        if (index != -1) {
+          _selectedAnswers.add(index);
+        }
+      }
+    }
+  }
+
+
+  /// 🔹 Helper: send current form state up to QuizPage
+  void _emitData() {
+    final choices = _choiceControllers.map((c) => c.text.trim()).toList();
+    final answers = _selectedAnswers.map((i) => choices[i]).toList();
+
+    widget.onChanged({
+      "type": _selectedValue ?? "",
+      "question": _questionController.text.trim(),
+      "choices": choices,
+      "answers": answers,
+    });
   }
 
   void _addChoice() {
     setState(() {
       _choiceControllers.add(TextEditingController());
     });
+    _emitData();
   }
 
   void _toggleAnswer(int index, bool? checked) {
     setState(() {
       if (_selectedValue == "Single Choice") {
-        _selectedAnswers = {};
-        _selectedAnswers.add(index);
+        _selectedAnswers = {index};
       } else if (_selectedValue == "Multiple Choice") {
         if (checked == true) {
           _selectedAnswers.add(index);
@@ -48,13 +92,7 @@ class _QuizFormState extends State<QuizForm> {
         }
       }
     });
-    widget.saveForm(
-  _questionController,
-  _choiceControllers,
-  _selectedAnswers,
-  _selectedValue,
-);
- // ✅ call properly
+    _emitData();
   }
 
   Widget choicetemplate(int index) {
@@ -71,14 +109,9 @@ class _QuizFormState extends State<QuizForm> {
               labelText: "Choice ${index + 1}",
               border: const OutlineInputBorder(),
             ),
-            onChanged: (_) => widget.saveForm(
-              _questionController,
-              _choiceControllers,
-              _selectedAnswers,
-              _selectedValue,
-            )
+            onChanged: (_) => _emitData(),
           ),
-          ),
+        ),
         IconButton(
           icon: const Icon(Icons.remove_circle, color: Colors.red),
           onPressed: () {
@@ -86,26 +119,20 @@ class _QuizFormState extends State<QuizForm> {
               _selectedAnswers.remove(index);
               _choiceControllers.removeAt(index);
             });
-            widget.saveForm(
-  _questionController,
-  _choiceControllers,
-  _selectedAnswers,
-  _selectedValue,
-);
- // ✅ call properly
+            _emitData();
           },
         ),
       ],
     );
   }
 
-  List<Widget> options_data() {
-    return List.generate(_choiceControllers.length, (y) => choicetemplate(y));
-  }
+  List<Widget> options_data() =>
+      List.generate(_choiceControllers.length, (y) => choicetemplate(y));
 
   @override
   Widget build(BuildContext context) {
     final List<String> _options = ["Multiple Choice", "Single Choice"];
+
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
@@ -130,13 +157,7 @@ class _QuizFormState extends State<QuizForm> {
               setState(() {
                 _selectedValue = value;
               });
-              widget.saveForm(
-  _questionController,
-  _choiceControllers,
-  _selectedAnswers,
-  _selectedValue,
-);
- // ✅ call properly
+              _emitData();
             },
           ),
 
@@ -147,12 +168,7 @@ class _QuizFormState extends State<QuizForm> {
               labelText: "Question",
               border: OutlineInputBorder(),
             ),
-            onChanged: (value) => widget.saveForm(
-              _questionController,
-              _choiceControllers,
-              _selectedAnswers,
-              _selectedValue,
-            )
+            onChanged: (_) => _emitData(),
           ),
           const SizedBox(height: 12),
 
@@ -166,16 +182,7 @@ class _QuizFormState extends State<QuizForm> {
             children: [
               IconButton(
                 icon: const Icon(Icons.add_circle, color: Colors.blue),
-                onPressed: () {
-                  _addChoice();
-                  widget.saveForm(
-  _questionController,
-  _choiceControllers,
-  _selectedAnswers,
-  _selectedValue,
-);
- // ✅ call properly
-                },
+                onPressed: _addChoice,
               ),
               const Text("Add Choice"),
             ],

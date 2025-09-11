@@ -1,48 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/add_quiz_data.dart'; // import your QuizForm widget
+import 'package:thinkfast/add_quiz_data.dart'; // your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/firebase_direct_commands.dart';
 
 class QuizPage extends StatefulWidget {
   final Function(Widget) onStateChange;
   const QuizPage({super.key, required this.onStateChange});
+
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
-  List<Map<String, Object>> form_data = []; // ✅ only data
+  List<Map<String, Object>> form_data = [];
   GoogleSignInAccount? _user;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  String title="";
-  String description="";
-  String visibility="";
 
-  void saveForm(
-  TextEditingController questionController,
-  List<TextEditingController> choiceControllers ,
-  Set<int> selectedAnswers ,
-  String? selectedValue
-      ) {
-  final question = questionController.text.trim();
-  final choices = choiceControllers.map((c) => c.text.trim()).toList();
-  final answers = selectedAnswers.map((i) => choices[i]).toList();
-  print("Type: $selectedValue");
-  print("Question: $question");
-  print("choices: $choices");
-  print("Correct Answers: $answers");
-  Map<String,Object> form_data_part={
-  "Type": ?selectedValue,
-  "Question": question,
-  "choices": choices,
-  "answers":answers
-  };
-}
+  String title = "";
+  String description = "";
+  String visibility = "";
 
   void _addNewForm() {
     setState(() {
-      form_data.add({}); // start empty data for new quiz form
+      form_data.add({});
     });
   }
 
@@ -57,7 +38,6 @@ class _QuizPageState extends State<QuizPage> {
       form_data[index] = data;
     });
   }
-
 
   @override
   void initState() {
@@ -112,7 +92,6 @@ class _QuizPageState extends State<QuizPage> {
                 } catch (e) {
                   print("Error creating database: $e");
                 }
-                // TODO: send to Firebase or save locally
               },
               child: const Text(
                 "Save",
@@ -146,8 +125,7 @@ class _QuizPageState extends State<QuizPage> {
                     (_user != null)
                         ? "Hi, ${_user!.displayName ?? _user!.email}"
                         : "Hi, Guest",
-                    style:
-                    const TextStyle(color: Colors.white, fontSize: 18),
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
               ),
@@ -170,7 +148,7 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   QuizForm(
                     form_data_part: form_data[index],
-                    onChanged: (data) => _updateFormData(index, data), saveForm:saveForm,
+                    onChanged: (data) => _updateFormData(index, data),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
