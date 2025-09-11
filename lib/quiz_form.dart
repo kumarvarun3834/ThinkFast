@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/add_quiz_data.dart';
-import 'package:thinkfast/drawer_data.dart'; // import your QuizForm widget
+import 'package:thinkfast/add_quiz_data.dart'; // import your QuizForm widget
+import 'package:thinkfast/drawer_data.dart';
 
 class QuizPage extends StatefulWidget {
   final void Function(String) onStateChange;
-    QuizPage({super.key,
-      required this.onStateChange});
+  const QuizPage({super.key,required this.onStateChange});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
-  final List<QuizForm> _forms = [const QuizForm()];
+
+  int i=0;
+  List<QuizForm> _forms = [QuizForm(form_data_part: form_data[i])];
+  List<Map<String,Object>> form_data =[];
 
   void _addNewForm() {
+    form_data[i]={};
     setState(() {
-      _forms.add(const QuizForm());
+      _forms.add(QuizForm(form_data_part: form_data[i],));
     });
+    i+=1;
   }
 
   void _removeForm(int index) {
     setState(() {
       _forms.removeAt(index);
     });
+    i-=1;
   }
 
   GoogleSignInAccount? _user;
@@ -39,6 +44,7 @@ class _QuizPageState extends State<QuizPage> {
       });
     });
     _googleSignIn.signInSilently(); // restore last login
+    _forms.add(QuizForm(form_data_part: form_data[0]));
   }
 
   @override
@@ -55,6 +61,7 @@ class _QuizPageState extends State<QuizPage> {
               },
             ),
           ),
+
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -66,7 +73,6 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                 ),
                 onPressed: () {
-
                   // action here
                 },
                 child: const Text(

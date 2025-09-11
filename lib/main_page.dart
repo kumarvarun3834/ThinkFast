@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/drawer_data.dart';
-import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/start_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -71,23 +70,24 @@ class _main_page extends State<main_page> {
           ],
         ),
       ),
-            if (_user==null)ListTile(
-              leading: const Icon(Icons.login),
-              title: const Text('login'),
-              onTap: () async {
-                try {
-                  final account = await _googleSignIn.signIn();
-                  if (account != null) {
-                    setState(() {
-                      _user = account;
-                      // widget.onStateChange("Main_Screen");
-                    });
-                  }
-                } catch (error) {
-                  print("Google login failed: $error");
-                }
-                 },
-            ),
+            // if (_user==null)ListTile(
+            //   leading: const Icon(Icons.login),
+            //   title: const Text('login'),
+            //   onTap: () async {
+            //     try {
+            //       final account = await _googleSignIn.signIn();
+            //       if (account != null) {
+            //         setState(() {
+            //           _user = account;
+            //           // widget.onStateChange("Main_Screen");
+            //         });
+            //       }
+            //     } catch (error) {
+            //       print("Google login failed: $error");
+            //     }
+            //      },
+            // ),
+
             SidebarMenu(
               googleSignIn: _googleSignIn,
               user: _user,

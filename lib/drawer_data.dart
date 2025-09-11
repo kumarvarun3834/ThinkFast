@@ -40,6 +40,7 @@ class SidebarMenu extends StatelessWidget {
           title: const Text('Home'),
           onTap: () {
             onStateChange("Main_Screen");
+            refreshParent();
           },
         ),
         if (user != null)
@@ -57,6 +58,7 @@ class SidebarMenu extends StatelessWidget {
             title: const Text('Create New Quiz'),
             onTap: () {
               onStateChange("QuizForm");
+              refreshParent();
             },
           ),
         if (user != null)
@@ -74,6 +76,14 @@ class SidebarMenu extends StatelessWidget {
               refreshParent();
             },
           ),
+        ListTile(
+          leading: const Icon(Icons.info),
+          title: const Text('About Us'),
+          onTap: () async {
+
+            refreshParent();
+          },
+        ),
       ],
     );
   }

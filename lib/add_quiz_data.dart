@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class QuizForm extends StatefulWidget {
-  const QuizForm({super.key});
-
+  QuizForm({super.key,required this.form_data_part});
+  Map<String,Object> form_data_part;
   @override
   State<QuizForm> createState() => _QuizFormState();
 }
@@ -11,11 +11,12 @@ class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
   final Set<int> _selectedAnswers = {}; // stores indexes of correct options
-  String? _selectedValue; // current selected item
+
   @override
   void initState() {
     super.initState();
-    _addChoice(); // start with one choice
+    _addChoice();
+    _addChoice();
   }
 
   void _addChoice() {
@@ -75,7 +76,7 @@ class _QuizFormState extends State<QuizForm> {
     final question = _questionController.text.trim();
     final choices = _choiceControllers.map((c) => c.text.trim()).toList();
     final answers = _selectedAnswers.map((i) => choices[i]).toList();
-    print("Type: $_selectedValue");
+
     print("Question: $question");
     print("Choices: $choices");
     print("Correct Answers: $answers");
@@ -83,9 +84,6 @@ class _QuizFormState extends State<QuizForm> {
 
   @override
   Widget build(BuildContext context) {
-
-    final List<String> _options = ["multiple","Single"];
-
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
@@ -97,20 +95,6 @@ class _QuizFormState extends State<QuizForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-        DropdownButton<String>(
-        value: _selectedValue,
-        hint: const Text("Visiblity"),
-        items: _options.map((String option) {
-          return DropdownMenuItem<String>(
-            value: option,
-            child: Text(option),
-          );
-        }).toList(),
-        onChanged: (value) {
-          setState(() {
-            _selectedValue = value;
-          });
-        },),
           // Question field
           TextField(
             controller: _questionController,
