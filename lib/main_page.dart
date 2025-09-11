@@ -38,6 +38,7 @@ class _main_page extends State<main_page> {
     });
     _googleSignIn.signInSilently(); // restore last login
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,7 +90,6 @@ class _main_page extends State<main_page> {
             //     }
             //      },
             // ),
-
             SidebarMenu(
               googleSignIn: _googleSignIn,
               user: _user,

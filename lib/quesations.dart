@@ -28,7 +28,6 @@ class _Quesations extends State<Quesations> {
       //             [Q, ans, false,  selected,trials]
       quizResult.add({
         "question": "a",
-        "answer": "",
         "trials": 0,
         "selection": []
       });
@@ -49,7 +48,7 @@ class _Quesations extends State<Quesations> {
     // current_state = widget.currState;
     currentData = dataSet[i];
     quizResult[i]["question"]=dataSet[i]["question"]!;
-    quizResult[i]["answer"]=dataSet[i]["answer"]!;
+    // quizResult[i]["answer"]=dataSet[i]["answer"]!;
   }
   Map<String, Object> currentData={};
   void switchToResultScreen() {
@@ -83,13 +82,13 @@ class _Quesations extends State<Quesations> {
   }
 
   // Sample dynamic data with numbers instead of names
-  final List<Map<String, dynamic>> drawerItems = [
-    {"number": 1, "color": Colors.blue},
-    {"number": 2, "color": Colors.green},
-    { "number": 3, "color": Colors.red},
-    { "number": 4, "color": Colors.orange},
-    { "number": 5, "color": Colors.purple},
-  ];
+  // final List<Map<String, dynamic>> drawerItems = [
+  //   {"number": 1, "color": Colors.blue},
+  //   {"number": 2, "color": Colors.green},
+  //   { "number": 3, "color": Colors.red},
+  //   { "number": 4, "color": Colors.orange},
+  //   { "number": 5, "color": Colors.purple},
+  // ];
 
   // ListTile tiles(int index){
   //   return ListTile(

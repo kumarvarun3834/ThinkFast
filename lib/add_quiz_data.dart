@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 
 class QuizForm extends StatefulWidget {
-  final Map<String, Object> form_data_part;
+  Map<String, Object> form_data_part;
   final void Function(Map<String, Object>) onChanged; // callback
+  final void Function(TextEditingController, List<TextEditingController>, Set<int>, String?) saveForm;
 
-  const QuizForm({
+  QuizForm({
     super.key,
     required this.form_data_part,
     required this.onChanged,
+    required this.saveForm,
   });
 
   @override
   State<QuizForm> createState() => _QuizFormState();
 }
 
-
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
   Set<int> _selectedAnswers = {}; // stores indexes of correct options
   String? _selectedValue; // current selected item
+
   @override
   void initState() {
     super.initState();
@@ -35,16 +37,24 @@ class _QuizFormState extends State<QuizForm> {
 
   void _toggleAnswer(int index, bool? checked) {
     setState(() {
-      if (_selectedValue=="Single Choice"){
-        _selectedAnswers={};
+      if (_selectedValue == "Single Choice") {
+        _selectedAnswers = {};
         _selectedAnswers.add(index);
-      }else if (_selectedValue=="Multiple Choice"){
-      if (checked == true) {
-        _selectedAnswers.add(index);
-      } else {
-        _selectedAnswers.remove(index);
-      }}
+      } else if (_selectedValue == "Multiple Choice") {
+        if (checked == true) {
+          _selectedAnswers.add(index);
+        } else {
+          _selectedAnswers.remove(index);
+        }
+      }
     });
+    widget.saveForm(
+  _questionController,
+  _choiceControllers,
+  _selectedAnswers,
+  _selectedValue,
+);
+ // ✅ call properly
   }
 
   Widget choicetemplate(int index) {
@@ -61,8 +71,14 @@ class _QuizFormState extends State<QuizForm> {
               labelText: "Choice ${index + 1}",
               border: const OutlineInputBorder(),
             ),
+            onChanged: (_) => widget.saveForm(
+              _questionController,
+              _choiceControllers,
+              _selectedAnswers,
+              _selectedValue,
+            )
           ),
-        ),
+          ),
         IconButton(
           icon: const Icon(Icons.remove_circle, color: Colors.red),
           onPressed: () {
@@ -70,6 +86,13 @@ class _QuizFormState extends State<QuizForm> {
               _selectedAnswers.remove(index);
               _choiceControllers.removeAt(index);
             });
+            widget.saveForm(
+  _questionController,
+  _choiceControllers,
+  _selectedAnswers,
+  _selectedValue,
+);
+ // ✅ call properly
           },
         ),
       ],
@@ -77,26 +100,12 @@ class _QuizFormState extends State<QuizForm> {
   }
 
   List<Widget> options_data() {
-    List<Widget> widgets = [];
-    for (int y = 0; y < _choiceControllers.length; y++) {
-      widgets.add(choicetemplate(y));
-    }
-    return widgets;
-  }
-
-  void _saveForm() {
-    final question = _questionController.text.trim();
-    final choices = _choiceControllers.map((c) => c.text.trim()).toList();
-    final answers = _selectedAnswers.map((i) => choices[i]).toList();
-    print("Type: $_selectedValue");
-    print("Question: $question");
-    print("Choices: $choices");
-    print("Correct Answers: $answers");
+    return List.generate(_choiceControllers.length, (y) => choicetemplate(y));
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<String> _options = ["Multiple Choice","Single Choice"];
+    final List<String> _options = ["Multiple Choice", "Single Choice"];
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(16),
@@ -121,7 +130,16 @@ class _QuizFormState extends State<QuizForm> {
               setState(() {
                 _selectedValue = value;
               });
-            },),
+              widget.saveForm(
+  _questionController,
+  _choiceControllers,
+  _selectedAnswers,
+  _selectedValue,
+);
+ // ✅ call properly
+            },
+          ),
+
           // Question field
           TextField(
             controller: _questionController,
@@ -129,6 +147,12 @@ class _QuizFormState extends State<QuizForm> {
               labelText: "Question",
               border: OutlineInputBorder(),
             ),
+            onChanged: (value) => widget.saveForm(
+              _questionController,
+              _choiceControllers,
+              _selectedAnswers,
+              _selectedValue,
+            )
           ),
           const SizedBox(height: 12),
 
@@ -142,7 +166,16 @@ class _QuizFormState extends State<QuizForm> {
             children: [
               IconButton(
                 icon: const Icon(Icons.add_circle, color: Colors.blue),
-                onPressed: _addChoice,
+                onPressed: () {
+                  _addChoice();
+                  widget.saveForm(
+  _questionController,
+  _choiceControllers,
+  _selectedAnswers,
+  _selectedValue,
+);
+ // ✅ call properly
+                },
               ),
               const Text("Add Choice"),
             ],

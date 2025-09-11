@@ -2,17 +2,43 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/add_quiz_data.dart'; // import your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
+import 'package:thinkfast/firebase_direct_commands.dart';
 
 class QuizPage extends StatefulWidget {
   final Function(Widget) onStateChange;
   const QuizPage({super.key, required this.onStateChange});
-
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
   List<Map<String, Object>> form_data = []; // ✅ only data
+  GoogleSignInAccount? _user;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  String title="";
+  String description="";
+  String visibility="";
+
+  void saveForm(
+  TextEditingController questionController,
+  List<TextEditingController> choiceControllers ,
+  Set<int> selectedAnswers ,
+  String? selectedValue
+      ) {
+  final question = questionController.text.trim();
+  final choices = choiceControllers.map((c) => c.text.trim()).toList();
+  final answers = selectedAnswers.map((i) => choices[i]).toList();
+  print("Type: $selectedValue");
+  print("Question: $question");
+  print("choices: $choices");
+  print("Correct Answers: $answers");
+  Map<String,Object> form_data_part={
+  "Type": ?selectedValue,
+  "Question": question,
+  "choices": choices,
+  "answers":answers
+  };
+}
 
   void _addNewForm() {
     setState(() {
@@ -32,8 +58,6 @@ class _QuizPageState extends State<QuizPage> {
     });
   }
 
-  GoogleSignInAccount? _user;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   @override
   void initState() {
@@ -73,8 +97,21 @@ class _QuizPageState extends State<QuizPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () {
+              onPressed: () async {
                 print("📌 Final quiz data: $form_data");
+                final DatabaseService dbService = DatabaseService();
+                try {
+                  String docId = await dbService.createDatabase(
+                    user: _user!.email,
+                    title: title,
+                    description: description,
+                    visibility: visibility,
+                    data: form_data,
+                  );
+                  print("Database created with ID: $docId");
+                } catch (e) {
+                  print("Error creating database: $e");
+                }
                 // TODO: send to Firebase or save locally
               },
               child: const Text(
@@ -133,7 +170,7 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   QuizForm(
                     form_data_part: form_data[index],
-                    onChanged: (data) => _updateFormData(index, data),
+                    onChanged: (data) => _updateFormData(index, data), saveForm:saveForm,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,

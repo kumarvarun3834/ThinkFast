@@ -9,13 +9,14 @@ class DatabaseService {
     required String user,
     required String title,
     required String description,
+    required String visibility,
     required List<Map<String, Object>> data,
   }) async {
     final docRef = await _db.add({
       'user': user,
       'title': title,
       'description': description,
-      'visibility': 'private',
+      'visibility': visibility,
       'data': data,
       'createdAt': FieldValue.serverTimestamp(),
     });
