@@ -23,16 +23,23 @@ class DatabaseService {
     return docRef.id; // return Firestore document ID
   }
 
-  /// ✅ Read all databases (real-time stream)
-  Stream<List<Map<String, dynamic>>> readAllDatabases() {
+  /// ✅ Read all databases (real-time stream) with optional visibility filter
+  Stream<List<Map<String, dynamic>>> readAllDatabases({String? visibility}) {
     return _db.snapshots().map(
           (snapshot) => snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id; // attach Firestore ID
         return data;
+      }).where((data) {
+        // Filter if visibility is provided
+        if (visibility != null) {
+          return data['visibility'] == visibility;
+        }
+        return true; // include all if no filter
       }).toList(),
     );
   }
+
 
   /// ✅ Update an existing database (only creator can update)
   Future<void> updateDatabase({

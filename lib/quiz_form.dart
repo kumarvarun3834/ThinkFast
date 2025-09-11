@@ -19,7 +19,7 @@ class _QuizPageState extends State<QuizPage> {
   // Metadata
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
-  String visibility = "private";
+  String visibility = "private"; // default to private
 
   // Questions
   List<Map<String, Object>> questions = [];
@@ -88,6 +88,7 @@ class _QuizPageState extends State<QuizPage> {
                   print("Error creating database: $e");
                 }
               },
+
               child: const Text(
                 "Save",
                 style: TextStyle(color: Colors.white),
@@ -160,19 +161,57 @@ class _QuizPageState extends State<QuizPage> {
               const SizedBox(height: 12),
 
               // Visibility Dropdown
-              DropdownButtonFormField<String>(
-                value: visibility,
-                decoration: const InputDecoration(
-                  labelText: "Visibility",
-                  border: OutlineInputBorder(),
-                ),
-                items: const [
-                  DropdownMenuItem(value: "private", child: Text("Private")),
-                  DropdownMenuItem(value: "public", child: Text("Public")),
+              // DropdownButtonFormField<String>(
+              //   initialValue: visibility,
+              //   decoration: const InputDecoration(
+              //     labelText: "Visibility",
+              //     border: OutlineInputBorder(),
+              //   ),
+              //   items: const [
+              //     DropdownMenuItem(value: "private", child: Text("Private")),
+              //     DropdownMenuItem(value: "public", child: Text("Public")),
+              //   ],
+              //   onChanged: (val) => setState(() => visibility = val!),
+              // ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Visibility",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text("Private"),
+                          value: "private",
+                          groupValue: visibility.isEmpty ? "private" : visibility,
+                          onChanged: (val) {
+                            setState(() {
+                              visibility = val!;
+                            });
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: RadioListTile<String>(
+                          title: const Text("Public"),
+                          value: "public",
+                          groupValue: visibility.isEmpty ? "private" : visibility,
+                          onChanged: (val) {
+                            setState(() {
+                              visibility = val!;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
-                onChanged: (val) => setState(() => visibility = val!),
-              ),
-              const SizedBox(height: 12),
+              )
+
+              ,const SizedBox(height: 12),
 
               // Questions list
               Column(
