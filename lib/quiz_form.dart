@@ -13,44 +13,42 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  List<Map<String, Object>> form_data = [];
   GoogleSignInAccount? _user;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  String title = "";
-  String description = "";
-  String visibility = "";
+  // Metadata
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  String visibility = "private";
 
-  void _addNewForm() {
-    setState(() {
-      form_data.add({});
-    });
-  }
-
-  void _removeForm(int index) {
-    setState(() {
-      form_data.removeAt(index);
-    });
-  }
-
-  void _updateFormData(int index, Map<String, Object> data) {
-    setState(() {
-      form_data[index] = data;
-    });
-  }
+  // Questions
+  List<Map<String, Object>> questions = [];
 
   @override
   void initState() {
     super.initState();
     _googleSignIn.onCurrentUserChanged.listen((account) {
-      setState(() {
-        _user = account;
-      });
+      setState(() => _user = account);
     });
     _googleSignIn.signInSilently();
 
-    // start with one form
-    form_data.add({});
+    _titleController = TextEditingController();
+    _descriptionController = TextEditingController();
+
+    // start with one question
+    questions.add({});
+  }
+
+  void _addNewForm() {
+    setState(() => questions.add({}));
+  }
+
+  void _removeForm(int index) {
+    setState(() => questions.removeAt(index));
+  }
+
+  void _updateFormData(int index, Map<String, Object> data) {
+    setState(() => questions[index] = data);
   }
 
   @override
@@ -62,9 +60,7 @@ class _QuizPageState extends State<QuizPage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         actions: [
@@ -78,15 +74,14 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () async {
-                print("📌 Final quiz data: $form_data");
-                final DatabaseService dbService = DatabaseService();
+                final db = DatabaseService();
                 try {
-                  String docId = await dbService.createDatabase(
+                  String docId = await db.createDatabase(
                     user: _user!.email,
-                    title: title,
-                    description: description,
+                    title: _titleController.text,
+                    description: _descriptionController.text,
                     visibility: visibility,
-                    data: form_data,
+                    data: questions,
                   );
                   print("Database created with ID: $docId");
                 } catch (e) {
@@ -140,29 +135,72 @@ class _QuizPageState extends State<QuizPage> {
         ),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: List.generate(form_data.length, (index) {
-            return Card(
-              margin: const EdgeInsets.all(10),
-              child: Column(
-                children: [
-                  QuizForm(
-                    form_data_part: form_data[index],
-                    onChanged: (data) => _updateFormData(index, data),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _removeForm(index),
-                      ),
-                    ],
-                  ),
-                ],
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              // Title
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: "Title",
+                  border: OutlineInputBorder(),
+                ),
               ),
-            );
-          }),
+              const SizedBox(height: 12),
+
+              // Description
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Visibility Dropdown
+              DropdownButtonFormField<String>(
+                value: visibility,
+                decoration: const InputDecoration(
+                  labelText: "Visibility",
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: "private", child: Text("Private")),
+                  DropdownMenuItem(value: "public", child: Text("Public")),
+                ],
+                onChanged: (val) => setState(() => visibility = val!),
+              ),
+              const SizedBox(height: 12),
+
+              // Questions list
+              Column(
+                children: List.generate(questions.length, (index) {
+                  return Card(
+                    margin: const EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        QuizForm(
+                          form_data_part: questions[index],
+                          onChanged: (data) => _updateFormData(index, data),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeForm(index),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
