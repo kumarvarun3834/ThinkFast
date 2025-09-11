@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/TextContainer.dart';
 
 class  Main_Screen extends StatelessWidget {
@@ -793,16 +794,33 @@ class  Main_Screen extends StatelessWidget {
             )
             )
             ),
-            ElevatedButton(onPressed: (){}, child: TextContainer("click $y", Colors.black, 20)
-                ,style: ElevatedButton.styleFrom(
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: ElevatedButton(
+                onPressed: (){
 
-                  // padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-                  backgroundColor: Colors.white12,
-                  // foregroundColor: colour,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                },
+                style: ElevatedButton.styleFrom(
+
+                    // padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                    backgroundColor: Colors.white12,
+                    // foregroundColor: colour,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
-                ),)
+                child: Text(
+                  "START",
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      // decoration: TextDecoration.underline, // underline, overline, lineThrough
+                    ),
+                  ),
+                )
+                  ,),
+            )
             ]
         ),
     ));}
