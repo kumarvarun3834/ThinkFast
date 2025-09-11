@@ -1,9 +1,8 @@
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInProvider {
-  // singleton instance
-  static final GoogleSignIn instance = GoogleSignIn.instance;
-
-  // Track current signed-in user
-  static GoogleSignInAccount? currentUser;
+  static final GoogleSignIn instance = GoogleSignIn(
+    serverClientId: "YOUR_WEB_CLIENT_ID.apps.googleusercontent.com", // 👈 from Google Cloud OAuth
+    scopes: ['email', 'profile'],
+  );
 }

@@ -7,21 +7,27 @@ import 'package:thinkfast/quesations.dart';
 class Main_Screen extends StatelessWidget {
   final Function(Widget) onPressed;
   final String? creatorId; // optional filter for my quizzes
-  final String visibility; // default to 'public'
+  final String? visibility; // optional
 
   Main_Screen({
     super.key,
     required this.onPressed,
     this.creatorId,
-    this.visibility = 'public',
+    this.visibility, // nullable now
   });
 
   final CollectionReference _db =
   FirebaseFirestore.instance.collection('databases');
 
-  /// Fetch quizzes with optional creator filter
   Stream<List<Map<String, dynamic>>> readDatabases() {
-    Query query = _db.where('visibility', isEqualTo: visibility);
+    Query query = _db;
+
+    // Only apply visibility filter if provided
+    if (visibility != null) {
+      query = query.where('visibility', isEqualTo: visibility);
+    }
+
+    // Apply creatorId filter if provided
     if (creatorId != null) {
       query = query.where('creatorId', isEqualTo: creatorId);
     }

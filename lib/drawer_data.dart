@@ -28,19 +28,24 @@ class SidebarMenu extends StatelessWidget {
             title: const Text('Login'),
             onTap: () async {
               try {
-                // New API: authenticate or sign in
-                final account = await GoogleSignInProvider.instance.authenticate();
+                // Silent login first
+                final account = await GoogleSignInProvider.instance
+                    .attemptLightweightAuthentication();
 
-                if (account != null) {
-                  // Update your app state
+                GoogleSignInAccount? userAccount = account;
+
+                // Fallback to interactive login
+                userAccount ??= await GoogleSignInProvider.instance.authenticate();
+
+                if (userAccount != null) {
                   onStateChange(main_page(onStateChange: onStateChange));
                   refreshParent();
                 }
               } catch (error) {
                 print("Google login failed: $error");
               }
-              },
-          ),
+            }
+              ),
         ListTile(
           leading: const Icon(Icons.home),
           title: const Text('Home'),
