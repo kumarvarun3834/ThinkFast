@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/opt_buttons.dart';
@@ -19,10 +20,27 @@ class _Quesations extends State<Quesations> {
   int i = 0;
   Map<String, Object> currentData = {};
 
+  void _shuffleQuestionsAndOptions() {
+    final random = Random();
+
+    // Shuffle questions
+    dataSet.shuffle(random);
+
+    // Shuffle options only if they exist
+    for (var q in dataSet) {
+      final opts = q["options"];
+      if (opts is List<String>) {
+        opts.shuffle(random);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    dataSet = widget.dataSet;
+    // shuffle once when the page loads
+    dataSet=widget.dataSet;
+    _shuffleQuestionsAndOptions();
     quizResult = _quizReset(dataSet);
     currentData = dataSet[i];
     quizResult[i]["question"] = dataSet[i]["question"]!;
@@ -31,15 +49,19 @@ class _Quesations extends State<Quesations> {
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
     List<Map<String, Object>> quizResult = [];
     for (int x = 0; x < quizData.length; x++) {
-      quizResult.add({"question": quizData[x]["question"]!, "selection": []});
+      quizResult.add({
+        "question": quizData[x]["question"]!,
+        "selection": [],
+        "visited": false,
+      });
     }
-    print("quiz reset");
     return quizResult;
   }
 
   void switchToResultScreen() {
-    widget.onStateChange(ResultScreen(dataSet, quizResult,
-        onStateChange: widget.onStateChange));
+    widget.onStateChange(
+      ResultScreen(dataSet, quizResult, onStateChange: widget.onStateChange),
+    );
   }
 
   void switchState() {
@@ -81,7 +103,7 @@ class _Quesations extends State<Quesations> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 24, // bigger number for clarity
+                  fontSize: 24,
                 ),
               ),
             ),
@@ -93,7 +115,7 @@ class _Quesations extends State<Quesations> {
   Color _getQuestionColor(Map<String, Object> question) {
     List selection = question["selection"] as List;
     if (selection.isEmpty) return Colors.grey; // not visited
-    return selection.isNotEmpty ? Colors.green : Colors.yellow; // attempted or visited
+    return selection.isNotEmpty ? Colors.green : Colors.yellow;
   }
 
   @override
