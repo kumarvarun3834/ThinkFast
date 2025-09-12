@@ -25,6 +25,8 @@ class Main_Screen extends StatelessWidget {
     // Only apply visibility filter if provided
     if (visibility != null) {
       query = query.where('visibility', isEqualTo: visibility);
+    }else{
+      query = query.where("visibility", isEqualTo: "public");
     }
 
     // Apply creatorId filter if provided
