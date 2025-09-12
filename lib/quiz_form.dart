@@ -83,6 +83,7 @@ class _QuizPageState extends State<QuizPage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
+            // onPressed: (){},
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),

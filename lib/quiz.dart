@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/start_screen.dart';
 
 class My_App extends StatelessWidget {
@@ -44,21 +45,11 @@ class _Quiz extends State<MyHomePage> {
     return quizData;
   }
 
-  Widget? _currState;
+  late Widget _currState;
 
   Widget setCurrState(Widget newState) {
     setState(() {
-      _currState = newState;
-    });
-    print("Changed to: $newState");
-    return newState;
-  }
-
-  @override
-  Widget build(context) {
-
-    return Scaffold(
-      body: Container(
+      _currState = Scaffold(body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -69,8 +60,29 @@ class _Quiz extends State<MyHomePage> {
               end: Alignment.bottomRight,
             ),
           ),
-          child:_currState
+          child:newState
       ),
+      );
+    });
+    print("Changed to: $newState");
+    return newState;
+  }
+
+  @override
+  Widget build(context) {
+
+    return MaterialApp(
+        title: 'Named Routes Demo',
+        // Start the app with the "/" named route. In this case, the app starts
+        // on the FirstScreen widget.
+        initialRoute: '/',
+        routes: {
+          // When navigating to the "/" route, build the FirstScreen widget.
+          '/': (context) => _currState,
+          // When navigating to the "/second" route, build the SecondScreen widget.
+          '/My Quiz': (context) => _currState,
+          '/Create Quiz': (context) => _currState,
+        },
     );
   }
 }
