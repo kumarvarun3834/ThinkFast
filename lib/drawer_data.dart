@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
-import 'package:thinkfast/main_page.dart';
 import 'package:thinkfast/quiz_form.dart';
+import 'package:thinkfast/start_screen.dart';
 
 class SidebarMenu extends StatelessWidget {
   final GoogleSignIn googleSignIn;
@@ -43,7 +43,8 @@ class SidebarMenu extends StatelessWidget {
                 if (userAccount != null) {
                   // ✅ Signed in successfully
                   onStateChange(
-                    main_page(onStateChange: onStateChange),
+                      Main_Screen(
+                          onPressed:onStateChange)
                   );
                   refreshParent();
                 }
@@ -57,7 +58,8 @@ class SidebarMenu extends StatelessWidget {
           leading: const Icon(Icons.home),
           title: const Text('Home'),
           onTap: () {
-            onStateChange(main_page(onStateChange: onStateChange));
+            onStateChange(Main_Screen(
+                onPressed:onStateChange));
             refreshParent();
           },
         ),
@@ -70,7 +72,7 @@ class SidebarMenu extends StatelessWidget {
         //   },
         // ),
 
-        if (user != null)
+        // if (user != null)
           ListTile(
             leading: const Icon(Icons.add),
             title: const Text('Create New Quiz'),
@@ -79,11 +81,17 @@ class SidebarMenu extends StatelessWidget {
               refreshParent();
             },
           ),
-        if (user != null)
+        // if (user != null)
           ListTile(
             leading: const Icon(Icons.book),
             title: const Text('My Quiz'),
-            onTap: () {},
+            onTap: () {
+              onStateChange(Main_Screen(
+                onPressed:onStateChange,
+                // creatorId : user,
+                visibility: "private")
+              );
+            },
           ),
         if (user != null)
           ListTile(

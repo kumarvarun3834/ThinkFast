@@ -25,12 +25,6 @@ class _QuizPageState extends State<QuizPage> {
 
   final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
 
-  // final googleSignIn = GoogleSignInProvider.instance;
-
-// No onCurrentUserChanged
-// No signInSilently
-// No isSignedIn
-
 // Try to sign in / authenticate
   void initGoogleSignIn() async {
     try {
@@ -49,9 +43,6 @@ class _QuizPageState extends State<QuizPage> {
       // You cannot access 'account' or 'type' directly here anymore
     });
   }
-
-
-
 
   void _addNewForm() => setState(() => questions.add({}));
 

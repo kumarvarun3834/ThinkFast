@@ -760,31 +760,30 @@ final List<Map<String, Object>> dataset = [
       ],
     }
   ];    // your mock dataset here...
-];
 
-Sample dynamic data with numbers instead of names
-final List<Map<String, dynamic>> drawerItems = [
-  {"number": 1, "color": Colors.blue},
-  {"number": 2, "color": Colors.green},
-  { "number": 3, "color": Colors.red},
-  { "number": 4, "color": Colors.orange},
-  { "number": 5, "color": Colors.purple},
-];
+// Sample dynamic data with numbers instead of names
+// final List<Map<String, dynamic>> drawerItems = [
+//   {"number": 1, "color": Colors.blue},
+//   {"number": 2, "color": Colors.green},
+//   { "number": 3, "color": Colors.red},
+//   { "number": 4, "color": Colors.orange},
+//   { "number": 5, "color": Colors.purple},
+// ];
 
-ListTile tiles(int index){
-  return ListTile(
-    // leading: const Icon(Icons.),
-    title: Text("$index"),
-    onTap: () {
-      i=index;
-    },
-  );
-}
-
-List<ListTile> menu_opt(){
-  List<ListTile> menu_opt =[];
-  for(int y=0;y<=dataSet.length-1;y++){
-    menu_opt.add(tiles(y));
-  }
-  return menu_opt;
+// ListTile tiles(int index){
+//   return ListTile(
+//     // leading: const Icon(Icons.),
+//     title: Text("$index"),
+//     onTap: () {
+//       i=index;
+//     },
+//   );
 // }
+//
+// List<ListTile> menu_opt(){
+//   List<ListTile> menu_opt =[];
+//   for(int y=0;y<=dataSet.length-1;y++){
+//     menu_opt.add(tiles(y));
+//   }
+//   return menu_opt;
+// // }

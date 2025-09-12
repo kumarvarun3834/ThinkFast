@@ -22,36 +22,32 @@ class _Quesations extends State<Quesations> {
 
   void _shuffleQuestionsAndOptions() {
     final random = Random();
-
-    // Shuffle questions
     dataSet.shuffle(random);
 
-    // Shuffle options only if they exist
     for (var q in dataSet) {
-      final opts = q["options"];
-      if (opts is List<String>) {
-        opts.shuffle(random);
-      }
+      final opts = (q["options"] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
+      opts.shuffle(random);
+      q["options"] = opts;
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // shuffle once when the page loads
-    dataSet=widget.dataSet;
+    dataSet = widget.dataSet;
     _shuffleQuestionsAndOptions();
     quizResult = _quizReset(dataSet);
     currentData = dataSet[i];
-    quizResult[i]["question"] = dataSet[i]["question"]!;
+    quizResult[i]["question"] = dataSet[i]["question"].toString();
+    print(dataSet);
   }
 
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
     List<Map<String, Object>> quizResult = [];
     for (int x = 0; x < quizData.length; x++) {
       quizResult.add({
-        "question": quizData[x]["question"]!,
-        "selection": [],
+        "question": quizData[x]["question"]?.toString() ?? "",
+        "selection": <String>[],
         "visited": false,
       });
     }
@@ -67,8 +63,8 @@ class _Quesations extends State<Quesations> {
   void switchState() {
     setState(() {
       currentData = dataSet[i];
-      quizResult[i]["question"] = dataSet[i]["question"]!;
-      quizResult[i]["answer"] = dataSet[i]["answer"]!;
+      quizResult[i]["question"] = dataSet[i]["question"].toString();
+      quizResult[i]["answer"] = dataSet[i]["answer"]?.toString() ?? "";
     });
   }
 
@@ -78,6 +74,7 @@ class _Quesations extends State<Quesations> {
     for (var option in options) {
       database.add(buttons_opt(option, switchState, quizResult[i]));
     }
+    print(database);
     return database;
   }
 
@@ -113,7 +110,7 @@ class _Quesations extends State<Quesations> {
   }
 
   Color _getQuestionColor(Map<String, Object> question) {
-    List selection = question["selection"] as List;
+    final selection = (question["selection"] as List?) ?? [];
     if (selection.isEmpty) return Colors.grey; // not visited
     return selection.isNotEmpty ? Colors.green : Colors.yellow;
   }
@@ -197,7 +194,7 @@ class _Quesations extends State<Quesations> {
                   margin: const EdgeInsets.all(40),
                   width: double.infinity,
                   child: TextContainer(
-                    currentData["question"] as String,
+                    currentData["question"]?.toString() ?? "",
                     const Color.fromARGB(255, 0, 255, 255),
                     30,
                   ),

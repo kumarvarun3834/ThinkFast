@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
-import 'package:thinkfast/main_page.dart';
+import 'package:thinkfast/start_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final List<Map<String,Object>> quizResult;
@@ -48,7 +48,8 @@ class ResultScreen extends StatelessWidget {
       alignment: Alignment.center,
       child: OutlinedButton.icon(
         onPressed: (){
-          onStateChange(main_page(onStateChange: onStateChange,));
+          onStateChange(Main_Screen(
+              onPressed:onStateChange));
           },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.black,
