@@ -25,8 +25,8 @@ class MyHomePage extends StatefulWidget {
 class _Quiz extends State<MyHomePage> {
   late String currState; //late keyword is used to tell dart i will initialize it later
 
-  List<Map<String, Object>> quizResult = [];
-  List<Map<String, Object>> quizData = [];
+  // List<Map<String, Object>> quizResult = [];
+  // List<Map<String, Object>> quizData = [];
 
   @override
   void initState() {
@@ -70,13 +70,6 @@ class _Quiz extends State<MyHomePage> {
             ),
           ),
           child:_currState
-          // (currState == "Main_Screen")
-          //     ? main_page(onStateChange: setCurrState,) :
-          // (currState=="QuizForm")
-          //     ?QuizPage(onStateChange: setCurrState,):
-          // (currState == "Quesation_Screen")
-          //     ? Quesations(quizData, quizResult,onStateChange: setCurrState)
-          //     : ResultScreen(quizData,quizResult,onStateChange: setCurrState)
       ),
     );
   }

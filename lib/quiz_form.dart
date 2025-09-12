@@ -19,29 +19,35 @@ class _QuizPageState extends State<QuizPage> {
   // Controllers
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
-  String visibility = "private";
 
+  String visibility = "private";
   List<Map<String, Object>> questions = [];
 
   final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
 
-// Try to sign in / authenticate
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+    _descriptionController = TextEditingController();
+    initGoogleSignIn();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  // Try to sign in / authenticate
   void initGoogleSignIn() async {
     try {
-      // Attempt lightweight authentication (replaces signInSilently)
       final account = await googleSignIn.attemptLightweightAuthentication();
-
       setState(() => _user = account);
-
     } catch (e) {
       print("Google Sign-in failed: $e");
     }
-
-    // Listen to events (stream is only for when user signs in/out)
-    googleSignIn.authenticationEvents.listen((event) {
-      print("Received authentication event: $event");
-      // You cannot access 'account' or 'type' directly here anymore
-    });
   }
 
   void _addNewForm() => setState(() => questions.add({}));
@@ -75,8 +81,10 @@ class _QuizPageState extends State<QuizPage> {
         titleSpacing: 0,
         title: const Text("Quiz Builder"),
         leading: Builder(
-          builder: (context) =>
-              IconButton(icon: const Icon(Icons.menu), onPressed: () => Scaffold.of(context).openDrawer()),
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
         ),
         actions: [
           Padding(
@@ -84,7 +92,9 @@ class _QuizPageState extends State<QuizPage> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: _saveDatabase,
               child: const Text("Save", style: TextStyle(color: Colors.white)),
@@ -107,12 +117,15 @@ class _QuizPageState extends State<QuizPage> {
                         ? NetworkImage(_user!.photoUrl!)
                         : null,
                     child: (_user == null || _user!.photoUrl == null)
-                        ? const Icon(Icons.account_circle, size: 60, color: Colors.white)
+                        ? const Icon(Icons.account_circle,
+                        size: 60, color: Colors.white)
                         : null,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _user != null ? "Hi, ${_user!.displayName ?? _user!.email}" : "Hi, Guest",
+                    _user != null
+                        ? "Hi, ${_user!.displayName ?? _user!.email}"
+                        : "Hi, Guest",
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
@@ -133,18 +146,27 @@ class _QuizPageState extends State<QuizPage> {
           children: [
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: "Title", border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: "Title",
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description", border: OutlineInputBorder()),
+              decoration: const InputDecoration(
+                labelText: "Description",
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Visibility", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Visibility",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 Row(
                   children: [
                     Expanded(

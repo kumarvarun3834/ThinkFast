@@ -66,4 +66,5 @@ class DefaultFirebaseOptions {
     projectId: 'thinkfast3834',
     storageBucket: 'thinkfast3834.firebasestorage.app',
   );
+
 }

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/opt_buttons.dart';
 import 'package:thinkfast/result_screen.dart';
@@ -193,12 +194,25 @@ class _Quesations extends State<Quesations> {
                 child: Container(
                   margin: const EdgeInsets.all(40),
                   width: double.infinity,
-                  child: TextContainer(
-                    currentData["question"]?.toString() ?? "",
-                    const Color.fromARGB(255, 0, 255, 255),
-                    30,
-                  ),
+                  child:
+                  Card(
+                    color: Colors.blueAccent,
+                    shape:
+                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child:Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: // inside your widget tree
+                      Text(
+                        "Question: ${currentData["question"]?.toString() ?? ""}",
+                        style: GoogleFonts.poppins(  // you can change to roboto, lato, etc.
+                          color: const Color.fromARGB(255, 0, 255, 255),
+                          fontSize: 30,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ),
+                )
               ),
               const SizedBox(height: 20),
               Container(
