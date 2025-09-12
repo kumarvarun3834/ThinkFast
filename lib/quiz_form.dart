@@ -23,7 +23,7 @@ class _QuizPageState extends State<QuizPage> {
 
   List<Map<String, Object>> questions = [];
 
-  final GoogleSignIn googleSignIn = GoogleSignInProvider.instance;
+  final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
 
   // final googleSignIn = GoogleSignInProvider.instance;
 

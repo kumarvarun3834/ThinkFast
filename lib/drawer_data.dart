@@ -29,21 +29,28 @@ class SidebarMenu extends StatelessWidget {
             onTap: () async {
               try {
                 // Silent login first
-                final account = await GoogleSignInProvider.instance
+                final account = await GoogleSignInProvider()
+                    .instance
                     .attemptLightweightAuthentication();
 
                 GoogleSignInAccount? userAccount = account;
 
                 // Fallback to interactive login
-                userAccount ??= await GoogleSignInProvider.instance.authenticate();
+                userAccount ??= await GoogleSignInProvider()
+                    .instance
+                    .authenticate();
 
                 if (userAccount != null) {
-                  onStateChange(main_page(onStateChange: onStateChange));
+                  // ✅ Signed in successfully
+                  onStateChange(
+                    main_page(onStateChange: onStateChange),
+                  );
                   refreshParent();
                 }
               } catch (error) {
                 print("Google login failed: $error");
               }
+
             }
               ),
         ListTile(
