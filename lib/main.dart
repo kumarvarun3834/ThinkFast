@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:thinkfast/ImageContainer.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/start_screen.dart';
-import 'package:thinkfast/ImageContainer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,11 +24,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MySplash(), // Start with splash
+      home: const MySplash(),
     );
   }
 }
 
+/// SPLASH SCREEN
 class MySplash extends StatefulWidget {
   const MySplash({super.key});
 
@@ -40,7 +41,6 @@ class _MySplashState extends State<MySplash> {
   @override
   void initState() {
     super.initState();
-    // Navigate to main app after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
@@ -57,8 +57,12 @@ class _MySplashState extends State<MySplash> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ImageContainer("assets/images/quiz-logo.png",
-                const Color.fromARGB(128, 255, 255, 255), 350, 300),
+            ImageContainer(
+              "assets/images/quiz-logo.png",
+              const Color.fromARGB(128, 255, 255, 255),
+              350,
+              300,
+            ),
             const SizedBox(height: 20),
             const CircularProgressIndicator(color: Colors.white),
           ],
@@ -68,6 +72,7 @@ class _MySplashState extends State<MySplash> {
   }
 }
 
+/// MAIN HOME (with Google Sign-In + Navigator)
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
@@ -79,6 +84,7 @@ class _Quiz extends State<MyHomePage> {
   GoogleSignInAccount? _user;
   final GoogleSignInProvider _provider = GoogleSignInProvider();
 
+  late Widget _currState;
   Future<void> _setupGoogleSignIn() async {
     try {
       await _provider.initialize(
@@ -111,7 +117,17 @@ class _Quiz extends State<MyHomePage> {
     _setupGoogleSignIn();
   }
 
-  // ✅ helper: wrap any page in gradient background
+  /// Shuffle Quiz Data
+  List<Map<String, Object>> shuffleQuizData(
+      List<Map<String, Object>> quizData) {
+    for (var item in quizData) {
+      (item["options"] as List<String>).shuffle();
+    }
+    quizData.shuffle();
+    return quizData;
+  }
+
+  /// State Change Helper
   Widget _wrapWithGradient(Widget child) {
     return Scaffold(
       body: Container(
@@ -130,35 +146,40 @@ class _Quiz extends State<MyHomePage> {
     );
   }
 
+
+  /// Navigator Routes
   @override
   Widget build(BuildContext context) {
     return Navigator(
+      initialRoute: '/home',
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/home':
             return MaterialPageRoute(
-              builder: (_) => _wrapWithGradient(Main_Screen(visibility: false)),
+              builder: (context) =>
+                  _wrapWithGradient(Main_Screen(visibility: false)),
             );
           case '/My Quiz':
             return MaterialPageRoute(
-              builder: (_) => _wrapWithGradient(
-                  Main_Screen(visibility: true, creatorId: _user)),
+              builder: (context) => _wrapWithGradient(
+                Main_Screen(visibility: true, creatorId: _user),
+              ),
             );
           case '/Create Quiz':
             return MaterialPageRoute(
-              builder: (_) => _wrapWithGradient(QuizPage()),
+              builder: (context) => _wrapWithGradient(const QuizPage()),
             );
           case '/Quiz':
             return MaterialPageRoute(
-              builder: (_) => const Quesations(),
+              builder: (context) => const Quesations(),
             );
           default:
             return MaterialPageRoute(
-              builder: (_) => _wrapWithGradient(Main_Screen(visibility: false)),
+              builder: (context) =>
+                  _wrapWithGradient(Main_Screen(visibility: false)),
             );
         }
       },
     );
   }
 }
-

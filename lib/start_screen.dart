@@ -15,7 +15,6 @@ class Main_Screen extends StatefulWidget {
 
   const Main_Screen({
     super.key,
-    // required this.onPressed,
     this.creatorId,
     this.visibility=false,
   });
@@ -88,7 +87,7 @@ class _Main_ScreenState extends State<Main_Screen> {
         (data["data"] as List<dynamic>)
             .map((e) => Map<String, Object>.from(e as Map))
             .toList();
-        Navigator.pushNamed(context,"");
+        Navigator.pushNamed(context,redirect);
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white12,
