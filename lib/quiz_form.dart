@@ -72,16 +72,16 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _saveQuiz() async {
-    if (_user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please sign in first")),
-      );
-      return;
-    }
+    // if (_user == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Please sign in first")),
+    //   );
+    //   return;
+    // }
     try {
       final db = DatabaseService();
       final docId = await db.createDatabase(
-        user: _user!.email,
+        user: _user?.email ?? "",
         title: _titleController.text,
         description: _descriptionController.text,
         visibility: visibility,
