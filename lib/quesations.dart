@@ -67,7 +67,7 @@ class _Quesations extends State<Quesations> {
 
     for (var option in options) {
       database.add(
-        buttons_opt(option, switchState, global.quizResult[i]),
+        buttons_opt(quizData["type"] as String,option, switchState, global.quizResult[i]),
       );
     }
     return database;
@@ -106,7 +106,7 @@ class _Quesations extends State<Quesations> {
   }
 
   Color _getQuestionColor(Map<String, Object> question) {
-    final selection = (question["selection"] as List?) ?? [];
+    final selection = question["selection"] as List;
     if (selection.isEmpty) return Colors.grey; // not visited
     return selection.isNotEmpty ? Colors.green : Colors.yellow;
   }
@@ -251,10 +251,11 @@ class _Quesations extends State<Quesations> {
 class buttons_opt extends StatelessWidget {
   final VoidCallback onPressed;
   final String opt;
+  String type;
   Map<String, Object> quizResult;
   Color colour = Colors.black;
 
-  buttons_opt(this.opt, this.onPressed, this.quizResult, {super.key});
+  buttons_opt(this.type,this.opt, this.onPressed, this.quizResult, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -262,30 +263,42 @@ class buttons_opt extends StatelessWidget {
         ?colour=Colors.lightGreenAccent:colour=Colors.black;
 
     return Container(
-        width: 350,
-        child: OutlinedButton.icon(
-            onPressed: () {
-              List<String> selectionList = (quizResult["selection"] as List).cast<String>();
-              if (!selectionList.contains(opt)) {
-                selectionList.add(opt);
-              } else {
-                selectionList.remove(opt);
-                print("$opt already exists");
-              }
-              print(quizResult);
-              onPressed();
-            },
-            style: OutlinedButton.styleFrom(
+      width: 350,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          List<String> selectionList = quizResult["selection"] as List<String>;
+          // ✅ Check type condition
+          // String type = (quizResult["type"] ?? "single").toString();
 
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-              backgroundColor: Colors.white10,
-              foregroundColor: colour,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(50),
-              ),
-            ),
-            label: TextContainer(opt, colour, 20)
-        )
+          if (type == "Single Choice") {
+            // single choice → replace selection
+            selectionList=[];
+            selectionList.add(opt);
+          } else {
+            // multi choice → toggle
+            if (!selectionList.contains(opt)) {
+              selectionList.add(opt);
+            } else {
+              selectionList.remove(opt);
+              print("$opt already exists");
+            }
+          }
+
+          print(quizResult);
+          onPressed();
+        },
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+          backgroundColor: Colors.white10,
+          foregroundColor: colour,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
+          ),
+        ),
+        label: TextContainer(opt, colour, 20),
+        icon: const Icon(Icons.circle, size: 10, color: Colors.transparent),
+      ),
     );
+
   }
 }
