@@ -2,30 +2,26 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/TextContainer.dart';
+import 'package:thinkfast/global.dart';
+import 'package:thinkfast/global.dart' as global;
 import 'package:thinkfast/opt_buttons.dart';
-import 'package:thinkfast/result_screen.dart';
 
 class Quesations extends StatefulWidget {
-  final List<Map<String, Object>> dataSet;
-  final Function(Widget) onStateChange;
-
-  const Quesations(this.dataSet, {required this.onStateChange, super.key});
+  const Quesations({super.key});
 
   @override
   State<Quesations> createState() => _Quesations();
 }
 
 class _Quesations extends State<Quesations> {
-  late List<Map<String, Object>> dataSet;
-  late List<Map<String, Object>> quizResult;
   int i = 0;
   Map<String, Object> currentData = {};
 
   void _shuffleQuestionsAndOptions() {
     final random = Random();
-    dataSet.shuffle(random);
+    global.quizData.shuffle(random);
 
-    for (var q in dataSet) {
+    for (var q in global.quizData) {
       final opts = (q["options"] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
       opts.shuffle(random);
       q["options"] = opts;
@@ -35,12 +31,11 @@ class _Quesations extends State<Quesations> {
   @override
   void initState() {
     super.initState();
-    dataSet = widget.dataSet;
     _shuffleQuestionsAndOptions();
-    quizResult = _quizReset(dataSet);
-    currentData = dataSet[i];
-    quizResult[i]["question"] = dataSet[i]["question"].toString();
-    print(dataSet);
+    global.quizResult = _quizReset(global.quizData);
+    currentData = global.quizData[i];
+    quizResult[i]["question"] = global.quizData[i]["question"].toString();
+    print(global.quizData);
   }
 
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
@@ -56,22 +51,20 @@ class _Quesations extends State<Quesations> {
   }
 
   void switchToResultScreen() {
-    widget.onStateChange(
-      ResultScreen(dataSet, quizResult, onStateChange: widget.onStateChange),
-    );
+    Navigator.popAndPushNamed(context, "/Quiz Result");
   }
 
   void switchState() {
     setState(() {
-      currentData = dataSet[i];
-      quizResult[i]["question"] = dataSet[i]["question"].toString();
-      quizResult[i]["answer"] = dataSet[i]["answer"]?.toString() ?? "";
+      currentData = global.quizData[i];
+      quizResult[i]["question"] = global.quizData[i]["question"].toString();
+      quizResult[i]["answer"] = global.quizData[i]["answer"]?.toString() ?? "";
     });
   }
 
-  List<Widget> buttons_Data(Map<String, Object> dataset) {
+  List<Widget> buttons_Data(quizData) {
     List<Widget> database = [];
-    List<String> options = dataset["options"] as List<String>;
+    List<String> options = quizData["options"] as List<String>;
     for (var option in options) {
       database.add(buttons_opt(option, switchState, quizResult[i]));
     }
@@ -81,7 +74,7 @@ class _Quesations extends State<Quesations> {
 
   List<Widget> menu_opt() {
     return [
-      for (int j = 0; j < dataSet.length; j++)
+      for (int j = 0; j < global.quizData.length; j++)
         GestureDetector(
           onTap: () {
             i = j;
@@ -237,7 +230,7 @@ class _Quesations extends State<Quesations> {
                       child: TextContainer("PREVIOUS", Colors.black, 18),
                     ),
                     ElevatedButton(
-                      onPressed: i < dataSet.length - 1
+                      onPressed: i < global.quizData.length - 1
                           ? () {
                         i++;
                         switchState();

@@ -5,18 +5,19 @@ import 'package:thinkfast/TextContainer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
-import 'package:thinkfast/quesations.dart';
+// import 'package:thinkfast/quesations.dart';
+import 'package:thinkfast/global.dart' as global;
 
 class Main_Screen extends StatefulWidget {
-  final Function(Widget) onPressed;
-  final String? creatorId;
-  final String? visibility;
+  // final Function(Widget) onPressed;
+  final GoogleSignInAccount? creatorId;
+  final bool? visibility;
 
   const Main_Screen({
     super.key,
-    required this.onPressed,
+    // required this.onPressed,
     this.creatorId,
-    this.visibility,
+    this.visibility=false,
   });
 
   @override
@@ -65,13 +66,9 @@ class _Main_ScreenState extends State<Main_Screen> {
   Stream<List<Map<String, dynamic>>> readDatabases() {
     Query query = _db;
 
-    if (widget.visibility != null) {
-      query = query.where('visibility', isEqualTo: widget.visibility);
-    } else {
+    if (widget.visibility == false) {
       query = query.where("visibility", isEqualTo: "public");
-    }
-
-    if (widget.creatorId != null) {
+    }else if (widget.creatorId != null) {
       query = query.where('creatorId', isEqualTo: widget.creatorId);
     }
 
@@ -83,6 +80,37 @@ class _Main_ScreenState extends State<Main_Screen> {
       }).toList();
     });
   }
+
+  ElevatedButton button_data (Map<String, dynamic> data,String button_name,final String redirect){
+    return ElevatedButton(
+      onPressed: () {
+        global.quizData =
+        (data["data"] as List<dynamic>)
+            .map((e) => Map<String, Object>.from(e as Map))
+            .toList();
+        Navigator.pushNamed(context,"");
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white12,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(50),
+        ),
+      ),
+      child: Text(
+        button_name,
+        style: GoogleFonts.poppins(
+          textStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+  // final List<Map<String, Object>> quizData =
+  // (data["data"] as List<dynamic>)
+  //     .map((e) => Map<String, Object>.from(e as Map))
+  //     .toList();
 
   Widget buildQuizCard(Map<String, dynamic> data) {
     return Card(
@@ -115,38 +143,12 @@ class _Main_ScreenState extends State<Main_Screen> {
           ),
           Padding(
             padding: const EdgeInsets.all(5.0),
-            child: ElevatedButton(
-              onPressed: () {
-                final List<Map<String, Object>> quizData =
-                (data["data"] as List<dynamic>)
-                    .map((e) => Map<String, Object>.from(e as Map))
-                    .toList();
-
-                widget.onPressed(
-                  Quesations(
-                    quizData,
-                    onStateChange: widget.onPressed,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white12,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
-                ),
-              ),
-              child: Text(
-                "START",
-                style: GoogleFonts.poppins(
-                  textStyle: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
+            child: Column(children: [
+              button_data(data,"Start Quiz","/Quiz"),
+              if (widget.visibility==true)button_data(data,"updateQuiz","/Quiz")
+              ]
           ),
-        ],
+          )],
       ),
     );
   }
@@ -185,7 +187,6 @@ class _Main_ScreenState extends State<Main_Screen> {
             SidebarMenu(
               googleSignIn: _provider.instance,
               user: _user,
-              onStateChange: widget.onPressed,
               refreshParent: () => setState(() {}),
             ),
           ],

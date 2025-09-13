@@ -6,8 +6,7 @@ import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/firebase_direct_commands.dart';
 
 class QuizPage extends StatefulWidget {
-  final Function(Widget) onStateChange;
-  const QuizPage({super.key, required this.onStateChange});
+  const QuizPage({super.key,});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -135,7 +134,6 @@ class _QuizPageState extends State<QuizPage> {
             SidebarMenu(
               googleSignIn: googleSignIn,
               user: _user,
-              onStateChange: widget.onStateChange,
               refreshParent: () => setState(() {}),
             ),
           ],

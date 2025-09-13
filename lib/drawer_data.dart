@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
-import 'package:thinkfast/quiz_form.dart';
-import 'package:thinkfast/start_screen.dart';
 
 class SidebarMenu extends StatelessWidget {
   final GoogleSignIn googleSignIn;
   final GoogleSignInAccount? user;
-  final Function(Widget) onStateChange;
   final VoidCallback refreshParent;
 
   const SidebarMenu({
     super.key,
     required this.googleSignIn,
     required this.user,
-    required this.onStateChange,
     required this.refreshParent,
   });
 
@@ -37,9 +33,7 @@ class SidebarMenu extends StatelessWidget {
 
                 if (userAccount != null) {
                   // ✅ Signed in successfully
-                  onStateChange(
-                    Main_Screen(onPressed: onStateChange),
-                  );
+                  Navigator.pushNamed(context, "/home",);
                   refreshParent();
                 }
               } catch (error) {
@@ -51,8 +45,7 @@ class SidebarMenu extends StatelessWidget {
           leading: const Icon(Icons.home),
           title: const Text('Home'),
           onTap: () {
-            onStateChange(Main_Screen(
-                onPressed:onStateChange));
+            Navigator.pushNamed(context,"/home");
             refreshParent();
           },
         ),
@@ -70,7 +63,7 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.add),
             title: const Text('Create New Quiz'),
             onTap: () {
-              onStateChange(QuizPage(onStateChange: onStateChange));
+              Navigator.pushNamed(context, "/Create Quiz");
               refreshParent();
             },
           ),
@@ -79,13 +72,10 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.book),
             title: const Text('My Quiz'),
             onTap: () {
-              onStateChange(Main_Screen(
-                onPressed:onStateChange,
-                // creatorId : user,
-                visibility: "private")
-              );
-            },
+              Navigator.pushNamed(context, "/My Quiz");
+            }
           ),
+
         if (user != null)
           ListTile(
             leading: const Icon(Icons.logout),
@@ -99,7 +89,6 @@ class SidebarMenu extends StatelessWidget {
           leading: const Icon(Icons.info),
           title: const Text('About Us'),
           onTap: () async {
-
             refreshParent();
           },
         ),

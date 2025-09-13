@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:thinkfast/TextContainer.dart';
-import 'package:thinkfast/start_screen.dart';
+import 'package:thinkfast/global.dart' as global;
 
 class ResultScreen extends StatelessWidget {
-  final List<Map<String,Object>> quizResult;
-  final List<Map<String,Object>> quizData;
-  final Function(Widget) onStateChange;
-  // final int originalOptionsPerQuestion;
-
-  const ResultScreen(this.quizData,this.quizResult, {super.key, required this.onStateChange});
+  const ResultScreen({super.key});
 
   int getScoreForQuestion(List<String> result) {
     return 0;
@@ -16,13 +11,13 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> result_data = [];
+    List<Widget> resultData = [];
     int i = 0;
     int total_marks=0;
-    while (i < quizResult.length-1){
+    while (i < global.quizResult.length-1){
       bool correct=false;
-      for (int y=0;y<(quizResult[i]["selection"] as List).cast<String>().length;y++){
-        if ((quizData[i]["answer"] as List).cast<String>().contains((quizResult[i]["selection"] as List).cast<String>()[y]))
+      for (int y=0;y<(global.quizResult[i]["selection"] as List).cast<String>().length;y++){
+        if ((global.quizData[i]["answer"] as List).cast<String>().contains((global.quizResult[i]["selection"] as List).cast<String>()[y]))
             {correct=true;
             }else{
           correct=false;
@@ -34,22 +29,21 @@ class ResultScreen extends StatelessWidget {
       i++;
     }
     i=0;
-    result_data.add(Container(
+    resultData.add(Container(
       // padding: EdgeInsets.all(120),
       alignment: Alignment.center,
       height: 400,
       child: MarksPanel(
         totalCorrectAnswers: total_marks,
-        totalQuestions: (quizResult.length-1)*3,
+        totalQuestions: (global.quizResult.length-1)*3,
       ),
     ));
 
-    result_data.add(Container(
+    resultData.add(Container(
       alignment: Alignment.center,
       child: OutlinedButton.icon(
         onPressed: (){
-          onStateChange(Main_Screen(
-              onPressed:onStateChange));
+          Navigator.pushNamed(context, "/home");
           },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.black,
@@ -62,9 +56,9 @@ class ResultScreen extends StatelessWidget {
       ),
     ));
 
-    while (i < quizResult.length-1) {
-      Map<String, Object> resultDataset = quizResult[i];
-      Map<String, Object> data = quizData[i];
+    while (i < global.quizResult.length-1) {
+      Map<String, Object> resultDataset = global.quizResult[i];
+      Map<String, Object> data = global.quizData[i];
       List<Widget> selections=[];
       int y=0;
       print(total_marks);
@@ -85,7 +79,7 @@ class ResultScreen extends StatelessWidget {
         y++;
       }
 
-      result_data.add(Container(
+      resultData.add(Container(
           margin: const EdgeInsets.all(20),
           width: double.infinity,
           child: IntrinsicHeight(child: Row(
@@ -132,15 +126,15 @@ class ResultScreen extends StatelessWidget {
       );
       i++;
     }
-    result_data.add(SizedBox(height: 150 ,));
-    print(result_data);
+    resultData.add(SizedBox(height: 150 ,));
+    print(resultData);
 
     return
       SingleChildScrollView(child:
         Column(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: result_data,
+        children: resultData,
       )
     );
   }
