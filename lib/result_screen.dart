@@ -69,7 +69,7 @@ class ResultScreen extends StatelessWidget {
           ),
         ),
         icon: const Icon(Icons.lock_reset_outlined),
-        label: TextContainer("Restart Quiz", Colors.black, 30),
+        label: TextContainer("Mani Menu", Colors.black, 30),
       ),
     ));
 

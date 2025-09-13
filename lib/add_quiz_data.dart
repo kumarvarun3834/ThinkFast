@@ -21,7 +21,7 @@ class _QuizFormState extends State<QuizForm> {
   String? _selectedValue;
 
   @override
-
+  @override
   void initState() {
     super.initState();
 
@@ -43,11 +43,8 @@ class _QuizFormState extends State<QuizForm> {
         _choiceControllers.add(controller);
       }
     } else {
-      // defer adding choices until after first frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _addChoice();
-        _addChoice();
-      });
+      _addChoice();
+      _addChoice();
     }
 
     // load existing answers
@@ -61,6 +58,7 @@ class _QuizFormState extends State<QuizForm> {
       }
     }
   }
+
 
   /// 🔹 Helper: send current form state up to QuizPage
   void _emitData() {
@@ -147,7 +145,7 @@ class _QuizFormState extends State<QuizForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButton<String>(
-            value: _options.contains(_selectedValue) ? _selectedValue : null,
+            value: _selectedValue,
             hint: const Text("Type"),
             items: _options.map((String option) {
               return DropdownMenuItem<String>(
@@ -157,8 +155,9 @@ class _QuizFormState extends State<QuizForm> {
             }).toList(),
             onChanged: (value) {
               setState(() {
-                _selectedValue = value; // nullable, safe update
+                _selectedValue = value;
               });
+              _emitData();
             },
           ),
 

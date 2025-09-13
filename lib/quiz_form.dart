@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/add_quiz_data.dart';
+import 'package:thinkfast/add_quiz_data.dart'; // your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/firebase_direct_commands.dart';
+import 'package:thinkfast/google_sign_in_provider.dart';
 
 class QuizPage extends StatefulWidget {
   const QuizPage({super.key,});
@@ -14,63 +14,36 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   GoogleSignInAccount? _user;
-
-  // Controllers
+  final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
+  // Metadata
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
-
   String visibility = "private";
-  List<Map<String, Object>> questions = [];
 
-  final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
+  // Questions
+  List<Map<String, Object>> questions = [];
 
   @override
   void initState() {
     super.initState();
+    googleSignIn.attemptLightweightAuthentication();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    initGoogleSignIn();
+
+    // start with one question
+    questions.add({});
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
+  void _addNewForm() {
+    setState(() => questions.add({}));
   }
 
-  // Try to sign in / authenticate
-  void initGoogleSignIn() async {
-    try {
-      final account = await googleSignIn.attemptLightweightAuthentication();
-      setState(() => _user = account);
-    } catch (e) {
-      print("Google Sign-in failed: $e");
-    }
+  void _removeForm(int index) {
+    setState(() => questions.removeAt(index));
   }
 
-  void _addNewForm() => setState(() => questions.add({}));
-
-  void _removeForm(int index) => setState(() => questions.removeAt(index));
-
-  void _updateFormData(int index, Map<String, Object> data) =>
-      setState(() => questions[index] = data);
-
-  Future<void> _saveDatabase() async {
-    if (_user == null) return;
-    final db = DatabaseService();
-    try {
-      String docId = await db.createDatabase(
-        user: _user!.email,
-        title: _titleController.text,
-        description: _descriptionController.text,
-        visibility: visibility,
-        data: questions,
-      );
-      print("Database created with ID: $docId");
-    } catch (e) {
-      print("Error creating database: $e");
-    }
+  void _updateFormData(int index, Map<String, Object> data) {
+    setState(() => questions[index] = data);
   }
 
   @override
@@ -82,7 +55,6 @@ class _QuizPageState extends State<QuizPage> {
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
-            // onPressed: (){},
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
@@ -96,8 +68,25 @@ class _QuizPageState extends State<QuizPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: _saveDatabase,
-              child: const Text("Save", style: TextStyle(color: Colors.white)),
+              onPressed: () async {
+                final db = DatabaseService();
+                try {
+                  String docId = await db.createDatabase(
+                    user: _user!.email,
+                    title: _titleController.text,
+                    description: _descriptionController.text,
+                    visibility: visibility,
+                    data: questions,
+                  );
+                  print("Database created with ID: $docId");
+                } catch (e) {
+                  print("Error creating database: $e");
+                }
+              },
+              child: const Text(
+                "Save",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ),
         ],
@@ -123,7 +112,7 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _user != null
+                    (_user != null)
                         ? "Hi, ${_user!.displayName ?? _user!.email}"
                         : "Hi, Guest",
                     style: const TextStyle(color: Colors.white, fontSize: 18),
@@ -140,80 +129,73 @@ class _QuizPageState extends State<QuizPage> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: "Title",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: "Description",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Visibility",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              // Title
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: "Title",
+                  border: OutlineInputBorder(),
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text("Private"),
-                        value: "private",
-                        groupValue: visibility,
-                        onChanged: (val) => setState(() => visibility = val!),
-                      ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text("Public"),
-                        value: "public",
-                        groupValue: visibility,
-                        onChanged: (val) => setState(() => visibility = val!),
-                      ),
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 12),
+
+              // Description
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Column(
-              children: List.generate(questions.length, (index) {
-                return Card(
-                  margin: const EdgeInsets.all(10),
-                  child: Column(
-                    children: [
-                      QuizForm(
-                        form_data_part: questions[index],
-                        onChanged: (data) => _updateFormData(index, data),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _removeForm(index),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              }),
-            ),
-          ],
+              ),
+              const SizedBox(height: 12),
+
+              // Visibility Dropdown
+              // DropdownButtonFormField<String>(
+              //   value: visibility,
+              //   decoration: const InputDecoration(
+              //     labelText: "Visibility",
+              //     border: OutlineInputBorder(),
+              //   ),
+              //   items: const [
+              //     DropdownMenuItem(value: "private", child: Text("Private")),
+              //     DropdownMenuItem(value: "public", child: Text("Public")),
+              //   ],
+              //   onChanged: (val) => setState(() => visibility = val!),
+              // ),
+
+              const SizedBox(height: 12),
+
+              // Questions list
+              Column(
+                children: List.generate(questions.length, (index) {
+                  return Card(
+                    margin: const EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        QuizForm(
+                          form_data_part: questions[index],
+                          onChanged: (data) => _updateFormData(index, data),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _removeForm(index),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
