@@ -5,46 +5,43 @@ import 'package:thinkfast/global.dart' as global;
 class ResultScreen extends StatelessWidget {
   const ResultScreen({super.key});
 
-  int getScoreForQuestion(List<String> result) {
-    return 0;
-  }
-
   @override
   Widget build(BuildContext context) {
     List<Widget> resultData = [];
-    int i = 0;
-    int total_marks=0;
-    while (i < global.quizResult.length-1){
-      bool correct=false;
-      for (int y=0;y<(global.quizResult[i]["selection"] as List).cast<String>().length;y++){
-        if ((global.quizData[i]["answer"] as List).cast<String>().contains((global.quizResult[i]["selection"] as List).cast<String>()[y]))
-            {correct=true;
-            }else{
-          correct=false;
-          break;
-        }
+    print(global.quizResult);
+    int total_marks = 0;
+
+    // Calculate total marks
+    for (int i = 0; i < global.quizResult.length; i++) {
+      List<String> selections =
+          (global.quizResult[i]["selection"] as List?)?.cast<String>() ?? [];
+      List<String> answers =
+          (global.quizData[i]["answer"] as List?)?.cast<String>() ?? [];
+
+      bool correct = selections.isNotEmpty &&
+          selections.every((s) => answers.contains(s)) &&
+          answers.every((a) => selections.contains(a));
+
+      total_marks += correct ? 4 : -1;
     }
-      (correct)?total_marks+=4:
-    total_marks-=1;
-      i++;
-    }
-    i=0;
+
+    // Marks panel
     resultData.add(Container(
-      // padding: EdgeInsets.all(120),
       alignment: Alignment.center,
       height: 400,
       child: MarksPanel(
         totalCorrectAnswers: total_marks,
-        totalQuestions: (global.quizResult.length-1)*3,
+        totalQuestions: global.quizResult.length * 3,
       ),
     ));
 
+    // Restart button
     resultData.add(Container(
       alignment: Alignment.center,
       child: OutlinedButton.icon(
-        onPressed: (){
+        onPressed: () {
           Navigator.pushNamed(context, "/home");
-          },
+        },
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
@@ -56,86 +53,86 @@ class ResultScreen extends StatelessWidget {
       ),
     ));
 
-    while (i < global.quizResult.length-1) {
+    // Detailed per-question result
+    for (int i = 0; i < global.quizResult.length; i++) {
       Map<String, Object> resultDataset = global.quizResult[i];
       Map<String, Object> data = global.quizData[i];
-      List<Widget> selections=[];
-      int y=0;
-      print(total_marks);
-      while(y<((resultDataset["selection"] as List).cast<String>()).length) {
-        if (y ==
-            (((resultDataset["selection"] as List).cast<String>()).length) -
-                1) {
-          selections.add(
-              TextContainer("Selection ${y + 1}:", Colors.green, 15));
-        }
-        else {
-          selections.add(
-              TextContainer("Selection ${y + 1}:", Colors.red, 15));
-        }
-        selections.add(TextContainer(
-            ((resultDataset["selection"] as List).cast<String>())[y],
-            Colors.white, 15));
-        y++;
+
+      List<String> selections =
+          (resultDataset["selection"] as List?)?.cast<String>() ?? [];
+      List<String> answers =
+          (data["answer"] as List?)?.cast<String>() ?? [];
+
+      List<Widget> selectionWidgets = [];
+      for (int y = 0; y < selections.length; y++) {
+        selectionWidgets.add(TextContainer(
+            "Selection ${y + 1}:",
+            answers.contains(selections[y]) ? Colors.green : Colors.red,
+            15));
+        selectionWidgets.add(TextContainer(selections[y], Colors.white, 15));
       }
 
+      int marksObtained = (answers.length == selections.length &&
+          selections.every((s) => answers.contains(s)))
+          ? 4
+          : -1;
+
       resultData.add(Container(
-          margin: const EdgeInsets.all(20),
-          width: double.infinity,
-          child: IntrinsicHeight(child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                width: MediaQuery.of(context).size.width * 0.15, // 20% width
+        margin: const EdgeInsets.all(20),
+        width: double.infinity,
+        child: IntrinsicHeight(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                width: MediaQuery.of(context).size.width * 0.15,
                 color: Colors.blueGrey[700],
-                  child: Center(child:TextContainer((i+1).toString(), Colors.white70, 20,fontWeight: FontWeight.bold,))
-
-              ),
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.7, // 70% width
-                  color: Colors.blueGrey[700],
-                  padding: EdgeInsets.all(9),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextContainer("Quesation: ", Colors.white70, 20,fontWeight: FontWeight.bold,),
-                      TextContainer(resultDataset["question"] as String, Colors.white70, 15),
-
-                      TextContainer("Marks Obtained: ", Colors.white70, 18,fontWeight: FontWeight.bold,),
-                      TextContainer(
-                        "${(data["options"] as List).cast<String>().length -
-                                (resultDataset["selection"] as List).cast<String>().length}",
-                        Colors.white,
-                        15,
-                      ),
-                      // TextContainer("Correct Answer: ${resultDataset["answer"] as String}", Colors.white70, 15),
-                      TextContainer("Choices Record: ", Colors.white, 15),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: selections
-                        ,)
-                    ],
-
+                child: Center(
+                  child: TextContainer(
+                    (i + 1).toString(),
+                    Colors.white70,
+                    20,
+                    fontWeight: FontWeight.bold,
                   ),
-                ),],
-            )
-      )
-      )
-      );
-      i++;
+                ),
+              ),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.7,
+                color: Colors.blueGrey[700],
+                padding: EdgeInsets.all(9),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextContainer("Question: ", Colors.white70, 20,
+                        fontWeight: FontWeight.bold),
+                    TextContainer(resultDataset["question"] as String? ?? "",
+                        Colors.white70, 15),
+                    TextContainer("Marks Obtained: ", Colors.white70, 18,
+                        fontWeight: FontWeight.bold),
+                    TextContainer("$marksObtained", Colors.white, 15),
+                    TextContainer("Choices Record: ", Colors.white, 15),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: selectionWidgets,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ));
     }
-    resultData.add(SizedBox(height: 150 ,));
-    print(resultData);
 
-    return
-      SingleChildScrollView(child:
-        Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: resultData,
-      )
-    );
+    resultData.add(const SizedBox(height: 150));
+
+    return SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: resultData,
+        ));
   }
 }

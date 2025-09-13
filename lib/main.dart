@@ -5,6 +5,7 @@ import 'package:thinkfast/ImageContainer.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/quiz_form.dart';
+import 'package:thinkfast/result_screen.dart';
 import 'package:thinkfast/start_screen.dart';
 
 Future<void> main() async {
@@ -172,6 +173,11 @@ class _Quiz extends State<MyHomePage> {
           case '/Quiz':
             return MaterialPageRoute(
               builder: (context) => const Quesations(),
+            );
+          case '/Quiz Result':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  _wrapWithGradient(ResultScreen()),
             );
           default:
             return MaterialPageRoute(

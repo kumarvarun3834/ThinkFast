@@ -17,38 +17,64 @@ class _Quesations extends State<Quesations> {
 
   void _shuffleQuestionsAndOptions() {
     final random = Random();
+    // Shuffle questions
     global.quizData.shuffle(random);
 
     for (var q in global.quizData) {
-      final opts = (q["options"] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
-      opts.shuffle(random);
-      q["options"] = opts;
-    }
-  }
+      // Save answer values as List<String>
+      List<String> answers = [];
+      if (q["answer"] != null) {
+        if (q["answer"] is List) {
+          for (var e in q["answer"] as List) {
+            // Use choice value if index, else string
+            if (e is int && q["choices"] != null) {
+              answers.add((q["choices"] as List)[e].toString());
+            } else {
+              answers.add(e.toString());
+            }
+          }
+        } else if (q["answer"] is int && q["choices"] != null) {
+          answers.add((q["choices"] as List)[q["answer"] as int].toString());
+        } else {
+          answers.add(q["answer"].toString());
+        }
+      }
+      q["answer"] = answers;
 
-  @override
-  void initState() {
-    super.initState();
-    _shuffleQuestionsAndOptions();
-    global.quizResult = _quizReset(global.quizData);
-    currentData = global.quizData[i];
-    global.quizResult[i]["question"] = global.quizData[i]["question"].toString();
+      // Shuffle choices
+      final opts = (q["choices"] as List?)?.map((e) => e.toString()).toList() ?? [];
+      opts.shuffle(random);
+      q["choices"] = opts;
+    }
   }
 
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
     List<Map<String, Object>> quizResult = [];
-    for (int x = 0; x < quizData.length; x++) {
+    for (var q in quizData) {
       quizResult.add({
-        "question": quizData[x]["question"]?.toString() ?? "",
+        "question": q["question"]?.toString() ?? "",
         "selection": <String>[],
         "visited": false,
+        "answer": (q["answer"] as List?)?.cast<String>() ?? [],
       });
     }
     return quizResult;
   }
 
+
+  @override
+  void initState() {
+    super.initState();
+    global.quizResult = _quizReset(global.quizData);
+    _shuffleQuestionsAndOptions();
+    global.quizResult = _quizReset(global.quizData);
+    currentData = global.quizData[i];
+    global.quizResult[i]["answer"] = global.quizData[i]["answer"] as List<String>;
+  }
+
   void switchToResultScreen() {
-    Navigator.popAndPushNamed(context, "/Quiz Result");
+
+    Navigator.pushNamed(context, "/Quiz Result");
   }
 
   void switchState() {
@@ -61,18 +87,27 @@ class _Quesations extends State<Quesations> {
 
   List<Widget> buttons_Data(Map<String, Object> quizData) {
     List<Widget> database = [];
-    List<String> options = (quizData["choices"] as List<dynamic>)
-        .map((e) => e.toString())
-        .toList();
+
+    var rawChoices = quizData["choices"];
+    List<String> options = [];
+    if (rawChoices is List) {
+      options = rawChoices.map((e) => e.toString()).toList();
+    } else if (rawChoices is String) {
+      options = rawChoices.split(",").map((e) => e.trim()).toList();
+    }
 
     for (var option in options) {
       database.add(
-        buttons_opt(quizData["type"] as String,option, switchState, global.quizResult[i]),
+        buttons_opt(
+          quizData["type"]?.toString() ?? "Single Choice",
+          option,
+          switchState,
+          global.quizResult[i],
+        ),
       );
     }
     return database;
   }
-
 
   List<Widget> menu_opt() {
     return [
@@ -105,8 +140,19 @@ class _Quesations extends State<Quesations> {
     ];
   }
 
+  // ✅ safe selector
+  List<String> _getSelection(Map<String, Object> question) {
+    final sel = question["selection"];
+    if (sel is List) {
+      return sel.map((e) => e.toString()).toList();
+    } else if (sel is String && sel.isNotEmpty) {
+      return [sel];
+    }
+    return <String>[];
+  }
+
   Color _getQuestionColor(Map<String, Object> question) {
-    final selection = question["selection"] as List;
+    final selection = _getSelection(question);
     if (selection.isEmpty) return Colors.grey; // not visited
     return selection.isNotEmpty ? Colors.green : Colors.yellow;
   }
@@ -251,40 +297,43 @@ class _Quesations extends State<Quesations> {
 class buttons_opt extends StatelessWidget {
   final VoidCallback onPressed;
   final String opt;
-  String type;
-  Map<String, Object> quizResult;
+  final String type;
+  final Map<String, Object> quizResultChunk;
   Color colour = Colors.black;
 
-  buttons_opt(this.type,this.opt, this.onPressed, this.quizResult, {super.key});
+  buttons_opt(this.type, this.opt, this.onPressed, this.quizResultChunk, {super.key});
+
+  List<String> _getSelection() {
+    final sel = quizResultChunk["selection"];
+    if (sel is List) {
+      return sel.map((e) => e.toString()).toList();
+    } else if (sel is String && sel.isNotEmpty) {
+      return [sel];
+    }
+    return <String>[];
+  }
 
   @override
   Widget build(BuildContext context) {
-    (quizResult["selection"] as List).cast<String>().contains(opt)
-        ?colour=Colors.lightGreenAccent:colour=Colors.black;
+    final selectionList = _getSelection();
+    colour = selectionList.contains(opt) ? Colors.lightGreenAccent : Colors.black;
 
     return Container(
       width: 350,
       child: OutlinedButton.icon(
         onPressed: () {
-          List<String> selectionList = quizResult["selection"] as List<String>;
-          // ✅ Check type condition
-          // String type = (quizResult["type"] ?? "single").toString();
-
+          final sel = _getSelection();
           if (type == "Single Choice") {
-            // single choice → replace selection
-            selectionList=[];
-            selectionList.add(opt);
+            quizResultChunk["selection"] = [opt];
           } else {
-            // multi choice → toggle
-            if (!selectionList.contains(opt)) {
-              selectionList.add(opt);
+            if (sel.contains(opt)) {
+              sel.remove(opt);
             } else {
-              selectionList.remove(opt);
-              print("$opt already exists");
+              sel.add(opt);
             }
+            quizResultChunk["selection"] = sel;
           }
-
-          print(quizResult);
+          print(quizResultChunk);
           onPressed();
         },
         style: OutlinedButton.styleFrom(
@@ -299,6 +348,5 @@ class buttons_opt extends StatelessWidget {
         icon: const Icon(Icons.circle, size: 10, color: Colors.transparent),
       ),
     );
-
   }
 }
