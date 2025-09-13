@@ -44,7 +44,7 @@ class _QuizFormState extends State<QuizForm> {
       }
     } else {
       _addChoice();
-      _addChoice();
+      // _addChoice();
     }
 
     // load existing answers

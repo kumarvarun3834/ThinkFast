@@ -1,37 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/add_quiz_data.dart'; // your QuizForm widget
+import 'package:thinkfast/add_quiz_data.dart'; // Your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/firebase_direct_commands.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key,});
+  const QuizPage({super.key});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
-  GoogleSignInAccount? _user;
-  final GoogleSignIn googleSignIn = GoogleSignInProvider as GoogleSignIn;
+  // GoogleSignInAccount? _user;
+  late final GoogleSignIn googleSignIn;
+
   // Metadata
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   String visibility = "private";
+  GoogleSignInAccount? _user;
+  final GoogleSignInProvider provider = GoogleSignInProvider();
 
-  // Questions
+  // Questions list
   List<Map<String, Object>> questions = [];
 
   @override
   void initState() {
     super.initState();
-    googleSignIn.attemptLightweightAuthentication();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
 
-    // start with one question
+    // Start with one empty question
     questions.add({});
+  }
+
+  Future<void> _attemptSilentSignIn() async {
+    try {
+      GoogleSignInAccount? account =
+      await provider.instance.attemptLightweightAuthentication();
+
+      account ??= await provider.instance.authenticate();
+
+      setState(() => _user = account);
+    } catch (e) {
+      debugPrint("Google silent sign-in failed: $e");
+    }
   }
 
   void _addNewForm() {
@@ -39,6 +54,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _removeForm(int index) {
+    if (questions.length == 1) return; // Prevent empty list
     setState(() => questions.removeAt(index));
   }
 
@@ -46,11 +62,40 @@ class _QuizPageState extends State<QuizPage> {
     setState(() => questions[index] = data);
   }
 
+  Future<void> _saveQuiz() async {
+    if (_user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please sign in first")),
+      );
+      return;
+    }
+
+    try {
+      final db = DatabaseService();
+      final docId = await db.createDatabase(
+        user: _user!.email,
+        title: _titleController.text,
+        description: _descriptionController.text,
+        visibility: visibility,
+        data: questions,
+      );
+      debugPrint("Database created with ID: $docId");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Quiz saved successfully!")),
+      );
+    } catch (e) {
+      debugPrint("Error creating database: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 0,
         title: const Text("Quiz Builder"),
         leading: Builder(
           builder: (context) => IconButton(
@@ -68,21 +113,7 @@ class _QuizPageState extends State<QuizPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () async {
-                final db = DatabaseService();
-                try {
-                  String docId = await db.createDatabase(
-                    user: _user!.email,
-                    title: _titleController.text,
-                    description: _descriptionController.text,
-                    visibility: visibility,
-                    data: questions,
-                  );
-                  print("Database created with ID: $docId");
-                } catch (e) {
-                  print("Error creating database: $e");
-                }
-              },
+              onPressed: _saveQuiz,
               child: const Text(
                 "Save",
                 style: TextStyle(color: Colors.white),
@@ -102,10 +133,10 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundImage: (_user != null && _user!.photoUrl != null)
+                    backgroundImage: (_user?.photoUrl != null)
                         ? NetworkImage(_user!.photoUrl!)
                         : null,
-                    child: (_user == null || _user!.photoUrl == null)
+                    child: (_user?.photoUrl == null)
                         ? const Icon(Icons.account_circle,
                         size: 60, color: Colors.white)
                         : null,
@@ -123,79 +154,67 @@ class _QuizPageState extends State<QuizPage> {
             SidebarMenu(
               googleSignIn: googleSignIn,
               user: _user,
-              refreshParent: () => setState(() {}),
+              refreshParent: () async {
+                _attemptSilentSignIn();
+                setState(() => _attemptSilentSignIn());
+              },
             ),
           ],
         ),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            children: [
-              // Title
-              TextField(
-                controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: "Title",
-                  border: OutlineInputBorder(),
-                ),
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            // Title
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: "Title",
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              // Description
-              TextField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: "Description",
-                  border: OutlineInputBorder(),
-                ),
+            // Description
+            TextField(
+              controller: _descriptionController,
+              decoration: const InputDecoration(
+                labelText: "Description",
+                border: OutlineInputBorder(),
               ),
-              const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 12),
 
-              // Visibility Dropdown
-              // DropdownButtonFormField<String>(
-              //   value: visibility,
-              //   decoration: const InputDecoration(
-              //     labelText: "Visibility",
-              //     border: OutlineInputBorder(),
-              //   ),
-              //   items: const [
-              //     DropdownMenuItem(value: "private", child: Text("Private")),
-              //     DropdownMenuItem(value: "public", child: Text("Public")),
-              //   ],
-              //   onChanged: (val) => setState(() => visibility = val!),
-              // ),
-
-              const SizedBox(height: 12),
-
-              // Questions list
-              Column(
-                children: List.generate(questions.length, (index) {
-                  return Card(
-                    margin: const EdgeInsets.all(10),
-                    child: Column(
-                      children: [
-                        QuizForm(
-                          form_data_part: questions[index],
-                          onChanged: (data) => _updateFormData(index, data),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _removeForm(index),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
+            // Questions list
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: questions.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Column(
+                    children: [
+                      QuizForm(
+                        form_data_part: questions[index],
+                        onChanged: (data) => _updateFormData(index, data),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _removeForm(index),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
