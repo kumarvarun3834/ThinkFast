@@ -9,7 +9,8 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> resultData = [];
     print(global.quizResult);
-    int total_marks = 0;
+    print(global.quizData);
+    int totalMarks = 0;
 
     // Calculate total marks
     for (int i = 0; i < global.quizResult.length; i++) {
@@ -22,22 +23,30 @@ class ResultScreen extends StatelessWidget {
           selections.every((s) => answers.contains(s)) &&
           answers.every((a) => selections.contains(a));
 
-      total_marks += correct ? 4 : -1;
+      totalMarks += correct ? 4 : -1;
     }
 
     // Marks panel
     resultData.add(Container(
       alignment: Alignment.center,
       height: 400,
-      child: MarksPanel(
-        totalCorrectAnswers: total_marks,
-        totalQuestions: global.quizResult.length * 3,
+      margin: const EdgeInsets.all(20),
+      child: Card(
+        color: Colors.blueGrey[800],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Center(
+          child: MarksPanel(
+            totalCorrectAnswers: totalMarks,
+            totalQuestions: global.quizResult.length * 3
+          ),
+        ),
       ),
     ));
 
     // Restart button
     resultData.add(Container(
       alignment: Alignment.center,
+      margin: const EdgeInsets.symmetric(vertical: 20),
       child: OutlinedButton.icon(
         onPressed: () {
           Navigator.pushNamed(context, "/home");
@@ -48,7 +57,7 @@ class ResultScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        icon: Icon(Icons.lock_reset_outlined),
+        icon: const Icon(Icons.lock_reset_outlined),
         label: TextContainer("Restart Quiz", Colors.black, 30),
       ),
     ));
@@ -61,78 +70,74 @@ class ResultScreen extends StatelessWidget {
       List<String> selections =
           (resultDataset["selection"] as List?)?.cast<String>() ?? [];
       List<String> answers =
-          (data["answer"] as List?)?.cast<String>() ?? [];
+          (data["answers"] as List?)?.cast<String>() ?? [];
 
-      List<Widget> selectionWidgets = [];
-      for (int y = 0; y < selections.length; y++) {
-        selectionWidgets.add(TextContainer(
-            "Selection ${y + 1}:",
-            answers.contains(selections[y]) ? Colors.green : Colors.red,
-            15));
-        selectionWidgets.add(TextContainer(selections[y], Colors.white, 15));
+      int marksObtained = 0;
+      if (selections.isEmpty) {
+        marksObtained = -1; // no selection
+      } else if (selections.length == answers.length &&
+          selections.every((s) => answers.contains(s))) {
+        marksObtained = 4; // all correct
+      } else {
+        marksObtained = -1; // wrong
+      }
+      totalMarks += marksObtained;
+
+
+      List<Widget> correctAnswerWidgets = [
+        TextContainer("Correct Answer(s):", Colors.white, 15, fontWeight: FontWeight.bold)
+      ];
+      for (var ans in answers) {
+        correctAnswerWidgets.add(TextContainer(ans, Colors.green, 15));
       }
 
-      int marksObtained = (answers.length == selections.length &&
-          selections.every((s) => answers.contains(s)))
-          ? 4
-          : -1;
+      List<Widget> selectionWidgets = [
+        TextContainer("Your Selection(s):", Colors.white, 15, fontWeight: FontWeight.bold)
+      ];
+      for (var sel in selections) {
+        bool isCorrect = answers.contains(sel);
+        selectionWidgets.add(TextContainer(sel, isCorrect ? Colors.green : Colors.red, 15));
+      }
 
       resultData.add(Container(
         margin: const EdgeInsets.all(20),
         width: double.infinity,
-        child: IntrinsicHeight(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                width: MediaQuery.of(context).size.width * 0.15,
-                color: Colors.blueGrey[700],
-                child: Center(
-                  child: TextContainer(
-                    (i + 1).toString(),
-                    Colors.white70,
-                    20,
-                    fontWeight: FontWeight.bold,
-                  ),
+        child: Card(
+          color: Colors.blueGrey[700],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextContainer("Q${i + 1}: ${resultDataset["question"] as String? ?? ""}",
+                    Colors.white70, 18, fontWeight: FontWeight.bold),
+                const SizedBox(height: 5),
+                TextContainer("Marks Obtained: $marksObtained", Colors.white, 16),
+                const SizedBox(height: 5),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: correctAnswerWidgets,
                 ),
-              ),
-              Container(
-                width: MediaQuery.of(context).size.width * 0.7,
-                color: Colors.blueGrey[700],
-                padding: EdgeInsets.all(9),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextContainer("Question: ", Colors.white70, 20,
-                        fontWeight: FontWeight.bold),
-                    TextContainer(resultDataset["question"] as String? ?? "",
-                        Colors.white70, 15),
-                    TextContainer("Marks Obtained: ", Colors.white70, 18,
-                        fontWeight: FontWeight.bold),
-                    TextContainer("$marksObtained", Colors.white, 15),
-                    TextContainer("Choices Record: ", Colors.white, 15),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: selectionWidgets,
-                    ),
-                  ],
+                const SizedBox(height: 5),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: selectionWidgets,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ));
     }
 
-    resultData.add(const SizedBox(height: 150));
+    resultData.add(const SizedBox(height: 50));
 
     return SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: resultData,
-        ));
+        ),
+    );
   }
 }
