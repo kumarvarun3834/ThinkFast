@@ -82,6 +82,7 @@ class _Quesations extends State<Quesations> {
       currentData = global.quizData[i];
       global.quizResult[i]["question"] = global.quizData[i]["question"].toString();
       global.quizResult[i]["answer"] = global.quizData[i]["answer"]?.toString() ?? "";
+      global.quizResult[i]["visited"]=true;
     });
   }
 

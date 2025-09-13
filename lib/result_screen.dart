@@ -3,29 +3,40 @@ import 'package:thinkfast/TextContainer.dart';
 import 'package:thinkfast/global.dart' as global;
 
 class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key});
+  ResultScreen({super.key});
+  int totalMarks = 0;
+  int calculateTotalMarks() {
+    int total = 0; // local accumulator
+    for (int i = 0; i < global.quizResult.length; i++) {
+      Map<String, Object> resultDataset = global.quizResult[i];
+      Map<String, Object> data = global.quizData[i];
+
+      List<String> selections =
+          (resultDataset["selection"] as List?)?.cast<String>() ?? [];
+      List<String> answers =
+          (data["answers"] as List?)?.cast<String>() ?? [];
+
+      int marksObtained = 0;
+      if (selections.isEmpty) {
+        marksObtained = -1; // no selection
+      } else if (selections.length == answers.length &&
+          selections.every((s) => answers.contains(s))) {
+        marksObtained = 4; // all correct
+      } else {
+        marksObtained = -1; // wrong
+      }
+
+      total += marksObtained; // accumulate marks
+    }
+    return total; // return after loop
+  }
 
   @override
   Widget build(BuildContext context) {
     List<Widget> resultData = [];
     print(global.quizResult);
     print(global.quizData);
-    int totalMarks = 0;
-
-    // Calculate total marks
-    for (int i = 0; i < global.quizResult.length; i++) {
-      List<String> selections =
-          (global.quizResult[i]["selection"] as List?)?.cast<String>() ?? [];
-      List<String> answers =
-          (global.quizData[i]["answer"] as List?)?.cast<String>() ?? [];
-
-      bool correct = selections.isNotEmpty &&
-          selections.every((s) => answers.contains(s)) &&
-          answers.every((a) => selections.contains(a));
-
-      totalMarks += correct ? 4 : -1;
-    }
-
+    totalMarks=calculateTotalMarks();
     // Marks panel
     resultData.add(Container(
       alignment: Alignment.center,
@@ -36,8 +47,8 @@ class ResultScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Center(
           child: MarksPanel(
-            totalCorrectAnswers: totalMarks,
-            totalQuestions: global.quizResult.length * 3
+              totalCorrectAnswers: totalMarks,
+              totalQuestions: global.quizResult.length * 4
           ),
         ),
       ),
@@ -66,12 +77,12 @@ class ResultScreen extends StatelessWidget {
     for (int i = 0; i < global.quizResult.length; i++) {
       Map<String, Object> resultDataset = global.quizResult[i];
       Map<String, Object> data = global.quizData[i];
-
+      //
       List<String> selections =
           (resultDataset["selection"] as List?)?.cast<String>() ?? [];
       List<String> answers =
           (data["answers"] as List?)?.cast<String>() ?? [];
-
+      //
       int marksObtained = 0;
       if (selections.isEmpty) {
         marksObtained = -1; // no selection
@@ -81,7 +92,7 @@ class ResultScreen extends StatelessWidget {
       } else {
         marksObtained = -1; // wrong
       }
-      totalMarks += marksObtained;
+      // totalMarks += marksObtained;
 
 
       List<Widget> correctAnswerWidgets = [
@@ -130,14 +141,13 @@ class ResultScreen extends StatelessWidget {
         ),
       ));
     }
-
     resultData.add(const SizedBox(height: 50));
-
+    print(totalMarks);
     return SingleChildScrollView(
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: resultData,
-        ),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: resultData,
+      ),
     );
   }
 }
