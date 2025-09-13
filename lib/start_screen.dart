@@ -106,10 +106,6 @@ class _Main_ScreenState extends State<Main_Screen> {
       ),
     );
   }
-  // final List<Map<String, Object>> quizData =
-  // (data["data"] as List<dynamic>)
-  //     .map((e) => Map<String, Object>.from(e as Map))
-  //     .toList();
 
   Widget buildQuizCard(Map<String, dynamic> data) {
     return Card(

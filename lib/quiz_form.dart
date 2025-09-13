@@ -6,7 +6,8 @@ import 'package:thinkfast/firebase_direct_commands.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
 
 class QuizPage extends StatefulWidget {
-  const QuizPage({super.key});
+  String docId;
+  QuizPage(this.docId,{super.key});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -80,6 +81,7 @@ class _QuizPageState extends State<QuizPage> {
     // }
     try {
       final db = DatabaseService();
+      if (widget.docId==""){
       final docId = await db.createDatabase(
         user: _user?.email ?? "",
         title: _titleController.text,
@@ -88,9 +90,24 @@ class _QuizPageState extends State<QuizPage> {
         data: questions,
       );
       debugPrint("Database created with ID: $docId");
+      widget.docId=docId;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Quiz saved successfully!")),
       );
+      }else{
+        await db.updateDatabase(
+          docId: widget.docId,
+          currentUser: _user?.email ?? "",
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          visibility: visibility,   // "public" or "private"
+          data: questions,          // List<Map<String, Object>>
+          );
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Quiz updated successfully!")));
+        print("✅ Quiz updated successfully!");
+
+    }
     } catch (e) {
       debugPrint("Error creating database: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -185,7 +202,23 @@ class _QuizPageState extends State<QuizPage> {
               ),
             ),
             const SizedBox(height: 12),
-
+            DropdownButtonFormField<String>(
+              initialValue: visibility,
+              decoration: const InputDecoration(
+                labelText: "Visibility",
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: "public", child: Text("Public")),
+                DropdownMenuItem(value: "private", child: Text("Private")),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  visibility = value; // update variable
+                }
+              },
+            ),
+            const SizedBox(height: 12),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

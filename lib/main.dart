@@ -168,7 +168,7 @@ class _Quiz extends State<MyHomePage> {
             );
           case '/Create Quiz':
             return MaterialPageRoute(
-              builder: (context) => _wrapWithGradient(const QuizPage()),
+              builder: (context) => _wrapWithGradient(QuizPage("")),
             );
           case '/Quiz':
             return MaterialPageRoute(
