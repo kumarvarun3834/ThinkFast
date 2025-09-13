@@ -89,4 +89,14 @@ class DatabaseService {
   //     throw Exception("Document not found");
   //   }
   // }
+  /// ✅ Read a single database (quiz) by docId
+  Future<Map<String, dynamic>> readDatabase(String docId) async {
+    final doc = await _db.doc(docId).get();
+    if (!doc.exists) throw Exception("Quiz not found");
+
+    final data = doc.data() as Map<String, dynamic>;
+    data['id'] = doc.id; // attach Firestore ID
+    return data;
+  }
+
 }

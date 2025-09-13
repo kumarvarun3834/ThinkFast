@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +15,8 @@ class Quesations extends StatefulWidget {
 class _Quesations extends State<Quesations> {
   int i = 0;
   Map<String, Object> currentData = {};
+  Duration _timeLeft = const Duration(seconds: 5); // change limit here
+  Timer? _timer;
 
   void _shuffleQuestionsAndOptions() {
     final random = Random();
@@ -61,7 +64,6 @@ class _Quesations extends State<Quesations> {
     return quizResult;
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -70,10 +72,10 @@ class _Quesations extends State<Quesations> {
     global.quizResult = _quizReset(global.quizData);
     currentData = global.quizData[i];
     global.quizResult[i]["answer"] = global.quizData[i]["answer"] as List<String>;
+    _startTimer();
   }
 
   void switchToResultScreen() {
-
     Navigator.pushNamed(context, "/Quiz Result");
   }
 
@@ -158,6 +160,32 @@ class _Quesations extends State<Quesations> {
     return selection.isNotEmpty ? Colors.green : Colors.yellow;
   }
 
+  String _format(Duration d) =>
+      "${d.inMinutes.remainder(60).toString().padLeft(2, '0')}:"
+          "${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _timeLeft = const Duration(seconds: 5)); // reset to limit
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      setState(() {
+        if (_timeLeft.inSeconds > 0) {
+          _timeLeft -= const Duration(seconds: 1);
+        } else {
+          t.cancel();
+          switchToResultScreen();
+        }
+      });
+    });
+  }
+  @override
+
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -193,6 +221,22 @@ class _Quesations extends State<Quesations> {
               ),
             ),
           ],
+
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(30),
+            child: Container(
+              color: Colors.redAccent,
+              height: 30,
+              alignment: Alignment.center,
+              child: Text(
+                _timer?.isActive == true
+                    ? "⏳ Time left: ${_format(_timeLeft)}"
+                    : "No active timer",
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            ),
+          ),
+
         ),
         drawer: Drawer(
           child: Column(

@@ -124,7 +124,7 @@ class _QuizFormState extends State<QuizForm> {
   }
 
   List<Widget> options_data() =>
-      List.generate(_choiceControllers.length, (y) => choicetemplate(y));
+      List.generate(_choiceControllers.length, (y) => Column(children: [choicetemplate(y),SizedBox(height: 8)]));
 
   @override
   Widget build(BuildContext context) {

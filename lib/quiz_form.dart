@@ -30,8 +30,38 @@ class _QuizPageState extends State<QuizPage> {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    questions.add({});
+    if (widget.docId != "") {
+      // Case: Editing existing quiz
+      _fetchQuiz(widget.docId);
+    } else {
+      // Case: New quiz
+      questions.add({});
+    }
     _setupGoogleSignIn();
+  }
+
+  Future<void> _fetchQuiz(String docId) async {
+    final db = DatabaseService();
+    try {
+      final data = await db.readDatabase(docId);
+
+      setState(() {
+        _titleController.text = data['title'] ?? '';
+        _descriptionController.text = data['description'] ?? '';
+        visibility = data['visibility'] ?? 'private';
+
+        questions.clear();
+        questions.addAll(
+          (data['data'] as List<dynamic>? ?? [])
+              .map((e) => Map<String, Object>.from(e as Map))
+              .toList(),
+        );
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error loading quiz: $e")),
+      );
+    }
   }
 
   Future<void> _setupGoogleSignIn() async {
@@ -79,8 +109,8 @@ class _QuizPageState extends State<QuizPage> {
     //   );
     //   return;
     // }
+    final db = DatabaseService();
     try {
-      final db = DatabaseService();
       if (widget.docId==""){
       final docId = await db.createDatabase(
         user: _user?.email ?? "",
@@ -105,8 +135,6 @@ class _QuizPageState extends State<QuizPage> {
           );
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Quiz updated successfully!")));
-        print("✅ Quiz updated successfully!");
-
     }
     } catch (e) {
       debugPrint("Error creating database: $e");
@@ -120,7 +148,6 @@ class _QuizPageState extends State<QuizPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quiz Builder"),
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),

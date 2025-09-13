@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/ImageContainer.dart';
+import 'package:thinkfast/global.dart' as global;
 import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/quiz_form.dart';
@@ -178,6 +179,11 @@ class _Quiz extends State<MyHomePage> {
             return MaterialPageRoute(
               builder: (context) =>
                   _wrapWithGradient(ResultScreen()),
+            );
+          case '/Update Quiz':
+            return MaterialPageRoute(
+              builder: (context) =>
+                  _wrapWithGradient(QuizPage(global.ID)),
             );
           default:
             return MaterialPageRoute(

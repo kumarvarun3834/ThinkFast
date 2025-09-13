@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/TextContainer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/drawer_data.dart';
+import 'package:thinkfast/firebase_direct_commands.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/global.dart' as global;
 
@@ -79,14 +80,56 @@ class _Main_ScreenState extends State<Main_Screen> {
     });
   }
 
-  ElevatedButton button_data (Map<String, dynamic> data,String button_name,final String redirect){
+  ElevatedButton button_data(
+      Map<String, dynamic> data, String button_name, String redirect,) {
     return ElevatedButton(
-      onPressed: () {
-        global.quizData =
-        (data["data"] as List<dynamic>)
-            .map((e) => Map<String, Object>.from(e as Map))
-            .toList();
-        Navigator.pushNamed(context,redirect);
+      onPressed: () async {
+        try {
+          // final isOwner = _user?.email == data["user"] ;
+          // final isPublic = data["visibility"] == "public";
+
+          if (redirect == "/Quiz") {
+            // Start Quiz case
+            if (_user?.email == data["user"] || data["user"]=="" || widget.visibility==false) {
+              global.quizData = (data["data"] as List<dynamic>)
+                  .map((e) => Map<String, Object>.from(e as Map))
+                  .toList();
+
+              Navigator.pushNamed(context, redirect);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Quiz started!")),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("This quiz is private.")),
+              );
+            }
+          } else if (redirect == "/Update Quiz") {
+            // Update Quiz case
+            if (_user?.email == data["user"] || data["user"]=="") {
+              global.quizData = (data["data"] as List<dynamic>)
+                  .map((e) => Map<String, Object>.from(e as Map))
+                  .toList();
+
+              global.ID= data["id"];
+
+              Navigator.pushNamed(context, redirect);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Quiz ready for update!")),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Only the owner can update this quiz.")),
+              );
+            }
+          }
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: $e")),
+          );
+        }
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white12,
@@ -139,9 +182,47 @@ class _Main_ScreenState extends State<Main_Screen> {
             padding: const EdgeInsets.all(5.0),
             child: Column(children: [
               button_data(data,"Start Quiz","/Quiz"),
-              if (widget.visibility==true)button_data(data,"updateQuiz","/Quiz")
-              ]
-          ),
+              if (widget.visibility==true)
+                Column(children: [
+                  button_data(data,"Update Quiz","/Update Quiz"),
+                  ElevatedButton(
+                    onPressed: () async {
+                      DatabaseService db = DatabaseService();
+                        try {
+                          DatabaseService db = DatabaseService();
+                          await db.deleteDatabase(
+                            docId: data["id"] ?? "",
+                            currentUser: _user?.email ?? "",
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Quiz deleted successfully!")),
+                          );
+
+                          setState(() {});
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Error deleting quiz: only creator can delete the quiz")),
+                          );
+                        }
+                      },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white12,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                    ),
+                    child: Text(
+                      "Delete Quiz",
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),)
+                ])]
+            ),
           )],
       ),
     );

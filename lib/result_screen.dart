@@ -18,7 +18,7 @@ class ResultScreen extends StatelessWidget {
 
       int marksObtained = 0;
       if (selections.isEmpty) {
-        marksObtained = -1; // no selection
+        marksObtained = 0; // no selection
       } else if (selections.length == answers.length &&
           selections.every((s) => answers.contains(s))) {
         marksObtained = 4; // all correct
@@ -85,7 +85,7 @@ class ResultScreen extends StatelessWidget {
       //
       int marksObtained = 0;
       if (selections.isEmpty) {
-        marksObtained = -1; // no selection
+        marksObtained = 0; // no selection
       } else if (selections.length == answers.length &&
           selections.every((s) => answers.contains(s))) {
         marksObtained = 4; // all correct
