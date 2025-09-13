@@ -5,7 +5,6 @@ import 'package:thinkfast/TextContainer.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/drawer_data.dart';
 import 'package:thinkfast/google_sign_in_provider.dart';
-// import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/global.dart' as global;
 
 class Main_Screen extends StatefulWidget {
