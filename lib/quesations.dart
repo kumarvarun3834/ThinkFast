@@ -2,9 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/TextContainer.dart';
-import 'package:thinkfast/global.dart';
 import 'package:thinkfast/global.dart' as global;
-import 'package:thinkfast/opt_buttons.dart';
 
 class Quesations extends StatefulWidget {
   const Quesations({super.key});
@@ -34,8 +32,7 @@ class _Quesations extends State<Quesations> {
     _shuffleQuestionsAndOptions();
     global.quizResult = _quizReset(global.quizData);
     currentData = global.quizData[i];
-    quizResult[i]["question"] = global.quizData[i]["question"].toString();
-    print(global.quizData);
+    global.quizResult[i]["question"] = global.quizData[i]["question"].toString();
   }
 
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
@@ -57,20 +54,25 @@ class _Quesations extends State<Quesations> {
   void switchState() {
     setState(() {
       currentData = global.quizData[i];
-      quizResult[i]["question"] = global.quizData[i]["question"].toString();
-      quizResult[i]["answer"] = global.quizData[i]["answer"]?.toString() ?? "";
+      global.quizResult[i]["question"] = global.quizData[i]["question"].toString();
+      global.quizResult[i]["answer"] = global.quizData[i]["answer"]?.toString() ?? "";
     });
   }
 
-  List<Widget> buttons_Data(quizData) {
+  List<Widget> buttons_Data(Map<String, Object> quizData) {
     List<Widget> database = [];
-    List<String> options = quizData["options"] as List<String>;
+    List<String> options = (quizData["choices"] as List<dynamic>)
+        .map((e) => e.toString())
+        .toList();
+
     for (var option in options) {
-      database.add(buttons_opt(option, switchState, quizResult[i]));
+      database.add(
+        buttons_opt(option, switchState, global.quizResult[i]),
+      );
     }
-    print(database);
     return database;
   }
+
 
   List<Widget> menu_opt() {
     return [
@@ -85,7 +87,7 @@ class _Quesations extends State<Quesations> {
             height: 70,
             margin: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: _getQuestionColor(quizResult[j]),
+              color: _getQuestionColor(global.quizResult[j]),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -187,25 +189,22 @@ class _Quesations extends State<Quesations> {
                 child: Container(
                   margin: const EdgeInsets.all(40),
                   width: double.infinity,
-                  child:
-                  Card(
+                  child: Card(
                     color: Colors.blueAccent,
-                    shape:
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child:Padding(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: // inside your widget tree
-                      Text(
+                      child: Text(
                         "Question: ${currentData["question"]?.toString() ?? ""}",
-                        style: GoogleFonts.poppins(  // you can change to roboto, lato, etc.
+                        style: GoogleFonts.poppins(
                           color: const Color.fromARGB(255, 0, 255, 255),
                           fontSize: 30,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
+                  ),
                 ),
-                )
               ),
               const SizedBox(height: 20),
               Container(
@@ -245,6 +244,48 @@ class _Quesations extends State<Quesations> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class buttons_opt extends StatelessWidget {
+  final VoidCallback onPressed;
+  final String opt;
+  Map<String, Object> quizResult;
+  Color colour = Colors.black;
+
+  buttons_opt(this.opt, this.onPressed, this.quizResult, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    (quizResult["selection"] as List).cast<String>().contains(opt)
+        ?colour=Colors.lightGreenAccent:colour=Colors.black;
+
+    return Container(
+        width: 350,
+        child: OutlinedButton.icon(
+            onPressed: () {
+              List<String> selectionList = (quizResult["selection"] as List).cast<String>();
+              if (!selectionList.contains(opt)) {
+                selectionList.add(opt);
+              } else {
+                selectionList.remove(opt);
+                print("$opt already exists");
+              }
+              print(quizResult);
+              onPressed();
+            },
+            style: OutlinedButton.styleFrom(
+
+              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+              backgroundColor: Colors.white10,
+              foregroundColor: colour,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50),
+              ),
+            ),
+            label: TextContainer(opt, colour, 20)
+        )
     );
   }
 }
