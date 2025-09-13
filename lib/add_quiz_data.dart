@@ -21,21 +21,20 @@ class _QuizFormState extends State<QuizForm> {
   String? _selectedValue;
 
   @override
-  @override
   void initState() {
     super.initState();
 
-    // load existing question
+    // Load existing question
     if (widget.form_data_part["question"] != null) {
       _questionController.text = widget.form_data_part["question"] as String;
     }
 
-    // load existing type
+    // Load existing type
     if (widget.form_data_part["type"] != null) {
       _selectedValue = widget.form_data_part["type"] as String;
     }
 
-    // load existing choices
+    // Load existing choices
     if (widget.form_data_part["choices"] != null) {
       List choices = widget.form_data_part["choices"] as List;
       for (var choice in choices) {
@@ -43,11 +42,10 @@ class _QuizFormState extends State<QuizForm> {
         _choiceControllers.add(controller);
       }
     } else {
-      _addChoice();
-      // _addChoice();
+      _choiceControllers.add(TextEditingController());
     }
 
-    // load existing answers
+    // Load existing answers
     if (widget.form_data_part["answers"] != null) {
       List answers = widget.form_data_part["answers"] as List;
       for (var answer in answers) {
@@ -57,10 +55,11 @@ class _QuizFormState extends State<QuizForm> {
         }
       }
     }
+
+    /// 🔧 Emit data *after first frame* to avoid calling setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitData());
   }
 
-
-  /// 🔹 Helper: send current form state up to QuizPage
   void _emitData() {
     final choices = _choiceControllers.map((c) => c.text.trim()).toList();
     final answers = _selectedAnswers.map((i) => choices[i]).toList();
@@ -74,10 +73,8 @@ class _QuizFormState extends State<QuizForm> {
   }
 
   void _addChoice() {
-    setState(() {
-      _choiceControllers.add(TextEditingController());
-    });
-    _emitData();
+    setState(() => _choiceControllers.add(TextEditingController()));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitData()); // 🔧
   }
 
   void _toggleAnswer(int index, bool? checked) {
@@ -92,7 +89,7 @@ class _QuizFormState extends State<QuizForm> {
         }
       }
     });
-    _emitData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _emitData()); // 🔧
   }
 
   Widget choicetemplate(int index) {
@@ -119,7 +116,7 @@ class _QuizFormState extends State<QuizForm> {
               _selectedAnswers.remove(index);
               _choiceControllers.removeAt(index);
             });
-            _emitData();
+            WidgetsBinding.instance.addPostFrameCallback((_) => _emitData()); // 🔧
           },
         ),
       ],
@@ -144,9 +141,12 @@ class _QuizFormState extends State<QuizForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DropdownButton<String>(
-            value: _selectedValue,
-            hint: const Text("Type"),
+          DropdownButtonFormField<String>(
+            initialValue: _options.contains(_selectedValue) ? _selectedValue : null,
+            decoration: const InputDecoration(
+              labelText: "Type",
+              border: OutlineInputBorder(),
+            ),
             items: _options.map((String option) {
               return DropdownMenuItem<String>(
                 value: option,
@@ -160,8 +160,7 @@ class _QuizFormState extends State<QuizForm> {
               _emitData();
             },
           ),
-
-          // Question field
+          const SizedBox(height: 12),
           TextField(
             controller: _questionController,
             decoration: const InputDecoration(
@@ -171,13 +170,8 @@ class _QuizFormState extends State<QuizForm> {
             onChanged: (_) => _emitData(),
           ),
           const SizedBox(height: 12),
-
-          // Choices list
           Column(children: options_data()),
-
           const SizedBox(height: 8),
-
-          // Add choice button
           Row(
             children: [
               IconButton(
@@ -187,9 +181,12 @@ class _QuizFormState extends State<QuizForm> {
               const Text("Add Choice"),
             ],
           ),
-          const SizedBox(height: 16),
         ],
       ),
     );
   }
 }
+
+
+// this will eliminate the setState during build error
+// your QuizPage doesn’t need changes now - it was fine

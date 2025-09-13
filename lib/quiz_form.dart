@@ -13,45 +13,54 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  // GoogleSignInAccount? _user;
-  late final GoogleSignIn googleSignIn;
+  GoogleSignInAccount? _user;
+  final GoogleSignInProvider _provider = GoogleSignInProvider();
 
   // Metadata
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   String visibility = "private";
-  GoogleSignInAccount? _user;
-  final GoogleSignInProvider provider = GoogleSignInProvider();
 
-  // Questions list
-  List<Map<String, Object>> questions = [];
+  // Questions
+  final List<Map<String, Object>> questions = [];
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-
-    // Start with one empty question
     questions.add({});
+    _setupGoogleSignIn();
   }
 
-  Future<void> _attemptSilentSignIn() async {
+  Future<void> _setupGoogleSignIn() async {
     try {
+      await _provider.initialize(
+        serverClientId:
+        "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
+      );
+
       GoogleSignInAccount? account =
-      await provider.instance.attemptLightweightAuthentication();
+      await _provider.instance.attemptLightweightAuthentication();
 
-      account ??= await provider.instance.authenticate();
+      account ??= await _provider.instance.authenticate();
 
-      setState(() => _user = account);
+      if (mounted) setState(() => _user = account);
+
+      _provider.instance.authenticationEvents.listen((event) {
+        if (!mounted) return;
+        if (event is GoogleSignInAuthenticationEventSignIn) {
+          setState(() => _user = event.user);
+        } else if (event is GoogleSignInAuthenticationEventSignOut) {
+          setState(() => _user = null);
+        }
+      });
     } catch (e) {
-      debugPrint("Google silent sign-in failed: $e");
+      debugPrint("Google Sign-In initialization error: $e");
     }
   }
 
-  void _addNewForm() {
-    setState(() => questions.add({}));
-  }
+  void _addNewForm() => setState(() => questions.add({}));
 
   void _removeForm(int index) {
     if (questions.length == 1) return; // Prevent empty list
@@ -69,7 +78,6 @@ class _QuizPageState extends State<QuizPage> {
       );
       return;
     }
-
     try {
       final db = DatabaseService();
       final docId = await db.createDatabase(
@@ -80,7 +88,6 @@ class _QuizPageState extends State<QuizPage> {
         data: questions,
       );
       debugPrint("Database created with ID: $docId");
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Quiz saved successfully!")),
       );
@@ -114,10 +121,7 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: _saveQuiz,
-              child: const Text(
-                "Save",
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text("Save", style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
@@ -133,12 +137,10 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundImage: (_user?.photoUrl != null)
-                        ? NetworkImage(_user!.photoUrl!)
-                        : null,
+                    backgroundImage:
+                    (_user?.photoUrl != null) ? NetworkImage(_user!.photoUrl!) : null,
                     child: (_user?.photoUrl == null)
-                        ? const Icon(Icons.account_circle,
-                        size: 60, color: Colors.white)
+                        ? const Icon(Icons.account_circle, size: 60, color: Colors.white)
                         : null,
                   ),
                   const SizedBox(height: 10),
@@ -152,11 +154,12 @@ class _QuizPageState extends State<QuizPage> {
               ),
             ),
             SidebarMenu(
-              googleSignIn: googleSignIn,
+              googleSignIn: _provider.instance,
               user: _user,
               refreshParent: () async {
-                _attemptSilentSignIn();
-                setState(() => _attemptSilentSignIn());
+                final account =
+                await _provider.instance.attemptLightweightAuthentication();
+                if (mounted) setState(() => _user = account);
               },
             ),
           ],
@@ -166,7 +169,6 @@ class _QuizPageState extends State<QuizPage> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Title
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
@@ -175,8 +177,6 @@ class _QuizPageState extends State<QuizPage> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Description
             TextField(
               controller: _descriptionController,
               decoration: const InputDecoration(
@@ -186,7 +186,6 @@ class _QuizPageState extends State<QuizPage> {
             ),
             const SizedBox(height: 12),
 
-            // Questions list
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
