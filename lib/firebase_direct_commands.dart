@@ -11,6 +11,7 @@ class DatabaseService {
     required String description,
     required String visibility,
     required List<Map<String, Object>> data,
+    required String time, // ⏱️ new field
   }) async {
     final docRef = await _db.add({
       'user': user,
@@ -18,6 +19,7 @@ class DatabaseService {
       'description': description,
       'visibility': visibility,
       'data': data,
+      'time': time*60, // ⏱️ save time (e.g. seconds/minutes)
       'createdAt': FieldValue.serverTimestamp(),
     });
     return docRef.id; // return Firestore document ID
@@ -40,7 +42,6 @@ class DatabaseService {
     );
   }
 
-
   /// ✅ Update an existing database (only creator can update)
   Future<void> updateDatabase({
     required String docId,
@@ -49,6 +50,7 @@ class DatabaseService {
     String? description,
     List<Map<String, Object>>? data,
     String? visibility,
+    String? time, // ⏱️ updatable field
   }) async {
     final doc = await _db.doc(docId).get();
     if (doc.exists && doc['user'] == currentUser) {
@@ -57,6 +59,7 @@ class DatabaseService {
       if (description != null) updatedFields['description'] = description;
       if (data != null) updatedFields['data'] = data;
       if (visibility != null) updatedFields['visibility'] = visibility;
+      if (time != null) updatedFields['time'] = time*60; // ⏱️ update time
 
       updatedFields['updatedAt'] = FieldValue.serverTimestamp();
 
@@ -79,16 +82,6 @@ class DatabaseService {
     }
   }
 
-  /// ✅ Get specific fields from data array
-  // Future<List<T>> getDataField<T>(String docId, String fieldName) async {
-  //   final doc = await _db.doc(docId).get();
-  //   if (doc.exists) {
-  //     final data = List<Map<String, dynamic>>.from(doc['data']);
-  //     return data.map<T>((item) => item[fieldName] as T).toList();
-  //   } else {
-  //     throw Exception("Document not found");
-  //   }
-  // }
   /// ✅ Read a single database (quiz) by docId
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final doc = await _db.doc(docId).get();
@@ -98,5 +91,4 @@ class DatabaseService {
     data['id'] = doc.id; // attach Firestore ID
     return data;
   }
-
 }

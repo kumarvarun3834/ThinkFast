@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/add_quiz_data.dart'; // Your QuizForm widget
 import 'package:thinkfast/drawer_data.dart';
@@ -20,6 +21,7 @@ class _QuizPageState extends State<QuizPage> {
   // Metadata
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _intController;
   String visibility = "private";
 
   // Questions
@@ -30,6 +32,8 @@ class _QuizPageState extends State<QuizPage> {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
+    _intController = TextEditingController();
+
     if (widget.docId != "") {
       // Case: Editing existing quiz
       _fetchQuiz(widget.docId);
@@ -104,45 +108,102 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _saveQuiz() async {
     // if (_user == null) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text("Please sign in first")),
-    //   );
-    //   return;
-    // }
+      //   ScaffoldMessenger.of(context).showSnackBar(
+      //     const SnackBar(content: Text("Please sign in first")),
+      //   );
+      //   return;
+      // }
+    // Validation first
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Title cannot be empty")),
+      );
+      return;
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Description cannot be empty")),
+      );
+      return;
+    }
+    if (_intController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Number field cannot be empty")),
+      );
+      return;
+    }
+
+    // Convert number safely
+    final number = int.tryParse(_intController.text.trim());
+    if (number == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid number")),
+      );
+      return;
+    }
+    // Validate questions
+    for (int i = 0; i < questions.length; i++) {
+      final q = questions[i];
+      final question = (q["question"] ?? "").toString().trim();
+      final choices = (q["choices"] as List).map((e) => e.toString().trim()).where((c) => c.isNotEmpty).toList();
+      final answers = (q["answers"] as List).map((e) => e.toString().trim()).toList();
+
+      if (question.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Question ${i + 1} cannot be empty")),
+        );
+        return;
+      }
+      if (choices.length < 2) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Question ${i + 1} must have at least 2 choices")),
+        );
+        return;
+      }
+      if (answers.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Question ${i + 1} must have at least 1 correct answer")),
+        );
+        return;
+      }
+    }
     final db = DatabaseService();
     try {
-      if (widget.docId==""){
-      final docId = await db.createDatabase(
-        user: _user?.email ?? "",
-        title: _titleController.text,
-        description: _descriptionController.text,
-        visibility: visibility,
-        data: questions,
-      );
-      debugPrint("Database created with ID: $docId");
-      widget.docId=docId;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Quiz saved successfully!")),
-      );
-      }else{
+      if (widget.docId == "") {
+        final docId = await db.createDatabase(
+          user: _user?.email ?? "",
+          title: _titleController.text,
+          description: _descriptionController.text,
+          visibility: visibility,
+          data: questions,
+          time: _intController.text
+        );
+        debugPrint("Database created with ID: $docId");
+        widget.docId = docId;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Quiz saved successfully!")),
+        );
+      } else {
         await db.updateDatabase(
           docId: widget.docId,
           currentUser: _user?.email ?? "",
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
-          visibility: visibility,   // "public" or "private"
-          data: questions,          // List<Map<String, Object>>
-          );
+          visibility: visibility,
+          data: questions,
+        );
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Quiz updated successfully!")));
-    }
+          const SnackBar(content: Text("Quiz updated successfully!")),
+        );
+      }
     } catch (e) {
-      debugPrint("Error creating database: $e");
+      debugPrint("Error creating/updating database: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error: $e")),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -228,6 +289,19 @@ class _QuizPageState extends State<QuizPage> {
                 border: OutlineInputBorder(),
               ),
             ),
+
+            TextField(
+              controller: _intController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "Timer to set for quiz (in minutes)",
+                border: OutlineInputBorder(),
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly, // allows only integers
+              ],
+            ),
+
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: visibility,

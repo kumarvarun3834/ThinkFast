@@ -15,12 +15,12 @@ class Quesations extends StatefulWidget {
 class _Quesations extends State<Quesations> {
   int i = 0;
   Map<String, Object> currentData = {};
-  Duration _timeLeft = const Duration(seconds: 5); // change limit here
+  Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
 
+  /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
     final random = Random();
-    // Shuffle questions
     global.quizData.shuffle(random);
 
     for (var q in global.quizData) {
@@ -29,7 +29,6 @@ class _Quesations extends State<Quesations> {
       if (q["answer"] != null) {
         if (q["answer"] is List) {
           for (var e in q["answer"] as List) {
-            // Use choice value if index, else string
             if (e is int && q["choices"] != null) {
               answers.add((q["choices"] as List)[e].toString());
             } else {
@@ -51,6 +50,7 @@ class _Quesations extends State<Quesations> {
     }
   }
 
+  /// Reset quizResult with empty selections
   List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
     List<Map<String, Object>> quizResult = [];
     for (var q in quizData) {
@@ -67,11 +67,25 @@ class _Quesations extends State<Quesations> {
   @override
   void initState() {
     super.initState();
+    _loadQuizWithTime(); // fetch from Firestore
+  }
+
+  Future<void> _loadQuizWithTime() async {
+    // assume global.currentQuizId is set when quiz is chosen
+    final int timeSeconds =global.time;
+    // final int timeSeconds = (int.tryParse((global.quizData['time'] as String) ?? "1") ?? 1) * 60;
+
     global.quizResult = _quizReset(global.quizData);
     _shuffleQuestionsAndOptions();
     global.quizResult = _quizReset(global.quizData);
-    currentData = global.quizData[i];
-    global.quizResult[i]["answer"] = global.quizData[i]["answer"] as List<String>;
+
+    setState(() {
+      currentData = global.quizData[i];
+      global.quizResult[i]["answer"] =
+      global.quizData[i]["answer"] as List<String>;
+      _timeLeft = Duration(seconds: timeSeconds.toInt()); // ⏱️ assign from DB
+    });
+
     _startTimer();
   }
 
@@ -82,9 +96,11 @@ class _Quesations extends State<Quesations> {
   void switchState() {
     setState(() {
       currentData = global.quizData[i];
-      global.quizResult[i]["question"] = global.quizData[i]["question"].toString();
-      global.quizResult[i]["answer"] = global.quizData[i]["answer"]?.toString() ?? "";
-      global.quizResult[i]["visited"]=true;
+      global.quizResult[i]["question"] =
+          global.quizData[i]["question"].toString();
+      global.quizResult[i]["answer"] =
+          global.quizData[i]["answer"]?.toString() ?? "";
+      global.quizResult[i]["visited"] = true;
     });
   }
 
@@ -166,7 +182,6 @@ class _Quesations extends State<Quesations> {
 
   void _startTimer() {
     _timer?.cancel();
-    setState(() => _timeLeft = const Duration(seconds: 5)); // reset to limit
 
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       setState(() {
@@ -179,8 +194,8 @@ class _Quesations extends State<Quesations> {
       });
     });
   }
-  @override
 
+  @override
   void dispose() {
     _timer?.cancel();
     super.dispose();
@@ -221,7 +236,6 @@ class _Quesations extends State<Quesations> {
               ),
             ),
           ],
-
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(30),
             child: Container(
@@ -236,7 +250,6 @@ class _Quesations extends State<Quesations> {
               ),
             ),
           ),
-
         ),
         drawer: Drawer(
           child: Column(
@@ -361,7 +374,8 @@ class buttons_opt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectionList = _getSelection();
-    colour = selectionList.contains(opt) ? Colors.lightGreenAccent : Colors.black;
+    colour =
+    selectionList.contains(opt) ? Colors.lightGreenAccent : Colors.black;
 
     return Container(
       width: 350,

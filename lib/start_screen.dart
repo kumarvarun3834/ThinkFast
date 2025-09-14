@@ -94,7 +94,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               global.quizData = (data["data"] as List<dynamic>)
                   .map((e) => Map<String, Object>.from(e as Map))
                   .toList();
-
+              global.time=data["time"] as int;
               Navigator.pushNamed(context, redirect);
 
               ScaffoldMessenger.of(context).showSnackBar(
@@ -189,7 +189,6 @@ class _Main_ScreenState extends State<Main_Screen> {
                     onPressed: () async {
                       DatabaseService db = DatabaseService();
                         try {
-                          DatabaseService db = DatabaseService();
                           await db.deleteDatabase(
                             docId: data["id"] ?? "",
                             currentUser: _user?.email ?? "",
