@@ -13,13 +13,18 @@ class DatabaseService {
     required List<Map<String, Object>> data,
     required String time, // ⏱️ new field
   }) async {
+    // Convert String → int
+    int timeInMinutes = int.tryParse(time) ?? 0;
+
+    // Convert minutes → seconds
+    int timeInSeconds = timeInMinutes * 60;
     final docRef = await _db.add({
       'user': user,
       'title': title,
       'description': description,
       'visibility': visibility,
       'data': data,
-      'time': time*60, // ⏱️ save time (e.g. seconds/minutes)
+      'time': timeInSeconds, // ⏱️ save time (e.g. seconds/minutes)
       'createdAt': FieldValue.serverTimestamp(),
     });
     return docRef.id; // return Firestore document ID
