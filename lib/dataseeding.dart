@@ -37,8 +37,9 @@ class _QuizGeneratorState extends State<QuizGenerator> {
     setState(() {
       status = 'Generating quiz...';
     });
+
     List<Map<String, Object>> generateMathQuestions(int count) {
-      final rand = DateTime.now().millisecondsSinceEpoch % 100; // pseudo-random seed
+      final rand = DateTime.now().millisecondsSinceEpoch % 100;
       List<Map<String, Object>> questions = [];
 
       for (int i = 0; i < count; i++) {
@@ -62,22 +63,32 @@ class _QuizGeneratorState extends State<QuizGenerator> {
             break;
           default:
             op = '/';
-            ans = b != 0 ? (a ~/ b) : 0; // integer division
+            ans = b != 0 ? (a ~/ b) : 0;
             break;
         }
 
         questions.add({
-          'question': '$a $op $b',
-          'answer': ans.toString(),
+          "question": "$a $op $b",
+          "type": "Multiple Choice",
+          "choices": [
+            "$ans",
+            "${ans + 1}",
+            "${ans + 2}",
+            "${ans + 3}",
+            "${ans + 4}",
+            "${ans + 5}",
+          ],
+          "answers": ["$ans"] // first choice is correct
         });
       }
+
       return questions;
     }
 
     final db = DatabaseService();
     final questions = generateMathQuestions(20); // 20 questions
     final docId = await db.createDatabase(
-      user: 'vk',
+      user: '',
       title: 'Math Quiz',
       description: 'Simple math quiz',
       visibility: 'public',
