@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/ImageContainer.dart';
 import 'package:thinkfast/global.dart' as global;
-import 'package:thinkfast/google_sign_in_provider.dart';
+// import 'package:thinkfast/google_sign_in_provider.dart';
 import 'package:thinkfast/quesations.dart';
 import 'package:thinkfast/quiz_form.dart';
 import 'package:thinkfast/result_screen.dart';
@@ -83,41 +83,41 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _Quiz extends State<MyHomePage> {
-  GoogleSignInAccount? _user;
-  final GoogleSignInProvider _provider = GoogleSignInProvider();
+  // GoogleSignInAccount? _user;
+  // final GoogleSignInProvider _provider = GoogleSignInProvider();
 
-  late Widget _currState;
-  Future<void> _setupGoogleSignIn() async {
-    try {
-      await _provider.initialize(
-        serverClientId:
-        "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
-      );
+  // late Widget _currState;
+  // Future<void> _setupGoogleSignIn() async {
+  //   try {
+  //     await _provider.initialize(
+  //       serverClientId:
+  //       "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
+  //     );
+  //
+  //     GoogleSignInAccount? account =
+  //     await _provider.instance.attemptLightweightAuthentication();
+  //
+  //     account ??= await _provider.instance.authenticate();
+  //
+  //     setState(() => _user = account);
+  //
+  //     _provider.instance.authenticationEvents.listen((event) {
+  //       if (event is GoogleSignInAuthenticationEventSignIn) {
+  //         setState(() => _user = event.user);
+  //       } else if (event is GoogleSignInAuthenticationEventSignOut) {
+  //         setState(() => _user = null);
+  //       }
+  //     });
+  //   } catch (e) {
+  //     print("Google Sign-In initialization error: $e");
+  //   }
+  // }
 
-      GoogleSignInAccount? account =
-      await _provider.instance.attemptLightweightAuthentication();
-
-      account ??= await _provider.instance.authenticate();
-
-      setState(() => _user = account);
-
-      _provider.instance.authenticationEvents.listen((event) {
-        if (event is GoogleSignInAuthenticationEventSignIn) {
-          setState(() => _user = event.user);
-        } else if (event is GoogleSignInAuthenticationEventSignOut) {
-          setState(() => _user = null);
-        }
-      });
-    } catch (e) {
-      print("Google Sign-In initialization error: $e");
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _setupGoogleSignIn();
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _setupGoogleSignIn();
+  // }
 
   /// Shuffle Quiz Data
   List<Map<String, Object>> shuffleQuizData(
@@ -164,7 +164,7 @@ class _Quiz extends State<MyHomePage> {
           case '/My Quiz':
             return MaterialPageRoute(
               builder: (context) => _wrapWithGradient(
-                Main_Screen(visibility: true, creatorId: _user),
+                Main_Screen(visibility: true),
               ),
             );
           case '/Create Quiz':
