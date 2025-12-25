@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/google_sign_in_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SidebarMenu extends StatelessWidget {
-  final GoogleSignIn googleSignIn;
-  final GoogleSignInAccount? user;
-  final VoidCallback refreshParent;
+  final User? user;
 
   const SidebarMenu({
     super.key,
-    required this.googleSignIn,
     required this.user,
-    required this.refreshParent,
   });
 
   @override
@@ -23,30 +18,20 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.login),
             title: const Text('Login'),
             onTap: () async {
-              try {
-                // 1. Try silent sign-in (cached session, no popup)
-                GoogleSignInAccount? userAccount =
-                await GoogleSignInProvider().instance.attemptLightweightAuthentication();
-
-                // 2. If silent fails → fallback to interactive login
-                userAccount ??= await GoogleSignInProvider().instance.authenticate();
-
-                if (userAccount != null) {
-                  // ✅ Signed in successfully
-                  Navigator.pushNamed(context, "/home",);
-                  refreshParent();
-                }
-              } catch (error) {
-                print("Google login failed: $error");
-              }
+              // try {
+              //     refreshParent();
+              //   }
+              // } catch (error) {
+                print(" login failed: ");
+              // }
             }
           ),
         ListTile(
           leading: const Icon(Icons.home),
           title: const Text('Home'),
           onTap: () {
-            Navigator.pushNamed(context,"/home");
-            refreshParent();
+            Navigator.pop(context);
+            Navigator.pushNamed(context, "/home");
           },
         ),
         // if (user != null)
@@ -63,8 +48,8 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.add),
             title: const Text('Create New Quiz'),
             onTap: () {
+              Navigator.pop(context);
               Navigator.pushNamed(context, "/Create Quiz");
-              refreshParent();
             },
           ),
         // if (user != null)
@@ -72,6 +57,7 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.book),
             title: const Text('My Quiz'),
             onTap: () {
+              Navigator.pop(context);
               Navigator.pushNamed(context, "/My Quiz");
             }
           ),
@@ -81,15 +67,13 @@ class SidebarMenu extends StatelessWidget {
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
             onTap: () async {
-              await googleSignIn.signOut();
-              refreshParent();
+              await FirebaseAuth.instance.signOut();
             },
           ),
         ListTile(
           leading: const Icon(Icons.info),
           title: const Text('About Us'),
           onTap: () async {
-            refreshParent();
           },
         ),
       ],

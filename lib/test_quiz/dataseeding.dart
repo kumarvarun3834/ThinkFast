@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:thinkfast/firebase_direct_commands.dart'; // your service file
+import 'package:thinkfast/services/firebase_direct_commands.dart'; // your service file
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,13 +88,15 @@ class _QuizGeneratorState extends State<QuizGenerator> {
     final db = DatabaseService();
     final questions = generateMathQuestions(20); // 20 questions
     final docId = await db.createDatabase(
-      user: '',
+      creatorId: "",              // REQUIRED
+      user: "",    // display only
       title: 'Math Quiz',
       description: 'Simple math quiz',
       visibility: 'public',
       data: questions,
-      time: "10", // 10 minutes
+      time: 10,                          // int (minutes)
     );
+
 
     setState(() {
       status = 'Quiz created! Doc ID: $docId';

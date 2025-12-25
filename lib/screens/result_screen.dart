@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/TextContainer.dart';
-import 'package:thinkfast/global.dart' as global;
+import 'package:thinkfast/widgets/TextContainer.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class ResultScreen extends StatelessWidget {
   ResultScreen({super.key});

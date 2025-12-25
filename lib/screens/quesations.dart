@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/TextContainer.dart';
-import 'package:thinkfast/global.dart' as global;
+import 'package:thinkfast/widgets/TextContainer.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class Quesations extends StatefulWidget {
   const Quesations({super.key});

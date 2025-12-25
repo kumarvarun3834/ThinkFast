@@ -1,13 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:thinkfast/ImageContainer.dart';
-import 'package:thinkfast/global.dart' as global;
-// import 'package:thinkfast/google_sign_in_provider.dart';
-import 'package:thinkfast/quesations.dart';
-import 'package:thinkfast/quiz_form.dart';
-import 'package:thinkfast/result_screen.dart';
-import 'package:thinkfast/start_screen.dart';
+import 'package:thinkfast/widgets/ImageContainer.dart';
+import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/screens/quesations.dart';
+import 'package:thinkfast/screens/quiz_form.dart';
+import 'package:thinkfast/screens/result_screen.dart';
+import 'package:thinkfast/screens/start_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -156,42 +155,58 @@ class _Quiz extends State<MyHomePage> {
       initialRoute: '/home',
       onGenerateRoute: (settings) {
         switch (settings.name) {
+
           case '/home':
             return MaterialPageRoute(
-              builder: (context) =>
-                  _wrapWithGradient(Main_Screen(visibility: false)),
-            );
-          case '/My Quiz':
-            return MaterialPageRoute(
               builder: (context) => _wrapWithGradient(
-                Main_Screen(visibility: true),
+                const Main_Screen(showMyQuizzes: false), // public quizzes
               ),
             );
+
+          case '/My Quiz':
+            return MaterialPageRoute(
+              builder: (context) {
+                final user = FirebaseAuth.instance.currentUser;
+                return _wrapWithGradient(
+                  Main_Screen(
+                    showMyQuizzes: true,
+                    creator: user, // 🔑 pass logged-in user
+                  ),
+                );
+              },
+            );
+
           case '/Create Quiz':
             return MaterialPageRoute(
               builder: (context) => _wrapWithGradient(QuizPage("")),
             );
+
           case '/Quiz':
             return MaterialPageRoute(
               builder: (context) => const Quesations(),
             );
+
           case '/Quiz Result':
             return MaterialPageRoute(
               builder: (context) =>
                   _wrapWithGradient(ResultScreen()),
             );
+
           case '/Update Quiz':
             return MaterialPageRoute(
               builder: (context) =>
                   _wrapWithGradient(QuizPage(global.ID)),
             );
+
           default:
             return MaterialPageRoute(
-              builder: (context) =>
-                  _wrapWithGradient(Main_Screen(visibility: false)),
+              builder: (context) => _wrapWithGradient(
+                const Main_Screen(showMyQuizzes: false),
+              ),
             );
         }
       },
+
     );
   }
 }
