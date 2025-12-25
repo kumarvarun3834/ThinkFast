@@ -95,3 +95,24 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+# 📌Further improvements needed:
+ ### Removal of google auth system completely
+    - google auth needed premium support in order to work 
+    - setup is done till this point just need premium in order to work
+
+### new auth verification system 
+    - phone verification 
+    - email passward verification system 
+### data storage 
+    - new data storage API needed to be added in order to handle images ie the title or theme of quiz
+
+### Quiz Improvements
+    - setup for more dymanic type quiz and types ie options to create diffenet type of quiz
+    - customization in quiz button 
+
+### response
+    - saving all response back to database of all quiz responses
+    - option to review all past attempts 
+    - list of all attempted quiz by user
+    - owner can see all responses of that perticular quiz
