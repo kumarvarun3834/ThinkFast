@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-import 'package:thinkfast/TextContainer.dart';
+import 'package:thinkfast/widgets/TextContainer.dart';
 
 class buttons_opt extends StatelessWidget {
   final VoidCallback onPressed;
