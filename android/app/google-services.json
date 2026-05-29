@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
+          "client_id": "775124683303-jttp8glo56tr5aom1eqd3v7ogl02fbkv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.thinkfast",
+            "certificate_hash": "d99dc96e56776a7bda29026cb78b38db6a55abd4"
+          }
+        },
+        {
+          "client_id": "775124683303-bg25c94ovmm16iuu1li9eu655ujqbaou.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
+              "client_id": "775124683303-bg25c94ovmm16iuu1li9eu655ujqbaou.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
