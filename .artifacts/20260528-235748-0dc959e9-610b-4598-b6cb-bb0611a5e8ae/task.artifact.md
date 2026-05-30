@@ -1,9 +1,10 @@
 # Task Management
 
-- [/] Upgrade project dependencies and build tools
+- [x] Upgrade project dependencies and build tools
     - [x] Research existing Gradle, AGP, and Kotlin versions
-    - [/] Create implementation plan
-    - [ ] Update Gradle version in `gradle-wrapper.properties`
-    - [ ] Update AGP and Kotlin versions in `settings.gradle.kts`
-    - [ ] Resolve `google_fonts` build error
-    - [ ] Verify build with `flutter build apk`
+    - [x] Create implementation plan
+    - [x] Update Gradle version in `gradle-wrapper.properties`
+    - [x] Update AGP and Kotlin versions in `settings.gradle.kts`
+    - [x] Resolve `google_fonts` build error
+    - [x] Update NDK version in `app/build.gradle.kts`
+    - [x] Verify build with `flutter build apk`

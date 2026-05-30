@@ -17,13 +17,9 @@ class SidebarMenu extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.login),
             title: const Text('Login'),
-            onTap: () async {
-              // try {
-              //     refreshParent();
-              //   }
-              // } catch (error) {
-                print(" login failed: ");
-              // }
+            onTap: () {
+              Navigator.pop(context); // Close drawer
+              Navigator.pushNamed(context, "/login");
             }
           ),
         ListTile(
@@ -34,33 +30,22 @@ class SidebarMenu extends StatelessWidget {
             Navigator.pushNamed(context, "/home");
           },
         ),
-        // if (user != null)
-        // ListTile(
-        //   leading: const Icon(Icons.settings),
-        //   title: const Text('Settings'),
-        //   onTap: () {
-        //
-        //   },
-        // ),
-
-        // if (user != null)
-          ListTile(
-            leading: const Icon(Icons.add),
-            title: const Text('Create New Quiz'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/Create Quiz");
-            },
-          ),
-        // if (user != null)
-          ListTile(
-            leading: const Icon(Icons.book),
-            title: const Text('My Quiz'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/My Quiz");
-            }
-          ),
+        ListTile(
+          leading: const Icon(Icons.add),
+          title: const Text('Create New Quiz'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.pushNamed(context, "/Create Quiz");
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.book),
+          title: const Text('My Quiz'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.pushNamed(context, "/My Quiz");
+          }
+        ),
 
         if (user != null)
           ListTile(
@@ -68,12 +53,14 @@ class SidebarMenu extends StatelessWidget {
             title: const Text('Logout'),
             onTap: () async {
               await FirebaseAuth.instance.signOut();
+              if (context.mounted) Navigator.pop(context);
             },
           ),
         ListTile(
           leading: const Icon(Icons.info),
           title: const Text('About Us'),
           onTap: () async {
+            Navigator.pop(context);
           },
         ),
       ],

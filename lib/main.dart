@@ -7,6 +7,9 @@ import 'package:thinkfast/screens/quesations.dart';
 import 'package:thinkfast/screens/quiz_form.dart';
 import 'package:thinkfast/screens/result_screen.dart';
 import 'package:thinkfast/screens/start_screen.dart';
+import 'package:thinkfast/auth/login_screen.dart';
+import 'package:thinkfast/auth/signup_screen.dart';
+import 'package:thinkfast/auth/verification_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +28,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MySplash(),
+      home: const LoginScreen(),
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/signup': (context) => const SignupScreen(),
+        '/verify': (context) => const VerificationScreen(),
+        '/home': (context) => const MyHomePage(),
+      },
     );
   }
 }
@@ -43,10 +52,9 @@ class _MySplashState extends State<MySplash> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MyHomePage()),
-      );
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     });
   }
 
@@ -82,42 +90,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _Quiz extends State<MyHomePage> {
-  // GoogleSignInAccount? _user;
-  // final GoogleSignInProvider _provider = GoogleSignInProvider();
-
-  // late Widget _currState;
-  // Future<void> _setupGoogleSignIn() async {
-  //   try {
-  //     await _provider.initialize(
-  //       serverClientId:
-  //       "775124683303-g0rnar32rjagj6kpn5fq82945rkbtofe.apps.googleusercontent.com",
-  //     );
-  //
-  //     GoogleSignInAccount? account =
-  //     await _provider.instance.attemptLightweightAuthentication();
-  //
-  //     account ??= await _provider.instance.authenticate();
-  //
-  //     setState(() => _user = account);
-  //
-  //     _provider.instance.authenticationEvents.listen((event) {
-  //       if (event is GoogleSignInAuthenticationEventSignIn) {
-  //         setState(() => _user = event.user);
-  //       } else if (event is GoogleSignInAuthenticationEventSignOut) {
-  //         setState(() => _user = null);
-  //       }
-  //     });
-  //   } catch (e) {
-  //     print("Google Sign-In initialization error: $e");
-  //   }
-  // }
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _setupGoogleSignIn();
-  // }
-
   /// Shuffle Quiz Data
   List<Map<String, Object>> shuffleQuizData(
       List<Map<String, Object>> quizData) {
@@ -147,16 +119,17 @@ class _Quiz extends State<MyHomePage> {
     );
   }
 
-
   /// Navigator Routes
   @override
   Widget build(BuildContext context) {
+    // Note: We use the top-level Navigator defined in MaterialApp for auth routes.
+    // This internal Navigator is used for sub-navigation if needed, 
+    // but here it handles the main screen logic.
     return Navigator(
-      initialRoute: '/home',
+      initialRoute: '/home_content',
       onGenerateRoute: (settings) {
         switch (settings.name) {
-
-          case '/home':
+          case '/home_content':
             return MaterialPageRoute(
               builder: (context) => _wrapWithGradient(
                 const Main_Screen(showMyQuizzes: false), // public quizzes
@@ -188,14 +161,12 @@ class _Quiz extends State<MyHomePage> {
 
           case '/Quiz Result':
             return MaterialPageRoute(
-              builder: (context) =>
-                  _wrapWithGradient(ResultScreen()),
+              builder: (context) => _wrapWithGradient(ResultScreen()),
             );
 
           case '/Update Quiz':
             return MaterialPageRoute(
-              builder: (context) =>
-                  _wrapWithGradient(QuizPage(global.ID)),
+              builder: (context) => _wrapWithGradient(QuizPage(global.ID)),
             );
 
           default:
@@ -206,7 +177,6 @@ class _Quiz extends State<MyHomePage> {
             );
         }
       },
-
     );
   }
 }

@@ -1,34 +1,43 @@
-# Upgrade Project Dependencies and Build Tools
+# Fix Google Sign-In and Email Login Flow
 
-Upgrade Gradle, Android Gradle Plugin (AGP), and Kotlin to meet Flutter's requirements and resolve build errors.
+Implement Google Sign-In, fix the email/password login process, and resolve UI compilation errors.
 
 ## Proposed Changes
 
-### Android Build Configuration
+### 1. Auth Service Enhancement
+Update [auth_service.dart](file:///E:/code/ThinkFast/lib/auth/auth_service.dart) to include Google Sign-In logic.
 
-Upgrade Gradle, AGP, and Kotlin versions.
+#### [auth_service.dart](file:///E:/code/ThinkFast/lib/auth/auth_service.dart)
+- Add `GoogleSignIn` instance.
+- Implement `signInWithGoogle()` method.
+- Update error handling to be more descriptive.
 
-#### [gradle-wrapper.properties](file:///E:/code/ThinkFast/android/gradle/wrapper/gradle-wrapper.properties)
+### 2. Login Screen UI/UX
+Update [login_screen.dart](file:///E:/code/ThinkFast/lib/auth/login_screen.dart) to support both Google and Email/Password login.
 
-- Upgrade `distributionUrl` from `gradle-8.12-all.zip` to `gradle-8.14-all.zip`.
+#### [login_screen.dart](file:///E:/code/ThinkFast/lib/auth/login_screen.dart)
+- Fix the import path for `AuthService` (change from `../services/auth_service.dart` to `auth_service.dart`).
+- Add a "Sign in with Google" button.
+- Improve the layout and error reporting.
 
-#### [settings.gradle.kts](file:///E:/code/ThinkFast/android/settings.gradle.kts)
+### 3. UI Fixes
+Fix the compilation error in [drawer_data.dart](file:///E:/code/ThinkFast/lib/widgets/drawer_data.dart).
 
-- Upgrade `com.android.application` version from `8.7.3` to `8.11.1`.
-- Upgrade `org.jetbrains.kotlin.android` version from `2.1.0` to `2.2.20`.
+#### [drawer_data.dart](file:///E:/code/ThinkFast/lib/widgets/drawer_data.dart)
+- Remove the call to the non-existent `refreshParent()` method.
+- Update the Login tile to navigate to the login screen instead of trying to run a function.
 
-### Flutter Dependencies
+### 4. Application Routes
+Update [main.dart](file:///E:/code/ThinkFast/lib/main.dart) to ensure all authentication-related routes are correctly defined.
 
-Resolve the `google_fonts` build error.
-
-#### [pubspec.yaml](file:///E:/code/ThinkFast/pubspec.yaml)
-
-- Run `flutter pub upgrade` to resolve the `google_fonts` constant evaluation error.
+#### [main.dart](file:///E:/code/ThinkFast/lib/main.dart)
+- Verify `/login`, `/signup`, and `/verify` routes.
 
 ## Verification Plan
 
 ### Automated Tests
-- Run `flutter build apk` to verify the build completes successfully without warnings or errors.
+- Run `flutter build apk --debug` to ensure all compilation errors are resolved.
 
 ### Manual Verification
-- None required beyond successful build.
+- Verify that the Login screen displays both Email/Password fields and the Google Sign-In button.
+- Verify that clicking "Login" in the Sidebar Drawer navigates to the Login screen.
