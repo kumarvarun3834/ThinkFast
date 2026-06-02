@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class DatabaseService {
   final CollectionReference _db =
   FirebaseFirestore.instance.collection('databases');
+  final CollectionReference _responses =
+  FirebaseFirestore.instance.collection('responses');
 
   /// ✅ Create a new database (quiz set)
   Future<String> createDatabase({
@@ -11,7 +13,7 @@ class DatabaseService {
     required String title,
     required String description,
     required String visibility,
-    required List<Map<String, Object>> data,
+    required List<Map<String, Object>> data, // Each item should have an 'id'
     required int time, // minutes
   }) async {
     final docRef = await _db.add({
@@ -27,17 +29,27 @@ class DatabaseService {
     return docRef.id; // return Firestore document ID
   }
 
-  /// ✅ Read all databases (real-time stream) with optional visibility filter
-  Stream<List<Map<String, dynamic>>> readAllDatabases({String? visibility}) {
+  /// ✅ Read databases (real-time stream) with filters
+  Stream<List<Map<String, dynamic>>> readAllDatabases({
+    bool showMyQuizzes = false,
+    String? creatorId,
+  }) {
     Query query = _db;
-    if (visibility != null) {
-      query = query.where('visibility', isEqualTo: visibility);
+
+    if (showMyQuizzes && creatorId != null) {
+      query = query.where('creatorId', isEqualTo: creatorId);
+    } else {
+      query = query.where('visibility', isEqualTo: 'public');
     }
 
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
+
+        // 🛡️ Remove questions data to save bandwidth in list view
+        data.remove('data');
+
         return data;
       }).toList();
     });
@@ -89,13 +101,102 @@ class DatabaseService {
     await docRef.delete();
   }
 
-  /// ✅ Read a single database (quiz) by docId
+  /// ✅ Read a single database (quiz) by docId - Strips answers for security
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final doc = await _db.doc(docId).get();
     if (!doc.exists) throw Exception("Quiz not found");
 
     final data = doc.data() as Map<String, dynamic>;
     data['id'] = doc.id;
+
+    // 🛡️ Strip 'answers' from each question so they aren't available while taking the quiz
+    if (data['data'] != null && data['data'] is List) {
+      for (var question in data['data']) {
+        if (question is Map) {
+          question.remove('answers');
+        }
+      }
+    }
+
     return data;
+  }
+
+  /// ✅ Fetch ONLY the correct answers for a quiz (to be called on submit)
+  Future<Map<String, List<String>>> getQuizAnswers(String docId) async {
+    final doc = await _db.doc(docId).get();
+    if (!doc.exists) throw Exception("Quiz not found");
+
+    final data = doc.data() as Map<String, dynamic>;
+    final Map<String, List<String>> answerKey = {};
+
+    if (data['data'] != null && data['data'] is List) {
+      for (var question in data['data']) {
+        if (question is Map && question['id'] != null && question['answers'] != null) {
+          answerKey[question['id']] = List<String>.from(question['answers']);
+        }
+      }
+    }
+
+    return answerKey;
+  }
+
+  /// ✅ Submit a quiz attempt (based on responses schema)
+  Future<void> submitAttempt({
+    required String userId,
+    required String quizId,
+    required int score,
+    required int totalQuestions,
+    required Map<String, String> answers, // Map of questionId -> chosen choiceId
+  }) async {
+    final userDoc = _responses.doc(userId);
+
+    // Update root user document
+    await userDoc.set({
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // Add to 'attempts' sub-collection
+    await userDoc.collection('attempts').add({
+      'quizId': quizId,
+      'score': score,
+      'totalQuestions': totalQuestions,
+      'answers': answers,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// ✅ Read all attempts for a specific user
+  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
+    return _responses
+        .doc(userId)
+        .collection('attempts')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+    });
+  }
+
+  /// ✅ Get all responses/attempts for a specific quiz (For the Quiz Owner)
+  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) {
+    // Note: Requires a Collection Group Index in Firestore for 'attempts'
+    return FirebaseFirestore.instance
+        .collectionGroup('attempts')
+        .where('quizId', isEqualTo: quizId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        // User who made the attempt is the parent document ID
+        data['respondentId'] = doc.reference.parent.parent?.id;
+        return data;
+      }).toList();
+    });
   }
 }

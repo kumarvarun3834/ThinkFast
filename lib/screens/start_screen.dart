@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
@@ -25,9 +24,6 @@ class _Main_ScreenState extends State<Main_Screen> {
   User? _user;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  final CollectionReference _db =
-  FirebaseFirestore.instance.collection('databases');
-
   @override
   void initState() {
     super.initState();
@@ -38,21 +34,10 @@ class _Main_ScreenState extends State<Main_Screen> {
 
   /// 🔥 READ QUIZZES
   Stream<List<Map<String, dynamic>>> readDatabases() {
-    Query query = _db;
-
-    if (widget.showMyQuizzes && widget.creator != null) {
-      query = query.where('creatorId', isEqualTo: widget.creator!.uid);
-    } else {
-      query = query.where('visibility', isEqualTo: 'public');
-    }
-
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-    });
+    return DatabaseService().readAllDatabases(
+      showMyQuizzes: widget.showMyQuizzes,
+      creatorId: widget.creator?.uid,
+    );
   }
 
   /// 🔘 COMMON BUTTON
