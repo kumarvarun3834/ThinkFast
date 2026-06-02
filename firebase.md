@@ -64,7 +64,23 @@ Each document represents a single quiz session.
 ---
 
 ## Access & Queries
+*   **User Lookups:** Use the `users/{uid}` document to retrieve the user's name, email, or profile picture based on the `creatorId` (in `databases`) or `respondentId` (in `attempts`).
 *   **Collection Group Query:** To retrieve all responses for a specific quiz (used by the owner), a **Collection Group Index** must be created for the `attempts` sub-collection on the `quizId` field.
+
+---
+
+## Collection: `users`
+This collection stores basic profile information for each registered user.
+
+### Document Fields (`users/{uid}`)
+The document ID is the User's UID from Firebase Auth.
+
+| Field       | Type        | Description                                |
+|:------------|:------------|:-------------------------------------------|
+| `email`     | `String`    | Registered email address.                  |
+| `name`      | `String`    | Display name (optional).                   |
+| `createdAt` | `timestamp` | When the account/profile was created.      |
+| `lastActive`| `timestamp` | Last time the user interacted with the app.|
 
 ---
 

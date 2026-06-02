@@ -5,6 +5,29 @@ class DatabaseService {
   FirebaseFirestore.instance.collection('databases');
   final CollectionReference _responses =
   FirebaseFirestore.instance.collection('responses');
+  final CollectionReference _users =
+  FirebaseFirestore.instance.collection('users');
+
+  /// ✅ Create a new user profile
+  Future<void> createUserProfile({
+    required String uid,
+    required String email,
+    String? name,
+  }) async {
+    await _users.doc(uid).set({
+      'email': email,
+      'name': name ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastActive': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// ✅ Fetch user profile by UID
+  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
+    final doc = await _users.doc(uid).get();
+    if (!doc.exists) return null;
+    return doc.data() as Map<String, dynamic>;
+  }
 
   /// ✅ Create a new database (quiz set)
   Future<String> createDatabase({

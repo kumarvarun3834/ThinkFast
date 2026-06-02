@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final DatabaseService _dbService = DatabaseService();
 
   /// ---------------- CURRENT USER ----------------
   User? get user => _auth.currentUser;
@@ -18,8 +20,16 @@ class AuthService {
 
       final user = res.user;
 
-      if (user != null && !user.emailVerified) {
-        await user.sendEmailVerification();
+      if (user != null) {
+        // Create user profile in Firestore
+        await _dbService.createUserProfile(
+          uid: user.uid,
+          email: user.email ?? email,
+        );
+
+        if (!user.emailVerified) {
+          await user.sendEmailVerification();
+        }
       }
 
       return user;
@@ -67,12 +77,25 @@ class AuthService {
 
       // Once signed in, return the UserCredential
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      return userCredential.user;
+      final user = userCredential.user;
+
+      if (user != null) {
+        // Create/Update user profile in Firestore
+        await _dbService.createUserProfile(
+          uid: user.uid,
+          email: user.email ?? '',
+          name: user.displayName,
+        );
+      }
+
+      return user;
     } on FirebaseAuthException catch (e) {
+      print(e.code);
       throw e.code;
     } catch (e) {
       // If user cancelled, authenticate() might throw or return something specific.
       // Based on the source, it rethrows GoogleSignInException.
+      print(e);
       throw "google_sign_in_failed: $e";
     }
   }
