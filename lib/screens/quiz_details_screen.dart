@@ -16,10 +16,11 @@ class QuizDetailsScreen extends StatefulWidget {
 
 class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   User? _user;
+  Map<String, dynamic>? _userProfile;
+  Map<String, dynamic>? _creatorProfile;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = true;
   Map<String, dynamic>? _quizData;
-  String _creatorName = "Loading...";
 
   @override
   void initState() {
@@ -33,17 +34,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       final db = DatabaseService();
       final data = await db.readDatabase(widget.quizId);
       
-      String creatorName = "Unknown";
+      Map<String, dynamic>? creatorProfile;
       if (data['creatorId'] != null) {
-        final profile = await db.getUserProfile(data['creatorId']);
-        if (profile != null) {
-          creatorName = profile['name'] ?? profile['email'] ?? "Unknown";
-        }
+        creatorProfile = await db.getUserProfile(data['creatorId']);
+      }
+
+      Map<String, dynamic>? userProfile;
+      if (_user != null) {
+        userProfile = await db.getUserProfile(_user!.uid);
       }
 
       setState(() {
         _quizData = data;
-        _creatorName = creatorName;
+        _creatorProfile = creatorProfile;
+        _userProfile = userProfile;
         _isLoading = false;
       });
     } catch (e) {
@@ -137,7 +141,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       ),
                       const SizedBox(height: 10),
                       TextContainer(
-                        "Created by: $_creatorName",
+                        "Created by: ${_creatorProfile?['name'] ?? _creatorProfile?['email'] ?? 'Unknown'}",
                         Colors.white70,
                         18,
                       ),
@@ -171,6 +175,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       .toList();
 
                   global.time = _quizData!['time'] as int;
+                  global.currentUserProfile = _userProfile;
+                  global.creatorProfile = _creatorProfile;
+                  
                   Navigator.pushNamed(context, "/Quiz");
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -186,6 +193,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       .toList();
 
                   global.ID = _quizData!['id'];
+                  global.currentUserProfile = _userProfile;
+                  global.creatorProfile = _creatorProfile;
+
                   Navigator.pushNamed(context, "/Update Quiz");
                 }),
                 const SizedBox(height: 15),

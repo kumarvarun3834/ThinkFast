@@ -109,8 +109,9 @@ class _SidebarMenuState extends State<SidebarMenu> {
         ListTile(
           leading: const Icon(Icons.info),
           title: const Text('About Us'),
-          onTap: () async {
+          onTap: () {
             Navigator.pop(context);
+            Navigator.pushNamed(context, "/About Us");
           },
         ),
       ],

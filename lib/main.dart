@@ -7,6 +7,7 @@ import 'package:thinkfast/screens/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz_form.dart';
 import 'package:thinkfast/screens/start_screen.dart';
 import 'package:thinkfast/screens/result_screen.dart';
+import 'package:thinkfast/screens/about_us.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
@@ -103,6 +104,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/Quiz Details':
             page = QuizDetailsScreen(quizId: settings.arguments as String);
+            wrapInGradient = false;
+            break;
+          case '/About Us':
+            page = const AboutUsScreen();
             wrapInGradient = false;
             break;
           default:
