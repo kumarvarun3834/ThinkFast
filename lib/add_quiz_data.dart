@@ -49,7 +49,9 @@ class _QuizFormState extends State<QuizForm> {
     if (widget.form_data_part["answers"] != null) {
       List answers = widget.form_data_part["answers"] as List;
       for (var answer in answers) {
-        final index = (widget.form_data_part["choices"] as List).indexOf(answer);
+        final index = (widget.form_data_part["choices"] as List).indexOf(
+          answer,
+        );
         if (index != -1) {
           _selectedAnswers.add(index);
         }
@@ -119,7 +121,10 @@ class _QuizFormState extends State<QuizForm> {
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent),
+          icon: const Icon(
+            Icons.remove_circle_outline_rounded,
+            color: Colors.redAccent,
+          ),
           onPressed: () {
             setState(() {
               _selectedAnswers.remove(index);
@@ -132,90 +137,104 @@ class _QuizFormState extends State<QuizForm> {
     );
   }
 
-  List<Widget> options_data() =>
-      List.generate(_choiceControllers.length, (y) => Column(children: [choicetemplate(y),SizedBox(height: 8)]));
+  List<Widget> options_data() => List.generate(
+    _choiceControllers.length,
+    (y) => Column(children: [choicetemplate(y), SizedBox(height: 8)]),
+  );
 
   @override
   Widget build(BuildContext context) {
     final List<String> _options = ["Multiple Choice", "Single Choice"];
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+    return Material(
+      color: const Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        side: const BorderSide(color: Color(0xFF334155)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DropdownButtonFormField<String>(
-            dropdownColor: const Color(0xFF1E293B),
-            style: const TextStyle(color: Color(0xFFE2E8F0)),
-            initialValue: _options.contains(_selectedValue) ? _selectedValue : null,
-            decoration: const InputDecoration(
-              labelText: "Question Type",
-              labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF334155)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF3B82F6)),
-              ),
-            ),
-            items: _options.map((String option) {
-              return DropdownMenuItem<String>(
-                value: option,
-                child: Text(option),
-              );
-            }).toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedValue = value;
-              });
-              _emitData();
-            },
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _questionController,
-            style: const TextStyle(color: Color(0xFFE2E8F0)),
-            decoration: const InputDecoration(
-              labelText: "Question Prompt",
-              labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF334155)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF3B82F6)),
-              ),
-            ),
-            onChanged: (_) => _emitData(),
-          ),
-          const SizedBox(height: 16),
-          Column(children: options_data()),
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: _addChoice,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF3B82F6)),
-                const SizedBox(width: 8),
-                Text(
-                  "Add Choice",
-                  style: TextStyle(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              dropdownColor: const Color(0xFF1E293B),
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              initialValue: _options.contains(_selectedValue)
+                  ? _selectedValue
+                  : null,
+              decoration: const InputDecoration(
+                labelText: "Question Type",
+                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
                 ),
-              ],
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+              ),
+              items: _options.map((String option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedValue = value;
+                });
+                _emitData();
+              },
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: _questionController,
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: const InputDecoration(
+                labelText: "Question Prompt",
+                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+              ),
+              onChanged: (_) => _emitData(),
+            ),
+            const SizedBox(height: 16),
+            Column(children: options_data()),
+            const SizedBox(height: 12),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: _addChoice,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: Color(0xFF3B82F6),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Add Choice",
+                      style: TextStyle(
+                        color: const Color(0xFF3B82F6),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
 
 // this will eliminate the setState during build error
 // your QuizPage doesn’t need changes now - it was fine

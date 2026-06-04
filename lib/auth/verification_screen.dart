@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -14,6 +15,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   bool loading = false;
   Timer? _timer;
+
+  // Colors (Fixed Palette)
+  final Color _bgColor = const Color(0xFF0F172A);
+  final Color _cardColor = const Color(0xFF1E293B);
+  final Color _primaryAccent = const Color(0xFF3B82F6);
+  final Color _labelColor = const Color(0xFF94A3B8);
+  final Color _valueColor = const Color(0xFFE2E8F0);
+  final Color _btnColor = const Color(0xFF2563EB);
+  final Color _borderColor = const Color(0xFF334155);
 
   @override
   void initState() {
@@ -73,52 +83,141 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   /// ---------------- SNACKBAR ----------------
   void _show(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg, style: GoogleFonts.poppins(color: Colors.white)),
+        backgroundColor: _cardColor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   /// ---------------- UI ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Verify Email")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.mark_email_read, size: 80, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text(
-              "Verify your email",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "We have sent a verification link to your email.\n"
-              "Please verify to continue.",
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            loading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: () => checkVerification(),
-                    child: const Text("I Verified"),
+      backgroundColor: _bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "Verify Email",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _valueColor,
+          ),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: _borderColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.mark_email_read_rounded,
+                        size: 100, color: _primaryAccent),
+                    const SizedBox(height: 24),
+                    Text(
+                      "Almost There!",
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: _valueColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "We've sent a verification link to your email address. Please click it to activate your account.",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        color: _labelColor,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    loading
+                        ? CircularProgressIndicator(color: _primaryAccent)
+                        : ElevatedButton(
+                            onPressed: () => checkVerification(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _btnColor,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 56),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 4,
+                            ),
+                            child: Text(
+                              "I'VE VERIFIED",
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      onPressed: resendEmail,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _primaryAccent,
+                        minimumSize: const Size(double.infinity, 56),
+                        side: BorderSide(color: _borderColor),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        "RESEND EMAIL",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              TextButton.icon(
+                onPressed: () {
+                  auth.logout();
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                icon: Icon(Icons.arrow_back_rounded,
+                    color: _labelColor, size: 20),
+                label: Text(
+                  "Back to Login",
+                  style: GoogleFonts.poppins(
+                    color: _labelColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: resendEmail,
-              child: const Text("Resend Email"),
-            ),
-            TextButton(
-              onPressed: () {
-                auth.logout();
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-              child: const Text("Back to Login"),
-            ),
-          ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

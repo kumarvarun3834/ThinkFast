@@ -47,6 +47,8 @@ class _QuizPageState extends State<QuizPage> {
   Future<void> _fetchQuiz(String docId) async {
     try {
       final data = await DatabaseService().readDatabase(docId);
+      // Fetch answers because readDatabase strips them
+      final answersMap = await DatabaseService().getQuizAnswers(docId);
 
       setState(() {
         _titleController.text = data['title'] ?? '';
@@ -54,13 +56,41 @@ class _QuizPageState extends State<QuizPage> {
         visibility = data['visibility'] ?? 'private';
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
+        final List<dynamic> rawQuestions = data['data'] as List;
+        final List<Map<String, Object>> transformed = [];
+
+        for (var q in rawQuestions) {
+          final qInfo = q['Q'] as Map;
+          final qUid = qInfo['id'].toString();
+          final qText = qInfo['text'].toString();
+
+          final List<dynamic> opts = q['Opt'] as List;
+          final List<String> choiceTexts = [];
+          final List<String> correctTexts = [];
+
+          final List<String> correctUids = answersMap[qUid] ?? [];
+
+          for (var o in opts) {
+            final oMap = o as Map;
+            final oUid = oMap['id'].toString();
+            final oText = oMap['text'].toString();
+            choiceTexts.add(oText);
+            if (correctUids.contains(oUid)) {
+              correctTexts.add(oText);
+            }
+          }
+
+          transformed.add({
+            "question": qText,
+            "choices": choiceTexts,
+            "answers": correctTexts,
+            "type": q['type'] ?? 'Single Choice',
+          });
+        }
+
         questions
           ..clear()
-          ..addAll(
-            (data['data'] as List)
-                .map((e) => Map<String, Object>.from(e))
-                .toList(),
-          );
+          ..addAll(transformed);
       });
     } catch (e) {
       ScaffoldMessenger.of(context)

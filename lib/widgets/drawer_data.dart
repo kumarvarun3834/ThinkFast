@@ -41,7 +41,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Material(
       color: const Color(0xFF1E293B),
       child: ListView(
         padding: EdgeInsets.zero,

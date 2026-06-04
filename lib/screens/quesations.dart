@@ -24,42 +24,38 @@ class _Quesations extends State<Quesations> {
     global.quizData.shuffle(random);
 
     for (var q in global.quizData) {
-      // Save answer values as List<String>
-      List<String> answers = [];
-      if (q["answer"] != null) {
-        if (q["answer"] is List) {
-          for (var e in q["answer"] as List) {
-            if (e is int && q["choices"] != null) {
-              answers.add((q["choices"] as List)[e].toString());
-            } else {
-              answers.add(e.toString());
-            }
-          }
-        } else if (q["answer"] is int && q["choices"] != null) {
-          answers.add((q["choices"] as List)[q["answer"] as int].toString());
-        } else {
-          answers.add(q["answer"].toString());
-        }
-      }
-      q["answer"] = answers;
-
-      // Shuffle choices
-      final opts = (q["choices"] as List?)?.map((e) => e.toString()).toList() ?? [];
+      // Shuffle choices (Opt is [{id, text}, ...])
+      final opts = (q["Opt"] as List?)?.toList() ?? [];
       opts.shuffle(random);
-      q["choices"] = opts;
+      q["Opt"] = opts;
     }
+
+    // 2D Array format for Results (Application State): [ [qText, qUid, selectionList, visitedBool], ... ]
+    global.quizResult = global.quizData.map((q) {
+      final qInfo = q["Q"] as Map;
+      final qUid = qInfo['id'].toString();
+      final qText = qInfo['text'].toString();
+
+      return [
+        qText,
+        qUid,
+        <String>[], // Store selected optUids
+        false,
+      ];
+    }).toList();
   }
 
-  /// Reset quizResult with empty selections
-  List<Map<String, Object>> _quizReset(List<Map<String, Object>> quizData) {
-    List<Map<String, Object>> quizResult = [];
+  /// Reset quizResult with empty selections in 2D array format
+  List<List<dynamic>> _quizReset(List<Map<String, Object>> quizData) {
+    List<List<dynamic>> quizResult = [];
     for (var q in quizData) {
-      quizResult.add({
-        "question": q["question"]?.toString() ?? "",
-        "selection": <String>[],
-        "visited": false,
-        "answer": (q["answer"] as List?)?.cast<String>() ?? [],
-      });
+      final qInfo = q["Q"] as Map;
+      quizResult.add([
+        qInfo['text'].toString(), // text
+        qInfo['id'].toString(), // uid
+        <String>[], // selections
+        false, // visited
+      ]);
     }
     return quizResult;
   }
@@ -72,17 +68,12 @@ class _Quesations extends State<Quesations> {
 
   Future<void> _loadQuizWithTime() async {
     // assume global.currentQuizId is set when quiz is chosen
-    final int timeSeconds =global.time;
-    // final int timeSeconds = (int.tryParse((global.quizData['time'] as String) ?? "1") ?? 1) * 60;
+    final int timeSeconds = global.time;
 
-    global.quizResult = _quizReset(global.quizData);
     _shuffleQuestionsAndOptions();
-    global.quizResult = _quizReset(global.quizData);
 
     setState(() {
       currentData = global.quizData[i];
-      global.quizResult[i]["answer"] =
-      global.quizData[i]["answer"] as List<String>;
       _timeLeft = Duration(seconds: timeSeconds.toInt()); // ⏱️ assign from DB
     });
 
@@ -90,40 +81,40 @@ class _Quesations extends State<Quesations> {
   }
 
   void switchToResultScreen() {
-    Navigator.pushNamed(context, "/Quiz Result");
+    Navigator.pushReplacementNamed(context, "/Quiz Result");
   }
 
   void switchState() {
     setState(() {
       currentData = global.quizData[i];
-      global.quizResult[i]["question"] =
-          global.quizData[i]["question"].toString();
-      global.quizResult[i]["answer"] =
-          global.quizData[i]["answer"]?.toString() ?? "";
-      global.quizResult[i]["visited"] = true;
+      final qInfo = currentData["Q"] as Map;
+      global.quizResult[i][0] = qInfo['text'].toString(); // question text
+      global.quizResult[i][1] = qInfo['id'].toString(); // question uid
+      global.quizResult[i][3] = true; // visited
     });
   }
 
   List<Widget> buttons_Data(Map<String, Object> quizData) {
     List<Widget> database = [];
 
-    var rawChoices = quizData["choices"];
-    List<String> options = [];
-    if (rawChoices is List) {
-      options = rawChoices.map((e) => e.toString()).toList();
-    } else if (rawChoices is String) {
-      options = rawChoices.split(",").map((e) => e.trim()).toList();
-    }
+    // Opt is [{id, text}, ...]
+    final List<dynamic> options = quizData["Opt"] as List? ?? [];
 
     for (var option in options) {
-      database.add(
-        buttons_opt(
-          quizData["type"]?.toString() ?? "Single Choice",
-          option,
-          switchState,
-          global.quizResult[i],
-        ),
-      );
+      if (option is Map) {
+        final String optUid = option['id'].toString();
+        final String optText = option['text'].toString();
+
+        database.add(
+          buttons_opt(
+            quizData["type"]?.toString() ?? "Single Choice",
+            optUid,
+            optText,
+            switchState,
+            global.quizResult[i],
+          ),
+        );
+      }
     }
     return database;
   }
@@ -159,26 +150,24 @@ class _Quesations extends State<Quesations> {
     ];
   }
 
-  // ✅ safe selector
-  List<String> _getSelection(Map<String, Object> question) {
-    final sel = question["selection"];
+  // ✅ safe selector (2D Array)
+  List<String> _getSelection(List<dynamic> question) {
+    final sel = question[2];
     if (sel is List) {
       return sel.map((e) => e.toString()).toList();
-    } else if (sel is String && sel.isNotEmpty) {
-      return [sel];
     }
     return <String>[];
   }
 
-  Color _getQuestionColor(Map<String, Object> question) {
+  Color _getQuestionColor(List<dynamic> question) {
     final selection = _getSelection(question);
     if (selection.isEmpty) return Colors.grey; // not visited
-    return selection.isNotEmpty ? Colors.green : Colors.yellow;
+    return Colors.green;
   }
 
   String _format(Duration d) =>
       "${d.inMinutes.remainder(60).toString().padLeft(2, '0')}:"
-          "${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
+      "${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
 
   void _startTimer() {
     _timer?.cancel();
@@ -242,7 +231,10 @@ class _Quesations extends State<Quesations> {
                 onPressed: switchToResultScreen,
                 child: const Text(
                   "SUBMIT",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -271,7 +263,11 @@ class _Quesations extends State<Quesations> {
                 child: Center(
                   child: Text(
                     'Questions',
-                    style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0), fontSize: 24, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFE2E8F0),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -307,7 +303,7 @@ class _Quesations extends State<Quesations> {
                     child: Padding(
                       padding: const EdgeInsets.all(24.0),
                       child: Text(
-                        "Question: ${currentData["question"]?.toString() ?? ""}",
+                        "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
                         style: GoogleFonts.poppins(
                           color: const Color(0xFFE2E8F0),
                           fontSize: 22,
@@ -337,13 +333,15 @@ class _Quesations extends State<Quesations> {
                         backgroundColor: const Color(0xFF1E293B),
                         foregroundColor: const Color(0xFFE2E8F0),
                         side: const BorderSide(color: Color(0xFF334155)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: i > 0
                           ? () {
-                        i--;
-                        switchState();
-                      }
+                              i--;
+                              switchState();
+                            }
                           : null,
                       child: const Text("PREVIOUS"),
                     ),
@@ -351,13 +349,15 @@ class _Quesations extends State<Quesations> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: i < global.quizData.length - 1
                           ? () {
-                        i++;
-                        switchState();
-                      }
+                              i++;
+                              switchState();
+                            }
                           : null,
                       child: const Text("NEXT"),
                     ),
@@ -375,19 +375,24 @@ class _Quesations extends State<Quesations> {
 
 class buttons_opt extends StatelessWidget {
   final VoidCallback onPressed;
-  final String opt;
+  final String optUid;
+  final String optText;
   final String type;
-  final Map<String, Object> quizResultChunk;
-  Color colour = Colors.black;
+  final List<dynamic> quizResultChunk;
 
-  buttons_opt(this.type, this.opt, this.onPressed, this.quizResultChunk, {super.key});
+  buttons_opt(
+    this.type,
+    this.optUid,
+    this.optText,
+    this.onPressed,
+    this.quizResultChunk, {
+    super.key,
+  });
 
   List<String> _getSelection() {
-    final sel = quizResultChunk["selection"];
+    final sel = quizResultChunk[2];
     if (sel is List) {
       return sel.map((e) => e.toString()).toList();
-    } else if (sel is String && sel.isNotEmpty) {
-      return [sel];
     }
     return <String>[];
   }
@@ -395,8 +400,8 @@ class buttons_opt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectionList = _getSelection();
-    final bool isSelected = selectionList.contains(opt);
-    
+    final bool isSelected = selectionList.contains(optUid);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -404,21 +409,24 @@ class buttons_opt extends StatelessWidget {
         onPressed: () {
           final sel = _getSelection();
           if (type == "Single Choice") {
-            quizResultChunk["selection"] = [opt];
+            quizResultChunk[2] = [optUid];
           } else {
-            if (sel.contains(opt)) {
-              sel.remove(opt);
+            if (sel.contains(optUid)) {
+              sel.remove(optUid);
             } else {
-              sel.add(opt);
+              sel.add(optUid);
             }
-            quizResultChunk["selection"] = sel;
+            quizResultChunk[2] = sel;
           }
           onPressed();
         },
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          backgroundColor: isSelected ? const Color(0xFF3B82F6).withOpacity(0.2) : const Color(0xFF1E293B),
-          foregroundColor: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE2E8F0),
+          backgroundColor: isSelected
+              ? const Color(0xFF3B82F6).withOpacity(0.2)
+              : const Color(0xFF1E293B),
+          foregroundColor:
+              isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE2E8F0),
           side: BorderSide(
             color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF334155),
             width: 2,
@@ -430,7 +438,7 @@ class buttons_opt extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            opt,
+            optText,
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

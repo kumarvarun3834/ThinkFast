@@ -29,6 +29,44 @@ class DatabaseService {
     return doc.data() as Map<String, dynamic>;
   }
 
+  /// 🛠️ Helper to transform quiz data and extract answer keys
+  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData) {
+    final List<Map<String, dynamic>> transformedData = [];
+    final List<Map<String, String>> answerKeys = [];
+
+    for (int i = 0; i < inputData.length; i++) {
+      final item = inputData[i];
+      final String qUid = "q_${DateTime.now().microsecondsSinceEpoch}_$i";
+      final String qText = (item['question'] ?? '').toString();
+
+      final choices = item['choices'] as List? ?? [];
+      final answers = item['answers'] as List? ?? [];
+
+      final List<Map<String, String>> optionsWithIds = [];
+      for (int j = 0; j < choices.length; j++) {
+        final String optUid =
+            "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
+        final String optText = choices[j].toString();
+        optionsWithIds.add({'id': optUid, 'text': optText});
+
+        if (answers.contains(optText)) {
+          answerKeys.add({'q': qUid, 'a': optUid});
+        }
+      }
+
+      transformedData.add({
+        'Q': {'id': qUid, 'text': qText},
+        'Opt': optionsWithIds,
+        'type': item['type'] ?? 'Single Choice',
+      });
+    }
+
+    return {
+      'data': transformedData,
+      'answerkeys': answerKeys,
+    };
+  }
+
   /// ✅ Create a new database (quiz set)
   Future<String> createDatabase({
     required String creatorId, // 🔑 UID
@@ -36,16 +74,19 @@ class DatabaseService {
     required String title,
     required String description,
     required String visibility,
-    required List<Map<String, Object>> data, // Each item should have an 'id'
+    required List<Map<String, Object>> data,
     required int time, // minutes
   }) async {
+    final transformed = _transformQuizData(data);
+
     final docRef = await _db.add({
       'creatorId': creatorId,
       'user': user,
       'title': title,
       'description': description,
       'visibility': visibility,
-      'data': data,
+      'data': transformed['data'],
+      'answerkeys': transformed['answerkeys'], // [[Q,a],[Q,a]]
       'time': time * 60, // store seconds
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -96,10 +137,14 @@ class DatabaseService {
       throw Exception('Only creator can update this quiz');
     }
 
-    final Map<String, Object> updates = {};
+    final Map<String, dynamic> updates = {};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
-    if (data != null) updates['data'] = data;
+    if (data != null) {
+      final transformed = _transformQuizData(data);
+      updates['data'] = transformed['data'];
+      updates['answerkeys'] = transformed['answerkeys'];
+    }
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
 
@@ -132,14 +177,8 @@ class DatabaseService {
     final data = doc.data() as Map<String, dynamic>;
     data['id'] = doc.id;
 
-    // 🛡️ Strip 'answers' from each question so they aren't available while taking the quiz
-    if (data['data'] != null && data['data'] is List) {
-      for (var question in data['data']) {
-        if (question is Map) {
-          question.remove('answers');
-        }
-      }
-    }
+    // 🛡️ Remove 'answerkeys' to ensure answers are not sent to the client
+    data.remove('answerkeys');
 
     return data;
   }
@@ -150,17 +189,24 @@ class DatabaseService {
     if (!doc.exists) throw Exception("Quiz not found");
 
     final data = doc.data() as Map<String, dynamic>;
-    final Map<String, List<String>> answerKey = {};
+    final Map<String, List<String>> result = {};
 
-    if (data['data'] != null && data['data'] is List) {
-      for (var question in data['data']) {
-        if (question is Map && question['id'] != null && question['answers'] != null) {
-          answerKey[question['id']] = List<String>.from(question['answers']);
+    if (data['answerkeys'] != null && data['answerkeys'] is List) {
+      for (var entry in data['answerkeys']) {
+        if (entry is Map) {
+          final qUid = entry['q'].toString();
+          final optUid = entry['a'].toString();
+
+          if (result[qUid] == null) {
+            result[qUid] = [optUid];
+          } else {
+            result[qUid]!.add(optUid);
+          }
         }
       }
     }
 
-    return answerKey;
+    return result;
   }
 
   /// ✅ Submit a quiz attempt (based on responses schema)
