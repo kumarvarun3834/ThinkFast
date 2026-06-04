@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -22,6 +21,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   bool _isLoading = true;
   Map<String, dynamic>? _quizData;
 
+  // Colors (Fixed Palette)
+  final Color _bgColor = const Color(0xFF0F172A);
+  final Color _cardColor = const Color(0xFF1E293B);
+  final Color _primaryAccent = const Color(0xFF3B82F6);
+  final Color _labelColor = const Color(0xFF94A3B8);
+  final Color _valueColor = const Color(0xFFE2E8F0);
+  final Color _btnColor = const Color(0xFF2563EB);
+  final Color _borderColor = const Color(0xFF334155);
+  final Color _dividerColor = const Color(0xFF334155);
+
   @override
   void initState() {
     super.initState();
@@ -33,7 +42,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     try {
       final db = DatabaseService();
       final data = await db.readDatabase(widget.quizId);
-      
+
       Map<String, dynamic>? creatorProfile;
       if (data['creatorId'] != null) {
         creatorProfile = await db.getUserProfile(data['creatorId']);
@@ -52,29 +61,127 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error fetching details: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error fetching details: $e")));
         Navigator.pop(context);
       }
     }
   }
 
-  ElevatedButton actionButton(String text, VoidCallback onPressed) {
+  Widget _buildInfoRow(String label, String value, {IconData? icon}) {
+    if (value.isEmpty || value == 'null') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.poppins(
+              color: _labelColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 18, color: _primaryAccent),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    color: _valueColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisibilityBadge(String visibility) {
+    Color color;
+    switch (visibility.toLowerCase()) {
+      case 'public':
+        color = Colors.greenAccent;
+        break;
+      case 'private':
+        color = Colors.orangeAccent;
+        break;
+      default:
+        color = Colors.blueGrey;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            visibility.toUpperCase(),
+            style: GoogleFonts.poppins(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _actionButton(
+    String text,
+    VoidCallback onPressed, {
+    bool isPrimary = false,
+    IconData? icon,
+  }) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white12,
+        backgroundColor: isPrimary ? _btnColor : Colors.white.withOpacity(0.05),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50),
+          borderRadius: BorderRadius.circular(16),
+          side: isPrimary ? BorderSide.none : BorderSide(color: _borderColor),
         ),
+        elevation: isPrimary ? 4 : 0,
       ),
-      child: Text(
-        text,
-        style: GoogleFonts.poppins(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            text.toUpperCase(),
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.1,
+            ),
+          ),
+          if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 20)],
+        ],
       ),
     );
   }
@@ -82,148 +189,193 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: _bgColor,
+        body: Center(child: CircularProgressIndicator(color: _primaryAccent)),
       );
     }
 
     if (_quizData == null) {
-      return const Scaffold(
-        body: Center(child: Text("No quiz found")),
+      return Scaffold(
+        backgroundColor: _bgColor,
+        body: Center(
+          child: Text(
+            "No quiz found",
+            style: GoogleFonts.poppins(color: _valueColor),
+          ),
+        ),
       );
     }
 
     final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
     final bool isPublic = _quizData!['visibility'] == 'public';
 
+    final title = _quizData!['title'] ?? 'Untitled Quiz';
+    final description = _quizData!['description'] ?? 'No description provided';
+    final timeLimit = "${_quizData!['time'] ~/ 60} Minutes";
+    final totalQuestions =
+        (_quizData!['data'] as List?)?.length.toString() ?? '0';
+    final creator =
+        _creatorProfile?['name'] ?? _creatorProfile?['email'] ?? 'Unknown';
+
     return Scaffold(
+      backgroundColor: _bgColor,
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
-        title: TextContainer("Quiz Details", Colors.black, 20),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 36, 7, 156),
-              Color.fromARGB(255, 8, 0, 255),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Quiz Details",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _valueColor,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                color: Colors.blueAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextContainer(
-                        "Title: ${_quizData!['title'] ?? 'Untitled'}",
-                        Colors.white,
-                        24,
-                      ),
-                      const SizedBox(height: 10),
-                      TextContainer(
-                        "ID: ${_quizData!['id']}",
-                        Colors.white70,
-                        16,
-                      ),
-                      const SizedBox(height: 10),
-                      TextContainer(
-                        "Created by: ${_creatorProfile?['name'] ?? _creatorProfile?['email'] ?? 'Unknown'}",
-                        Colors.white70,
-                        18,
-                      ),
-                      const SizedBox(height: 10),
-                      TextContainer(
-                        "Description: ${_quizData!['description'] ?? 'No description'}",
-                        Colors.white70,
-                        18,
-                      ),
-                      const SizedBox(height: 10),
-                      TextContainer(
-                        "Time: ${_quizData!['time'] ~/ 60} minutes",
-                        Colors.white70,
-                        18,
-                      ),
-                      const SizedBox(height: 10),
-                      TextContainer(
-                        "Visibility: ${_quizData!['visibility']}",
-                        Colors.white70,
-                        18,
-                      ),
-                    ],
-                  ),
-                ),
+        iconTheme: IconThemeData(color: _valueColor),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                color: _valueColor,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 30),
-              actionButton("Start Quiz", () {
-                if (isPublic || isOwner) {
-                  global.quizData = (_quizData!['data'] as List<dynamic>)
-                      .map((e) => Map<String, Object>.from(e))
-                      .toList();
-
-                  global.time = _quizData!['time'] as int;
-                  global.currentUserProfile = _userProfile;
-                  global.creatorProfile = _creatorProfile;
-                  
-                  Navigator.pushNamed(context, "/Quiz");
-                } else {
+            ),
+            const SizedBox(height: 8),
+            _buildVisibilityBadge(_quizData!['visibility'] ?? 'private'),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _cardColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow("Description", description),
+                  Divider(color: _dividerColor, height: 32),
+                  _buildInfoRow(
+                    "Duration",
+                    timeLimit,
+                    icon: Icons.timer_outlined,
+                  ),
+                  _buildInfoRow(
+                    "Total Questions",
+                    totalQuestions,
+                    icon: Icons.quiz_outlined,
+                  ),
+                  _buildInfoRow(
+                    "Created By",
+                    creator,
+                    icon: Icons.person_outline,
+                  ),
+                  _buildInfoRow(
+                    "Quiz ID",
+                    _quizData!['id'],
+                    icon: Icons.fingerprint,
+                  ),
+                  if (_quizData!['category'] != null)
+                    _buildInfoRow(
+                      "Category",
+                      _quizData!['category'].toString(),
+                      icon: Icons.category_outlined,
+                    ),
+                  if (_quizData!['difficulty'] != null)
+                    _buildInfoRow(
+                      "Difficulty",
+                      _quizData!['difficulty'].toString(),
+                      icon: Icons.speed,
+                    ),
+                  if (_quizData!['marks'] != null)
+                    _buildInfoRow(
+                      "Marks",
+                      _quizData!['marks'].toString(),
+                      icon: Icons.star_outline,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            _actionButton(
+              "Start Quiz",
+              () {
+                if (_user == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("This quiz is private")),
+                    const SnackBar(content: Text('Please Login to Continue')),
                   );
-                }
-              }),
-              if (isOwner) ...[
-                const SizedBox(height: 15),
-                actionButton("Update Quiz", () {
-                  global.quizData = (_quizData!['data'] as List<dynamic>)
-                      .map((e) => Map<String, Object>.from(e))
-                      .toList();
+                } else {
+                  if (isPublic || isOwner) {
+                    global.quizData = (_quizData!['data'] as List<dynamic>)
+                        .map((e) => Map<String, Object>.from(e))
+                        .toList();
 
-                  global.ID = _quizData!['id'];
-                  global.currentUserProfile = _userProfile;
-                  global.creatorProfile = _creatorProfile;
+                    global.time = _quizData!['time'] as int;
+                    global.currentUserProfile = _userProfile;
+                    global.creatorProfile = _creatorProfile;
 
-                  Navigator.pushNamed(context, "/Update Quiz");
-                }),
-                const SizedBox(height: 15),
-                actionButton("Delete Quiz", () async {
-                  try {
-                    await DatabaseService().deleteDatabase(
-                      docId: _quizData!['id'],
-                      currentUserId: _user!.uid,
+                    Navigator.pushNamed(context, "/Quiz");
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("This quiz is private")),
                     );
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Quiz deleted")),
-                      );
-                      Navigator.pop(context);
-                    }
-                  } catch (_) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Only the creator can delete this quiz"),
-                        ),
-                      );
-                    }
                   }
-                }),
-              ],
+                }
+              },
+              isPrimary: true,
+              icon: Icons.play_arrow_rounded,
+            ),
+            if (isOwner) ...[
+              const SizedBox(height: 16),
+              _actionButton("Update Quiz", () {
+                global.quizData = (_quizData!['data'] as List<dynamic>)
+                    .map((e) => Map<String, Object>.from(e))
+                    .toList();
+
+                global.ID = _quizData!['id'];
+                global.currentUserProfile = _userProfile;
+                global.creatorProfile = _creatorProfile;
+
+                Navigator.pushNamed(context, "/Update Quiz");
+              }, icon: Icons.edit_outlined),
+              const SizedBox(height: 16),
+              _actionButton("Delete Quiz", () async {
+                try {
+                  await DatabaseService().deleteDatabase(
+                    docId: _quizData!['id'],
+                    currentUserId: _user!.uid,
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Quiz deleted")),
+                    );
+                    Navigator.pop(context);
+                  }
+                } catch (_) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Only the creator can delete this quiz"),
+                      ),
+                    );
+                  }
+                }
+              }, icon: Icons.delete_outline),
             ],
-          ),
+          ],
         ),
       ),
     );

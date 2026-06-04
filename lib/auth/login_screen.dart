@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -66,77 +67,110 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _show(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text("Login"),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             const SizedBox(height: 40),
-            const Text(
+            Text(
               "Welcome Back",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFE2E8F0),
+              ),
             ),
             const SizedBox(height: 40),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: InputDecoration(
                 labelText: "Email",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                prefixIcon: const Icon(Icons.email, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: InputDecoration(
                 labelText: "Password",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                prefixIcon: const Icon(Icons.lock, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 30),
             loading
-                ? const CircularProgressIndicator()
+                ? const CircularProgressIndicator(color: Color(0xFF3B82F6))
                 : SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: login,
-                      child: const Text("Login", style: TextStyle(fontSize: 18)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        "LOGIN",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
                     ),
                   ),
-            const SizedBox(height: 20),
-            const Text("OR"),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: OutlinedButton(
                 onPressed: loginWithGoogle,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.grey),
+                  side: const BorderSide(color: Color(0xFF334155)),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Flexible(
-                      child: Text(
-                        "Continue with Google",
-                        style: TextStyle(fontSize: 16, color: Colors.black87),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    const Text(
+                      "Continue with Google",
+                      style: TextStyle(fontSize: 16, color: Color(0xFFE2E8F0)),
                     ),
                   ],
                 ),
@@ -146,13 +180,22 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text("Don't have an account?"),
+                const Text(
+                  "Don't have an account?",
+                  style: TextStyle(color: Color(0xFF94A3B8)),
+                ),
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, '/signup'),
-                  child: const Text("Sign Up"),
+                  child: const Text(
+                    "Sign Up",
+                    style: TextStyle(
+                      color: Color(0xFF3B82F6),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

@@ -97,26 +97,35 @@ class _QuizFormState extends State<QuizForm> {
       children: [
         Checkbox(
           value: _selectedAnswers.contains(index),
+          activeColor: const Color(0xFF3B82F6),
+          side: const BorderSide(color: Color(0xFF94A3B8)),
           onChanged: (val) => _toggleAnswer(index, val),
         ),
         Expanded(
           child: TextField(
             controller: _choiceControllers[index],
+            style: const TextStyle(color: Color(0xFFE2E8F0)),
             decoration: InputDecoration(
               labelText: "Choice ${index + 1}",
-              border: const OutlineInputBorder(),
+              labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+              enabledBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF334155)),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
             ),
             onChanged: (_) => _emitData(),
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.remove_circle, color: Colors.red),
+          icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent),
           onPressed: () {
             setState(() {
               _selectedAnswers.remove(index);
               _choiceControllers.removeAt(index);
             });
-            WidgetsBinding.instance.addPostFrameCallback((_) => _emitData()); // 🔧
+            WidgetsBinding.instance.addPostFrameCallback((_) => _emitData());
           },
         ),
       ],
@@ -131,21 +140,29 @@ class _QuizFormState extends State<QuizForm> {
     final List<String> _options = ["Multiple Choice", "Single Choice"];
 
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
+        color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        border: Border.all(color: const Color(0xFF334155)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButtonFormField<String>(
+            dropdownColor: const Color(0xFF1E293B),
+            style: const TextStyle(color: Color(0xFFE2E8F0)),
             initialValue: _options.contains(_selectedValue) ? _selectedValue : null,
             decoration: const InputDecoration(
-              labelText: "Type",
-              border: OutlineInputBorder(),
+              labelText: "Question Type",
+              labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF334155)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
             ),
             items: _options.map((String option) {
               return DropdownMenuItem<String>(
@@ -160,26 +177,38 @@ class _QuizFormState extends State<QuizForm> {
               _emitData();
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _questionController,
+            style: const TextStyle(color: Color(0xFFE2E8F0)),
             decoration: const InputDecoration(
-              labelText: "Question",
-              border: OutlineInputBorder(),
+              labelText: "Question Prompt",
+              labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF334155)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+              ),
             ),
             onChanged: (_) => _emitData(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Column(children: options_data()),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.add_circle, color: Colors.blue),
-                onPressed: _addChoice,
-              ),
-              const Text("Add Choice"),
-            ],
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _addChoice,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF3B82F6)),
+                const SizedBox(width: 8),
+                Text(
+                  "Add Choice",
+                  style: TextStyle(color: const Color(0xFF3B82F6), fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
         ],
       ),

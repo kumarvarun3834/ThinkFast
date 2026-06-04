@@ -51,11 +51,14 @@ class _Main_ScreenState extends State<Main_Screen> {
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-        elevation: 3,
-        color: const Color.fromARGB(255, 255, 225, 255),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+        color: const Color(0xFF1E293B),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFF334155)),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(15),
+          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Expanded(
@@ -67,21 +70,22 @@ class _Main_ScreenState extends State<Main_Screen> {
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+                        color: const Color(0xFFE2E8F0),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       "ID: ${data['id']}",
                       style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black54,
+                        fontSize: 12,
+                        color: const Color(0xFF94A3B8),
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, color: Colors.blueAccent),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF3B82F6), size: 18),
             ],
           ),
         ),
@@ -93,31 +97,35 @@ class _Main_ScreenState extends State<Main_Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: TextContainer("THINKFAST", Colors.black, 20),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "THINKFAST",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFFE2E8F0),
+            letterSpacing: 1.5,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Color(0xFFE2E8F0)),
       ),
       drawer: Drawer(
+        backgroundColor: const Color(0xFF1E293B),
         child: SidebarMenu(
           user: _user,
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 36, 7, 156),
-              Color.fromARGB(255, 8, 0, 255),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        color: const Color(0xFF0F172A),
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: readDatabases(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
               );
             }
 
@@ -125,7 +133,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               return const Center(
                 child: Text(
                   "No quizzes available",
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: Color(0xFF94A3B8)),
                 ),
               );
             }

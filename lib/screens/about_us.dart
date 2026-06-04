@@ -157,13 +157,13 @@ class AboutUsScreen extends StatelessWidget {
                 "and Firebase in creating modern mobile experiences.",
               ),
               const SizedBox(height: 40),
-              const Divider(color: Colors.white24),
+              const Divider(color: Colors.white60),
               Center(
                 child: Text(
                   "© 2024 ThinkFast. All rights reserved.",
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: Colors.white38,
+                    color: Colors.white70,
                   ),
                 ),
               ),

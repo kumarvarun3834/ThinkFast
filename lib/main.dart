@@ -30,22 +30,11 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  /// 🎨 Common Gradient Wrapper
+  /// 🎨 Common Background Wrapper
   Widget _wrapWithGradient(Widget child) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 36, 7, 156),
-              Color.fromARGB(255, 8, 0, 255),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: child,
-      ),
+      backgroundColor: const Color(0xFF0F172A),
+      body: child,
     );
   }
 
@@ -55,7 +44,14 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'ThinkFast',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
+        primaryColor: const Color(0xFF2563EB),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF3B82F6),
+          brightness: Brightness.dark,
+          surface: const Color(0xFF1E293B),
+        ),
       ),
       home: const MySplash(),
       onGenerateRoute: (settings) {

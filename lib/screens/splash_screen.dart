@@ -24,19 +24,19 @@ class _MySplashState extends State<MySplash> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blueAccent,
+      backgroundColor: const Color(0xFF0F172A),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ImageContainer(
               "assets/images/quiz-logo.png",
-              const Color.fromARGB(128, 255, 255, 255),
+              const Color(0xFFE2E8F0).withOpacity(0.1),
               350,
               300,
             ),
-            const SizedBox(height: 20),
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 40),
+            const CircularProgressIndicator(color: Color(0xFF3B82F6)),
           ],
         ),
       ),

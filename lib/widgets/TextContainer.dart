@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class TextContainer extends StatelessWidget {
   // Required parameters
@@ -58,73 +59,84 @@ class MarksPanel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
       child: Column(
         children: [
-          TextContainer("Quiz Completed!", Colors.white, 30, fontWeight: FontWeight.bold),
-          const SizedBox(height: 30), // Increased spacing
-
+          Text(
+            "Quiz Completed!",
+            style: GoogleFonts.poppins(
+              color: const Color(0xFFE2E8F0),
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 32),
           SizedBox(
-            width: 180, // Size of the circular panel
+            width: 180,
             height: 180,
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Background circle (e.g., a subtle outline or a solid color)
                 Container(
                   width: 180,
                   height: 180,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.blueGrey[800]?.withOpacity(0.7), // Darker, slightly transparent background
-                    border: Border.all(color: Colors.white10, width: 2), // Subtle border
+                    color: const Color(0xFF0F172A),
+                    border: Border.all(color: const Color(0xFF334155), width: 2),
                   ),
                 ),
-                // Circular Progress Indicator (its 'value' will reflect your percentage)
                 SizedBox(
-                  width: 160, // Slightly smaller than container to show background circle
+                  width: 160,
                   height: 160,
                   child: CircularProgressIndicator(
-                    value: percentage, // This will be your calculated percentage (e.g., 0.8 for 80%)
-                    strokeWidth: 15, // Thickness of the progress bar
-                    backgroundColor: Colors.blueGrey[600], // Color of the track
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.amberAccent), // Color of the progress itself
+                    value: percentage,
+                    strokeWidth: 12,
+                    backgroundColor: const Color(0xFF1E293B),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
                   ),
                 ),
-                // Score Text in the center
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextContainer(
+                    Text(
                       "Score",
-                      Colors.white70,
-                      18,
-                      fontWeight: FontWeight.bold,
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF94A3B8),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    TextContainer(
-                      "$totalCorrectAnswers / $totalQuestions", // Displays your calculated score
-                      Colors.amberAccent, // Bright gold for the score
-                      38, // Larger score font
-                      fontWeight: FontWeight.w900, // Very bold
+                    Text(
+                      "$totalCorrectAnswers/$totalQuestions",
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFE2E8F0),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    TextContainer(
-                      "${(percentage * 100).toInt()}%", // Displays your calculated percentage
-                      Colors.white54,
-                      16,
+                    Text(
+                      "${(percentage * 100).toInt()}%",
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFF3B82F6),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          // You can put dynamic feedback here based on your own calculations
-          TextContainer(
-            (percentage * 100).toInt()>75?"Keep up the great work!":
-            (percentage * 100).toInt()<25?"Better Luck Next Time":
-                "need improvement!"
-
-            , // Placeholder message
-            Colors.white70,
-            18,
+          const SizedBox(height: 32),
+          Text(
+            (percentage * 100).toInt() > 75
+                ? "Excellent Work!"
+                : (percentage * 100).toInt() < 25
+                    ? "Better Luck Next Time"
+                    : "Good Effort!",
             textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF94A3B8),
+              fontSize: 18,
+            ),
           ),
         ],
       ),

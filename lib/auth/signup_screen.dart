@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -64,63 +65,101 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign Up")),
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text("Sign Up"),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             const SizedBox(height: 40),
-            const Text(
+            Text(
               "Create Account",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFE2E8F0),
+              ),
             ),
             const SizedBox(height: 40),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: "Name",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: InputDecoration(
+                labelText: "Full Name",
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                prefixIcon: const Icon(Icons.person, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: InputDecoration(
                 labelText: "Email",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                prefixIcon: const Icon(Icons.email, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: InputDecoration(
                 labelText: "Password",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
+                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+                prefixIcon: const Icon(Icons.lock, color: Color(0xFF3B82F6)),
               ),
             ),
             const SizedBox(height: 30),
             loading
-                ? const CircularProgressIndicator()
+                ? const CircularProgressIndicator(color: Color(0xFF3B82F6))
                 : SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: signup,
-                      child: const Text("Sign Up", style: TextStyle(fontSize: 18)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text("SIGN UP", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
                     ),
                   ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text("Already have an account?"),
+                const Text("Already have an account?", style: TextStyle(color: Color(0xFF94A3B8))),
                 TextButton(
                   onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text("Login"),
+                  child: const Text("Login", style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
                 ),
               ],
             )

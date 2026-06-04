@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
@@ -146,74 +147,116 @@ class _QuizPageState extends State<QuizPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: const Text("Quiz Editor"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Quiz Editor",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.save_rounded, color: Color(0xFF3B82F6)),
             onPressed: _saveQuiz,
           ),
         ],
       ),
       drawer: Drawer(
+        backgroundColor: const Color(0xFF1E293B),
         child: SidebarMenu(user: user),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: "Title"),
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          inputDecorationTheme: InputDecorationTheme(
+            labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF334155)),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: "Description"),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF3B82F6)),
             ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _timeController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              decoration:
-              const InputDecoration(labelText: "Timer (minutes)"),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: visibility,
-              items: const [
-                DropdownMenuItem(value: "public", child: Text("Public")),
-                DropdownMenuItem(value: "private", child: Text("Private")),
-              ],
-              onChanged: (v) => setState(() => visibility = v!),
-            ),
-            const SizedBox(height: 10),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: questions.length,
-              itemBuilder: (context, index) => Card(
-                child: Column(
-                  children: [
-                    QuizForm(
-                      form_data_part: questions[index],
-                      onChanged: (d) => _updateFormData(index, d),
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              TextField(
+                controller: _titleController,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                decoration: const InputDecoration(labelText: "Quiz Title"),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _descriptionController,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                decoration: const InputDecoration(labelText: "Description"),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _timeController,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(labelText: "Timer (minutes)"),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                dropdownColor: const Color(0xFF1E293B),
+                value: visibility,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                items: const [
+                  DropdownMenuItem(value: "public", child: Text("Public")),
+                  DropdownMenuItem(value: "private", child: Text("Private")),
+                ],
+                onChanged: (v) => setState(() => visibility = v!),
+                decoration: const InputDecoration(labelText: "Visibility"),
+              ),
+              const SizedBox(height: 24),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: questions.length,
+                itemBuilder: (context, index) => Card(
+                  color: const Color(0xFF1E293B),
+                  margin: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFF334155)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        QuizForm(
+                          form_data_part: questions[index],
+                          onChanged: (d) => _updateFormData(index, d),
+                        ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                            onPressed: () => _removeForm(index),
+                          ),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _removeForm(index),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
         onPressed: _addNewForm,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add_rounded, size: 30),
       ),
     );
   }
