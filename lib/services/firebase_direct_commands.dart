@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 
 class DatabaseService {
   final CollectionReference _db = FirebaseFirestore.instance.collection(
@@ -30,9 +31,14 @@ class DatabaseService {
 
   /// ✅ Fetch user profile by UID
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
-    final doc = await _users.doc(uid).get();
-    if (!doc.exists) return null;
-    return doc.data() as Map<String, dynamic>;
+    try {
+      final doc = await _users.doc(uid).get();
+      if (!doc.exists) return null;
+      return doc.data() as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint("Error fetching user profile: $e");
+      return null; // Return null instead of throwing to prevent UI crashes
+    }
   }
 
   /// 🛠️ Helper to transform quiz data and extract answer keys
@@ -285,7 +291,8 @@ class DatabaseService {
     required String quizTitle,
     required int score,
     required int totalQuestions,
-    required Map<String, dynamic> answers, // Map of questionUid -> chosen optUid
+    required Map<String, dynamic>
+    answers, // Map of questionUid -> chosen optUid
   }) async {
     // 1. Reference in Flat global collection
     final attemptRef = _responses.doc();
@@ -327,12 +334,12 @@ class DatabaseService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList();
+        });
   }
 
   /// ✅ Get all responses/attempts for a specific quiz (Query by quizId Foreign Key)
@@ -342,11 +349,11 @@ class DatabaseService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList();
+        });
   }
 }

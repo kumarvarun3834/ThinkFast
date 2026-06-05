@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/widgets/TextContainer.dart';
 
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
+
+  // Colors (Consistent with ThinkFast Theme)
+  final Color _bgColor = const Color(0xFF0F172A);
+  final Color _cardColor = const Color(0xFF1E293B);
+  final Color _primaryAccent = const Color(0xFF3B82F6);
+  final Color _valueColor = const Color(0xFFE2E8F0);
+  final Color _labelColor = const Color(0xFF94A3B8);
+  final Color _borderColor = const Color(0xFF334155);
 
   Widget _buildSectionTitle(String title) {
     return Padding(
@@ -13,7 +20,7 @@ class AboutUsScreen extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: _valueColor,
         ),
       ),
     );
@@ -22,21 +29,23 @@ class AboutUsScreen extends StatelessWidget {
   Widget _buildContentText(String content) {
     return Text(
       content,
-      style: GoogleFonts.poppins(
-        fontSize: 16,
-        color: Colors.white70,
-        height: 1.5,
-      ),
+      style: GoogleFonts.poppins(fontSize: 16, color: _labelColor, height: 1.5),
     );
   }
 
   Widget _buildFeatureItem(IconData icon, String title, String description) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _borderColor),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.blueAccent, size: 28),
+          Icon(icon, color: _primaryAccent, size: 28),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
@@ -47,15 +56,13 @@ class AboutUsScreen extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: _valueColor,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   description,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: Colors.white60,
-                  ),
+                  style: GoogleFonts.poppins(fontSize: 14, color: _labelColor),
                 ),
               ],
             ),
@@ -68,108 +75,101 @@ class AboutUsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        title: const TextContainer("About Us", Colors.black, 20),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 36, 7, 156),
-              Color.fromARGB(255, 8, 0, 255),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+        title: Text(
+          "ABOUT US",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
           ),
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Column(
-                  children: [
-                    const Icon(Icons.bolt, size: 80, color: Colors.amber),
-                    const SizedBox(height: 10),
-                    Text(
-                      "ThinkFast",
-                      style: GoogleFonts.poppins(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: _valueColor),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Column(
+                children: [
+                  Image.asset('assets/images/quiz-logo.png', height: 180),
+                  const SizedBox(height: 16),
+                  Text(
+                    "ThinkFast",
+                    style: GoogleFonts.poppins(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: _valueColor,
                     ),
-                    Text(
-                      "Challenge Your Mind",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        color: Colors.white70,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-              _buildSectionTitle("The Project"),
-              _buildContentText(
-                "ThinkFast is a dynamic quiz platform developed as part of an Internship Task. "
-                "It aims to provide an interactive and engaging experience for users to test their knowledge, "
-                "create their own challenges, and track their growth over time.",
-              ),
-              const SizedBox(height: 20),
-              _buildSectionTitle("Key Features"),
-              _buildFeatureItem(
-                Icons.create,
-                "Quiz Creation",
-                "Easily create, update, and manage your own custom quizzes with multiple-choice questions.",
-              ),
-              _buildFeatureItem(
-                Icons.timer,
-                "Timed Challenges",
-                "Test your speed and accuracy with customizable time limits for each quiz session.",
-              ),
-              _buildFeatureItem(
-                Icons.history,
-                "Attempt Tracking",
-                "Review your past performances and see how you've improved through a detailed attempt history.",
-              ),
-              _buildFeatureItem(
-                Icons.security,
-                "Secure & Private",
-                "Advanced Firestore security rules ensure your data and private quizzes are safe.",
-              ),
-              _buildFeatureItem(
-                Icons.analytics,
-                "Creator Insights",
-                "Quiz owners can see detailed responses and performance metrics for the quizzes they've created.",
-              ),
-              const SizedBox(height: 30),
-              _buildSectionTitle("Our Goal"),
-              _buildContentText(
-                "To build a robust, scalable, and user-friendly application that demonstrates the power of Flutter "
-                "and Firebase in creating modern mobile experiences.",
-              ),
-              const SizedBox(height: 40),
-              const Divider(color: Colors.white60),
-              Center(
-                child: Text(
-                  "© 2024 ThinkFast. All rights reserved.",
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.white70,
                   ),
-                ),
+                  Text(
+                    "Challenge Your Mind",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      color: _primaryAccent,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+            _buildSectionTitle("The Project"),
+            _buildContentText(
+              "ThinkFast is a high-performance quiz platform designed for modern learning. "
+              "Whether you're a student looking to test your knowledge or a creator building "
+              "engaging challenges, ThinkFast provides the tools you need in one sleek interface.",
+            ),
+            const SizedBox(height: 32),
+            _buildSectionTitle("Key Capabilities"),
+            _buildFeatureItem(
+              Icons.create_rounded,
+              "Dynamic Quiz Creation",
+              "Build complex quizzes with multiple-choice questions, custom timers, and descriptions.",
+            ),
+            _buildFeatureItem(
+              Icons.visibility_rounded,
+              "Instant Privacy Control",
+              "Quickly toggle your quizzes between Public and Private status with a single tap.",
+            ),
+            _buildFeatureItem(
+              Icons.history_edu_rounded,
+              "My Attempts",
+              "Track your personal growth with a detailed history of your scores and performance across all quizzes.",
+            ),
+            _buildFeatureItem(
+              Icons.analytics_rounded,
+              "Creator Analytics",
+              "View detailed responses for your quizzes, sorted by attempts and user IDs for precise insights.",
+            ),
+            _buildFeatureItem(
+              Icons.security_rounded,
+              "Firestore Security",
+              "Real-time data protection ensuring your private quizzes and personal results remain secure.",
+            ),
+            const SizedBox(height: 32),
+            _buildSectionTitle("The Tech Stack"),
+            _buildContentText(
+              "Built using Flutter for a buttery-smooth UI and powered by Firebase Firestore "
+              "for real-time data synchronization and scalable backend operations.",
+            ),
+            const SizedBox(height: 48),
+            const Divider(color: Color(0xFF334155)),
+            const SizedBox(height: 16),
+            Center(
+              child: Text(
+                "© 2024 ThinkFast. Developed for Internship Task.",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 12, color: _labelColor),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );

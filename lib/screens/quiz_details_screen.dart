@@ -43,6 +43,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       final db = DatabaseService();
       final data = await db.readDatabase(widget.quizId);
 
+      // Fetch profiles but don't let failure here stop the process
       Map<String, dynamic>? creatorProfile;
       if (data['creatorId'] != null) {
         creatorProfile = await db.getUserProfile(data['creatorId']);
@@ -61,9 +62,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       });
     } catch (e) {
       if (mounted) {
+        // If it's a permission error, it's likely a private quiz
+        String errorMsg = e.toString().contains("permission")
+            ? "Access Denied: This quiz is private."
+            : "Error: $e";
+
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Error fetching details: $e")));
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
         Navigator.pop(context);
       }
     }
