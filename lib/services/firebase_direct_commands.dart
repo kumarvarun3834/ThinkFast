@@ -254,6 +254,7 @@ class DatabaseService {
         await submitAttempt(
           userId: userId,
           quizId: docId,
+          quizTitle: quizDoc['title'] ?? 'Untitled Quiz',
           score: score,
           totalQuestions: totalQuestions,
           answers: userAnswers,
@@ -281,6 +282,7 @@ class DatabaseService {
   Future<String> submitAttempt({
     required String userId,
     required String quizId,
+    required String quizTitle,
     required int score,
     required int totalQuestions,
     required Map<String, dynamic> answers, // Map of questionUid -> chosen optUid
@@ -291,9 +293,11 @@ class DatabaseService {
     final attemptData = {
       'userId': userId,
       'quizId': quizId,
+      'quizTitle': quizTitle,
       'score': score,
       'totalQuestions': totalQuestions,
       'answers': answers,
+      'status': 1, // Default status to 1 (Completed)
       'timestamp': FieldValue.serverTimestamp(),
     };
 

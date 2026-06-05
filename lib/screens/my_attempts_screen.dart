@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:thinkfast/widgets/drawer_data.dart';
+import 'package:thinkfast/services/firebase_direct_commands.dart';
+
+class MyAttemptsScreen extends StatefulWidget {
+  const MyAttemptsScreen({super.key});
+
+  @override
+  State<MyAttemptsScreen> createState() => _MyAttemptsScreenState();
+}
+
+class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
+  User? _user;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Colors
+  final Color _bgColor = const Color(0xFF0F172A);
+  final Color _cardColor = const Color(0xFF1E293B);
+  final Color _primaryAccent = const Color(0xFF3B82F6);
+  final Color _valueColor = const Color(0xFFE2E8F0);
+  final Color _labelColor = const Color(0xFF94A3B8);
+  final Color _borderColor = const Color(0xFF334155);
+
+  @override
+  void initState() {
+    super.initState();
+    _user = _auth.currentUser;
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    final DateTime date = timestamp.toDate();
+    return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          "MY ATTEMPTS",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _valueColor,
+            letterSpacing: 1.5,
+          ),
+        ),
+        iconTheme: IconThemeData(color: _valueColor),
+      ),
+      drawer: Drawer(
+        backgroundColor: _cardColor,
+        child: SidebarMenu(user: _user),
+      ),
+      body: _user == null
+          ? Center(
+              child: Text(
+                "Please login to see your attempts",
+                style: GoogleFonts.poppins(color: _labelColor),
+              ),
+            )
+          : StreamBuilder<List<Map<String, dynamic>>>(
+              stream: DatabaseService().getUserAttempts(_user!.uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.history_rounded, size: 64, color: _borderColor),
+                        const SizedBox(height: 16),
+                        Text(
+                          "No attempts found",
+                          style: GoogleFonts.poppins(color: _labelColor),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final attempts = snapshot.data!;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: attempts.length,
+                  itemBuilder: (context, index) {
+                    final attempt = attempts[index];
+                    final int score = attempt['score'] ?? 0;
+                    final int total = (attempt['totalQuestions'] ?? 0) * 4;
+                    final int status = attempt['status'] ?? 0;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: _cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _borderColor),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          // Navigate to result details if possible
+                          // For now just show info
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      attempt['quizTitle'] ?? "Untitled Quiz",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: _valueColor,
+                                      ),
+                                    ),
+                                  ),
+                                  if (status == 1)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.green),
+                                      ),
+                                      child: Text(
+                                        "LOCKED",
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.green,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Icon(Icons.stars_rounded, color: _primaryAccent, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Score: $score / $total",
+                                    style: GoogleFonts.poppins(
+                                      color: score >= (total / 2) ? Colors.greenAccent : Colors.redAccent,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _formatDate(attempt['timestamp']),
+                                    style: GoogleFonts.poppins(
+                                      color: _labelColor,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(color: Color(0xFF334155), height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: status == 1
+                                        ? null
+                                        : () {
+                                            // Handle edit if allowed
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(content: Text("Editing is disabled for locked attempts")),
+                                            );
+                                          },
+                                    icon: Icon(
+                                      status == 1 ? Icons.lock_outline : Icons.edit_outlined,
+                                      size: 18,
+                                    ),
+                                    label: Text(status == 1 ? "Locked" : "Edit Attempt"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: status == 1 ? _labelColor : _primaryAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+    );
+  }
+}

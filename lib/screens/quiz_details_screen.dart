@@ -69,6 +69,37 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     }
   }
 
+  Future<void> _toggleVisibility() async {
+    if (_quizData == null || _user == null) return;
+
+    final currentVisibility = _quizData!['visibility'] ?? 'private';
+    final newVisibility = currentVisibility == 'public' ? 'private' : 'public';
+
+    try {
+      await DatabaseService().updateDatabase(
+        docId: _quizData!['id'],
+        currentUserId: _user!.uid,
+        visibility: newVisibility,
+      );
+
+      setState(() {
+        _quizData!['visibility'] = newVisibility;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Quiz is now $newVisibility")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
+
   Widget _buildInfoRow(String label, String value, {IconData? icon}) {
     if (value.isEmpty || value == 'null') return const SizedBox.shrink();
     return Padding(
@@ -342,6 +373,27 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               icon: Icons.play_arrow_rounded,
             ),
             if (isOwner) ...[
+              const SizedBox(height: 16),
+              _actionButton(
+                _quizData!['visibility'] == 'public'
+                    ? "Make Private"
+                    : "Make Public",
+                _toggleVisibility,
+                icon: _quizData!['visibility'] == 'public'
+                    ? Icons.lock_outline
+                    : Icons.public_outlined,
+              ),
+              const SizedBox(height: 16),
+              _actionButton("View Responses", () {
+                Navigator.pushNamed(
+                  context,
+                  "/Quiz Responses",
+                  arguments: {
+                    'quizId': _quizData!['id'],
+                    'quizTitle': _quizData!['title'] ?? 'Quiz',
+                  },
+                );
+              }, icon: Icons.analytics_outlined),
               const SizedBox(height: 16),
               _actionButton("Update Quiz", () {
                 global.quizData = (_quizData!['data'] as List<dynamic>)
