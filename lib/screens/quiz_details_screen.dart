@@ -124,7 +124,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color),
       ),
@@ -160,7 +160,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: isPrimary ? _btnColor : Colors.white.withOpacity(0.05),
+        backgroundColor: isPrimary
+            ? _btnColor
+            : Colors.white.withValues(alpha: 0.05),
         foregroundColor: Colors.white,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
@@ -257,7 +259,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 border: Border.all(color: _borderColor),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -323,6 +325,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                         .map((e) => Map<String, Object>.from(e))
                         .toList();
 
+                    global.ID = _quizData!['id'];
                     global.time = _quizData!['time'] as int;
                     global.currentUserProfile = _userProfile;
                     global.creatorProfile = _creatorProfile;

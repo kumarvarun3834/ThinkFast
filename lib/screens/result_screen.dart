@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/services/firebase_direct_commands.dart';
@@ -25,9 +26,24 @@ class _ResultScreenState extends State<ResultScreen> {
   Future<void> _loadAnswersAndCalculateScore() async {
     try {
       final db = DatabaseService();
-      // Fetch answers from Firestore using the Quiz ID
-      // Map<qUid, List<optUid>>
-      _correctAnswers = await db.getQuizAnswers(global.ID);
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      // Construct map of qUid -> selected optUids for submission
+      final Map<String, dynamic> userAnswers = {};
+      for (var result in global.quizResult) {
+        final String qUid = result[1];
+        final List<String> selections = (result[2] as List).cast<String>();
+        userAnswers[qUid] = selections;
+      }
+
+      // Fetch answers and SUBMIT attempt in one call
+      _correctAnswers = await db.getQuizAnswers(
+        global.ID,
+        user.uid,
+        totalQuestions: global.quizResult.length,
+        userAnswers: userAnswers,
+      );
 
       int total = 0;
       for (int i = 0; i < global.quizResult.length; i++) {

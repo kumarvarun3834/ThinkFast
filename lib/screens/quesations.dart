@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/widgets/TextContainer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+// import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class Quesations extends StatefulWidget {
   const Quesations({super.key});
@@ -80,8 +84,15 @@ class _Quesations extends State<Quesations> {
     _startTimer();
   }
 
+  Future<void> _submitAndFinish() async {
+    setState(() => _timer?.cancel());
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, "/Quiz Result");
+    }
+  }
+
   void switchToResultScreen() {
-    Navigator.pushReplacementNamed(context, "/Quiz Result");
+    _submitAndFinish();
   }
 
   void switchState() {
@@ -192,181 +203,168 @@ class _Quesations extends State<Quesations> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ThinkFast',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        primaryColor: const Color(0xFF2563EB),
-      ),
-      home: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Text(
-            "Quiz",
-            style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Quiz",
+          style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
+        ),
+        centerTitle: true,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Color(0xFFE2E8F0)),
+            onPressed: () {
+              Scaffold.of(context).openDrawer();
+            },
           ),
-          centerTitle: true,
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: Color(0xFFE2E8F0)),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: switchToResultScreen,
+              child: const Text(
+                "SUBMIT",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: switchToResultScreen,
-                child: const Text(
-                  "SUBMIT",
-                  style: TextStyle(
-                    color: Colors.white,
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(30),
+          child: Container(
+            color: const Color(0xFF1E293B),
+            height: 30,
+            alignment: Alignment.center,
+            child: Text(
+              _timer?.isActive == true
+                  ? "⏳ Time left: ${_format(_timeLeft)}"
+                  : "No active timer",
+              style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+            ),
+          ),
+        ),
+      ),
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF1E293B),
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+              child: Center(
+                child: Text(
+                  'Questions',
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFFE2E8F0),
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(30),
-            child: Container(
-              color: const Color(0xFF1E293B),
-              height: 30,
-              alignment: Alignment.center,
-              child: Text(
-                _timer?.isActive == true
-                    ? "⏳ Time left: ${_format(_timeLeft)}"
-                    : "No active timer",
-                style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(8),
+                child: Wrap(spacing: 10, runSpacing: 10, children: menu_opt()),
               ),
             ),
-          ),
+          ],
         ),
-        drawer: Drawer(
-          backgroundColor: const Color(0xFF1E293B),
-          child: Column(
-            children: [
-              DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFF0F172A)),
-                child: Center(
-                  child: Text(
-                    'Questions',
-                    style: GoogleFonts.poppins(
-                      color: const Color(0xFFE2E8F0),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(8),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: menu_opt(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        body: Container(
-          color: const Color(0xFF0F172A),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.all(40),
-                  width: double.infinity,
-                  child: Card(
-                    color: const Color(0xFF1E293B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFF334155)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFE2E8F0),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                margin: const EdgeInsets.all(20),
+      ),
+      body: Container(
+        color: const Color(0xFF0F172A),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.all(40),
                 width: double.infinity,
-                child: SingleChildScrollView(
-                  child: Column(children: buttons_Data(currentData)),
+                child: Card(
+                  color: const Color(0xFF1E293B),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: Color(0xFF334155)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Text(
+                      "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFE2E8F0),
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
-              Container(
-                margin: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        foregroundColor: const Color(0xFFE2E8F0),
-                        side: const BorderSide(color: Color(0xFF334155)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: i > 0
-                          ? () {
-                              i--;
-                              switchState();
-                            }
-                          : null,
-                      child: const Text("PREVIOUS"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: i < global.quizData.length - 1
-                          ? () {
-                              i++;
-                              switchState();
-                            }
-                          : null,
-                      child: const Text("NEXT"),
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              margin: const EdgeInsets.all(20),
+              width: double.infinity,
+              child: SingleChildScrollView(
+                child: Column(children: buttons_Data(currentData)),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+            const Spacer(),
+            Container(
+              margin: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E293B),
+                      foregroundColor: const Color(0xFFE2E8F0),
+                      side: const BorderSide(color: Color(0xFF334155)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: i > 0
+                        ? () {
+                            i--;
+                            switchState();
+                          }
+                        : null,
+                    child: const Text("PREVIOUS"),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: i < global.quizData.length - 1
+                        ? () {
+                            i++;
+                            switchState();
+                          }
+                        : null,
+                    child: const Text("NEXT"),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
@@ -425,10 +423,13 @@ class buttons_opt extends StatelessWidget {
           backgroundColor: isSelected
               ? const Color(0xFF3B82F6).withOpacity(0.2)
               : const Color(0xFF1E293B),
-          foregroundColor:
-              isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE2E8F0),
+          foregroundColor: isSelected
+              ? const Color(0xFF3B82F6)
+              : const Color(0xFFE2E8F0),
           side: BorderSide(
-            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFF334155),
+            color: isSelected
+                ? const Color(0xFF3B82F6)
+                : const Color(0xFF334155),
             width: 2,
           ),
           shape: RoundedRectangleBorder(

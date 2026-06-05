@@ -95,8 +95,8 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/Quiz Result':
-            page = ResultScreen();
-            wrapInGradient = true;
+            page = const ResultScreen();
+            wrapInGradient = false;
             break;
           case '/Quiz Details':
             page = QuizDetailsScreen(quizId: settings.arguments as String);

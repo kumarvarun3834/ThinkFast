@@ -8,7 +8,8 @@ import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class QuizPage extends StatefulWidget {
   String docId;
-  QuizPage(this.docId,{super.key});
+
+  QuizPage(this.docId, {super.key});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -46,9 +47,15 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _fetchQuiz(String docId) async {
     try {
-      final data = await DatabaseService().readDatabase(docId);
+      final db = DatabaseService();
+      final data = await db.readDatabase(docId);
+
+      // Get current user ID for security check in getQuizAnswers
+      final String? uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) throw Exception("User not authenticated");
+
       // Fetch answers because readDatabase strips them
-      final answersMap = await DatabaseService().getQuizAnswers(docId);
+      final answersMap = await db.getQuizAnswers(docId, uid, from: 'quizform');
 
       setState(() {
         _titleController.text = data['title'] ?? '';
@@ -93,8 +100,9 @@ class _QuizPageState extends State<QuizPage> {
           ..addAll(transformed);
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Load error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Load error: $e")));
     }
   }
 
@@ -112,31 +120,34 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _saveQuiz() async {
     if (user == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Login required")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Login required")));
       return;
     }
 
     if (_titleController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty ||
         _timeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("All fields required")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("All fields required")));
       return;
     }
 
     final time = int.tryParse(_timeController.text.trim());
     if (time == null || time <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Invalid time")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid time")));
       return;
     }
 
     for (int i = 0; i < questions.length; i++) {
       if ((questions[i]['question'] ?? '').toString().trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Question ${i + 1} is empty")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
         return;
       }
     }
@@ -166,11 +177,13 @@ class _QuizPageState extends State<QuizPage> {
         );
       }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Quiz saved")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Quiz saved")));
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Save error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Save error: $e")));
     }
   }
 
@@ -268,7 +281,10 @@ class _QuizPageState extends State<QuizPage> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: Colors.redAccent,
+                            ),
                             onPressed: () => _removeForm(index),
                           ),
                         ),

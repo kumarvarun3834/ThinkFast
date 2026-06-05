@@ -1,12 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DatabaseService {
-  final CollectionReference _db =
-  FirebaseFirestore.instance.collection('databases');
-  final CollectionReference _responses =
-  FirebaseFirestore.instance.collection('responses');
-  final CollectionReference _users =
-  FirebaseFirestore.instance.collection('users');
+  final CollectionReference _db = FirebaseFirestore.instance.collection(
+    'databases',
+  );
+  final CollectionReference _responses = FirebaseFirestore.instance.collection(
+    'responses',
+  );
+  final CollectionReference _users = FirebaseFirestore.instance.collection(
+    'users',
+  );
+  final CollectionReference _answerKeys = FirebaseFirestore.instance.collection(
+    'answer_keys',
+  );
 
   /// ✅ Create a new user profile
   Future<void> createUserProfile({
@@ -61,10 +67,7 @@ class DatabaseService {
       });
     }
 
-    return {
-      'data': transformedData,
-      'answerkeys': answerKeys,
-    };
+    return {'data': transformedData, 'answerkeys': answerKeys};
   }
 
   /// ✅ Create a new database (quiz set)
@@ -79,6 +82,7 @@ class DatabaseService {
   }) async {
     final transformed = _transformQuizData(data);
 
+    // 1. Create the Quiz document
     final docRef = await _db.add({
       'creatorId': creatorId,
       'user': user,
@@ -86,11 +90,18 @@ class DatabaseService {
       'description': description,
       'visibility': visibility,
       'data': transformed['data'],
-      'answerkeys': transformed['answerkeys'], // [[Q,a],[Q,a]]
       'time': time * 60, // store seconds
       'createdAt': FieldValue.serverTimestamp(),
     });
-    return docRef.id; // return Firestore document ID
+
+    // 2. Create the Answer Key in a separate collection (same ID)
+    await _answerKeys.doc(docRef.id).set({
+      'quizId': docRef.id,
+      'answerkeys': transformed['answerkeys'], // [{q, a}, ...]
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    return docRef.id;
   }
 
   /// ✅ Read databases (real-time stream) with filters
@@ -140,11 +151,18 @@ class DatabaseService {
     final Map<String, dynamic> updates = {};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
+
     if (data != null) {
       final transformed = _transformQuizData(data);
       updates['data'] = transformed['data'];
-      updates['answerkeys'] = transformed['answerkeys'];
+
+      // Update answers in separate collection
+      await _answerKeys.doc(docId).set({
+        'answerkeys': transformed['answerkeys'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
+
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
 
@@ -177,93 +195,152 @@ class DatabaseService {
     final data = doc.data() as Map<String, dynamic>;
     data['id'] = doc.id;
 
-    // 🛡️ Remove 'answerkeys' to ensure answers are not sent to the client
-    data.remove('answerkeys');
-
     return data;
   }
 
-  /// ✅ Fetch ONLY the correct answers for a quiz (to be called on submit)
-  Future<Map<String, List<String>>> getQuizAnswers(String docId) async {
-    final doc = await _db.doc(docId).get();
-    if (!doc.exists) throw Exception("Quiz not found");
+  /// ✅ Fetch ONLY the correct answers for a quiz (to be called on submit or edit)
+  Future<Map<String, List<String>>> getQuizAnswers(
+    String docId,
+    String userId, {
+    String? from,
+    int? totalQuestions,
+    Map<String, dynamic>? userAnswers,
+  }) async {
+    final quizDoc = await _db.doc(docId).get();
+    if (!quizDoc.exists) throw Exception("Quiz not found");
+    final bool isCreator = quizDoc['creatorId'] == userId;
 
-    final data = doc.data() as Map<String, dynamic>;
-    final Map<String, List<String>> result = {};
+    final keyDoc = await _answerKeys.doc(docId).get();
+    if (!keyDoc.exists) throw Exception("Answers not found");
 
-    if (data['answerkeys'] != null && data['answerkeys'] is List) {
-      for (var entry in data['answerkeys']) {
+    final keyData = keyDoc.data() as Map<String, dynamic>;
+    final Map<String, List<String>> correctKey = {};
+    if (keyData['answerkeys'] != null && keyData['answerkeys'] is List) {
+      for (var entry in keyData['answerkeys']) {
         if (entry is Map) {
           final qUid = entry['q'].toString();
           final optUid = entry['a'].toString();
+          correctKey.putIfAbsent(qUid, () => []).add(optUid);
+        }
+      }
+    }
 
-          if (result[qUid] == null) {
-            result[qUid] = [optUid];
-          } else {
-            result[qUid]!.add(optUid);
+    if (from == 'quizform') {
+      // 🛡️ Editor Mode: Verify creator
+      if (!isCreator) {
+        throw Exception("Only creator can access answers in editor");
+      }
+    } else {
+      // 🚀 Taker Mode: Auto-submit and save attempt data
+      if (userAnswers != null && totalQuestions != null) {
+        // Calculate score
+        int score = 0;
+        userAnswers.forEach((qUid, selections) {
+          final correct = correctKey[qUid] ?? [];
+          final List selected = selections is List
+              ? selections
+              : [selections.toString()];
+
+          if (selected.isNotEmpty &&
+              selected.length == correct.length &&
+              selected.every((s) => correct.contains(s))) {
+            score += 4; // Correct
+          } else if (selected.isNotEmpty) {
+            score -= 1; // Wrong
+          }
+        });
+
+        // Save Attempt
+        await submitAttempt(
+          userId: userId,
+          quizId: docId,
+          score: score,
+          totalQuestions: totalQuestions,
+          answers: userAnswers,
+        );
+      } else {
+        // Fallback for direct result viewing: Check if attempt exists (Creators bypass)
+        if (!isCreator) {
+          final attempts = await _responses
+              .where('userId', isEqualTo: userId)
+              .where('quizId', isEqualTo: docId)
+              .limit(1)
+              .get();
+
+          if (attempts.docs.isEmpty) {
+            throw Exception("Access Denied: You must attempt the quiz first.");
           }
         }
       }
     }
 
-    return result;
+    return correctKey;
   }
 
-  /// ✅ Submit a quiz attempt (based on responses schema)
-  Future<void> submitAttempt({
+  /// ✅ Submit a quiz attempt (Flat collection with foreign keys)
+  Future<String> submitAttempt({
     required String userId,
     required String quizId,
     required int score,
     required int totalQuestions,
-    required Map<String, String> answers, // Map of questionId -> chosen choiceId
+    required Map<String, dynamic> answers, // Map of questionUid -> chosen optUid
   }) async {
-    final userDoc = _responses.doc(userId);
+    // 1. Reference in Flat global collection
+    final attemptRef = _responses.doc();
 
-    // Update root user document
-    await userDoc.set({
-      'lastActive': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-
-    // Add to 'attempts' sub-collection
-    await userDoc.collection('attempts').add({
+    final attemptData = {
+      'userId': userId,
       'quizId': quizId,
       'score': score,
       'totalQuestions': totalQuestions,
       'answers': answers,
       'timestamp': FieldValue.serverTimestamp(),
-    });
+    };
+
+    await attemptRef.set(attemptData);
+
+    // 2. Update user's last active in profiles (Foreign Key lookup not needed, direct ID)
+    await _users.doc(userId).set({
+      'lastActive': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return attemptRef.id;
   }
 
-  /// ✅ Read all attempts for a specific user
+  /// ✅ Update score in an attempt
+  Future<void> updateAttemptScore({
+    required String userId,
+    required String attemptId,
+    required int score,
+  }) async {
+    await _responses.doc(attemptId).update({'score': score});
+  }
+
+  /// ✅ Read all attempts for a specific user (Query by userId Foreign Key)
   Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
     return _responses
-        .doc(userId)
-        .collection('attempts')
+        .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return data;
       }).toList();
     });
   }
 
-  /// ✅ Get all responses/attempts for a specific quiz (For the Quiz Owner)
+  /// ✅ Get all responses/attempts for a specific quiz (Query by quizId Foreign Key)
   Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) {
-    // Note: Requires a Collection Group Index in Firestore for 'attempts'
-    return FirebaseFirestore.instance
-        .collectionGroup('attempts')
+    return _responses
         .where('quizId', isEqualTo: quizId)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
-        // User who made the attempt is the parent document ID
-        data['respondentId'] = doc.reference.parent.parent?.id;
         return data;
       }).toList();
     });
