@@ -6,6 +6,8 @@ import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
+import '../utils/global.dart' as global;
+
 class QuizPage extends StatefulWidget {
   String docId;
 
@@ -156,7 +158,7 @@ class _QuizPageState extends State<QuizPage> {
 
     try {
       if (widget.docId.isEmpty) {
-        widget.docId = await db.createDatabase(
+        final newId = await db.createDatabase(
           creatorId: user!.uid,
           user: user!.email ?? user!.phoneNumber ?? "",
           title: _titleController.text.trim(),
@@ -165,6 +167,10 @@ class _QuizPageState extends State<QuizPage> {
           data: questions,
           time: time,
         );
+        setState(() {
+          widget.docId = newId;
+          global.ID = newId; // 🔑 Save to global for precise tracking
+        });
       } else {
         await db.updateDatabase(
           docId: widget.docId,
@@ -175,6 +181,7 @@ class _QuizPageState extends State<QuizPage> {
           data: questions,
           time: time,
         );
+        global.ID = widget.docId;
       }
 
       ScaffoldMessenger.of(

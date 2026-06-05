@@ -82,7 +82,7 @@ class DatabaseService {
   }) async {
     final transformed = _transformQuizData(data);
 
-    // 1. Create the Quiz document
+    // 1. Create the Quiz document in 'databases' collection
     final docRef = await _db.add({
       'creatorId': creatorId,
       'user': user,
@@ -94,7 +94,7 @@ class DatabaseService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    // 2. Create the Answer Key in a separate collection (same ID)
+    // 2. Create the Answer Key in 'answer_keys' collection (same ID)
     await _answerKeys.doc(docRef.id).set({
       'quizId': docRef.id,
       'answerkeys': transformed['answerkeys'], // [{q, a}, ...]
