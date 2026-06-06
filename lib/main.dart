@@ -16,17 +16,49 @@ import 'package:thinkfast/auth/verification_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/services/firebase_options.dart';
+import 'package:app_links/app_links.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   
+  // Initialize AppLinks handling
+  final appLinks = AppLinks();
+  appLinks.uriLinkStream.listen((uri) {
+    _handleDeepLink(uri);
+  });
+
+  // Handle initial link if app was closed
+  final initialUri = await appLinks.getInitialLink();
+  if (initialUri != null) {
+    _handleDeepLink(initialUri);
+  }
+
   // Initialize Google Sign In for Android
   await GoogleSignIn.instance.initialize(
     serverClientId: DefaultFirebaseOptions.serverClientId,
   );
 
   runApp(const MyApp());
+}
+
+void _handleDeepLink(Uri uri) {
+  debugPrint("Deep Link Received: $uri");
+  debugPrint("Path: ${uri.path}");
+  
+  if (uri.path.contains('/quiz')) {
+    final quizId = uri.queryParameters['id'];
+    if (quizId != null && quizId.isNotEmpty) {
+      debugPrint("Navigating to Quiz: $quizId");
+      
+      // Delay slightly to ensure Navigator is mounted
+      Future.delayed(const Duration(milliseconds: 500), () {
+        navigatorKey.currentState?.pushNamed('/Quiz Details', arguments: quizId);
+      });
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -43,6 +75,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'ThinkFast',
       theme: ThemeData(

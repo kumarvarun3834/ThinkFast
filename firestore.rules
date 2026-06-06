@@ -1,0 +1,82 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Gets the main quiz metadata document
+    function getQuiz(quizId) {
+      return get(/databases/$(database)/documents/databases/$(quizId)).data;
+    }
+
+    // Checks if the user is the creator of the quiz
+    function isCreator(quizId) {
+      return isAuthenticated() && getQuiz(quizId).creatorId == request.auth.uid;
+    }
+
+    // Checks if the quiz is accessible (public and not deleted)
+    function isQuizAccessible(quizId) {
+      let quiz = getQuiz(quizId);
+      return quiz.visibility == 'public' && quiz.isDeleted != true;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. User Profiles
+    match /users/{userId} {
+      // Public Metadata: Anyone can see names (e.g., for "Created By" labels)
+      allow read: if true;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+
+      // 2. Private User Data (Restricted to owner only)
+      match /private/details {
+         allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+
+    // 2. Quiz Metadata
+    match /databases/{quizId} {
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+
+      // Rules must match the query exactly.
+      allow read: if resource.data.visibility == 'public' ||
+                   (isAuthenticated() && resource.data.creatorId == request.auth.uid);
+
+      allow update, delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+    }
+
+    // 3. Quiz Questions
+    match /quiz_questions/{quizId} {
+      // Read access follows the main quiz visibility/soft-delete status
+      allow read: if isQuizAccessible(quizId) || isCreator(quizId);
+      allow write: if isCreator(quizId) || (isAuthenticated() && !exists(/databases/$(database)/documents/quiz_questions/$(quizId)));
+    }
+
+    // 4. Answer Keys
+    match /answer_keys/{quizId} {
+      allow read: if isQuizAccessible(quizId) || isCreator(quizId);
+      allow write: if isCreator(quizId) || (isAuthenticated() && !exists(/databases/$(database)/documents/answer_keys/$(quizId)));
+    }
+
+    // 5. Responses / Attempts
+    match /responses/{responseId} {
+      // Anyone logged in can submit an attempt
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+
+      // Users can see their own history. Quiz owners can see all responses to their quizzes.
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        isCreator(resource.data.quizId)
+      );
+
+      // Allow users to update their own attempts (e.g., updating score or status)
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+  }
+}

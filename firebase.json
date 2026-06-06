@@ -1,1 +1,32 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"thinkfast3834","appId":"1:775124683303:android:360e32dcb622fb221fdc02","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"thinkfast3834","configurations":{"android":"1:775124683303:android:360e32dcb622fb221fdc02"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/node_modules/**"
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "thinkfast3834",
+          "appId": "1:775124683303:android:360e32dcb622fb221fdc02",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "thinkfast3834",
+          "configurations": {
+            "android": "1:775124683303:android:360e32dcb622fb221fdc02"
+          }
+        }
+      }
+    }
+  }
+}

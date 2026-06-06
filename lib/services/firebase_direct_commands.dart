@@ -24,11 +24,17 @@ class DatabaseService {
     required String email,
     String? name,
   }) async {
+    // 1. Public Profile (Accessible by anyone)
     await _users.doc(uid).set({
-      'email': email,
       'name': name ?? '',
       'createdAt': FieldValue.serverTimestamp(),
       'lastActive': FieldValue.serverTimestamp(),
+    });
+
+    // 2. Private Data (Accessible only by the owner)
+    await _users.doc(uid).collection('private').doc('details').set({
+      'email': email,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 

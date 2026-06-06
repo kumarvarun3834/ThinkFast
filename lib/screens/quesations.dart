@@ -21,6 +21,7 @@ class _Quesations extends State<Quesations> {
   Map<String, Object> currentData = {};
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
+  DateTime? _lastBackPressTime;
 
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
@@ -203,8 +204,27 @@ class _Quesations extends State<Quesations> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Tap back again to SUBMIT and exit"),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } else {
+          switchToResultScreen();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -367,6 +387,7 @@ class _Quesations extends State<Quesations> {
           ],
         ),
       ),
+    )
     );
   }
 }

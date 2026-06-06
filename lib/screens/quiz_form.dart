@@ -146,10 +146,22 @@ class _QuizPageState extends State<QuizPage> {
     }
 
     for (int i = 0; i < questions.length; i++) {
-      if ((questions[i]['question'] ?? '').toString().trim().isEmpty) {
+      final qText = (questions[i]['question'] ?? '').toString().trim();
+      final List answers = questions[i]['answers'] as List? ?? [];
+
+      if (qText.isEmpty) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
+        return;
+      }
+
+      if (answers.isEmpty) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          SnackBar(content: Text("Question ${i + 1} needs at least one correct answer")),
+        );
         return;
       }
     }

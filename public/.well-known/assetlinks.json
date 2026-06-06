@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.thinkfast",
+      "sha256_cert_fingerprints": [
+        "83:53:71:58:DA:10:19:3C:7E:44:FA:99:EA:15:78:54:67:AC:90:10:2A:7B:8A:30:A4:E9:81:DB:79:64:C3:9B"
+      ]
+    }
+  }
+]

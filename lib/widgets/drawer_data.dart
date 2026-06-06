@@ -39,6 +39,50 @@ class _SidebarMenuState extends State<SidebarMenu> {
     } catch (_) {}
   }
 
+  void _showJoinByIdDialog(BuildContext context) {
+    final TextEditingController idController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: const Text("Join Quiz", style: TextStyle(color: Color(0xFFE2E8F0))),
+        content: TextField(
+          controller: idController,
+          style: const TextStyle(color: Color(0xFFE2E8F0)),
+          decoration: const InputDecoration(
+            hintText: "Enter Quiz ID",
+            hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF334155))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              String id = idController.text.trim();
+              if (id.isNotEmpty) {
+                // If they pasted a full URL, extract the ID
+                if (id.contains("id=")) {
+                  final uri = Uri.tryParse(id);
+                  if (uri != null && uri.queryParameters.containsKey('id')) {
+                    id = uri.queryParameters['id']!;
+                  }
+                }
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/Quiz Details", arguments: id);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            child: const Text("Join"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -76,6 +120,14 @@ class _SidebarMenuState extends State<SidebarMenu> {
             onTap: () {
               Navigator.pop(context);
               Navigator.pushNamed(context, "/home");
+            },
+          ),
+          _drawerItem(
+            icon: Icons.qr_code_scanner_rounded,
+            text: 'Join Quiz by ID',
+            onTap: () {
+              Navigator.pop(context);
+              _showJoinByIdDialog(context);
             },
           ),
           if (widget.user != null)

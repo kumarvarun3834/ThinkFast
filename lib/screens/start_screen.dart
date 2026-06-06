@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/TextContainer.dart';
@@ -22,6 +23,9 @@ class Main_Screen extends StatefulWidget {
 class _Main_ScreenState extends State<Main_Screen> {
   User? _user;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String _searchQuery = "";
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -37,6 +41,20 @@ class _Main_ScreenState extends State<Main_Screen> {
       showMyQuizzes: widget.showMyQuizzes,
       creatorId: widget.creator?.uid,
     );
+  }
+
+  void _shareQuiz(String quizId) {
+    final String shareUrl = "https://thinkfast3834.web.app/quiz?id=$quizId";
+    Clipboard.setData(ClipboardData(text: shareUrl)).then((_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Link copied to clipboard: $shareUrl"),
+            backgroundColor: const Color(0xFF3B82F6),
+          ),
+        );
+      }
+    });
   }
 
   /// 🧩 QUIZ CARD (Minimized)
@@ -75,7 +93,7 @@ class _Main_ScreenState extends State<Main_Screen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "ID: ${data['id']}",
+                      "Created by: ${data['user'] ?? 'Anonymous'}",
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: const Color(0xFF94A3B8),
@@ -85,7 +103,12 @@ class _Main_ScreenState extends State<Main_Screen> {
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF3B82F6), size: 18),
+              IconButton(
+                icon: const Icon(Icons.share_rounded, color: Color(0xFF3B82F6), size: 20),
+                onPressed: () => _shareQuiz(data['id']),
+                tooltip: "Share Quiz Link",
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF334155), size: 18),
             ],
           ),
         ),
@@ -102,15 +125,45 @@ class _Main_ScreenState extends State<Main_Screen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          "THINKFAST",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFFE2E8F0),
-            letterSpacing: 1.5,
-          ),
-        ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
+                decoration: InputDecoration(
+                  hintText: "Search quizzes...",
+                  hintStyle: GoogleFonts.poppins(color: const Color(0xFF94A3B8)),
+                  border: InputBorder.none,
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              )
+            : Text(
+                "THINKFAST",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFE2E8F0),
+                  letterSpacing: 1.5,
+                ),
+              ),
         iconTheme: const IconThemeData(color: Color(0xFFE2E8F0)),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) {
+                  _searchQuery = "";
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         backgroundColor: const Color(0xFF1E293B),
@@ -138,10 +191,24 @@ class _Main_ScreenState extends State<Main_Screen> {
               );
             }
 
+            final filteredQuizzes = snapshot.data!.where((quiz) {
+              final title = (quiz['title'] ?? "").toString().toLowerCase();
+              return title.contains(_searchQuery);
+            }).toList();
+
+            if (filteredQuizzes.isEmpty) {
+              return const Center(
+                child: Text(
+                  "No matching quizzes found",
+                  style: TextStyle(color: Color(0xFF94A3B8)),
+                ),
+              );
+            }
+
             return ListView.builder(
-              itemCount: snapshot.data!.length,
+              itemCount: filteredQuizzes.length,
               itemBuilder: (context, index) {
-                return buildQuizCard(snapshot.data![index]);
+                return buildQuizCard(filteredQuizzes[index]);
               },
             );
           },
@@ -150,3 +217,4 @@ class _Main_ScreenState extends State<Main_Screen> {
     );
   }
 }
+

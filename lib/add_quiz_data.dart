@@ -205,6 +205,17 @@ class _QuizFormState extends State<QuizForm> {
             const SizedBox(height: 16),
             Column(children: options_data()),
             const SizedBox(height: 12),
+            if (_selectedAnswers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(
+                  "⚠️ Select at least one correct answer",
+                  style: TextStyle(
+                    color: Colors.orangeAccent.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: _addChoice,

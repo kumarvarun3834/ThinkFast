@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
@@ -264,7 +265,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "Quiz Details",
+          title,
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
             color: _valueColor,
@@ -277,16 +278,55 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                color: _valueColor,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                _buildVisibilityBadge(_quizData!['visibility'] ?? 'private'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      final link = "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
+                      Clipboard.setData(ClipboardData(text: link)).then((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Quiz link copied!")),
+                          );
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _borderColor),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.link_rounded, size: 18, color: _primaryAccent),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              "thinkfast3834.web.app/quiz?id=${_quizData!['id']}",
+                              style: GoogleFonts.poppins(
+                                color: _labelColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.copy_all_rounded, size: 16, color: _labelColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            _buildVisibilityBadge(_quizData!['visibility'] ?? 'private'),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(24),
@@ -321,11 +361,6 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     "Created By",
                     creator,
                     icon: Icons.person_outline,
-                  ),
-                  _buildInfoRow(
-                    "Quiz ID",
-                    _quizData!['id'],
-                    icon: Icons.fingerprint,
                   ),
                   if (_quizData!['category'] != null)
                     _buildInfoRow(
