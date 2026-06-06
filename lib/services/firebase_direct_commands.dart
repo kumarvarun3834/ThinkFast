@@ -14,6 +14,9 @@ class DatabaseService {
   final CollectionReference _answerKeys = FirebaseFirestore.instance.collection(
     'answer_keys',
   );
+  final CollectionReference _questions = FirebaseFirestore.instance.collection(
+    'quiz_questions',
+  );
 
   /// ✅ Create a new user profile
   Future<void> createUserProfile({
@@ -88,19 +91,26 @@ class DatabaseService {
   }) async {
     final transformed = _transformQuizData(data);
 
-    // 1. Create the Quiz document in 'databases' collection
+    // 1. Create the Quiz document in 'databases' collection (Metadata only)
     final docRef = await _db.add({
       'creatorId': creatorId,
       'user': user,
       'title': title,
       'description': description,
       'visibility': visibility,
-      'data': transformed['data'],
       'time': time * 60, // store seconds
+      'isDeleted': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    // 2. Create the Answer Key in 'answer_keys' collection (same ID)
+    // 2. Create the Questions document in 'quiz_questions' collection (same ID)
+    await _questions.doc(docRef.id).set({
+      'quizId': docRef.id,
+      'data': transformed['data'],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 3. Create the Answer Key in 'answer_keys' collection (same ID)
     await _answerKeys.doc(docRef.id).set({
       'quizId': docRef.id,
       'answerkeys': transformed['answerkeys'], // [{q, a}, ...]
@@ -111,11 +121,14 @@ class DatabaseService {
   }
 
   /// ✅ Read databases (real-time stream) with filters
+  /// ✅ Read databases (real-time stream) with filters
   Stream<List<Map<String, dynamic>>> readAllDatabases({
     bool showMyQuizzes = false,
     String? creatorId,
   }) {
-    Query query = _db;
+    // 1. Start with the base query and exclude deleted items
+    // NOTE: This may require a Firestore composite index which the console will provide a link for in logs
+    Query query = _db.where('isDeleted', isEqualTo: false);
 
     if (showMyQuizzes && creatorId != null) {
       query = query.where('creatorId', isEqualTo: creatorId);
@@ -127,10 +140,6 @@ class DatabaseService {
       return snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
-
-        // 🛡️ Remove questions data to save bandwidth in list view
-        data.remove('data');
-
         return data;
       }).toList();
     });
@@ -160,7 +169,12 @@ class DatabaseService {
 
     if (data != null) {
       final transformed = _transformQuizData(data);
-      updates['data'] = transformed['data'];
+
+      // Update questions in separate collection
+      await _questions.doc(docId).set({
+        'data': transformed['data'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
 
       // Update answers in separate collection
       await _answerKeys.doc(docId).set({
@@ -177,7 +191,7 @@ class DatabaseService {
     await docRef.update(updates);
   }
 
-  /// ✅ Delete a database (only creator can delete)
+  /// ✅ Delete a database (Soft Delete)
   Future<void> deleteDatabase({
     required String docId,
     required String currentUserId, // 🔑 UID
@@ -190,16 +204,30 @@ class DatabaseService {
       throw Exception('Only creator can delete this quiz');
     }
 
-    await docRef.delete();
+    await docRef.update({
+      'isDeleted': true,
+      'deletedAt': FieldValue.serverTimestamp(),
+    });
   }
 
-  /// ✅ Read a single database (quiz) by docId - Strips answers for security
+  /// ✅ Read a single database (quiz) by docId - Includes questions from separate collection
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final doc = await _db.doc(docId).get();
-    if (!doc.exists) throw Exception("Quiz not found");
+    if (!doc.exists ||
+        (doc.data() as Map<String, dynamic>)['isDeleted'] == true) {
+      throw Exception("Quiz not found");
+    }
 
     final data = doc.data() as Map<String, dynamic>;
     data['id'] = doc.id;
+
+    // Fetch questions from the separate collection
+    final questionDoc = await _questions.doc(docId).get();
+    if (questionDoc.exists) {
+      data['data'] = (questionDoc.data() as Map<String, dynamic>)['data'];
+    } else {
+      data['data'] = []; // Fallback if questions are missing
+    }
 
     return data;
   }
@@ -213,7 +241,10 @@ class DatabaseService {
     Map<String, dynamic>? userAnswers,
   }) async {
     final quizDoc = await _db.doc(docId).get();
-    if (!quizDoc.exists) throw Exception("Quiz not found");
+    if (!quizDoc.exists ||
+        (quizDoc.data() as Map<String, dynamic>)['isDeleted'] == true) {
+      throw Exception("Quiz not found");
+    }
     final bool isCreator = quizDoc['creatorId'] == userId;
 
     final keyDoc = await _answerKeys.doc(docId).get();

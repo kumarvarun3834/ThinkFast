@@ -6,7 +6,10 @@ import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class ResultScreen extends StatefulWidget {
-  const ResultScreen({super.key});
+  final String? quizId;
+  final Map<String, dynamic>? attemptAnswers;
+
+  const ResultScreen({super.key, this.quizId, this.attemptAnswers});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -16,6 +19,9 @@ class _ResultScreenState extends State<ResultScreen> {
   int totalMarks = 0;
   bool _isLoading = true;
   Map<String, List<String>> _correctAnswers = {};
+  List<Map<String, dynamic>> _displayQuizData = [];
+  List<List<dynamic>> _displayQuizResult = [];
+  String _quizId = "";
 
   @override
   void initState() {
@@ -29,25 +35,56 @@ class _ResultScreenState extends State<ResultScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
-      // Construct map of qUid -> selected optUids for submission
-      final Map<String, dynamic> userAnswers = {};
-      for (var result in global.quizResult) {
-        final String qUid = result[1];
-        final List<String> selections = (result[2] as List).cast<String>();
-        userAnswers[qUid] = selections;
+      Map<String, dynamic> userAnswers = {};
+      
+      if (widget.quizId != null && widget.attemptAnswers != null) {
+        // VIEWING PAST ATTEMPT
+        _quizId = widget.quizId!;
+        userAnswers = widget.attemptAnswers!;
+        
+        // Fetch quiz data (questions)
+        final quiz = await db.readDatabase(_quizId);
+        _displayQuizData = List<Map<String, dynamic>>.from(quiz['data'] ?? []);
+        
+        // Build _displayQuizResult from quiz data and userAnswers
+        _displayQuizResult = [];
+        for (var q in _displayQuizData) {
+          final qMap = q['Q'] as Map;
+          final qId = qMap['id'].toString();
+          final qText = qMap['text'].toString();
+          final selections = userAnswers[qId] is List 
+              ? List<String>.from(userAnswers[qId])
+              : (userAnswers[qId] != null ? [userAnswers[qId].toString()] : <String>[]);
+          
+          _displayQuizResult.add([qText, qId, selections]);
+        }
+        
+        // Fetch correct answers (don't pass userAnswers to avoid resubmitting)
+        _correctAnswers = await db.getQuizAnswers(_quizId, user.uid);
+      } else {
+        // JUST FINISHED QUIZ (Using Global)
+        _quizId = global.ID;
+        _displayQuizData = List<Map<String, dynamic>>.from(global.quizData);
+        _displayQuizResult = List<List<dynamic>>.from(global.quizResult);
+
+        for (var result in _displayQuizResult) {
+          final String qUid = result[1];
+          final List<String> selections = (result[2] as List).cast<String>();
+          userAnswers[qUid] = selections;
+        }
+
+        // Fetch answers and SUBMIT attempt in one call
+        _correctAnswers = await db.getQuizAnswers(
+          _quizId,
+          user.uid,
+          totalQuestions: _displayQuizResult.length,
+          userAnswers: userAnswers,
+        );
       }
 
-      // Fetch answers and SUBMIT attempt in one call
-      _correctAnswers = await db.getQuizAnswers(
-        global.ID,
-        user.uid,
-        totalQuestions: global.quizResult.length,
-        userAnswers: userAnswers,
-      );
-
       int total = 0;
-      for (int i = 0; i < global.quizResult.length; i++) {
-        final List<dynamic> resultDataset = global.quizResult[i];
+      for (int i = 0; i < _displayQuizResult.length; i++) {
+        final List<dynamic> resultDataset = _displayQuizResult[i];
         final String qUid = resultDataset[1];
         final List<String> selections = (resultDataset[2] as List).cast<String>();
 
@@ -104,7 +141,7 @@ class _ResultScreenState extends State<ResultScreen> {
         child: Center(
           child: MarksPanel(
             totalCorrectAnswers: totalMarks,
-            totalQuestions: global.quizResult.length * 4,
+            totalQuestions: _displayQuizResult.length * 4,
           ),
         ),
       ),
@@ -138,20 +175,25 @@ class _ResultScreenState extends State<ResultScreen> {
     resultWidgets.add(const SizedBox(height: 24));
 
     // 3. Detailed Results
-    for (int i = 0; i < global.quizResult.length; i++) {
-      final List<dynamic> resultDataset = global.quizResult[i];
+    for (int i = 0; i < _displayQuizResult.length; i++) {
+      final List<dynamic> resultDataset = _displayQuizResult[i];
       final String qText = resultDataset[0];
       final String qUid = resultDataset[1];
       final List<String> selections = (resultDataset[2] as List).cast<String>();
       final List<String> answers = _correctAnswers[qUid] ?? [];
 
-      // Need to find the text for these UIDs to show in UI
-      // global.quizData contains [{ Q:{id,text}, Opt:[{id,text}...] }]
-      final quizItem = global.quizData.firstWhere((q) => (q['Q'] as Map)['id'] == qUid);
+      // Find the text for these UIDs to show in UI
+      final quizItem = _displayQuizData.firstWhere(
+        (q) => (q['Q'] as Map)['id'] == qUid,
+        orElse: () => {'Q': {'id': qUid, 'text': qText}, 'Opt': []},
+      );
       final List<dynamic> options = quizItem['Opt'] as List;
 
       String getOptText(String uid) {
-        final opt = options.firstWhere((o) => (o as Map)['id'] == uid, orElse: () => {'id': uid, 'text': "Unknown"});
+        final opt = options.firstWhere(
+          (o) => (o as Map)['id'] == uid,
+          orElse: () => {'id': uid, 'text': "Option ID: $uid"},
+        );
         return (opt as Map)['text'].toString();
       }
 

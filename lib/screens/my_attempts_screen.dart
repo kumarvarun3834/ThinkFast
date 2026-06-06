@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/screens/result_screen.dart';
 
 class MyAttemptsScreen extends StatefulWidget {
   const MyAttemptsScreen({super.key});
@@ -109,8 +110,15 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                       ),
                       child: InkWell(
                         onTap: () {
-                          // Navigate to result details if possible
-                          // For now just show info
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ResultScreen(
+                                quizId: attempt['quizId'],
+                                attemptAnswers: attempt['answers'] as Map<String, dynamic>,
+                              ),
+                            ),
+                          );
                         },
                         borderRadius: BorderRadius.circular(16),
                         child: Padding(

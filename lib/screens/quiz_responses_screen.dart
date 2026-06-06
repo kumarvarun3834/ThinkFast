@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/screens/result_screen.dart';
 
 class QuizResponsesScreen extends StatefulWidget {
   final String quizId;
@@ -175,6 +176,17 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                               border: Border.all(color: _borderColor),
                             ),
                             child: ListTile(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResultScreen(
+                                      quizId: r['quizId'],
+                                      attemptAnswers: r['answers'] as Map<String, dynamic>,
+                                    ),
+                                  ),
+                                );
+                              },
                               title: Text(
                                 "User ID: ${r['userId']}",
                                 style: GoogleFonts.poppins(
