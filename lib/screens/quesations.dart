@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -88,7 +87,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Detect when user tries to minimize app or use Home/Recent buttons
-    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive) && !_isSubmitted) {
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive) &&
+        !_isSubmitted) {
       debugPrint("User attempted to leave the app. Auto-submitting quiz.");
       _submitAndFinish();
     }
@@ -111,12 +112,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Future<void> _submitAndFinish() async {
     if (_isSubmitted) return;
     _isSubmitted = true;
-    
+
     setState(() => _timer?.cancel());
-    
+
     // Restore system UI before navigating away
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    
+
     if (mounted) {
       Navigator.pushReplacementNamed(context, "/Quiz Result");
     }
@@ -253,169 +254,173 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          "Quiz",
-          style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
-        ),
-        centerTitle: true,
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu, color: Color(0xFFE2E8F0)),
-            onPressed: () {
-              Scaffold.of(context).openDrawer();
-            },
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            "Quiz",
+            style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
           ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: switchToResultScreen,
-              child: const Text(
-                "SUBMIT",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+          centerTitle: true,
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu, color: Color(0xFFE2E8F0)),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
             ),
           ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(30),
-          child: Container(
-            color: const Color(0xFF1E293B),
-            height: 30,
-            alignment: Alignment.center,
-            child: Text(
-              _timer?.isActive == true
-                  ? "⏳ Time left: ${_format(_timeLeft)}"
-                  : "No active timer",
-              style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
-            ),
-          ),
-        ),
-      ),
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF1E293B),
-        child: Column(
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF0F172A)),
-              child: Center(
-                child: Text(
-                  'Questions',
-                  style: GoogleFonts.poppins(
-                    color: const Color(0xFFE2E8F0),
-                    fontSize: 24,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: switchToResultScreen,
+                child: const Text(
+                  "SUBMIT",
+                  style: TextStyle(
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: Wrap(spacing: 10, runSpacing: 10, children: menu_opt()),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(30),
+            child: Container(
+              color: const Color(0xFF1E293B),
+              height: 30,
+              alignment: Alignment.center,
+              child: Text(
+                _timer?.isActive == true
+                    ? "⏳ Time left: ${_format(_timeLeft)}"
+                    : "No active timer",
+                style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
               ),
             ),
-          ],
+          ),
         ),
-      ),
-      body: Container(
-        color: const Color(0xFF0F172A),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.all(40),
-                width: double.infinity,
-                child: Card(
-                  color: const Color(0xFF1E293B),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFF334155)),
+        drawer: Drawer(
+          backgroundColor: const Color(0xFF1E293B),
+          child: Column(
+            children: [
+              DrawerHeader(
+                decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+                child: Center(
+                  child: Text(
+                    'Questions',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFE2E8F0),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Text(
-                      "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
-                      style: GoogleFonts.poppins(
-                        color: const Color(0xFFE2E8F0),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(8),
+                  child: Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: menu_opt(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: Container(
+          color: const Color(0xFF0F172A),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.all(40),
+                  width: double.infinity,
+                  child: Card(
+                    color: const Color(0xFF1E293B),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: Color(0xFF334155)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFE2E8F0),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              margin: const EdgeInsets.all(20),
-              width: double.infinity,
-              child: SingleChildScrollView(
-                child: Column(children: buttons_Data(currentData)),
+              const SizedBox(height: 20),
+              Container(
+                margin: const EdgeInsets.all(20),
+                width: double.infinity,
+                child: SingleChildScrollView(
+                  child: Column(children: buttons_Data(currentData)),
+                ),
               ),
-            ),
-            const Spacer(),
-            Container(
-              margin: const EdgeInsets.all(20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E293B),
-                      foregroundColor: const Color(0xFFE2E8F0),
-                      side: const BorderSide(color: Color(0xFF334155)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              const Spacer(),
+              Container(
+                margin: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E293B),
+                        foregroundColor: const Color(0xFFE2E8F0),
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      onPressed: i > 0
+                          ? () {
+                              i--;
+                              switchState();
+                            }
+                          : null,
+                      child: const Text("PREVIOUS"),
                     ),
-                    onPressed: i > 0
-                        ? () {
-                            i--;
-                            switchState();
-                          }
-                        : null,
-                    child: const Text("PREVIOUS"),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
+                      onPressed: i < global.quizData.length - 1
+                          ? () {
+                              i++;
+                              switchState();
+                            }
+                          : null,
+                      child: const Text("NEXT"),
                     ),
-                    onPressed: i < global.quizData.length - 1
-                        ? () {
-                            i++;
-                            switchState();
-                          }
-                        : null,
-                    child: const Text("NEXT"),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
-    )
     );
   }
 }

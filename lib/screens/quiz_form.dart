@@ -157,10 +157,12 @@ class _QuizPageState extends State<QuizPage> {
       }
 
       if (answers.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          SnackBar(content: Text("Question ${i + 1} needs at least one correct answer")),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Question ${i + 1} needs at least one correct answer",
+            ),
+          ),
         );
         return;
       }
@@ -172,7 +174,7 @@ class _QuizPageState extends State<QuizPage> {
       if (widget.docId.isEmpty) {
         final newId = await db.createDatabase(
           creatorId: user!.uid,
-          user: user!.email ?? user!.phoneNumber ?? "",
+          user: user!.displayName ?? user!.uid ?? "",
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           visibility: visibility,

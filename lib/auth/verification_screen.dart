@@ -57,7 +57,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
         setState(() => loading = false);
 
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, '/profile');
       } else {
         if (!auto) {
           setState(() => loading = false);
