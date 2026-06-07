@@ -110,6 +110,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
             color: _valueColor,
           ),
         ),
+        // actions: [
+        //   TextButton(
+        //     onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+        //     child: Text(
+        //       "SKIP",
+        //       style: TextStyle(
+        //         color: _primaryAccent,
+        //         fontWeight: FontWeight.bold,
+        //       ),
+        //     ),
+        //   ),
+        // ],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -133,8 +145,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.mark_email_read_rounded,
-                        size: 100, color: _primaryAccent),
+                    Icon(
+                      Icons.mark_email_read_rounded,
+                      size: 100,
+                      color: _primaryAccent,
+                    ),
                     const SizedBox(height: 24),
                     Text(
                       "Almost There!",
@@ -206,8 +221,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   auth.logout();
                   Navigator.pushReplacementNamed(context, '/login');
                 },
-                icon: Icon(Icons.arrow_back_rounded,
-                    color: _labelColor, size: 20),
+                icon: Icon(
+                  Icons.arrow_back_rounded,
+                  color: _labelColor,
+                  size: 20,
+                ),
                 label: Text(
                   "Back to Login",
                   style: GoogleFonts.poppins(

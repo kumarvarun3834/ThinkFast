@@ -89,6 +89,28 @@ class _SidebarMenuState extends State<SidebarMenu> {
     );
   }
 
+  void _checkAndNavigate(BuildContext context, String route, {Object? arguments}) {
+    if (widget.user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login to use this feature")),
+      );
+      Navigator.pushNamed(context, "/login");
+      return;
+    }
+    if (!widget.user!.emailVerified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please verify your email to access this feature"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      Navigator.pushNamed(context, "/verify");
+      return;
+    }
+    Navigator.pop(context);
+    Navigator.pushNamed(context, route, arguments: arguments);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -102,9 +124,35 @@ class _SidebarMenuState extends State<SidebarMenu> {
               backgroundColor: Color(0xFF1E293B),
               child: Icon(Icons.person, size: 40, color: Color(0xFF3B82F6)),
             ),
-            accountName: Text(
-              _userName ?? (widget.user == null ? "Guest" : "User"),
-              style: const TextStyle(color: Color(0xFFE2E8F0), fontWeight: FontWeight.bold),
+            accountName: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    _userName ?? (widget.user == null ? "Guest" : "User"),
+                    style: const TextStyle(color: Color(0xFFE2E8F0), fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (widget.user != null && !widget.user!.emailVerified)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    margin: const EdgeInsets.only(left: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange),
+                    ),
+                    child: const Text(
+                      "UNVERIFIED",
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             accountEmail: Text(
               widget.user?.uid ?? "Welcome to ThinkFast",
@@ -118,6 +166,15 @@ class _SidebarMenuState extends State<SidebarMenu> {
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, "/login");
+              },
+            ),
+          if (widget.user != null && !widget.user!.emailVerified)
+            _drawerItem(
+              icon: Icons.verified_user_outlined,
+              text: 'Verify Account',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/verify");
               },
             ),
           _drawerItem(
@@ -141,36 +198,31 @@ class _SidebarMenuState extends State<SidebarMenu> {
             icon: Icons.qr_code_scanner_rounded,
             text: 'Join Quiz by ID',
             onTap: () {
-              Navigator.pop(context);
-              _showJoinByIdDialog(context);
+              if (widget.user == null || !widget.user!.emailVerified) {
+                _checkAndNavigate(context, ""); // This will trigger the verification check
+              } else {
+                Navigator.pop(context);
+                _showJoinByIdDialog(context);
+              }
             },
           ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.add_box_outlined,
               text: 'Create New Quiz',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/Create Quiz");
-              },
+              onTap: () => _checkAndNavigate(context, "/Create Quiz"),
             ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.library_books_outlined,
               text: 'My Quiz',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/My Quiz");
-              },
+              onTap: () => _checkAndNavigate(context, "/My Quiz"),
             ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.history_rounded,
               text: 'My Attempts',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/My Attempts");
-              },
+              onTap: () => _checkAndNavigate(context, "/My Attempts"),
             ),
           const Divider(color: Color(0xFF334155)),
           if (widget.user != null)

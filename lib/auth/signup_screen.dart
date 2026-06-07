@@ -36,7 +36,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (user != null) {
         // optionally store name in Firebase Auth
         await user.updateDisplayName(nameController.text.trim());
-        
+
         if (mounted) {
           _show("Signup successful! Please verify your email.");
           Navigator.pushReplacementNamed(context, '/verify');
@@ -58,8 +58,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _show(String msg) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -71,6 +70,18 @@ class _SignupScreenState extends State<SignupScreen> {
         elevation: 0,
         title: const Text("Sign Up"),
         centerTitle: true,
+        // actions: [
+        //   TextButton(
+        //     onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+        //     child: const Text(
+        //       "SKIP",
+        //       style: TextStyle(
+        //         color: Color(0xFF3B82F6),
+        //         fontWeight: FontWeight.bold,
+        //       ),
+        //     ),
+        //   ),
+        // ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -149,20 +160,37 @@ class _SignupScreenState extends State<SignupScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text("SIGN UP", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                      child: const Text(
+                        "SIGN UP",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
                     ),
                   ),
             const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text("Already have an account?", style: TextStyle(color: Color(0xFF94A3B8))),
+                const Text(
+                  "Already have an account?",
+                  style: TextStyle(color: Color(0xFF94A3B8)),
+                ),
                 TextButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text("Login", style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
+                  onPressed: () =>
+                      Navigator.pushReplacementNamed(context, '/login'),
+                  child: const Text(
+                    "Login",
+                    style: TextStyle(
+                      color: Color(0xFF3B82F6),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

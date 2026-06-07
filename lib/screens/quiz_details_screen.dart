@@ -386,28 +386,45 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             const SizedBox(height: 32),
             _actionButton(
               "Start Quiz",
-              () {
+              () async {
                 if (_user == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Please Login to Continue')),
                   );
+                  Navigator.pushNamed(context, '/login');
+                  return;
+                }
+
+                // Refresh user state to check verification
+                await _user!.reload();
+                _user = _auth.currentUser;
+
+                if (!_user!.emailVerified) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please verify your email to start the quiz'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  Navigator.pushNamed(context, '/verify');
+                  return;
+                }
+
+                if (isPublic || isOwner) {
+                  global.quizData = (_quizData!['data'] as List<dynamic>)
+                      .map((e) => Map<String, Object>.from(e))
+                      .toList();
+
+                  global.ID = _quizData!['id'];
+                  global.time = _quizData!['time'] as int;
+                  global.currentUserProfile = _userProfile;
+                  global.creatorProfile = _creatorProfile;
+
+                  Navigator.pushNamed(context, "/Quiz");
                 } else {
-                  if (isPublic || isOwner) {
-                    global.quizData = (_quizData!['data'] as List<dynamic>)
-                        .map((e) => Map<String, Object>.from(e))
-                        .toList();
-
-                    global.ID = _quizData!['id'];
-                    global.time = _quizData!['time'] as int;
-                    global.currentUserProfile = _userProfile;
-                    global.creatorProfile = _creatorProfile;
-
-                    Navigator.pushNamed(context, "/Quiz");
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("This quiz is private")),
-                    );
-                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("This quiz is private")),
+                  );
                 }
               },
               isPrimary: true,

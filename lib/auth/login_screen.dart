@@ -79,6 +79,18 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         title: const Text("Login"),
         centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+            child: const Text(
+              "SKIP",
+              style: TextStyle(
+                color: Color(0xFF3B82F6),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

@@ -108,11 +108,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Center(
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundColor: global.bgColor,
-                            child: Icon(Icons.person, size: 60, color: global.primaryAccent),
+                        Center(
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              const CircleAvatar(
+                                radius: 50,
+                                backgroundColor: global.bgColor,
+                                child: Icon(Icons.person, size: 60, color: global.primaryAccent),
+                              ),
+                              if (_user != null && !_user!.emailVerified)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: global.cardColor, width: 2),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.warning_amber_rounded, size: 12, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        "UNVERIFIED",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (_user != null && _user!.emailVerified)
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: global.cardColor, width: 2),
+                                  ),
+                                  child: const Icon(Icons.check, size: 16, color: Colors.white),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 32),
@@ -141,15 +180,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _isSaving
                             ? const Center(child: CircularProgressIndicator(color: global.primaryAccent))
                             : ElevatedButton(
-                                onPressed: _saveProfile,
+                                onPressed: (_user == null || !_user!.emailVerified) 
+                                  ? () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Please verify your email to edit your profile"),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                    }
+                                  : _saveProfile,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: global.btnColor,
+                                  backgroundColor: (_user == null || !_user!.emailVerified)
+                                    ? Colors.grey.withOpacity(0.3)
+                                    : global.btnColor,
                                   foregroundColor: Colors.white,
                                   minimumSize: const Size(double.infinity, 56),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
-                                  elevation: 4,
+                                  elevation: (_user == null || !_user!.emailVerified) ? 0 : 4,
                                 ),
                                 child: Text(
                                   "SAVE CHANGES",
