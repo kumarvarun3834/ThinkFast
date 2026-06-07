@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth_service.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
@@ -16,14 +17,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
   bool loading = false;
   Timer? _timer;
 
-  // Colors (Fixed Palette)
-  final Color _bgColor = const Color(0xFF0F172A);
-  final Color _cardColor = const Color(0xFF1E293B);
-  final Color _primaryAccent = const Color(0xFF3B82F6);
-  final Color _labelColor = const Color(0xFF94A3B8);
-  final Color _valueColor = const Color(0xFFE2E8F0);
-  final Color _btnColor = const Color(0xFF2563EB);
-  final Color _borderColor = const Color(0xFF334155);
+  // Colors (Synced with Global Palette)
+  final Color _bgColor = global.bgColor;
+  final Color _cardColor = global.cardColor;
+  final Color _primaryAccent = global.primaryAccent;
+  final Color _labelColor = global.labelColor;
+  final Color _valueColor = global.valueColor;
+  final Color _btnColor = global.btnColor;
+  final Color _borderColor = global.borderColor;
 
   @override
   void initState() {

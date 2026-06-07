@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
   /// 🎨 Common Background Wrapper
   Widget _wrapWithGradient(Widget child) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       body: child,
     );
   }
@@ -80,12 +80,12 @@ class MyApp extends StatelessWidget {
       title: 'ThinkFast',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        primaryColor: const Color(0xFF2563EB),
+        scaffoldBackgroundColor: global.bgColor,
+        primaryColor: global.btnColor,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3B82F6),
+          seedColor: global.primaryAccent,
           brightness: Brightness.dark,
-          surface: const Color(0xFF1E293B),
+          surface: global.cardColor,
         ),
       ),
       home: const MySplash(),

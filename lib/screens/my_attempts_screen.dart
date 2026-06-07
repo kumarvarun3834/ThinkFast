@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/screens/result_screen.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class MyAttemptsScreen extends StatefulWidget {
   const MyAttemptsScreen({super.key});
@@ -16,13 +17,13 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
   User? _user;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Colors
-  final Color _bgColor = const Color(0xFF0F172A);
-  final Color _cardColor = const Color(0xFF1E293B);
-  final Color _primaryAccent = const Color(0xFF3B82F6);
-  final Color _valueColor = const Color(0xFFE2E8F0);
-  final Color _labelColor = const Color(0xFF94A3B8);
-  final Color _borderColor = const Color(0xFF334155);
+  // Colors (Synced with Global Palette)
+  final Color _bgColor = global.bgColor;
+  final Color _cardColor = global.cardColor;
+  final Color _primaryAccent = global.primaryAccent;
+  final Color _valueColor = global.valueColor;
+  final Color _labelColor = global.labelColor;
+  final Color _borderColor = global.borderColor;
 
   @override
   void initState() {
@@ -70,7 +71,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                    child: CircularProgressIndicator(color: global.primaryAccent),
                   );
                 }
 
@@ -180,7 +181,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                   ),
                                 ],
                               ),
-                              const Divider(color: Color(0xFF334155), height: 24),
+                              const Divider(color: global.borderColor, height: 24),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
