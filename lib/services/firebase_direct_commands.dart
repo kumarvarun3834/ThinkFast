@@ -43,10 +43,40 @@ class DatabaseService {
     try {
       final doc = await _users.doc(uid).get();
       if (!doc.exists) return null;
-      return doc.data() as Map<String, dynamic>;
+      
+      final publicData = doc.data() as Map<String, dynamic>;
+      
+      // Fetch private data
+      final privateDoc = await _users.doc(uid).collection('private').doc('details').get();
+      if (privateDoc.exists) {
+        publicData.addAll(privateDoc.data() as Map<String, dynamic>);
+      }
+      
+      return publicData;
     } catch (e) {
       debugPrint("Error fetching user profile: $e");
-      return null; // Return null instead of throwing to prevent UI crashes
+      return null;
+    }
+  }
+
+  /// ✅ Update user profile
+  Future<void> updateUserProfile({
+    required String uid,
+    String? name,
+    String? email,
+  }) async {
+    final Map<String, dynamic> publicUpdates = {
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (name != null) publicUpdates['name'] = name;
+
+    await _users.doc(uid).set(publicUpdates, SetOptions(merge: true));
+
+    if (email != null) {
+      await _users.doc(uid).collection('private').doc('details').set({
+        'email': email,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
   }
 

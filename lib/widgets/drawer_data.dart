@@ -23,20 +23,26 @@ class _SidebarMenuState extends State<SidebarMenu> {
   }
 
   Future<void> _fetchUserProfile() async {
-    // If Google user, they have a displayName
+    // Try fetching from Firestore users collection first
+    try {
+      final profile = await DatabaseService().getUserProfile(widget.user!.uid);
+      if (mounted && profile != null && profile['name'] != null && profile['name'].toString().isNotEmpty) {
+        setState(() => _userName = profile['name']);
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback to Google displayName
     if (widget.user?.displayName != null &&
         widget.user!.displayName!.isNotEmpty) {
       setState(() => _userName = widget.user!.displayName);
       return;
     }
-
-    // Otherwise fetch from Firestore users collection
-    try {
-      final profile = await DatabaseService().getUserProfile(widget.user!.uid);
-      if (mounted && profile != null) {
-        setState(() => _userName = profile['name'] ?? profile['email']);
-      }
-    } catch (_) {}
+    
+    // Final fallback to email
+    if (mounted) {
+      setState(() => _userName = widget.user?.email?.split('@')[0]);
+    }
   }
 
   void _showJoinByIdDialog(BuildContext context) {
@@ -101,7 +107,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
               style: const TextStyle(color: Color(0xFFE2E8F0), fontWeight: FontWeight.bold),
             ),
             accountEmail: Text(
-              widget.user?.email ?? "Welcome to ThinkFast",
+              widget.user?.uid ?? "Welcome to ThinkFast",
               style: const TextStyle(color: Color(0xFF94A3B8)),
             ),
           ),
@@ -122,6 +128,15 @@ class _SidebarMenuState extends State<SidebarMenu> {
               Navigator.pushNamed(context, "/home");
             },
           ),
+          if (widget.user != null)
+            _drawerItem(
+              icon: Icons.account_circle_outlined,
+              text: 'Profile',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/profile");
+              },
+            ),
           _drawerItem(
             icon: Icons.qr_code_scanner_rounded,
             text: 'Join Quiz by ID',

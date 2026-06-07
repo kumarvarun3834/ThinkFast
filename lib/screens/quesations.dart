@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -16,12 +17,13 @@ class Quesations extends StatefulWidget {
   State<Quesations> createState() => _Quesations();
 }
 
-class _Quesations extends State<Quesations> {
+class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   int i = 0;
   Map<String, Object> currentData = {};
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
   DateTime? _lastBackPressTime;
+  bool _isSubmitted = false;
 
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
@@ -68,7 +70,28 @@ class _Quesations extends State<Quesations> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Hide status bar and navigation bar (Immersive Mode)
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _loadQuizWithTime(); // fetch from Firestore
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    // Restore system UI when leaving
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Detect when user tries to minimize app or use Home/Recent buttons
+    if ((state == AppLifecycleState.paused || state == AppLifecycleState.inactive) && !_isSubmitted) {
+      debugPrint("User attempted to leave the app. Auto-submitting quiz.");
+      _submitAndFinish();
+    }
   }
 
   Future<void> _loadQuizWithTime() async {
@@ -86,7 +109,14 @@ class _Quesations extends State<Quesations> {
   }
 
   Future<void> _submitAndFinish() async {
+    if (_isSubmitted) return;
+    _isSubmitted = true;
+    
     setState(() => _timer?.cancel());
+    
+    // Restore system UI before navigating away
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    
     if (mounted) {
       Navigator.pushReplacementNamed(context, "/Quiz Result");
     }
@@ -138,6 +168,7 @@ class _Quesations extends State<Quesations> {
           onTap: () {
             i = j;
             switchState();
+            Navigator.pop(context); // Close the drawer
           },
           child: Container(
             width: 70,
@@ -197,31 +228,28 @@ class _Quesations extends State<Quesations> {
   }
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        final now = DateTime.now();
-        if (_lastBackPressTime == null ||
-            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
-          _lastBackPressTime = now;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Tap back again to SUBMIT and exit"),
-              duration: Duration(seconds: 2),
+        // Strictly prevent exiting via back button without submission
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Exiting is disabled! You must SUBMIT the quiz to finish.",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
             ),
-          );
-        } else {
-          switchToResultScreen();
-        }
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: "SUBMIT NOW",
+              textColor: Colors.white,
+              onPressed: switchToResultScreen,
+            ),
+          ),
+        );
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
