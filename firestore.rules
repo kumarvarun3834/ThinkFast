@@ -6,10 +6,30 @@ service cloud.firestore {
     // --- Helper Functions ---
 
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && !isBlocked();
     }
 
-    // Gets the main quiz metadata document
+    // Check if user is in the global block list
+    function isBlocked() {
+      let moderation = get(/databases/$(database)/documents/settings/moderation).data;
+      return request.auth.uid in moderation.get('blocked_uids', []);
+    }
+
+    // Check if user has moderator/admin privileges
+    function isModerator() {
+      let adminUid = 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2'; // Super Admin
+      return request.auth != null && (request.auth.uid == adminUid || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // Check for specific admin permission
+    function hasAdminPermission(permission) {
+      let adminUid = 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2';
+      if (request.auth.uid == adminUid) return true;
+      if (!exists(/databases/$(database)/documents/admins/$(request.auth.uid))) return false;
+      let adminDoc = get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+      return adminDoc.get('allowed_features', []).contains(permission);
+    }
+
     function getQuiz(quizId) {
       return get(/databases/$(database)/documents/databases/$(quizId)).data;
     }
@@ -29,54 +49,56 @@ service cloud.firestore {
 
     // 1. User Profiles
     match /users/{userId} {
-      // Public Metadata: Anyone can see names (e.g., for "Created By" labels)
       allow read: if true;
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if (isAuthenticated() && request.auth.uid == userId) || isModerator();
 
-      // 2. Private User Data (Restricted to owner only)
       match /private/details {
-         allow read, write: if isAuthenticated() && request.auth.uid == userId;
+         allow read, write: if (isAuthenticated() && request.auth.uid == userId) || isModerator();
       }
     }
 
     // 2. Quiz Metadata
     match /databases/{quizId} {
-      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-
-      // Allow reading if it's public and not deleted, OR if the user is the creator
+      allow create: if isAuthenticated() && (request.resource.data.creatorId == request.auth.uid || isModerator());
       allow read: if (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
-                   (isAuthenticated() && resource.data.creatorId == request.auth.uid);
-
-      allow update, delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+                   (isAuthenticated() && resource.data.creatorId == request.auth.uid) || isModerator();
+      allow update, delete: if (isAuthenticated() && resource.data.creatorId == request.auth.uid) || isModerator();
     }
 
     // 3. Quiz Questions
     match /quiz_questions/{quizId} {
-      // Read access follows the main quiz visibility/soft-delete status
-      allow read: if isQuizAccessible(quizId) || isCreator(quizId);
-      allow write: if isCreator(quizId) || (isAuthenticated() && !exists(/databases/$(database)/documents/quiz_questions/$(quizId)));
+      allow read: if isQuizAccessible(quizId) || isCreator(quizId) || isModerator();
+      allow write: if (isCreator(quizId) || isModerator()) && !exists(/databases/$(database)/documents/quiz_questions/$(quizId));
     }
 
     // 4. Answer Keys
     match /answer_keys/{quizId} {
-      allow read: if isQuizAccessible(quizId) || isCreator(quizId);
-      allow write: if isCreator(quizId) || (isAuthenticated() && !exists(/databases/$(database)/documents/answer_keys/$(quizId)));
+      allow read: if isQuizAccessible(quizId) || isCreator(quizId) || isModerator();
+      allow write: if (isCreator(quizId) || isModerator()) && !exists(/databases/$(database)/documents/answer_keys/$(quizId));
     }
 
     // 5. Responses / Attempts
     match /responses/{responseId} {
-      // Anyone logged in can submit an attempt
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isCreator(resource.data.quizId) || isModerator());
+      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isModerator();
+      allow delete: if isModerator();
+    }
 
-      // Users can see their own history. Quiz owners can see all responses to their quizzes.
-      allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        isCreator(resource.data.quizId)
-      );
+    // --- Settings / Feature Flags ---
+    match /settings/features {
+      allow read: if true;
+      allow write: if isModerator();
+    }
 
-      // Allow users to update their own attempts (e.g., updating score or status)
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if false;
+    match /settings/moderation {
+      allow read, write: if isModerator();
+    }
+
+    // 6. Admin Permissions
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (request.auth.uid == adminId || isModerator());
+      allow write: if isModerator(); // Only existing admins or super admin can add new ones
     }
   }
 }
