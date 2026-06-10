@@ -6,43 +6,40 @@ service cloud.firestore {
     // --- Helper Functions ---
 
     function isAuthenticated() {
-      return request.auth != null && !isBlocked();
+      return request.auth != null;
     }
 
-    // Check if user is in the global block list
-    function isBlocked() {
-      let moderation = get(/databases/$(database)/documents/settings/moderation).data;
-      return request.auth.uid in moderation.get('blocked_uids', []);
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Check if user has moderator/admin privileges
-    function isModerator() {
-      let adminUid = 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2'; // Super Admin
-      return request.auth != null && (request.auth.uid == adminUid || exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    // 1. Global App Admin Check
+    function isGlobalAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+         request.auth.uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2');
     }
 
-    // Check for specific admin permission
-    function hasAdminPermission(permission) {
-      let adminUid = 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2';
-      if (request.auth.uid == adminUid) return true;
-      if (!exists(/databases/$(database)/documents/admins/$(request.auth.uid))) return false;
-      let adminDoc = get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
-      return adminDoc.get('allowed_features', []).contains(permission);
+    // 2. Quiz-Specific Manager Check (Delegated Admin)
+    function hasQuizPermission(quizId, permission) {
+      let accessId = quizId + "_" + request.auth.uid;
+      let accessPath = /databases/$(database)/documents/quiz_access/$(accessId);
+      return isAuthenticated() && (
+        exists(accessPath) && get(accessPath).data.permissions.get(permission, false) == true
+      );
     }
 
     function getQuiz(quizId) {
-      return get(/databases/$(database)/documents/databases/$(quizId)).data;
+      return get(/databases/$(database)/documents/quizzes/$(quizId)).data;
     }
 
-    // Checks if the user is the creator of the quiz
-    function isCreator(quizId) {
+    function isQuizCreator(quizId) {
       return isAuthenticated() && getQuiz(quizId).creatorId == request.auth.uid;
     }
 
-    // Checks if the quiz is accessible (public and not deleted)
-    function isQuizAccessible(quizId) {
-      let quiz = getQuiz(quizId);
-      return quiz.visibility == 'public' && quiz.get('isDeleted', false) == false;
+    // Helper to check if user has ANY management right over a quiz (Creator, Delegated Admin, or Global Admin)
+    function canManageQuiz(quizId, permission) {
+      return isQuizCreator(quizId) || hasQuizPermission(quizId, permission) || isGlobalAdmin();
     }
 
     // --- Collection Rules ---
@@ -50,55 +47,117 @@ service cloud.firestore {
     // 1. User Profiles
     match /users/{userId} {
       allow read: if true;
-      allow write: if (isAuthenticated() && request.auth.uid == userId) || isModerator();
+      allow write: if isOwner(userId) || isGlobalAdmin();
+
+      match /protected/details {
+        allow read: if isOwner(userId) || isGlobalAdmin();
+        allow write: if isOwner(userId) || isGlobalAdmin();
+      }
 
       match /private/details {
-         allow read, write: if (isAuthenticated() && request.auth.uid == userId) || isModerator();
+        allow read, write: if isOwner(userId) || isGlobalAdmin();
       }
     }
 
-    // 2. Quiz Metadata
-    match /databases/{quizId} {
-      allow create: if isAuthenticated() && (request.resource.data.creatorId == request.auth.uid || isModerator());
-      allow read: if (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
-                   (isAuthenticated() && resource.data.creatorId == request.auth.uid) || isModerator();
-      allow update, delete: if (isAuthenticated() && resource.data.creatorId == request.auth.uid) || isModerator();
+    // 2. Quizzes (Main Metadata + Questions)
+    match /quizzes/{quizId} {
+      allow read: if resource.data.get('isDeleted', false) == false &&
+                   (resource.data.get('visibility', 'private') == 'public' || isQuizCreator(quizId) || isGlobalAdmin());
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update: if canManageQuiz(quizId, 'can_update') || isGlobalAdmin();
+      allow delete: if canManageQuiz(quizId, 'can_delete') || isGlobalAdmin();
     }
 
-    // 3. Quiz Questions
-    match /quiz_questions/{quizId} {
-      allow read: if isQuizAccessible(quizId) || isCreator(quizId) || isModerator();
-      allow write: if (isCreator(quizId) || isModerator()) && !exists(/databases/$(database)/documents/quiz_questions/$(quizId));
-    }
-
-    // 4. Answer Keys
+    // 3. Answer Keys (Security sensitive)
     match /answer_keys/{quizId} {
-      allow read: if isQuizAccessible(quizId) || isCreator(quizId) || isModerator();
-      allow write: if (isCreator(quizId) || isModerator()) && !exists(/databases/$(database)/documents/answer_keys/$(quizId));
+      allow read: if canManageQuiz(quizId, 'can_update') || canManageQuiz(quizId, 'can_view_results');
+      allow write: if canManageQuiz(quizId, 'can_update');
     }
 
-    // 5. Responses / Attempts
+    // 4. Responses & Attempts
     match /responses/{responseId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isGlobalAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /all_attempts/{attemptId} {
+      allow read: if isGlobalAdmin();
       allow create: if isAuthenticated();
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isCreator(resource.data.quizId) || isModerator());
-      allow update: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isModerator();
-      allow delete: if isModerator();
     }
 
-    // --- Settings / Feature Flags ---
-    match /settings/features {
+    match /quiz_attempts/{quizId} {
+      allow read: if canManageQuiz(quizId, 'can_view_results');
+      match /attempts/{attemptId} {
+        allow read: if canManageQuiz(quizId, 'can_view_results');
+        allow create: if isAuthenticated();
+      }
+    }
+
+    // 5. App Settings & Feature Flags
+    match /settings/{docId} {
       allow read: if true;
-      allow write: if isModerator();
+      allow write: if isGlobalAdmin();
     }
 
-    match /settings/moderation {
-      allow read, write: if isModerator();
+    match /feature_flags/{docId} {
+      allow read: if true;
+      allow write: if isGlobalAdmin();
     }
 
-    // 6. Admin Permissions
-    match /admins/{adminId} {
-      allow read: if isAuthenticated() && (request.auth.uid == adminId || isModerator());
-      allow write: if isModerator(); // Only existing admins or super admin can add new ones
+    // 6. Admin Management
+    match /admins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isGlobalAdmin();
+    }
+
+    // 7. Quiz Access & Bans
+    match /quiz_access/{accessId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isQuizCreator(resource.data.quizId) || isGlobalAdmin());
+      allow write: if isGlobalAdmin() || (request.resource.data.quizId != null && isQuizCreator(request.resource.data.quizId));
+    }
+
+    match /quiz_bans/{banId} {
+      allow read: if isAuthenticated();
+      allow write: if isGlobalAdmin() || (request.resource.data.quizId != null && canManageQuiz(request.resource.data.quizId, 'can_ban_users'));
+    }
+
+    // 8. Analytics & Stats
+    match /quiz_stats/{quizId} {
+      allow read: if true;
+      allow write: if isGlobalAdmin();
+    }
+
+    match /quiz_question_stats/{questionId} {
+      allow read: if true;
+      allow write: if isGlobalAdmin();
+    }
+
+    // 9. Reports (Users report, Admins review)
+    match /reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read, write: if isGlobalAdmin();
+    }
+
+    // 10. Audit Logs (Admin only)
+    match /audit_logs/{logId} {
+      allow read, write: if isGlobalAdmin();
+    }
+
+    // 11. Notifications
+    match /notifications/{notifId} {
+      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create, delete: if isGlobalAdmin();
+    }
+
+    // 12. AI & Usage
+    match /ai_generations/{genId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /user_usage/{userId} {
+      allow read: if isOwner(userId) || isGlobalAdmin();
+      allow write: if isGlobalAdmin();
     }
   }
 }

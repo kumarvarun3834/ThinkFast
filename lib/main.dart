@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:thinkfast/screens/profile/profile_screen.dart';
 import 'package:thinkfast/screens/splash_screen.dart';
 import 'package:thinkfast/screens/quesations.dart';
 import 'package:thinkfast/screens/quiz_details_screen.dart';
@@ -13,7 +14,6 @@ import 'package:thinkfast/screens/my_attempts_screen.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
-import 'package:thinkfast/screens/profile_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/services/firebase_options.dart';
@@ -24,7 +24,7 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  
+
   // Initialize AppLinks handling
   final appLinks = AppLinks();
   appLinks.uriLinkStream.listen((uri) {
@@ -48,15 +48,18 @@ Future<void> main() async {
 void _handleDeepLink(Uri uri) {
   debugPrint("Deep Link Received: $uri");
   debugPrint("Path: ${uri.path}");
-  
+
   if (uri.path.contains('/quiz')) {
     final quizId = uri.queryParameters['id'];
     if (quizId != null && quizId.isNotEmpty) {
       debugPrint("Navigating to Quiz: $quizId");
-      
+
       // Delay slightly to ensure Navigator is mounted
       Future.delayed(const Duration(milliseconds: 500), () {
-        navigatorKey.currentState?.pushNamed('/Quiz Details', arguments: quizId);
+        navigatorKey.currentState?.pushNamed(
+          '/Quiz Details',
+          arguments: quizId,
+        );
       });
     }
   }
@@ -67,10 +70,7 @@ class MyApp extends StatelessWidget {
 
   /// 🎨 Common Background Wrapper
   Widget _wrapWithGradient(Widget child) {
-    return Scaffold(
-      backgroundColor: global.bgColor,
-      body: child,
-    );
+    return Scaffold(backgroundColor: global.bgColor, body: child);
   }
 
   @override
