@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/admin_service.dart';
+import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 import '../utils/global.dart' as global;
@@ -21,6 +24,8 @@ class QuizPage extends StatefulWidget {
 class _QuizPageState extends State<QuizPage> {
   User? user;
   bool _isAdmin = false;
+  bool _isAi = false;
+  bool _importEnabled = false;
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -62,11 +67,160 @@ class _QuizPageState extends State<QuizPage> {
     } else {
       questions.add({});
     }
+
+    _loadFeatureFlags();
+  }
+
+  Future<void> _loadFeatureFlags() async {
+    try {
+      final flags = await SettingsService().getFeatureFlags();
+      if (mounted) {
+        setState(() {
+          _importEnabled = flags?['enable_import'] ?? false;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _checkAdminStatus(String uid) async {
+    final db = DatabaseService();
     final isAdmin = await AdminService().isAdmin(uid);
-    if (mounted) setState(() => _isAdmin = isAdmin);
+    
+    // Fetch profile if not already loaded to check for AI role
+    Map<String, dynamic>? profile = global.currentUserProfile;
+    if (profile == null) {
+      profile = await db.getUserProfile(uid);
+      global.currentUserProfile = profile;
+    }
+    
+    final bool isAi = profile?['role'] == 'ai';
+
+    if (mounted) {
+      setState(() {
+        _isAdmin = isAdmin;
+        _isAi = isAi;
+      });
+    }
+  }
+
+  void _showImportDialog() {
+    final TextEditingController importController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E293B),
+        title: Text("Import Quiz Data", style: GoogleFonts.poppins(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Paste a JSON string or a direct link to a JSON file.",
+              style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: importController,
+              maxLines: 5,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: InputDecoration(
+                hintText: "Enter JSON or URL...",
+                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                filled: true,
+                fillColor: const Color(0xFF0F172A),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL", style: TextStyle(color: Color(0xFF94A3B8))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final input = importController.text.trim();
+              if (input.isNotEmpty) {
+                Navigator.pop(context);
+                _importQuizData(input);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            child: const Text("IMPORT"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _importQuizData(String input) async {
+    try {
+      String jsonContent = input;
+      if (input.startsWith("http")) {
+        final response = await http.get(Uri.parse(input));
+        if (response.statusCode == 200) {
+          jsonContent = response.body;
+        } else {
+          throw Exception("Failed to fetch data from link");
+        }
+      }
+
+      final dynamic decoded = jsonDecode(jsonContent);
+      final Map<String, dynamic> data = decoded is List ? {"data": decoded} : decoded;
+
+      setState(() {
+        if (data['title'] != null) _titleController.text = data['title'].toString();
+        if (data['description'] != null) _descriptionController.text = data['description'].toString();
+        if (data['time'] != null) {
+          _timeController.text = (data['time'] is int) 
+              ? (data['time'] ~/ 60).toString() 
+              : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
+        }
+        
+        if (data['markingScheme'] != null) {
+          final scheme = data['markingScheme'] as Map;
+          markingType = scheme['type'] ?? 'default';
+          // Load other fields if necessary
+        }
+
+        final List<dynamic> rawData = (data['data'] ?? data['questions'] ?? []) as List;
+        if (rawData.isNotEmpty) {
+          questions.clear();
+          for (var q in rawData) {
+            // Support both internal format and external easy format
+            if (q['Q'] != null) {
+              // Internal pattern uid/type/Q/Opt
+              final qInfo = q['Q'] as Map;
+              final qText = qInfo['text'].toString();
+              final List<dynamic> opts = q['Opt'] as List;
+              final List<String> choiceTexts = opts.map((o) => (o as Map)['text'].toString()).toList();
+              
+              // Note: Importer usually won't have answer_keys unless it's a full export
+              // If it's internal, we might not have 'answers' field directly in 'data'
+              questions.add({
+                "question": qText,
+                "choices": choiceTexts,
+                "answers": <String>[], // Answers need to be set manually or provided in 'answers'
+                "type": q['type'] ?? 'Single Choice',
+              });
+            } else {
+              // Easy format: { question, choices: [], answers: [], type }
+              questions.add({
+                "question": q['question']?.toString() ?? '',
+                "choices": List<String>.from(q['choices'] ?? []),
+                "answers": List<String>.from(q['answers'] ?? []),
+                "type": q['type'] ?? 'Single Choice',
+                "correct": q['correct'] ?? 4,
+                "wrong": q['wrong'] ?? -1,
+              });
+            }
+          }
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data imported successfully")));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Import error: $e")));
+    }
   }
 
   Future<void> _fetchQuiz(String docId) async {
@@ -411,6 +565,12 @@ class _QuizPageState extends State<QuizPage> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         actions: [
+          if (_importEnabled && (_isAdmin || _isAi))
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined, color: Color(0xFF3B82F6)),
+              onPressed: _showImportDialog,
+              tooltip: "Import Data",
+            ),
           IconButton(
             icon: const Icon(Icons.save_rounded, color: Color(0xFF3B82F6)),
             onPressed: _saveQuiz,
