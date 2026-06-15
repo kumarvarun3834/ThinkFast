@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
+import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 import '../utils/global.dart' as global;
@@ -19,12 +20,23 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   User? user;
+  bool _isAdmin = false;
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _timeController;
 
   String visibility = "private";
+  bool allowMultipleAttempts = true;
+
+  // Marking Scheme
+  String markingType = "default";
+  final TextEditingController _globalCorrectController = TextEditingController(text: "4");
+  final TextEditingController _globalWrongController = TextEditingController(text: "-1");
+  final TextEditingController _scCorrectController = TextEditingController(text: "4");
+  final TextEditingController _scWrongController = TextEditingController(text: "-1");
+  final TextEditingController _mcCorrectController = TextEditingController(text: "4");
+  final TextEditingController _mcWrongController = TextEditingController(text: "-1");
 
   // Questions
   final List<Map<String, Object>> questions = [];
@@ -37,7 +49,12 @@ class _QuizPageState extends State<QuizPage> {
     _timeController = TextEditingController();
 
     FirebaseAuth.instance.authStateChanges().listen((u) {
-      if (mounted) setState(() => user = u);
+      if (mounted) {
+        setState(() => user = u);
+        if (u != null) {
+          _checkAdminStatus(u.uid);
+        }
+      }
     });
 
     if (widget.docId.isNotEmpty) {
@@ -45,6 +62,11 @@ class _QuizPageState extends State<QuizPage> {
     } else {
       questions.add({});
     }
+  }
+
+  Future<void> _checkAdminStatus(String uid) async {
+    final isAdmin = await AdminService().isAdmin(uid);
+    if (mounted) setState(() => _isAdmin = isAdmin);
   }
 
   Future<void> _fetchQuiz(String docId) async {
@@ -63,7 +85,24 @@ class _QuizPageState extends State<QuizPage> {
         _titleController.text = data['title'] ?? '';
         _descriptionController.text = data['description'] ?? '';
         visibility = data['visibility'] ?? 'private';
+        allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
+
+        // Load Marking Scheme
+        final scheme = data['markingScheme'] as Map? ?? {};
+        markingType = scheme['type'] ?? 'default';
+        if (markingType == 'entire_quiz') {
+          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4).toString();
+          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1).toString();
+        } else if (markingType == 'per_question_type') {
+          final pqt = scheme['perQuestionType'] as Map? ?? {};
+          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4).toString();
+          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1).toString();
+          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4).toString();
+          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1).toString();
+        }
+
+        final Map<String, dynamic> pqScheme = (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
 
         final List<dynamic> rawQuestions = data['data'] as List;
         final List<Map<String, Object>> transformed = [];
@@ -72,6 +111,11 @@ class _QuizPageState extends State<QuizPage> {
           final qInfo = q['Q'] as Map;
           final qUid = qInfo['id'].toString();
           final qText = qInfo['text'].toString();
+
+          // Load individual marking if it exists
+          final qMarking = pqScheme[qUid] as Map? ?? {};
+          final int qCorrect = qMarking['correct'] ?? 4;
+          final int qWrong = qMarking['wrong'] ?? -1;
 
           final List<dynamic> opts = q['Opt'] as List;
           final List<String> choiceTexts = [];
@@ -94,6 +138,8 @@ class _QuizPageState extends State<QuizPage> {
             "choices": choiceTexts,
             "answers": correctTexts,
             "type": q['type'] ?? 'Single Choice',
+            "correct": qCorrect,
+            "wrong": qWrong,
           });
         }
 
@@ -106,6 +152,127 @@ class _QuizPageState extends State<QuizPage> {
         context,
       ).showSnackBar(SnackBar(content: Text("Load error: $e")));
     }
+  }
+
+  Widget _buildMarkingSchemeSection() {
+    if (!_isAdmin && markingType == "default") {
+      return const SizedBox.shrink(); // Hide for non-admins if it's already default
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Marking Scheme",
+          style: GoogleFonts.poppins(
+            color: const Color(0xFFE2E8F0),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        AbsorbPointer(
+          absorbing: !_isAdmin,
+          child: Opacity(
+            opacity: _isAdmin ? 1.0 : 0.6,
+            child: Column(
+              children: [
+                DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF1E293B),
+                  value: markingType,
+                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  items: const [
+                    DropdownMenuItem(value: "default", child: Text("Default (+4, -1)")),
+                    DropdownMenuItem(value: "entire_quiz", child: Text("Custom Global")),
+                    DropdownMenuItem(value: "per_question_type", child: Text("Per Question Type")),
+                    DropdownMenuItem(value: "per_question", child: Text("Per Question")),
+                  ],
+                  onChanged: (v) => setState(() => markingType = v!),
+                  decoration: const InputDecoration(labelText: "Scheme Type"),
+                ),
+                if (markingType == "entire_quiz") ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _globalCorrectController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Color(0xFFE2E8F0)),
+                          decoration: const InputDecoration(labelText: "Correct Score"),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _globalWrongController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: Color(0xFFE2E8F0)),
+                          decoration: const InputDecoration(labelText: "Wrong Score"),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (markingType == "per_question_type") ...[
+                  const SizedBox(height: 16),
+                  _buildTypeMarkingRow("Single Choice", _scCorrectController, _scWrongController),
+                  const SizedBox(height: 12),
+                  _buildTypeMarkingRow("Multiple Choice", _mcCorrectController, _mcWrongController),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (!_isAdmin)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              "Note: Only administrators can modify the marking scheme.",
+              style: TextStyle(color: Colors.orangeAccent.withOpacity(0.8), fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTypeMarkingRow(String type, TextEditingController correct, TextEditingController wrong) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(type, style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: correct,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  decoration: const InputDecoration(labelText: "Correct"),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: wrong,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  decoration: const InputDecoration(labelText: "Wrong"),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   void _addNewForm() => setState(() => questions.add({}));
@@ -168,6 +335,26 @@ class _QuizPageState extends State<QuizPage> {
       }
     }
 
+    // Prepare Marking Scheme
+    final Map<String, dynamic> markingScheme = {'type': markingType};
+    if (markingType == 'entire_quiz') {
+      markingScheme['global'] = {
+        'correct': int.tryParse(_globalCorrectController.text) ?? 4,
+        'wrong': int.tryParse(_globalWrongController.text) ?? -1,
+      };
+    } else if (markingType == 'per_question_type') {
+      markingScheme['perQuestionType'] = {
+        'Single Choice': {
+          'correct': int.tryParse(_scCorrectController.text) ?? 4,
+          'wrong': int.tryParse(_scWrongController.text) ?? -1,
+        },
+        'Multiple Choice': {
+          'correct': int.tryParse(_mcCorrectController.text) ?? 4,
+          'wrong': int.tryParse(_mcWrongController.text) ?? -1,
+        },
+      };
+    }
+
     final db = DatabaseService();
 
     try {
@@ -180,6 +367,8 @@ class _QuizPageState extends State<QuizPage> {
           visibility: visibility,
           data: questions,
           time: time,
+          markingScheme: markingScheme,
+          allowMultipleAttempts: allowMultipleAttempts,
         );
         setState(() {
           widget.docId = newId;
@@ -194,6 +383,8 @@ class _QuizPageState extends State<QuizPage> {
           visibility: visibility,
           data: questions,
           time: time,
+          markingScheme: markingScheme,
+          allowMultipleAttempts: allowMultipleAttempts,
         );
         global.ID = widget.docId;
       }
@@ -279,6 +470,26 @@ class _QuizPageState extends State<QuizPage> {
                 onChanged: (v) => setState(() => visibility = v!),
                 decoration: const InputDecoration(labelText: "Visibility"),
               ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: const Text(
+                  "Allow Multiple Attempts",
+                  style: TextStyle(color: Color(0xFFE2E8F0)),
+                ),
+                subtitle: const Text(
+                  "If disabled, users can only take this quiz once",
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+                value: allowMultipleAttempts,
+                activeColor: const Color(0xFF3B82F6),
+                onChanged: (bool value) {
+                  setState(() {
+                    allowMultipleAttempts = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 24),
+              _buildMarkingSchemeSection(),
               const SizedBox(height: 24),
               ListView.builder(
                 shrinkWrap: true,
@@ -298,6 +509,7 @@ class _QuizPageState extends State<QuizPage> {
                         QuizForm(
                           form_data_part: questions[index],
                           onChanged: (d) => _updateFormData(index, d),
+                          showIndividualMarking: markingType == "per_question",
                         ),
                         Align(
                           alignment: Alignment.centerRight,

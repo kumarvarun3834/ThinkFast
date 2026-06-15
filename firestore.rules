@@ -37,6 +37,16 @@ service cloud.firestore {
       return isAuthenticated() && getQuiz(quizId).creatorId == request.auth.uid;
     }
 
+    function isAllowedToAttempt(quizId) {
+      let quiz = getQuiz(quizId);
+      return quiz.get('isDeleted', false) == false &&
+             quiz.get('isLocked', false) == false &&
+             (quiz.visibility == 'public' ||
+              (quiz.visibility == 'protected' && request.auth.uid in quiz.get('allowedParticipants', [])) ||
+              quiz.creatorId == request.auth.uid ||
+              isGlobalAdmin());
+    }
+
     // Helper to check if user has ANY management right over a quiz (Creator, Delegated Admin, or Global Admin)
     function canManageQuiz(quizId, permission) {
       return isQuizCreator(quizId) || hasQuizPermission(quizId, permission) || isGlobalAdmin();
@@ -62,9 +72,17 @@ service cloud.firestore {
     // 2. Quizzes (Main Metadata + Questions)
     match /quizzes/{quizId} {
       allow read: if resource.data.get('isDeleted', false) == false &&
-                   (resource.data.get('visibility', 'private') == 'public' || isQuizCreator(quizId) || isGlobalAdmin());
-      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if canManageQuiz(quizId, 'can_update') || isGlobalAdmin();
+                   (resource.data.get('visibility', 'private') == 'public' ||
+                    (resource.data.get('visibility', 'private') == 'protected' && request.auth.uid in resource.data.get('allowedParticipants', [])) ||
+                    isQuizCreator(quizId) || isGlobalAdmin());
+      allow create: if isAuthenticated() &&
+                    request.resource.data.creatorId == request.auth.uid &&
+                    (isGlobalAdmin() || (
+                      request.resource.data.markingScheme.type in ['default', 'entire_quiz', 'per_question_type', 'per_question'] ||
+                      !request.resource.data.hasAny(['markingScheme'])
+                    ));
+      allow update: if (canManageQuiz(quizId, 'can_update') || isGlobalAdmin()) &&
+                    (isGlobalAdmin() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['markingScheme']));
       allow delete: if canManageQuiz(quizId, 'can_delete') || isGlobalAdmin();
     }
 
@@ -77,19 +95,23 @@ service cloud.firestore {
     // 4. Responses & Attempts
     match /responses/{responseId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isGlobalAdmin());
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() &&
+                    request.resource.data.userId == request.auth.uid &&
+                    isAllowedToAttempt(request.resource.data.quizId);
     }
 
     match /all_attempts/{attemptId} {
       allow read: if isGlobalAdmin();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+                    isAllowedToAttempt(request.resource.data.quizId);
     }
 
     match /quiz_attempts/{quizId} {
       allow read: if canManageQuiz(quizId, 'can_view_results');
       match /attempts/{attemptId} {
         allow read: if canManageQuiz(quizId, 'can_view_results');
-        allow create: if isAuthenticated();
+        allow create: if isAuthenticated() &&
+                      isAllowedToAttempt(quizId);
       }
     }
 

@@ -80,15 +80,25 @@ class UserService {
     await _users.doc(uid).collection('protected').doc('details').set(details, SetOptions(merge: true));
   }
 
-  /// ✅ Update user private details (Email etc.)
+  /// ✅ Update user private details (Email, activeQuizId etc.)
   Future<void> updatePrivateDetails({
     required String uid,
     String? email,
+    String? activeQuizId,
+    DateTime? activeQuizExpiry,
+    bool clearActiveQuiz = false,
   }) async {
     final Map<String, dynamic> updates = {
       'updatedAt': FieldValue.serverTimestamp(),
     };
     if (email != null) updates['email'] = email;
+    if (clearActiveQuiz) {
+      updates['activeQuizId'] = FieldValue.delete();
+      updates['activeQuizExpiry'] = FieldValue.delete();
+    } else {
+      if (activeQuizId != null) updates['activeQuizId'] = activeQuizId;
+      if (activeQuizExpiry != null) updates['activeQuizExpiry'] = Timestamp.fromDate(activeQuizExpiry);
+    }
 
     await _users.doc(uid).collection('private').doc('details').set(updates, SetOptions(merge: true));
   }

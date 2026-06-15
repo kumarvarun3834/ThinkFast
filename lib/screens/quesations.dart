@@ -3,11 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-// import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/utils/global.dart' as global;
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class Quesations extends StatefulWidget {
   const Quesations({super.key});
@@ -21,13 +17,49 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Map<String, Object> currentData = {};
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
-  DateTime? _lastBackPressTime;
   bool _isSubmitted = false;
 
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
     final random = Random();
-    global.quizData.shuffle(random);
+
+    // 1. Group questions by marking units (Type + Scoring Rule)
+    Map<String, List<Map<String, dynamic>>> groups = {};
+    final schemeType = global.markingScheme['type'] ?? 'default';
+
+    for (var q in global.quizData) {
+      final qUid = (q['Q'] as Map?)?['id']?.toString() ?? q['uid']?.toString() ?? '';
+      final qType = q['type']?.toString() ?? 'Single Choice';
+      String unitKey = qType; // Default: group by question type
+
+      if (schemeType == 'per_question') {
+        final pq = global.markingScheme['perQuestion'] as Map? ?? {};
+        final marking = pq[qUid] ?? {'correct': 4, 'wrong': -1};
+        // Group by both type and its specific marking rule
+        unitKey = "${qType}_m_${marking['correct']}_${marking['wrong']}";
+      } else if (schemeType == 'entire_quiz') {
+        final marking = global.markingScheme['global'] ?? {'correct': 4, 'wrong': -1};
+        unitKey = "global_${qType}_m_${marking['correct']}_${marking['wrong']}";
+      } else if (schemeType == 'per_question_type') {
+        final pqt = global.markingScheme['perQuestionType'] as Map? ?? {};
+        final marking = pqt[qType] ?? {'correct': 4, 'wrong': -1};
+        unitKey = "type_${qType}_m_${marking['correct']}_${marking['wrong']}";
+      }
+
+      groups.putIfAbsent(unitKey, () => []).add(q);
+    }
+
+    List<Map<String, Object>> finalQuestions = [];
+    List<String> unitKeys = groups.keys.toList();
+    unitKeys.shuffle(random); // 🎲 Shuffle the order of units (Groups can pop up in any order)
+
+    for (var key in unitKeys) {
+      var group = groups[key]!;
+      group.shuffle(random); // 🎲 Shuffle questions internally within the unit
+      finalQuestions.addAll(group as Iterable<Map<String, Object>>);
+    }
+
+    global.quizData = finalQuestions;
 
     for (var q in global.quizData) {
       // Shuffle choices (Opt is [{id, text}, ...])
@@ -338,86 +370,86 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         ),
         body: Container(
           color: const Color(0xFF0F172A),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.all(40),
-                  width: double.infinity,
-                  child: Card(
-                    color: const Color(0xFF1E293B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: Color(0xFF334155)),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Text(
-                        "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
-                        style: GoogleFonts.poppins(
-                          color: const Color(0xFFE2E8F0),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w600,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.all(40),
+                    width: double.infinity,
+                    child: Card(
+                      color: const Color(0xFF1E293B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: const BorderSide(color: Color(0xFF334155)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Text(
+                          "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFFE2E8F0),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                margin: const EdgeInsets.all(20),
-                width: double.infinity,
-                child: SingleChildScrollView(
+                const SizedBox(height: 20),
+                Container(
+                  margin: const EdgeInsets.all(20),
+                  width: double.infinity,
                   child: Column(children: buttons_Data(currentData)),
                 ),
-              ),
-              const Spacer(),
-              Container(
-                margin: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        foregroundColor: const Color(0xFFE2E8F0),
-                        side: const BorderSide(color: Color(0xFF334155)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 20),
+                Container(
+                  margin: const EdgeInsets.all(20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1E293B),
+                          foregroundColor: const Color(0xFFE2E8F0),
+                          side: const BorderSide(color: Color(0xFF334155)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        onPressed: i > 0
+                            ? () {
+                                i--;
+                                switchState();
+                              }
+                            : null,
+                        child: const Text("PREVIOUS"),
                       ),
-                      onPressed: i > 0
-                          ? () {
-                              i--;
-                              switchState();
-                            }
-                          : null,
-                      child: const Text("PREVIOUS"),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        onPressed: i < global.quizData.length - 1
+                            ? () {
+                                i++;
+                                switchState();
+                              }
+                            : null,
+                        child: const Text("NEXT"),
                       ),
-                      onPressed: i < global.quizData.length - 1
-                          ? () {
-                              i++;
-                              switchState();
-                            }
-                          : null,
-                      child: const Text("NEXT"),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

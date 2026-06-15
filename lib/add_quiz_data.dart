@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class QuizForm extends StatefulWidget {
   final Map<String, Object> form_data_part;
   final void Function(Map<String, Object>) onChanged;
+  final bool showIndividualMarking;
 
   const QuizForm({
     super.key,
     required this.form_data_part,
     required this.onChanged,
+    this.showIndividualMarking = false,
   });
 
   @override
@@ -17,6 +19,8 @@ class QuizForm extends StatefulWidget {
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
+  final TextEditingController _correctController = TextEditingController(text: "4");
+  final TextEditingController _wrongController = TextEditingController(text: "-1");
   Set<int> _selectedAnswers = {};
   String? _selectedValue;
 
@@ -24,7 +28,13 @@ class _QuizFormState extends State<QuizForm> {
   void initState() {
     super.initState();
 
-    // Load existing question
+    // Load existing marking if any
+    if (widget.form_data_part["correct"] != null) {
+      _correctController.text = widget.form_data_part["correct"].toString();
+    }
+    if (widget.form_data_part["wrong"] != null) {
+      _wrongController.text = widget.form_data_part["wrong"].toString();
+    }
     if (widget.form_data_part["question"] != null) {
       _questionController.text = widget.form_data_part["question"] as String;
     }
@@ -71,6 +81,8 @@ class _QuizFormState extends State<QuizForm> {
       "question": _questionController.text.trim(),
       "choices": choices,
       "answers": answers,
+      "correct": int.tryParse(_correctController.text) ?? 4,
+      "wrong": int.tryParse(_wrongController.text) ?? -1,
     });
   }
 
@@ -203,6 +215,38 @@ class _QuizFormState extends State<QuizForm> {
               onChanged: (_) => _emitData(),
             ),
             const SizedBox(height: 16),
+            if (widget.showIndividualMarking) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _correctController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      decoration: const InputDecoration(
+                        labelText: "Correct Score",
+                        labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                      ),
+                      onChanged: (_) => _emitData(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _wrongController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      decoration: const InputDecoration(
+                        labelText: "Wrong Score",
+                        labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                      ),
+                      onChanged: (_) => _emitData(),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             Column(children: options_data()),
             const SizedBox(height: 12),
             if (_selectedAnswers.isEmpty)

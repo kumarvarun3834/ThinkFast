@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -51,14 +52,24 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       }
 
       Map<String, dynamic>? userProfile;
+      String? activeQuizId;
+      Timestamp? activeQuizExpiry;
+      bool hasAttempted = false;
+
       if (_user != null) {
         userProfile = await db.getUserProfile(_user!.uid);
+        activeQuizId = userProfile?['activeQuizId'];
+        activeQuizExpiry = userProfile?['activeQuizExpiry'];
+        hasAttempted = await db.hasUserAttemptedQuiz(_user!.uid, widget.quizId);
       }
 
       setState(() {
         _quizData = data;
         _creatorProfile = creatorProfile;
         _userProfile = userProfile;
+        _quizData!['activeQuizId'] = activeQuizId;
+        _quizData!['activeQuizExpiry'] = activeQuizExpiry;
+        _quizData!['hasAttempted'] = hasAttempted;
         _isLoading = false;
       });
     } catch (e) {
@@ -97,6 +108,36 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Quiz is now $newVisibility")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+  }
+
+  Future<void> _toggleLock() async {
+    if (_quizData == null || _user == null) return;
+
+    final bool currentLocked = _quizData!['isLocked'] ?? false;
+    final bool newLocked = !currentLocked;
+
+    try {
+      await DatabaseService().toggleQuizLock(
+        docId: _quizData!['id'],
+        isLocked: newLocked,
+      );
+
+      setState(() {
+        _quizData!['isLocked'] = newLocked;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(newLocked ? "Quiz Locked" : "Quiz Unlocked")));
       }
     } catch (e) {
       if (mounted) {
@@ -147,18 +188,23 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     );
   }
 
-  Widget _buildVisibilityBadge(String visibility) {
+  Widget _buildVisibilityBadge(String visibility, bool isLocked) {
     Color color;
-    switch (visibility.toLowerCase()) {
-      case 'public':
-        color = Colors.greenAccent;
-        break;
-      case 'private':
-        color = Colors.orangeAccent;
-        break;
-      default:
-        color = Colors.blueGrey;
+    if (isLocked) {
+      color = Colors.redAccent;
+    } else {
+      switch (visibility.toLowerCase()) {
+        case 'public':
+          color = Colors.greenAccent;
+          break;
+        case 'private':
+          color = Colors.orangeAccent;
+          break;
+        default:
+          color = Colors.blueGrey;
+      }
     }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -176,7 +222,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            visibility.toUpperCase(),
+            isLocked ? "LOCKED" : visibility.toUpperCase(),
             style: GoogleFonts.poppins(
               color: color,
               fontSize: 12,
@@ -280,7 +326,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           children: [
             Row(
               children: [
-                _buildVisibilityBadge(_quizData!['visibility'] ?? 'private'),
+                _buildVisibilityBadge(
+                  _quizData!['visibility'] ?? 'private',
+                  _quizData!['isLocked'] ?? false,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: InkWell(
@@ -387,6 +436,56 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             _actionButton(
               "Start Quiz",
               () async {
+                final db = DatabaseService();
+                final String? activeQuizId = _quizData!['activeQuizId'];
+                final Timestamp? activeQuizExpiry = _quizData!['activeQuizExpiry'];
+
+                if (activeQuizId != null) {
+                  bool isExpired = false;
+                  if (activeQuizExpiry != null) {
+                    isExpired = activeQuizExpiry.toDate().isBefore(DateTime.now());
+                  }
+
+                  if (isExpired) {
+                    // Auto-submit blank and clean up
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Cleaning up previous expired session...')),
+                    );
+                    await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('You are already taking another quiz ($activeQuizId). Finish it first!'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
+                }
+
+                if (_quizData!['isLocked'] == true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('This quiz is locked and not accepting new responses'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                  return;
+                }
+
+                final bool allowMultiple = _quizData!['allowMultipleAttempts'] ?? true;
+                final bool hasAttempted = _quizData!['hasAttempted'] ?? false;
+
+                if (!allowMultiple && hasAttempted && !isOwner) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('You have already attempted this quiz. Multiple attempts are disabled.'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                  return;
+                }
+
                 if (_user == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Please Login to Continue')),
@@ -417,8 +516,19 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                   global.ID = _quizData!['id'];
                   global.time = _quizData!['time'] as int;
+                  global.markingScheme = _quizData!['markingScheme'] ?? {"type": "default"};
                   global.currentUserProfile = _userProfile;
                   global.creatorProfile = _creatorProfile;
+
+                  // Mark as active quiz with expiry (Duration + 5 mins buffer)
+                  final int quizDurationSeconds = _quizData!['time'] as int;
+                  final DateTime expiry = DateTime.now().add(Duration(seconds: quizDurationSeconds + 300));
+                  
+                  await db.updateActiveQuiz(
+                    uid: _user!.uid, 
+                    quizId: _quizData!['id'],
+                    expiry: expiry,
+                  );
 
                   Navigator.pushNamed(context, "/Quiz");
                 } else {
@@ -440,6 +550,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 icon: _quizData!['visibility'] == 'public'
                     ? Icons.lock_outline
                     : Icons.public_outlined,
+              ),
+              const SizedBox(height: 16),
+              _actionButton(
+                _quizData!['isLocked'] == true ? "Unlock Quiz" : "Lock Quiz",
+                _toggleLock,
+                icon: _quizData!['isLocked'] == true
+                    ? Icons.lock_open_rounded
+                    : Icons.lock_person_rounded,
               ),
               const SizedBox(height: 16),
               _actionButton("View Responses", () {

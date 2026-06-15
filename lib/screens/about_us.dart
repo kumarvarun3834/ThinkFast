@@ -134,10 +134,26 @@ class AboutUsScreen extends StatelessWidget {
               "Build complex quizzes with multiple-choice questions, custom timers, and descriptions.",
             ),
             _buildFeatureItem(
-              Icons.visibility_rounded,
-              "Instant Privacy Control",
-              "Quickly toggle your quizzes between Public and Private status with a single tap.",
+              Icons.lock_person_rounded,
+              "Quiz Locking",
+              "Stop new responses instantly while keeping your quiz public and visible to everyone.",
             ),
+            _buildFeatureItem(
+              Icons.repeat_one_rounded,
+              "Attempt Management",
+              "Toggle between single or multiple attempts to control how users interact with your content.",
+            ),
+            _buildFeatureItem(
+              Icons.security_update_good_rounded,
+              "Active Session Protection",
+              "Prevent multiple simultaneous attempts with our smart auto-expiry and cleanup system.",
+            ),
+            _buildFeatureItem(
+              Icons.rule_rounded,
+              "Custom Marking Schemes",
+              "Define granular scoring rules: default (+4/-1), global custom, per-question-type, or even unique scores for every question.",
+            ),
+            
             _buildFeatureItem(
               Icons.history_edu_rounded,
               "My Attempts",
@@ -154,6 +170,28 @@ class AboutUsScreen extends StatelessWidget {
               "Real-time data protection ensuring your private quizzes and personal results remain secure.",
             ),
             const SizedBox(height: 32),
+            _buildSectionTitle("Coming Soon"),
+            _buildFeatureItem(
+              Icons.psychology_rounded,
+              "AI Personalization",
+              "Extended profiles for deep goal tracking, learning interests, and AI-driven personalization.",
+            ),
+            _buildFeatureItem(
+              Icons.auto_awesome_rounded,
+              "AI Quiz Generation",
+              "Generate high-quality quizzes instantly from your PDF documents or text notes using advanced AI.",
+            ),
+            _buildFeatureItem(
+              Icons.leaderboard_rounded,
+              "Global Leaderboards",
+              "Compete with users worldwide and see where you stand in global knowledge rankings.",
+            ),
+            _buildFeatureItem(
+              Icons.picture_as_pdf_rounded,
+              "Export to PDF",
+              "Download your quiz results and performance reports as professionally formatted PDF documents.",
+            ),
+            const SizedBox(height: 32),
             _buildSectionTitle("The Tech Stack"),
             _buildContentText(
               "Built using Flutter for a buttery-smooth UI and powered by Firebase Firestore "
@@ -164,7 +202,7 @@ class AboutUsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Center(
               child: Text(
-                "© 2024 ThinkFast. Developed for Internship Task.",
+                "© 2024 ThinkFast. Challenge Your Mind.",
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(fontSize: 12, color: _labelColor),
               ),

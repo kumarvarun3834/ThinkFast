@@ -26,6 +26,28 @@ class DatabaseService {
   Future<void> updateProtectedDetails({required String uid, required Map<String, dynamic> details}) =>
       _userService.updateProtectedDetails(uid: uid, details: details);
 
+  Future<void> updateActiveQuiz({required String uid, String? quizId, DateTime? expiry, bool clear = false}) =>
+      _userService.updatePrivateDetails(uid: uid, activeQuizId: quizId, activeQuizExpiry: expiry, clearActiveQuiz: clear);
+
+  Future<void> handleExpiredQuiz(String uid, String quizId) async {
+    final quiz = await _quizService.getQuiz(quizId);
+    if (quiz == null) {
+      await updateActiveQuiz(uid: uid, clear: true);
+      return;
+    }
+
+    // Submit a "Timed Out" blank attempt
+    await _attemptService.submitAttempt(
+      userId: uid,
+      quizId: quizId,
+      quizTitle: quiz['title'] ?? 'Timed Out Quiz',
+      score: 0,
+      totalQuestions: (quiz['data'] as List?)?.length ?? 0,
+      answers: {}, // Blank
+    );
+    // submitAttempt already clears activeQuizId in AttemptService
+  }
+
   // --- Quiz Management ---
 
   Future<String> createDatabase({
@@ -36,8 +58,11 @@ class DatabaseService {
     required String visibility,
     required List<Map<String, Object>> data,
     required int time, // minutes
+    Map<String, dynamic>? markingScheme,
+    bool allowMultipleAttempts = true,
   }) async {
-    final transformed = _transformQuizData(data);
+    final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
+    final transformed = _transformQuizData(data, scheme);
     return await _quizService.createQuiz(
       creatorId: creatorId,
       user: user,
@@ -47,6 +72,8 @@ class DatabaseService {
       questions: List<Map<String, dynamic>>.from(transformed['data']),
       answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
       timeInSeconds: time * 60,
+      markingScheme: scheme,
+      allowMultipleAttempts: allowMultipleAttempts,
     );
   }
 
@@ -58,15 +85,26 @@ class DatabaseService {
     String? visibility,
     List<Map<String, Object>>? data,
     int? time, // minutes
+    bool? allowMultipleAttempts,
+    Map<String, dynamic>? markingScheme,
   }) async {
     final Map<String, dynamic> updates = {};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
+    if (allowMultipleAttempts != null) updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    if (markingScheme != null) updates['markingScheme'] = markingScheme;
 
     if (data != null) {
-      final transformed = _transformQuizData(data);
+      // Fetch current marking scheme to propagate to questions if not provided
+      Map<String, dynamic> scheme = markingScheme ?? {};
+      if (markingScheme == null) {
+        final current = await _quizService.getQuiz(docId);
+        scheme = current?['markingScheme'] ?? {'type': 'default'};
+      }
+
+      final transformed = _transformQuizData(data, scheme);
       updates['data'] = transformed['data'];
       await _quizService.updateAnswerKeys(
         quizId: docId,
@@ -84,6 +122,10 @@ class DatabaseService {
     } else {
       throw Exception("Unauthorized to delete this quiz");
     }
+  }
+
+  Future<void> toggleQuizLock({required String docId, required bool isLocked}) async {
+    await _quizService.updateQuiz(quizId: docId, updates: {'isLocked': isLocked});
   }
 
   Stream<List<Map<String, dynamic>>> readAllDatabases({
@@ -136,6 +178,8 @@ class DatabaseService {
         totalQuestions: totalQuestions,
         userAnswers: userAnswers,
         correctKey: correctKey,
+        markingScheme: quiz['markingScheme'] ?? {'type': 'default'},
+        quizData: quiz['data'] ?? [],
       );
     }
     return correctKey;
@@ -147,16 +191,33 @@ class DatabaseService {
   Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) =>
       _attemptService.getQuizAttempts(quizId);
 
-  // --- Helpers ---
+  Future<bool> hasUserAttemptedQuiz(String userId, String quizId) async {
+    final attempts = await FirebaseFirestore.instance
+        .collection('responses')
+        .where('userId', isEqualTo: userId)
+        .where('quizId', isEqualTo: quizId)
+        .limit(1)
+        .get();
+    return attempts.docs.isNotEmpty;
+  }
 
-  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData) {
+  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData, Map<String, dynamic> markingScheme) {
     final List<Map<String, dynamic>> transformedData = [];
     final List<Map<String, String>> answerKeys = [];
+    final Map<String, dynamic> perQuestionMap = {};
 
     for (int i = 0; i < inputData.length; i++) {
       final item = inputData[i];
       final String qUid = "q_${DateTime.now().microsecondsSinceEpoch}_$i";
       final String qText = (item['question'] ?? '').toString();
+      final String qType = item['type']?.toString() ?? 'Single Choice';
+
+      if (markingScheme['type'] == 'per_question') {
+        perQuestionMap[qUid] = {
+          'correct': item['correct'] ?? 4,
+          'wrong': item['wrong'] ?? -1,
+        };
+      }
 
       final choices = item['choices'] as List? ?? [];
       final answers = item['answers'] as List? ?? [];
@@ -173,10 +234,15 @@ class DatabaseService {
       }
 
       transformedData.add({
+        'uid': qUid,
+        'type': qType,
         'Q': {'id': qUid, 'text': qText},
         'Opt': optionsWithIds,
-        'type': item['type'] ?? 'Single Choice',
       });
+    }
+
+    if (markingScheme['type'] == 'per_question') {
+      markingScheme['perQuestion'] = perQuestionMap;
     }
 
     return {'data': transformedData, 'answerkeys': answerKeys};

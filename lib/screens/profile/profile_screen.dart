@@ -425,6 +425,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 8),
                         _buildDropdownField(),
 
+                        const SizedBox(height: 32),
+                        _buildSectionHeader("Private Information"),
+                        const SizedBox(height: 16),
+                        _buildLabel("Email Address (Private)"),
+                        const SizedBox(height: 8),
+                        _buildTextField(
+                          TextEditingController(text: _user?.email ?? ""),
+                          "Email",
+                          Icons.email_outlined,
+                          readOnly: true,
+                        ),
+
                         const SizedBox(height: 40),
                         _isSaving
                             ? const Center(

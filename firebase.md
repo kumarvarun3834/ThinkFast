@@ -17,7 +17,7 @@ Stores the main quiz metadata and question content. (Note: Previously named `dat
 | `titleLower`          | `String`        | Lowercase title for optimized search queries.                                   |
 | `description`         | `String`        | A short description of the quiz content.                                        |
 | `tags`                | `array<string>` | Searchable keywords (e.g., ["physics", "math", "neet"]).                        |
-| `visibility`          | `String`        | Access level: `public` or `private`.                                            |
+| `visibility`          | `String`        | Access level: `public`, `private`, or `protected`.                              |
 | `time`                | `number`        | Total allowed time in **seconds**.                                              |
 | `createdAt`           | `timestamp`     | Server timestamp when the quiz was created.                                     |
 | `updatedAt`           | `timestamp`     | Server timestamp when the quiz was last modified.                               |
@@ -26,12 +26,24 @@ Stores the main quiz metadata and question content. (Note: Previously named `dat
 | `isDeleted`           | `boolean`       | Soft delete flag for recovery and audits.                                       |
 | `deletedAt`           | `timestamp`     | Timestamp when the quiz was soft-deleted.                                       |
 | `deletedBy`           | `String`        | UID of the user/admin who deleted the quiz.                                     |
-| `data`                | `array<map>`    | A list of transformed question objects (see [Data Structure](#data-structure)). |
+| `isLocked`            | `boolean`       | If true, no more responses can be taken (quiz remains public).                  |
+| `allowMultipleAttempts` | `boolean`     | If false, each user can only submit one response.                               |
+| `markingScheme`         | `map`         | Configuration for scoring (see [Marking Scheme](#marking-scheme-structure)).    |
+| `data`                  | `array<map>`  | A list of transformed question objects (see [Data Structure](#data-structure)). |
 
 ### Data Structure (`data` field)
 
 Format:
-`[{ "Q": { "id": "qUid", "text": "..." }, "Opt": [{ "id": "optUid", "text": "..." }, ...], "type": "..." }]`
+`[{ "uid": "qUid", "type": "...", "Q": { "id": "qUid", "text": "..." }, "Opt": [...] }]`
+
+### Marking Scheme Structure (`markingScheme` field)
+
+| Field             | Type       | Description                                                                              |
+| :---------------- | :--------- | :--------------------------------------------------------------------------------------- |
+| `type`            | `String`   | `default`, `entire_quiz`, `per_question_type`, or `per_question`.                        |
+| `global`          | `map`      | Scheme for `entire_quiz`: `{ "correct": number, "wrong": number }`.                      |
+| `perQuestionType` | `map<map>` | Scheme for `per_question_type`: `{ "mcq": { "correct": 4, "wrong": -1 }, ... }`.         |
+| `perQuestion`     | `map<map>` | Scheme for `per_question`: `{ "qUid": { "correct": 5, "wrong": -2 }, ... }`.             |
 
 ---
 
@@ -61,7 +73,7 @@ Track user attempt history. Organized as a flat collection for global reporting 
 | `quizId`         | `String`    | Reference to the quiz document.                  |
 | `userId`         | `String`    | UID of the user who took the quiz.               |
 | `quizTitle`      | `String`    | Display title of the quiz.                       |
-| `score`          | `number`    | Final calculated score (Correct: +4, Wrong: -1). |
+| `score`          | `number`    | Final calculated score based on marking scheme.  |
 | `totalQuestions` | `number`    | Number of questions in the quiz.                 |
 | `answers`        | `map`       | User selections: `{ "qUid": ["optUid", ...] }`.  |
 | `status`         | `number`    | 1 = Completed.                                   |
@@ -134,6 +146,8 @@ Visible ONLY to the user.
 | Field       | Type        | Description               |
 |:------------|:------------|:--------------------------|
 | `email`     | `String`    | Registered email address. |
+| `activeQuizId` | `String`  | ID of the quiz currently being attempted (to prevent multiple sessions). |
+| `activeQuizExpiry` | `timestamp` | Time when the active session expires (to allow cleanup after glitches). |
 | `updatedAt` | `timestamp` | Last update time.         |
 
 ---

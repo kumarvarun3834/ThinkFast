@@ -13,18 +13,56 @@ class AttemptService {
     required int totalQuestions,
     required Map<String, dynamic> userAnswers,
     required Map<String, List<String>> correctKey,
+    required Map<String, dynamic> markingScheme,
+    required List<dynamic> quizData,
   }) async {
     int score = 0;
+
+    // Helper to get marking for a question
+    Map<String, int> getMarking(String? type, String qUid) {
+      final schemeType = markingScheme['type'] ?? 'default';
+      if (schemeType == 'entire_quiz') {
+        return {
+          'correct': (markingScheme['global']?['correct'] ?? 4).toInt(),
+          'wrong': (markingScheme['global']?['wrong'] ?? -1).toInt(),
+        };
+      } else if (schemeType == 'per_question_type') {
+        final pqt = markingScheme['perQuestionType'] as Map? ?? {};
+        final config = pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
+        return {
+          'correct': (config['correct'] ?? 4).toInt(),
+          'wrong': (config['wrong'] ?? -1).toInt(),
+        };
+      } else if (schemeType == 'per_question') {
+        final pq = markingScheme['perQuestion'] as Map? ?? {};
+        final config = pq[qUid] ?? {'correct': 4, 'wrong': -1};
+        return {
+          'correct': (config['correct'] ?? 4).toInt(),
+          'wrong': (config['wrong'] ?? -1).toInt(),
+        };
+      }
+      return {'correct': 4, 'wrong': -1};
+    }
+
     userAnswers.forEach((qUid, selections) {
       final correct = correctKey[qUid] ?? [];
       final List selected = selections is List ? selections : [selections.toString()];
 
+      // Find question type
+      String? qType;
+      try {
+        final qDoc = quizData.firstWhere((q) => (q['Q']?['id'] ?? q['uid']) == qUid);
+        qType = qDoc['type'];
+      } catch (_) {}
+
+      final marking = getMarking(qType, qUid);
+
       if (selected.isNotEmpty &&
           selected.length == correct.length &&
           selected.every((s) => correct.contains(s))) {
-        score += 4; // Correct
+        score += marking['correct']!; // Correct
       } else if (selected.isNotEmpty) {
-        score -= 1; // Wrong
+        score += marking['wrong']!; // Wrong
       }
     });
 
@@ -76,11 +114,18 @@ class AttemptService {
         .doc(responseRef.id);
     batch.set(quizAttemptRef, attemptData);
 
-    // 4. Update user last active and attempt count
+    // 4. Update user last active and attempt count, and clear activeQuizId
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
     batch.set(userRef, {
       'lastActive': FieldValue.serverTimestamp(),
       'attemptCount': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+
+    final userPrivateRef = userRef.collection('private').doc('details');
+    batch.set(userPrivateRef, {
+      'activeQuizId': FieldValue.delete(),
+      'activeQuizExpiry': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     await batch.commit();
@@ -108,7 +153,7 @@ class AttemptService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+              final data = doc.data();
               data['id'] = doc.id;
               return data;
             }).toList());
