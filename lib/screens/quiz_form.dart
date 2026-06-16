@@ -192,7 +192,7 @@ class _QuizPageState extends State<QuizPage> {
               // Internal pattern uid/type/Q/Opt
               final qInfo = q['Q'] as Map;
               final qText = qInfo['text'].toString();
-              final List<dynamic> opts = q['Opt'] as List;
+              final List<dynamic> opts = q['As'] as List;
               final List<String> choiceTexts = opts.map((o) => (o as Map)['text'].toString()).toList();
               
               // Note: Importer usually won't have answer_keys unless it's a full export
@@ -263,7 +263,7 @@ class _QuizPageState extends State<QuizPage> {
 
         for (var module in rawModules) {
           final String qSubject = module['subject'].toString();
-          final List<dynamic> rawQuestions = module['questions'] as List? ?? [];
+          final List<dynamic> rawQuestions = module['data'] as List? ?? [];
 
           for (var q in rawQuestions) {
             final qInfo = q['Q'] as Map;
@@ -275,7 +275,7 @@ class _QuizPageState extends State<QuizPage> {
             final int qCorrect = qMarking['correct'] ?? 4;
             final int qWrong = qMarking['wrong'] ?? -1;
 
-            final List<dynamic> opts = q['Opt'] as List;
+            final List<dynamic> opts = q['As'] as List;
             final List<String> choiceTexts = [];
             final List<String> correctTexts = [];
 

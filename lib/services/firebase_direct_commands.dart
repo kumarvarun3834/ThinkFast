@@ -30,22 +30,30 @@ class DatabaseService {
       _userService.updatePrivateDetails(uid: uid, activeQuizId: quizId, activeQuizExpiry: expiry, clearActiveQuiz: clear);
 
   Future<void> handleExpiredQuiz(String uid, String quizId) async {
-    final quiz = await _quizService.getQuiz(quizId);
-    if (quiz == null) {
-      await updateActiveQuiz(uid: uid, clear: true);
-      return;
-    }
+    try {
+      final quiz = await readDatabase(quizId);
 
-    // Submit a "Timed Out" blank attempt
-    await _attemptService.submitAttempt(
-      userId: uid,
-      quizId: quizId,
-      quizTitle: quiz['title'] ?? 'Timed Out Quiz',
-      score: 0,
-      totalQuestions: (quiz['data'] as List?)?.length ?? 0,
-      answers: {}, // Blank
-    );
-    // submitAttempt already clears activeQuizId in AttemptService
+      // Calculate total questions from modules
+      final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
+      int totalCount = 0;
+      for (var module in rawModules) {
+        final List<dynamic> questions = module['data'] as List? ?? [];
+        totalCount += questions.length;
+      }
+
+      // Submit a "Timed Out" blank attempt
+      await _attemptService.submitAttempt(
+        userId: uid,
+        quizId: quizId,
+        quizTitle: quiz['title'] ?? 'Timed Out Quiz',
+        score: 0,
+        totalQuestions: totalCount,
+        answers: {}, // Blank
+      );
+    } catch (e) {
+      // If quiz not found or other error, still clear the active quiz
+      await updateActiveQuiz(uid: uid, clear: true);
+    }
   }
 
   // --- Quiz Management ---
@@ -142,6 +150,11 @@ class DatabaseService {
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final quiz = await _quizService.getQuiz(docId);
     if (quiz == null || quiz['isDeleted'] == true) throw Exception("Quiz not found");
+    
+    // Fetch questions from separate collection
+    final questions = await _quizService.getQuizQuestions(docId);
+    quiz['modules'] = questions;
+
     return quiz;
   }
 
@@ -171,6 +184,16 @@ class DatabaseService {
     if (from == 'quizform') {
       if (!isCreator) throw Exception("Only creator can access answers in editor");
     } else if (userAnswers != null && totalQuestions != null) {
+      // Fetch questions for scoring
+      final questions = await _quizService.getQuizQuestions(docId);
+      final List<Map<String, dynamic>> flattenedQuestions = [];
+      for (var module in questions) {
+        final List<dynamic> qList = module['data'] as List? ?? [];
+        for (var q in qList) {
+          flattenedQuestions.add(Map<String, dynamic>.from(q));
+        }
+      }
+
       await _attemptService.submitScoredAttempt(
         userId: userId,
         quizId: docId,
@@ -179,7 +202,7 @@ class DatabaseService {
         userAnswers: userAnswers,
         correctKey: correctKey,
         markingScheme: quiz['markingScheme'] ?? {'type': 'default'},
-        quizData: quiz['data'] ?? [],
+        quizData: flattenedQuestions,
       );
     }
     return correctKey;
@@ -245,7 +268,7 @@ class DatabaseService {
         'uid': qUid,
         'type': qType,
         'Q': {'id': qUid, 'text': qText},
-        'Opt': optionsWithIds,
+        'As': optionsWithIds,
       };
 
       if (!moduleMap.containsKey(qSubject)) {
@@ -260,7 +283,7 @@ class DatabaseService {
 
     final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) => {
       'subject': e.key,
-      'questions': e.value,
+      'data': e.value,
     }).toList();
 
     return {'modules': modules, 'answerkeys': answerKeys};

@@ -74,10 +74,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     global.quizData = finalQuestions;
 
     for (var q in global.quizData) {
-      // Shuffle choices (Opt is [{id, text}, ...])
-      final opts = (q["Opt"] as List?)?.toList() ?? [];
+      // Shuffle choices (As is [{id, text}, ...])
+      final opts = (q["As"] as List?)?.toList() ?? [];
       opts.shuffle(random);
-      q["Opt"] = opts;
+      q["As"] = opts;
     }
 
     // 2D Array format for Results (Application State): [ [qText, qUid, selectionList, visitedBool], ... ]
@@ -222,8 +222,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     List<Widget> database = [];
 
-    // Opt is [{id, text}, ...]
-    final List<dynamic> options = quizData["Opt"] as List? ?? [];
+    // As is [{id, text}, ...]
+    final List<dynamic> options = quizData["As"] as List? ?? [];
 
     for (var option in options) {
       if (option is Map) {

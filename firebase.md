@@ -5,7 +5,7 @@ aligned with the production security rules and architecture.
 
 ## 1. Collection: `quizzes`
 
-Stores the main quiz metadata and question content. (Note: Previously named `databases`).
+Stores the main quiz metadata.
 
 ### Document Fields
 
@@ -29,19 +29,32 @@ Stores the main quiz metadata and question content. (Note: Previously named `dat
 | `isLocked`            | `boolean`       | If true, no more responses can be taken (quiz remains public).                  |
 | `allowMultipleAttempts` | `boolean`     | If false, each user can only submit one response.                               |
 | `markingScheme`         | `map`         | Configuration for scoring (see [Marking Scheme](#marking-scheme-structure)).    |
-| `modules`               | `array<map>`  | A list of subject-based modules (see [Module Structure](#module-structure)).   |
 
-### Module Structure (`modules` field)
+---
+
+## 2. Collection: `quiz_questions`
+
+Stores the modular question content for a quiz. Document ID matches `{quizId}` from `quizzes`.
+
+### Document Fields
 
 | Field       | Type         | Description                                     |
 |:------------|:-------------|:------------------------------------------------|
-| `subject`   | `String`     | Name of the subject/module.                     |
-| `questions` | `array<map>` | List of questions (see [Question Structure]). |
+| `quizId`     | `String`     | Foreign key to the parent quiz.                 |
+| `modules`   | `array<map>` | A list of subject-based modules.                |
+| `updatedAt` | `timestamp`  | Last modification time.                         |
+
+### Module Structure (`modules` field)
+
+| Field   | Type         | Description                                 |
+|:--------|:-------------|:--------------------------------------------|
+| `subject` | `String`     | Name of the subject/module.                 |
+| `data`    | `array<map>` | List of questions (see [Question Structure]). |
 
 ### Question Structure
 
 Format:
-`{ "uid": "qUid", "type": "Single Choice | Multiple Choice | Integer", "Q": { "id": "qUid", "text": "..." }, "Opt": [...] }`
+`{ "uid": "qUid", "type": "...", "Q": { "id": "qUid", "text": "..." }, "As": [{ "id": "optUid", "text": "..." }, ...] }`
 
 ### Marking Scheme Structure (`markingScheme` field)
 

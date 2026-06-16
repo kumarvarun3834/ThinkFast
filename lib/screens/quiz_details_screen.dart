@@ -298,9 +298,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
     final title = _quizData!['title'] ?? 'Untitled Quiz';
     final description = _quizData!['description'] ?? 'No description provided';
-    final timeLimit = "${_quizData!['time'] ~/ 60} Minutes";
-    final totalQuestions =
-        (_quizData!['data'] as List?)?.length.toString() ?? '0';
+    final timeLimit = "${(_quizData!['time'] ?? 0) ~/ 60} Minutes";
+    
+    // Calculate total questions from modules
+    final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
+    final int count = rawModules.fold<int>(0, (sum, module) {
+      final List<dynamic> questions = module['data'] as List? ?? [];
+      return sum + questions.length;
+    });
+    final totalQuestions = count.toString();
+
     final creator =
         _creatorProfile?['name'] ?? _creatorProfile?['email'] ?? 'Unknown';
 
@@ -515,7 +522,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   
                   for (var module in rawModules) {
                     final String subject = module['subject'].toString();
-                    final List<dynamic> questions = module['questions'] as List? ?? [];
+                    final List<dynamic> questions = module['data'] as List? ?? [];
                     for (var q in questions) {
                       final qMap = Map<String, Object>.from(q);
                       qMap['subject'] = subject; // Re-inject for flat processing in Questions screen
@@ -588,7 +595,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 
                 for (var module in rawModules) {
                   final String subject = module['subject'].toString();
-                  final List<dynamic> questions = module['questions'] as List? ?? [];
+                  final List<dynamic> questions = module['data'] as List? ?? [];
                   for (var q in questions) {
                     final qMap = Map<String, Object>.from(q);
                     qMap['subject'] = subject;

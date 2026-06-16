@@ -17,10 +17,12 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   int totalMarks = 0;
+  int _maxMarks = 0;
   bool _isLoading = true;
   Map<String, List<String>> _correctAnswers = {};
   List<Map<String, dynamic>> _displayQuizData = [];
-  List<List<dynamic>> _displayQuizResult = [];
+  List<Map<String, dynamic>> _calculatedResults = [];
+  Map<String, dynamic> _markingScheme = {"type": "default"};
   String _quizId = "";
 
   @override
@@ -36,6 +38,7 @@ class _ResultScreenState extends State<ResultScreen> {
       if (user == null) throw Exception("User not logged in");
 
       Map<String, dynamic> userAnswers = {};
+      List<List<dynamic>> displayQuizResult = [];
       
       if (widget.quizId != null && widget.attemptAnswers != null) {
         // VIEWING PAST ATTEMPT
@@ -44,10 +47,17 @@ class _ResultScreenState extends State<ResultScreen> {
         
         // Fetch quiz data (questions)
         final quiz = await db.readDatabase(_quizId);
-        _displayQuizData = List<Map<String, dynamic>>.from(quiz['data'] ?? []);
+        _displayQuizData = [];
+        final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
+        for (var module in rawModules) {
+          final List<dynamic> moduleData = module['data'] as List? ?? [];
+          for (var q in moduleData) {
+            _displayQuizData.add(Map<String, dynamic>.from(q));
+          }
+        }
+        _markingScheme = quiz['markingScheme'] ?? {"type": "default"};
         
-        // Build _displayQuizResult from quiz data and userAnswers
-        _displayQuizResult = [];
+        // Build displayQuizResult from quiz data and userAnswers
         for (var q in _displayQuizData) {
           final qMap = q['Q'] as Map;
           final qId = qMap['id'].toString();
@@ -56,7 +66,7 @@ class _ResultScreenState extends State<ResultScreen> {
               ? List<String>.from(userAnswers[qId])
               : (userAnswers[qId] != null ? [userAnswers[qId].toString()] : <String>[]);
           
-          _displayQuizResult.add([qText, qId, selections]);
+          displayQuizResult.add([qText, qId, selections]);
         }
         
         // Fetch correct answers (don't pass userAnswers to avoid resubmitting)
@@ -65,9 +75,10 @@ class _ResultScreenState extends State<ResultScreen> {
         // JUST FINISHED QUIZ (Using Global)
         _quizId = global.ID;
         _displayQuizData = List<Map<String, dynamic>>.from(global.quizData);
-        _displayQuizResult = List<List<dynamic>>.from(global.quizResult);
+        displayQuizResult = List<List<dynamic>>.from(global.quizResult);
+        _markingScheme = global.markingScheme;
 
-        for (var result in _displayQuizResult) {
+        for (var result in displayQuizResult) {
           final String qUid = result[1];
           final List<String> selections = (result[2] as List).cast<String>();
           userAnswers[qUid] = selections;
@@ -77,32 +88,93 @@ class _ResultScreenState extends State<ResultScreen> {
         _correctAnswers = await db.getQuizAnswers(
           _quizId,
           user.uid,
-          totalQuestions: _displayQuizResult.length,
+          totalQuestions: displayQuizResult.length,
           userAnswers: userAnswers,
         );
       }
 
       int total = 0;
-      for (int i = 0; i < _displayQuizResult.length; i++) {
-        final List<dynamic> resultDataset = _displayQuizResult[i];
+      int maxPoints = 0;
+      _calculatedResults = [];
+      
+      // Helper to get marking for a question
+      Map<String, int> getMarking(String? type, String qUid) {
+        final schemeType = _markingScheme['type'] ?? 'default';
+        if (schemeType == 'entire_quiz') {
+          return {
+            'correct': (_markingScheme['global']?['correct'] ?? 4).toInt(),
+            'wrong': (_markingScheme['global']?['wrong'] ?? -1).toInt(),
+          };
+        } else if (schemeType == 'per_question_type') {
+          final pqt = _markingScheme['perQuestionType'] as Map? ?? {};
+          final config = pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
+          return {
+            'correct': (config['correct'] ?? 4).toInt(),
+            'wrong': (config['wrong'] ?? -1).toInt(),
+          };
+        } else if (schemeType == 'per_question') {
+          final pq = _markingScheme['perQuestion'] as Map? ?? {};
+          final config = pq[qUid] ?? {'correct': 4, 'wrong': -1};
+          return {
+            'correct': (config['correct'] ?? 4).toInt(),
+            'wrong': (config['wrong'] ?? -1).toInt(),
+          };
+        }
+        return {'correct': 4, 'wrong': -1};
+      }
+
+      for (int i = 0; i < displayQuizResult.length; i++) {
+        final List<dynamic> resultDataset = displayQuizResult[i];
+        final String qText = resultDataset[0];
         final String qUid = resultDataset[1];
         final List<String> selections = (resultDataset[2] as List).cast<String>();
 
         // Find correct option UIDs
         final List<String> answers = _correctAnswers[qUid] ?? [];
 
+        // Find question type
+        String? qType;
+        try {
+          final qDoc = _displayQuizData.firstWhere((q) => (q['Q']?['id'] ?? q['uid']) == qUid);
+          qType = qDoc['type'];
+        } catch (_) {}
+
+        final marking = getMarking(qType, qUid);
+        maxPoints += marking['correct']!;
+
+        int questionMark = 0;
         if (selections.isEmpty) {
-          // No marks for skipped
+          questionMark = 0;
+        } else if (qType == "Integer") {
+          final String userVal = selections.first.trim();
+          final String correctVal = answers.isNotEmpty ? answers.first.trim() : "";
+          if (userVal == correctVal) {
+            questionMark = marking['correct']!;
+          } else {
+            questionMark = marking['wrong']!;
+          }
         } else if (selections.length == answers.length &&
             selections.every((s) => answers.contains(s))) {
-          total += 4; // Correct
+          questionMark = marking['correct']!;
         } else {
-          total -= 1; // Wrong
+          questionMark = marking['wrong']!;
         }
+        
+        total += questionMark;
+        
+        _calculatedResults.add({
+          'text': qText,
+          'uid': qUid,
+          'selections': selections,
+          'answers': answers,
+          'mark': questionMark,
+          'type': qType,
+        });
       }
 
       setState(() {
         totalMarks = total;
+        _maxMarks = maxPoints;
         _isLoading = false;
       });
     } catch (e) {
@@ -141,7 +213,7 @@ class _ResultScreenState extends State<ResultScreen> {
         child: Center(
           child: MarksPanel(
             totalCorrectAnswers: totalMarks,
-            totalQuestions: _displayQuizResult.length * 4,
+            totalQuestions: _maxMarks,
           ),
         ),
       ),
@@ -175,36 +247,29 @@ class _ResultScreenState extends State<ResultScreen> {
     resultWidgets.add(const SizedBox(height: 24));
 
     // 3. Detailed Results
-    for (int i = 0; i < _displayQuizResult.length; i++) {
-      final List<dynamic> resultDataset = _displayQuizResult[i];
-      final String qText = resultDataset[0];
-      final String qUid = resultDataset[1];
-      final List<String> selections = (resultDataset[2] as List).cast<String>();
-      final List<String> answers = _correctAnswers[qUid] ?? [];
+    for (int i = 0; i < _calculatedResults.length; i++) {
+      final res = _calculatedResults[i];
+      final String qText = res['text'];
+      final String qUid = res['uid'];
+      final List<String> selections = res['selections'];
+      final List<String> answers = res['answers'];
+      final int questionMark = res['mark'];
+      final String? qType = res['type'];
 
       // Find the text for these UIDs to show in UI
       final quizItem = _displayQuizData.firstWhere(
         (q) => (q['Q'] as Map)['id'] == qUid,
-        orElse: () => {'Q': {'id': qUid, 'text': qText}, 'Opt': []},
+        orElse: () => {'Q': {'id': qUid, 'text': qText}, 'As': []},
       );
-      final List<dynamic> options = quizItem['Opt'] as List;
+      final List<dynamic> options = quizItem['As'] as List? ?? [];
 
       String getOptText(String uid) {
+        if (qType == "Integer") return uid;
         final opt = options.firstWhere(
           (o) => (o as Map)['id'] == uid,
           orElse: () => {'id': uid, 'text': "Option ID: $uid"},
         );
         return (opt as Map)['text'].toString();
-      }
-
-      int questionMark = 0;
-      if (selections.isEmpty) {
-        questionMark = 0;
-      } else if (selections.length == answers.length &&
-          selections.every((s) => answers.contains(s))) {
-        questionMark = 4;
-      } else {
-        questionMark = -1;
       }
 
       resultWidgets.add(Container(
