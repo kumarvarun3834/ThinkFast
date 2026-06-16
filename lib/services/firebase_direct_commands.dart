@@ -69,7 +69,7 @@ class DatabaseService {
       title: title,
       description: description,
       visibility: visibility,
-      questions: List<Map<String, dynamic>>.from(transformed['data']),
+      questions: List<Map<String, dynamic>>.from(transformed['modules']),
       answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
       timeInSeconds: time * 60,
       markingScheme: scheme,
@@ -105,7 +105,7 @@ class DatabaseService {
       }
 
       final transformed = _transformQuizData(data, scheme);
-      updates['data'] = transformed['data'];
+      updates['modules'] = transformed['modules'];
       await _quizService.updateAnswerKeys(
         quizId: docId,
         answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
@@ -202,7 +202,7 @@ class DatabaseService {
   }
 
   Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData, Map<String, dynamic> markingScheme) {
-    final List<Map<String, dynamic>> transformedData = [];
+    final Map<String, List<Map<String, dynamic>>> moduleMap = {};
     final List<Map<String, String>> answerKeys = [];
     final Map<String, dynamic> perQuestionMap = {};
 
@@ -211,6 +211,7 @@ class DatabaseService {
       final String qUid = "q_${DateTime.now().microsecondsSinceEpoch}_$i";
       final String qText = (item['question'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
+      final String qSubject = item['subject']?.toString() ?? 'General';
 
       if (markingScheme['type'] == 'per_question') {
         perQuestionMap[qUid] = {
@@ -223,28 +224,45 @@ class DatabaseService {
       final answers = item['answers'] as List? ?? [];
 
       final List<Map<String, String>> optionsWithIds = [];
-      for (int j = 0; j < choices.length; j++) {
-        final String optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
-        final String optText = choices[j].toString();
-        optionsWithIds.add({'id': optUid, 'text': optText});
+      
+      if (qType == "Integer") {
+        if (answers.isNotEmpty) {
+          answerKeys.add({'q': qUid, 'a': answers.first.toString()});
+        }
+      } else {
+        for (int j = 0; j < choices.length; j++) {
+          final String optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
+          final String optText = choices[j].toString();
+          optionsWithIds.add({'id': optUid, 'text': optText});
 
-        if (answers.contains(optText)) {
-          answerKeys.add({'q': qUid, 'a': optUid});
+          if (answers.contains(optText)) {
+            answerKeys.add({'q': qUid, 'a': optUid});
+          }
         }
       }
 
-      transformedData.add({
+      final questionData = {
         'uid': qUid,
         'type': qType,
         'Q': {'id': qUid, 'text': qText},
         'Opt': optionsWithIds,
-      });
+      };
+
+      if (!moduleMap.containsKey(qSubject)) {
+        moduleMap[qSubject] = [];
+      }
+      moduleMap[qSubject]!.add(questionData);
     }
 
     if (markingScheme['type'] == 'per_question') {
       markingScheme['perQuestion'] = perQuestionMap;
     }
 
-    return {'data': transformedData, 'answerkeys': answerKeys};
+    final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) => {
+      'subject': e.key,
+      'questions': e.value,
+    }).toList();
+
+    return {'modules': modules, 'answerkeys': answerKeys};
   }
 }

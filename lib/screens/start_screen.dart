@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
@@ -10,11 +9,7 @@ class Main_Screen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
 
-  const Main_Screen({
-    super.key,
-    this.creator,
-    this.showMyQuizzes = false,
-  });
+  const Main_Screen({super.key, this.creator, this.showMyQuizzes = false});
 
   @override
   State<Main_Screen> createState() => _Main_ScreenState();
@@ -61,11 +56,7 @@ class _Main_ScreenState extends State<Main_Screen> {
   Widget buildQuizCard(Map<String, dynamic> data) {
     return InkWell(
       onTap: () {
-        Navigator.pushNamed(
-          context,
-          "/Quiz Details",
-          arguments: data['id'],
-        );
+        Navigator.pushNamed(context, "/Quiz Details", arguments: data['id']);
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -104,11 +95,19 @@ class _Main_ScreenState extends State<Main_Screen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.share_rounded, color: Color(0xFF3B82F6), size: 20),
+                icon: const Icon(
+                  Icons.share_rounded,
+                  color: Color(0xFF3B82F6),
+                  size: 20,
+                ),
                 onPressed: () => _shareQuiz(data['id']),
                 tooltip: "Share Quiz Link",
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF334155), size: 18),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Color(0xFF334155),
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -132,7 +131,9 @@ class _Main_ScreenState extends State<Main_Screen> {
                 style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
                 decoration: InputDecoration(
                   hintText: "Search quizzes...",
-                  hintStyle: GoogleFonts.poppins(color: const Color(0xFF94A3B8)),
+                  hintStyle: GoogleFonts.poppins(
+                    color: const Color(0xFF94A3B8),
+                  ),
                   border: InputBorder.none,
                 ),
                 onChanged: (value) {
@@ -167,9 +168,7 @@ class _Main_ScreenState extends State<Main_Screen> {
       ),
       drawer: Drawer(
         backgroundColor: const Color(0xFF1E293B),
-        child: SidebarMenu(
-          user: _user,
-        ),
+        child: SidebarMenu(user: _user),
       ),
       body: Container(
         color: const Color(0xFF0F172A),
@@ -217,4 +216,3 @@ class _Main_ScreenState extends State<Main_Screen> {
     );
   }
 }
-

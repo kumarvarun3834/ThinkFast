@@ -57,7 +57,16 @@ class AttemptService {
 
       final marking = getMarking(qType, qUid);
 
-      if (selected.isNotEmpty &&
+      if (qType == "Integer") {
+        final String userVal = selected.isNotEmpty ? selected.first.toString().trim() : "";
+        final String correctVal = correct.isNotEmpty ? correct.first.toString().trim() : "";
+        
+        if (userVal.isNotEmpty && userVal == correctVal) {
+          score += marking['correct']!;
+        } else if (userVal.isNotEmpty) {
+          score += marking['wrong']!;
+        }
+      } else if (selected.isNotEmpty &&
           selected.length == correct.length &&
           selected.every((s) => correct.contains(s))) {
         score += marking['correct']!; // Correct

@@ -34,7 +34,7 @@ class QuizService {
       'updatedAt': FieldValue.serverTimestamp(),
       'isRestricted': false,
       'isDeleted': false,
-      'data': questions, // Questions embedded per firebase.md
+      'modules': questions, // Subject-based modules per firebase.md
     });
 
     // 2. Create the Answer Key (Separate collection for security)

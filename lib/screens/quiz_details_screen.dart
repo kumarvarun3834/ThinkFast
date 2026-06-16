@@ -510,9 +510,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 }
 
                 if (isPublic || isOwner) {
-                  global.quizData = (_quizData!['data'] as List<dynamic>)
-                      .map((e) => Map<String, Object>.from(e))
-                      .toList();
+                  final List<Map<String, Object>> flattenedQuestions = [];
+                  final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
+                  
+                  for (var module in rawModules) {
+                    final String subject = module['subject'].toString();
+                    final List<dynamic> questions = module['questions'] as List? ?? [];
+                    for (var q in questions) {
+                      final qMap = Map<String, Object>.from(q);
+                      qMap['subject'] = subject; // Re-inject for flat processing in Questions screen
+                      flattenedQuestions.add(qMap);
+                    }
+                  }
+
+                  global.quizData = flattenedQuestions;
 
                   global.ID = _quizData!['id'];
                   global.time = _quizData!['time'] as int;
@@ -572,9 +583,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               }, icon: Icons.analytics_outlined),
               const SizedBox(height: 16),
               _actionButton("Update Quiz", () {
-                global.quizData = (_quizData!['data'] as List<dynamic>)
-                    .map((e) => Map<String, Object>.from(e))
-                    .toList();
+                final List<Map<String, Object>> flattenedQuestions = [];
+                final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
+                
+                for (var module in rawModules) {
+                  final String subject = module['subject'].toString();
+                  final List<dynamic> questions = module['questions'] as List? ?? [];
+                  for (var q in questions) {
+                    final qMap = Map<String, Object>.from(q);
+                    qMap['subject'] = subject;
+                    flattenedQuestions.add(qMap);
+                  }
+                }
+
+                global.quizData = flattenedQuestions;
 
                 global.ID = _quizData!['id'];
                 global.currentUserProfile = _userProfile;

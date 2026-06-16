@@ -258,43 +258,49 @@ class _QuizPageState extends State<QuizPage> {
 
         final Map<String, dynamic> pqScheme = (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
 
-        final List<dynamic> rawQuestions = data['data'] as List;
+        final List<dynamic> rawModules = data['modules'] as List? ?? [];
         final List<Map<String, Object>> transformed = [];
 
-        for (var q in rawQuestions) {
-          final qInfo = q['Q'] as Map;
-          final qUid = qInfo['id'].toString();
-          final qText = qInfo['text'].toString();
+        for (var module in rawModules) {
+          final String qSubject = module['subject'].toString();
+          final List<dynamic> rawQuestions = module['questions'] as List? ?? [];
 
-          // Load individual marking if it exists
-          final qMarking = pqScheme[qUid] as Map? ?? {};
-          final int qCorrect = qMarking['correct'] ?? 4;
-          final int qWrong = qMarking['wrong'] ?? -1;
+          for (var q in rawQuestions) {
+            final qInfo = q['Q'] as Map;
+            final qUid = qInfo['id'].toString();
+            final qText = qInfo['text'].toString();
 
-          final List<dynamic> opts = q['Opt'] as List;
-          final List<String> choiceTexts = [];
-          final List<String> correctTexts = [];
+            // Load individual marking if it exists
+            final qMarking = pqScheme[qUid] as Map? ?? {};
+            final int qCorrect = qMarking['correct'] ?? 4;
+            final int qWrong = qMarking['wrong'] ?? -1;
 
-          final List<String> correctUids = answersMap[qUid] ?? [];
+            final List<dynamic> opts = q['Opt'] as List;
+            final List<String> choiceTexts = [];
+            final List<String> correctTexts = [];
 
-          for (var o in opts) {
-            final oMap = o as Map;
-            final oUid = oMap['id'].toString();
-            final oText = oMap['text'].toString();
-            choiceTexts.add(oText);
-            if (correctUids.contains(oUid)) {
-              correctTexts.add(oText);
+            final List<String> correctUids = answersMap[qUid] ?? [];
+
+            for (var o in opts) {
+              final oMap = o as Map;
+              final oUid = oMap['id'].toString();
+              final oText = oMap['text'].toString();
+              choiceTexts.add(oText);
+              if (correctUids.contains(oUid)) {
+                correctTexts.add(oText);
+              }
             }
-          }
 
-          transformed.add({
-            "question": qText,
-            "choices": choiceTexts,
-            "answers": correctTexts,
-            "type": q['type'] ?? 'Single Choice',
-            "correct": qCorrect,
-            "wrong": qWrong,
-          });
+            transformed.add({
+              "subject": qSubject,
+              "question": qText,
+              "choices": choiceTexts,
+              "answers": correctTexts,
+              "type": q['type'] ?? 'Single Choice',
+              "correct": qCorrect,
+              "wrong": qWrong,
+            });
+          }
         }
 
         questions

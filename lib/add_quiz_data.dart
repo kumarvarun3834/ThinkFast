@@ -18,6 +18,8 @@ class QuizForm extends StatefulWidget {
 
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
+  final TextEditingController _subjectController = TextEditingController();
+  final TextEditingController _correctAnswerController = TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
   final TextEditingController _correctController = TextEditingController(text: "4");
   final TextEditingController _wrongController = TextEditingController(text: "-1");
@@ -34,6 +36,9 @@ class _QuizFormState extends State<QuizForm> {
     }
     if (widget.form_data_part["wrong"] != null) {
       _wrongController.text = widget.form_data_part["wrong"].toString();
+    }
+    if (widget.form_data_part["subject"] != null) {
+      _subjectController.text = widget.form_data_part["subject"] as String;
     }
     if (widget.form_data_part["question"] != null) {
       _questionController.text = widget.form_data_part["question"] as String;
@@ -58,12 +63,17 @@ class _QuizFormState extends State<QuizForm> {
     // Load existing answers
     if (widget.form_data_part["answers"] != null) {
       List answers = widget.form_data_part["answers"] as List;
-      for (var answer in answers) {
-        final index = (widget.form_data_part["choices"] as List).indexOf(
-          answer,
-        );
-        if (index != -1) {
-          _selectedAnswers.add(index);
+      
+      if (_selectedValue == "Integer" && answers.isNotEmpty) {
+        _correctAnswerController.text = answers.first.toString();
+      } else {
+        for (var answer in answers) {
+          final index = (widget.form_data_part["choices"] as List).indexOf(
+            answer,
+          );
+          if (index != -1) {
+            _selectedAnswers.add(index);
+          }
         }
       }
     }
@@ -74,10 +84,17 @@ class _QuizFormState extends State<QuizForm> {
 
   void _emitData() {
     final choices = _choiceControllers.map((c) => c.text.trim()).toList();
-    final answers = _selectedAnswers.map((i) => choices[i]).toList();
+    List<String> answers;
+    
+    if (_selectedValue == "Integer") {
+      answers = [_correctAnswerController.text.trim()];
+    } else {
+      answers = _selectedAnswers.map((i) => choices[i]).toList();
+    }
 
     widget.onChanged({
       "type": _selectedValue ?? "",
+      "subject": _subjectController.text.trim(),
       "question": _questionController.text.trim(),
       "choices": choices,
       "answers": answers,
@@ -156,7 +173,7 @@ class _QuizFormState extends State<QuizForm> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> _options = ["Multiple Choice", "Single Choice"];
+    final List<String> _options = ["Multiple Choice", "Single Choice", "Integer"];
 
     return Material(
       color: const Color(0xFF1E293B),
@@ -197,6 +214,22 @@ class _QuizFormState extends State<QuizForm> {
                 });
                 _emitData();
               },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _subjectController,
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              decoration: const InputDecoration(
+                labelText: "Subject / Module Name",
+                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+              ),
+              onChanged: (_) => _emitData(),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -247,43 +280,62 @@ class _QuizFormState extends State<QuizForm> {
               ),
               const SizedBox(height: 16),
             ],
-            Column(children: options_data()),
-            const SizedBox(height: 12),
-            if (_selectedAnswers.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Text(
-                  "⚠️ Select at least one correct answer",
-                  style: TextStyle(
-                    color: Colors.orangeAccent.withValues(alpha: 0.8),
-                    fontSize: 12,
+            if (_selectedValue == "Integer")
+              TextField(
+                controller: _correctAnswerController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                decoration: const InputDecoration(
+                  labelText: "Correct Integer Value",
+                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF334155)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  ),
+                ),
+                onChanged: (_) => _emitData(),
+              )
+            else ...[
+              Column(children: options_data()),
+              const SizedBox(height: 12),
+              if (_selectedAnswers.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    "⚠️ Select at least one correct answer",
+                    style: TextStyle(
+                      color: Colors.orangeAccent.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: _addChoice,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.add_circle_outline_rounded,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Add Choice",
+                        style: TextStyle(
+                          color: const Color(0xFF3B82F6),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: _addChoice,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: Color(0xFF3B82F6),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Add Choice",
-                      style: TextStyle(
-                        color: const Color(0xFF3B82F6),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            ],
           ],
         ),
       ),

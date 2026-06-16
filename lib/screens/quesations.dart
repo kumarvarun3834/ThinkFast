@@ -23,40 +23,52 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   void _shuffleQuestionsAndOptions() {
     final random = Random();
 
-    // 1. Group questions by marking units (Type + Scoring Rule)
-    Map<String, List<Map<String, dynamic>>> groups = {};
-    final schemeType = global.markingScheme['type'] ?? 'default';
-
+    // 1. Group questions by Subject/Module
+    Map<String, List<Map<String, dynamic>>> moduleGroups = {};
     for (var q in global.quizData) {
-      final qUid = (q['Q'] as Map?)?['id']?.toString() ?? q['uid']?.toString() ?? '';
-      final qType = q['type']?.toString() ?? 'Single Choice';
-      String unitKey = qType; // Default: group by question type
-
-      if (schemeType == 'per_question') {
-        final pq = global.markingScheme['perQuestion'] as Map? ?? {};
-        final marking = pq[qUid] ?? {'correct': 4, 'wrong': -1};
-        // Group by both type and its specific marking rule
-        unitKey = "${qType}_m_${marking['correct']}_${marking['wrong']}";
-      } else if (schemeType == 'entire_quiz') {
-        final marking = global.markingScheme['global'] ?? {'correct': 4, 'wrong': -1};
-        unitKey = "global_${qType}_m_${marking['correct']}_${marking['wrong']}";
-      } else if (schemeType == 'per_question_type') {
-        final pqt = global.markingScheme['perQuestionType'] as Map? ?? {};
-        final marking = pqt[qType] ?? {'correct': 4, 'wrong': -1};
-        unitKey = "type_${qType}_m_${marking['correct']}_${marking['wrong']}";
-      }
-
-      groups.putIfAbsent(unitKey, () => []).add(q);
+      final subject = q['subject']?.toString() ?? 'General';
+      moduleGroups.putIfAbsent(subject, () => []).add(q);
     }
 
-    List<Map<String, Object>> finalQuestions = [];
-    List<String> unitKeys = groups.keys.toList();
-    unitKeys.shuffle(random); // 🎲 Shuffle the order of units (Groups can pop up in any order)
+    // 2. Layer 1: Shuffle subjects
+    List<String> subjectKeys = moduleGroups.keys.toList();
+    subjectKeys.shuffle(random);
 
-    for (var key in unitKeys) {
-      var group = groups[key]!;
-      group.shuffle(random); // 🎲 Shuffle questions internally within the unit
-      finalQuestions.addAll(group as Iterable<Map<String, Object>>);
+    List<Map<String, Object>> finalQuestions = [];
+
+    // 3. Process each subject
+    for (var subject in subjectKeys) {
+      var moduleQuestions = moduleGroups[subject]!;
+
+      // 4. Layer 2: Group by Type within subject to maintain specific order
+      // Order: Single Choice -> Multiple Choice -> Integer
+      Map<String, List<Map<String, dynamic>>> typeGroups = {
+        'Single Choice': [],
+        'Multiple Choice': [],
+        'Integer': [],
+      };
+
+      for (var q in moduleQuestions) {
+        final type = q['type']?.toString() ?? 'Single Choice';
+        typeGroups.putIfAbsent(type, () => []).add(q);
+      }
+
+      // 5. Shuffle questions internally within each type group and assemble
+      final List<String> typeOrder = ['Single Choice', 'Multiple Choice', 'Integer'];
+      
+      // Also catch any other types not in our primary list
+      final allTypes = typeGroups.keys.toList();
+      for (var t in allTypes) {
+        if (!typeOrder.contains(t)) typeOrder.add(t);
+      }
+
+      for (var type in typeOrder) {
+        var group = typeGroups[type] ?? [];
+        if (group.isEmpty) continue;
+
+        group.shuffle(random); // Shuffle questions of this type
+        finalQuestions.addAll(group.cast<Map<String, Object>>());
+      }
     }
 
     global.quizData = finalQuestions;
@@ -170,6 +182,44 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   }
 
   List<Widget> buttons_Data(Map<String, Object> quizData) {
+    final String type = quizData["type"]?.toString() ?? "Single Choice";
+
+    if (type == "Integer") {
+      final TextEditingController controller = TextEditingController();
+      final List<String> currentSelection = _getSelection(global.quizResult[i]);
+      if (currentSelection.isNotEmpty) {
+        controller.text = currentSelection.first;
+      }
+
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))],
+            style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0), fontSize: 20),
+            decoration: InputDecoration(
+              labelText: "Enter Integer Answer",
+              labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF334155)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+              ),
+            ),
+            onChanged: (val) {
+              global.quizResult[i][2] = [val.trim()];
+              switchState();
+            },
+          ),
+        )
+      ];
+    }
+
     List<Widget> database = [];
 
     // Opt is [{id, text}, ...]
