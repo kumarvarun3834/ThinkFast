@@ -13,11 +13,47 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // 1. Global App Admin Check
-    function isGlobalAdmin() {
+    // Safely check if a user is a registered admin
+    function isRegisteredAdmin() {
       return isAuthenticated() &&
         (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
          request.auth.uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2');
+    }
+
+    // Safely check if user is a registered admin AND has admin mode active
+    function isGlobalAdmin() {
+      let adminPath = /databases/$(database)/documents/admins/$(request.auth.uid);
+      return isAuthenticated() && (
+        request.auth.uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2' ||
+        (exists(adminPath) && get(adminPath).data.get('isAdminModeEnabled', true) == true)
+      );
+    }
+
+    function getQuizData(quizId) {
+      let path = /databases/$(database)/documents/quizzes/$(quizId);
+      return exists(path) ? get(path).data : null;
+    }
+
+    function isQuizCreator(quizId) {
+      let quiz = getQuizData(quizId);
+      return quiz != null && quiz.get('creatorId', '') == request.auth.uid;
+    }
+
+    function isBanned(quizId) {
+      return exists(/databases/$(database)/documents/quiz_bans/$(quizId + "_" + request.auth.uid));
+    }
+
+    // Helper to check if a user is allowed to access/attempt a quiz
+    function isAllowedToAttempt(quizId) {
+      let quiz = getQuizData(quizId);
+      return quiz != null &&
+             quiz.get('isDeleted', false) == false &&
+             quiz.get('isLocked', false) == false &&
+             !isBanned(quizId) &&
+             (quiz.get('visibility', 'private') == 'public' ||
+              (quiz.get('visibility', 'private') == 'protected' && request.auth.uid in quiz.get('allowedParticipants', [])) ||
+              quiz.get('creatorId', '') == request.auth.uid ||
+              isGlobalAdmin());
     }
 
     // 2. Quiz-Specific Manager Check (Delegated Admin)
@@ -27,30 +63,6 @@ service cloud.firestore {
       return isAuthenticated() && (
         exists(accessPath) && get(accessPath).data.permissions.get(permission, false) == true
       );
-    }
-
-    function getQuiz(quizId) {
-      return get(/databases/$(database)/documents/quizzes/$(quizId)).data;
-    }
-
-    function isQuizCreator(quizId) {
-      return isAuthenticated() && getQuiz(quizId).creatorId == request.auth.uid;
-    }
-
-    function isBanned(quizId) {
-      return exists(/databases/$(database)/documents/quiz_bans/$(quizId + "_" + request.auth.uid));
-    }
-
-    // Helper to check if a user is allowed to access/attempt a quiz
-    function isAllowedToAttempt(quizId) {
-      let quiz = getQuiz(quizId);
-      return quiz.get('isDeleted', false) == false &&
-             quiz.get('isLocked', false) == false &&
-             !isBanned(quizId) &&
-             (quiz.visibility == 'public' ||
-              (quiz.visibility == 'protected' && request.auth.uid in quiz.get('allowedParticipants', [])) ||
-              quiz.creatorId == request.auth.uid ||
-              isGlobalAdmin());
     }
 
     // Helper to check if user has ANY management right over a quiz
@@ -80,7 +92,8 @@ service cloud.firestore {
       allow read: if resource.data.get('isDeleted', false) == false &&
                    (resource.data.get('visibility', 'private') == 'public' ||
                     (resource.data.get('visibility', 'private') == 'protected' && request.auth.uid in resource.data.get('allowedParticipants', [])) ||
-                    isQuizCreator(quizId) || isGlobalAdmin());
+                    resource.data.get('creatorId', '') == request.auth.uid ||
+                    isGlobalAdmin());
       allow create: if isAuthenticated() &&
                     request.resource.data.creatorId == request.auth.uid &&
                     (isGlobalAdmin() || (
@@ -100,15 +113,13 @@ service cloud.firestore {
 
     // 3. Answer Keys (Security sensitive)
     match /answer_keys/{quizId} {
-      // NOTE: Participants need read access for client-side scoring in ResultScreen.
-      // To prevent cheating, consider moving scoring to Cloud Functions.
       allow read: if isAllowedToAttempt(quizId) || canManageQuiz(quizId, 'can_view_results');
       allow write: if canManageQuiz(quizId, 'can_update');
     }
 
     // 4. Responses & Attempts
     match /responses/{responseId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isGlobalAdmin());
+      allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin());
       allow create: if isAuthenticated() &&
                     request.resource.data.userId == request.auth.uid &&
                     isAllowedToAttempt(request.resource.data.quizId);
@@ -143,6 +154,8 @@ service cloud.firestore {
     // 6. Admin Management
     match /admins/{userId} {
       allow read: if isAuthenticated();
+      // Allow a registered admin to update their OWN mode
+      allow update: if isOwner(userId) && isRegisteredAdmin();
       allow write: if isGlobalAdmin();
     }
 
@@ -161,11 +174,15 @@ service cloud.firestore {
     match /quiz_stats/{quizId} { allow read: if true; allow write: if isGlobalAdmin(); }
     match /quiz_question_stats/{questionId} { allow read: if true; allow write: if isGlobalAdmin(); }
     match /reports/{reportId} { allow create: if isAuthenticated(); allow read, write: if isGlobalAdmin(); }
-    match /audit_logs/{logId} { allow read, write: if isGlobalAdmin(); }
+
+    match /audit_logs/{logId} {
+      allow create: if isAuthenticated();
+      allow read, update, delete: if isGlobalAdmin();
+    }
 
     // 11. Notifications
     match /notifications/{notifId} {
-      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read, update: if isAuthenticated() && resource.data.get('userId', '') == request.auth.uid;
       allow create, delete: if isGlobalAdmin();
     }
 

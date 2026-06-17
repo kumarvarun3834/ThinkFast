@@ -40,8 +40,9 @@ class DatabaseService {
     String? email,
   }) async {
     await _userService.updateUserProfile(uid: uid, name: name);
-    if (email != null)
+    if (email != null) {
       await _userService.updatePrivateDetails(uid: uid, email: email);
+    }
   }
 
   Future<void> updateProtectedDetails({
@@ -135,8 +136,9 @@ class DatabaseService {
     if (description != null) updates['description'] = description;
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
-    if (allowMultipleAttempts != null)
+    if (allowMultipleAttempts != null) {
       updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    }
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
 
     if (data != null) {
@@ -170,7 +172,9 @@ class DatabaseService {
     required String currentUserId,
   }) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz != null && quiz['creatorId'] == currentUserId) {
+    final bool isAdmin = await _adminService.isAdmin(currentUserId);
+
+    if (quiz != null && (quiz['creatorId'] == currentUserId || isAdmin)) {
       await _quizService.deleteQuiz(docId, currentUserId);
     } else {
       throw Exception("Unauthorized to delete this quiz");
@@ -202,8 +206,9 @@ class DatabaseService {
 
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true)
+    if (quiz == null || quiz['isDeleted'] == true) {
       throw Exception("Quiz not found");
+    }
 
     // Fetch questions from separate collection
     final questions = await _quizService.getQuizQuestions(docId);
@@ -222,8 +227,9 @@ class DatabaseService {
     Map<String, dynamic>? userAnswers,
   }) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true)
+    if (quiz == null || quiz['isDeleted'] == true) {
       throw Exception("Quiz not found");
+    }
 
     final bool isCreator = quiz['creatorId'] == userId;
     final keysList = await _quizService.getAnswerKeys(docId);
@@ -237,8 +243,9 @@ class DatabaseService {
     }
 
     if (from == 'quizform') {
-      if (!isCreator)
+      if (!isCreator) {
         throw Exception("Only creator can access answers in editor");
+      }
     } else if (userAnswers != null && totalQuestions != null) {
       // Fetch questions for scoring
       final questions = await _quizService.getQuizQuestions(docId);
