@@ -366,9 +366,30 @@ class DatabaseService {
       markingScheme['perQuestion'] = perQuestionMap;
     }
 
-    final List<Map<String, dynamic>> modules = moduleMap.entries
-        .map((e) => {'subject': e.key, 'data': e.value})
-        .toList();
+    // Sort questions within each subject to ensure Module > Single > Multiple > Integer order
+    final List<String> typeOrder = ['Single Choice', 'Multiple Choice', 'Integer'];
+    
+    final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) {
+      final subject = e.key;
+      final List<Map<String, dynamic>> questions = e.value;
+
+      // Sort the questions list based on the typeOrder
+      questions.sort((a, b) {
+        final typeA = a['type']?.toString() ?? 'Single Choice';
+        final typeB = b['type']?.toString() ?? 'Single Choice';
+        
+        int indexA = typeOrder.indexOf(typeA);
+        int indexB = typeOrder.indexOf(typeB);
+
+        // If type not found in order list, put it at the end
+        if (indexA == -1) indexA = 99;
+        if (indexB == -1) indexB = 99;
+
+        return indexA.compareTo(indexB);
+      });
+
+      return {'subject': subject, 'data': questions};
+    }).toList();
 
     return {'modules': modules, 'answerkeys': answerKeys};
   }
