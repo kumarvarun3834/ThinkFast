@@ -14,6 +14,7 @@ import 'package:thinkfast/screens/my_attempts_screen.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
+import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/services/firebase_options.dart';
@@ -148,6 +149,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/profile':
             page = const ProfileScreen();
+            wrapInGradient = false;
+            break;
+          case '/Admin Panel':
+            page = const AdminPanel();
             wrapInGradient = false;
             break;
           case '/Quiz Responses':

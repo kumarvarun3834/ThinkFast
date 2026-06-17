@@ -38,8 +38,17 @@ class QuizService {
       }
     }
 
-    // 2. Fetch Feature Flags for Rate Limiting
+    // 2. Fetch Feature Flags for Restrictions
     final flags = await _settingsService.getFeatureFlags();
+    
+    // Check if quiz creation is globally disabled
+    if (flags != null && flags['enable_create_quiz'] == false) {
+      bool isUserAdmin = await _adminService.isAdmin(creatorId);
+      if (!isUserAdmin) {
+        throw Exception("Quiz creation is currently disabled by the administrator.");
+      }
+    }
+
     final bool rateLimitEnabled = flags?['enable_quiz_creation_rate_limit'] ?? true;
     final int rateLimitMinutes = (flags?['quiz_creation_rate_limit_minutes'] ?? 5).toInt();
 

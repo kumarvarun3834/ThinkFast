@@ -29,7 +29,9 @@ class DatabaseService {
     required String uid,
     required String email,
     String? name,
-  }) => _userService.createUserProfile(uid: uid, email: email, name: name);
+    String? photoUrl,
+  }) => _userService.createUserProfile(
+        uid: uid, email: email, name: name, photoUrl: photoUrl);
 
   Future<Map<String, dynamic>?> getUserProfile(String uid) =>
       _userService.getUserProfile(uid);

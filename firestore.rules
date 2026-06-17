@@ -97,8 +97,9 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
                     request.resource.data.creatorId == request.auth.uid &&
                     (isGlobalAdmin() || (
-                      request.resource.data.markingScheme.type in ['default', 'entire_quiz', 'per_question_type', 'per_question'] ||
-                      !request.resource.data.hasAny(['markingScheme'])
+                      get(/databases/$(database)/documents/feature_flags/production).data.get('enable_create_quiz', true) == true &&
+                      (request.resource.data.markingScheme.type in ['default', 'entire_quiz', 'per_question_type', 'per_question'] ||
+                       !request.resource.data.hasAny(['markingScheme']))
                     ));
       allow update: if (canManageQuiz(quizId, 'can_update') || isGlobalAdmin()) &&
                     (isGlobalAdmin() || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['markingScheme']));
@@ -148,7 +149,8 @@ service cloud.firestore {
 
     match /feature_flags/{docId} {
       allow read: if true;
-      allow write: if isGlobalAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isGlobalAdmin();
     }
 
     // 6. Admin Management

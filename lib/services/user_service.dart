@@ -11,10 +11,12 @@ class UserService {
     required String uid,
     required String email,
     String? name,
+    String? photoUrl,
   }) async {
     // 1. Public Profile
     await _users.doc(uid).set({
       'name': name ?? '',
+      'photoUrl': photoUrl,
       'createdAt': FieldValue.serverTimestamp(),
       'lastActive': FieldValue.serverTimestamp(),
       'lastQuizCreatedAt': null, // For rate limiting

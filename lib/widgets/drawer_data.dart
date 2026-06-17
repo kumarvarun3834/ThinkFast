@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/services/settings_service.dart';
 
 class SidebarMenu extends StatefulWidget {
   final User? user;
@@ -13,34 +14,72 @@ class SidebarMenu extends StatefulWidget {
 
 class _SidebarMenuState extends State<SidebarMenu> {
   String? _userName;
+  String? _userPhotoUrl;
+  bool _canCreateQuiz = true;
+  bool _isAdmin = false;
+  bool _isRegisteredAdmin = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.user != null) {
       _fetchUserProfile();
+      _checkAdminStatus();
     }
+    _loadFeatureFlags();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    try {
+      final isRegistered = await DatabaseService().isRegisteredAdmin(widget.user!.uid);
+      final isAdmin = await DatabaseService().isAdmin(widget.user!.uid);
+      if (mounted) {
+        setState(() {
+          _isRegisteredAdmin = isRegistered;
+          _isAdmin = isAdmin;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadFeatureFlags() async {
+    try {
+      final flags = await SettingsService().getFeatureFlags();
+      if (mounted && flags != null) {
+        setState(() {
+          _canCreateQuiz = flags['enable_create_quiz'] ?? true;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchUserProfile() async {
     // Try fetching from Firestore users collection first
     try {
       final profile = await DatabaseService().getUserProfile(widget.user!.uid);
-      if (mounted && profile != null && profile['name'] != null && profile['name'].toString().isNotEmpty) {
-        setState(() => _userName = profile['name']);
-        return;
+      if (mounted && profile != null) {
+        if (profile['name'] != null && profile['name'].toString().isNotEmpty) {
+          setState(() => _userName = profile['name']);
+        }
+        if (profile['photoUrl'] != null && profile['photoUrl'].toString().isNotEmpty) {
+          setState(() => _userPhotoUrl = profile['photoUrl']);
+        }
+        if (_userName != null && _userPhotoUrl != null) return;
       }
     } catch (_) {}
 
-    // Fallback to Google displayName
-    if (widget.user?.displayName != null &&
-        widget.user!.displayName!.isNotEmpty) {
-      setState(() => _userName = widget.user!.displayName);
-      return;
+    // Fallback to Google displayName and photoURL
+    if (mounted && widget.user != null) {
+      if (_userName == null && widget.user!.displayName != null && widget.user!.displayName!.isNotEmpty) {
+        setState(() => _userName = widget.user!.displayName);
+      }
+      if (_userPhotoUrl == null && widget.user!.photoURL != null && widget.user!.photoURL!.isNotEmpty) {
+        setState(() => _userPhotoUrl = widget.user!.photoURL);
+      }
     }
     
-    // Final fallback to email
-    if (mounted) {
+    // Final fallback to email for name
+    if (mounted && _userName == null) {
       setState(() => _userName = widget.user?.email?.split('@')[0]);
     }
   }
@@ -120,9 +159,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
         children: [
           UserAccountsDrawerHeader(
             decoration: const BoxDecoration(color: Color(0xFF0F172A)),
-            currentAccountPicture: const CircleAvatar(
-              backgroundColor: Color(0xFF1E293B),
-              child: Icon(Icons.person, size: 40, color: Color(0xFF3B82F6)),
+            currentAccountPicture: CircleAvatar(
+              backgroundColor: const Color(0xFF1E293B),
+              backgroundImage: _userPhotoUrl != null ? NetworkImage(_userPhotoUrl!) : null,
+              child: _userPhotoUrl == null
+                  ? const Icon(Icons.person, size: 40, color: Color(0xFF3B82F6))
+                  : null,
             ),
             accountName: Row(
               mainAxisSize: MainAxisSize.min,
@@ -206,7 +248,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
               }
             },
           ),
-          if (widget.user != null)
+          if (widget.user != null && (_canCreateQuiz || _isAdmin))
             _drawerItem(
               icon: Icons.add_box_outlined,
               text: 'Create New Quiz',
@@ -223,6 +265,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
               icon: Icons.history_rounded,
               text: 'My Attempts',
               onTap: () => _checkAndNavigate(context, "/My Attempts"),
+            ),
+          if (_isAdmin)
+            _drawerItem(
+              icon: Icons.admin_panel_settings_outlined,
+              text: 'Admin Panel',
+              onTap: () => _checkAndNavigate(context, "/Admin Panel"),
             ),
           const Divider(color: Color(0xFF334155)),
           if (widget.user != null)

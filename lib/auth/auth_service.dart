@@ -85,6 +85,7 @@ class AuthService {
           uid: user.uid,
           email: user.email ?? '',
           name: user.displayName,
+          photoUrl: user.photoURL,
         );
       }
 
