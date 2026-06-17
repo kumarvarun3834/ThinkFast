@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -21,6 +22,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   Map<String, dynamic>? _creatorProfile;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = true;
+  bool _isAdmin = false;
   Map<String, dynamic>? _quizData;
 
   // Colors (Fixed Palette)
@@ -55,18 +57,23 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       String? activeQuizId;
       Timestamp? activeQuizExpiry;
       bool hasAttempted = false;
+      bool isAdmin = false;
 
       if (_user != null) {
         userProfile = await db.getUserProfile(_user!.uid);
         activeQuizId = userProfile?['activeQuizId'];
         activeQuizExpiry = userProfile?['activeQuizExpiry'];
         hasAttempted = await db.hasUserAttemptedQuiz(_user!.uid, widget.quizId);
+        
+        // Use AdminService to check status
+        isAdmin = await AdminService().isAdmin(_user!.uid);
       }
 
       setState(() {
         _quizData = data;
         _creatorProfile = creatorProfile;
         _userProfile = userProfile;
+        _isAdmin = isAdmin;
         _quizData!['activeQuizId'] = activeQuizId;
         _quizData!['activeQuizExpiry'] = activeQuizExpiry;
         _quizData!['hasAttempted'] = hasAttempted;
@@ -127,6 +134,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     try {
       await DatabaseService().toggleQuizLock(
         docId: _quizData!['id'],
+        currentUserId: _user!.uid,
         isLocked: newLocked,
       );
 
@@ -294,6 +302,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     }
 
     final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
+    final bool canManage = isOwner || _isAdmin;
     final bool isPublic = _quizData!['visibility'] == 'public';
 
     final title = _quizData!['title'] ?? 'Untitled Quiz';
@@ -325,6 +334,30 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           ),
         ),
         iconTheme: IconThemeData(color: _valueColor),
+        actions: [
+          if (_isAdmin)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                  ),
+                  child: Text(
+                    "ADMIN",
+                    style: GoogleFonts.poppins(
+                      color: Colors.redAccent,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -516,7 +549,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   return;
                 }
 
-                if (isPublic || isOwner) {
+                if (isPublic || canManage) {
                   final List<Map<String, Object>> flattenedQuestions = [];
                   final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
                   
@@ -558,7 +591,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               isPrimary: true,
               icon: Icons.play_arrow_rounded,
             ),
-            if (isOwner) ...[
+            if (canManage) ...[
               const SizedBox(height: 16),
               _actionButton(
                 _quizData!['visibility'] == 'public'

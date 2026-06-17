@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'admin_service.dart';
 import 'user_service.dart';
 import 'quiz_service.dart';
 import 'attempt_service.dart';
@@ -10,24 +11,55 @@ class DatabaseService {
   final QuizService _quizService = QuizService();
   final AttemptService _attemptService = AttemptService();
   final SettingsService _settingsService = SettingsService();
+  final AdminService _adminService = AdminService();
+
+  // --- Admin & Experience Switching ---
+
+  Future<bool> isRegisteredAdmin(String uid) =>
+      _adminService.isRegisteredAdmin(uid);
+
+  Future<bool> isAdmin(String uid) => _adminService.isAdmin(uid);
+
+  Future<void> toggleAdminMode({required String uid, required bool enable}) =>
+      _adminService.toggleAdminMode(uid: uid, enable: enable);
 
   // --- User Profiles ---
 
-  Future<void> createUserProfile({required String uid, required String email, String? name}) =>
-      _userService.createUserProfile(uid: uid, email: email, name: name);
+  Future<void> createUserProfile({
+    required String uid,
+    required String email,
+    String? name,
+  }) => _userService.createUserProfile(uid: uid, email: email, name: name);
 
-  Future<Map<String, dynamic>?> getUserProfile(String uid) => _userService.getUserProfile(uid);
+  Future<Map<String, dynamic>?> getUserProfile(String uid) =>
+      _userService.getUserProfile(uid);
 
-  Future<void> updateUserProfile({required String uid, String? name, String? email}) async {
+  Future<void> updateUserProfile({
+    required String uid,
+    String? name,
+    String? email,
+  }) async {
     await _userService.updateUserProfile(uid: uid, name: name);
-    if (email != null) await _userService.updatePrivateDetails(uid: uid, email: email);
+    if (email != null)
+      await _userService.updatePrivateDetails(uid: uid, email: email);
   }
 
-  Future<void> updateProtectedDetails({required String uid, required Map<String, dynamic> details}) =>
-      _userService.updateProtectedDetails(uid: uid, details: details);
+  Future<void> updateProtectedDetails({
+    required String uid,
+    required Map<String, dynamic> details,
+  }) => _userService.updateProtectedDetails(uid: uid, details: details);
 
-  Future<void> updateActiveQuiz({required String uid, String? quizId, DateTime? expiry, bool clear = false}) =>
-      _userService.updatePrivateDetails(uid: uid, activeQuizId: quizId, activeQuizExpiry: expiry, clearActiveQuiz: clear);
+  Future<void> updateActiveQuiz({
+    required String uid,
+    String? quizId,
+    DateTime? expiry,
+    bool clear = false,
+  }) => _userService.updatePrivateDetails(
+    uid: uid,
+    activeQuizId: quizId,
+    activeQuizExpiry: expiry,
+    clearActiveQuiz: clear,
+  );
 
   Future<void> handleExpiredQuiz(String uid, String quizId) async {
     try {
@@ -59,6 +91,7 @@ class DatabaseService {
   // --- Quiz Management ---
 
   Future<String> createDatabase({
+    String? clientToken, // Unique token to prevent duplicates on retry
     required String creatorId,
     required String user,
     required String title,
@@ -72,6 +105,7 @@ class DatabaseService {
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(data, scheme);
     return await _quizService.createQuiz(
+      clientToken: clientToken,
       creatorId: creatorId,
       user: user,
       title: title,
@@ -101,7 +135,8 @@ class DatabaseService {
     if (description != null) updates['description'] = description;
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
-    if (allowMultipleAttempts != null) updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    if (allowMultipleAttempts != null)
+      updates['allowMultipleAttempts'] = allowMultipleAttempts;
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
 
     if (data != null) {
@@ -116,14 +151,24 @@ class DatabaseService {
       updates['modules'] = transformed['modules'];
       await _quizService.updateAnswerKeys(
         quizId: docId,
+        userId: currentUserId,
         answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
       );
     }
 
-    await _quizService.updateQuiz(quizId: docId, updates: updates);
+    if (updates.isNotEmpty) {
+      await _quizService.updateQuiz(
+        quizId: docId,
+        userId: currentUserId,
+        updates: updates,
+      );
+    }
   }
 
-  Future<void> deleteDatabase({required String docId, required String currentUserId}) async {
+  Future<void> deleteDatabase({
+    required String docId,
+    required String currentUserId,
+  }) async {
     final quiz = await _quizService.getQuiz(docId);
     if (quiz != null && quiz['creatorId'] == currentUserId) {
       await _quizService.deleteQuiz(docId, currentUserId);
@@ -132,8 +177,16 @@ class DatabaseService {
     }
   }
 
-  Future<void> toggleQuizLock({required String docId, required bool isLocked}) async {
-    await _quizService.updateQuiz(quizId: docId, updates: {'isLocked': isLocked});
+  Future<void> toggleQuizLock({
+    required String docId,
+    required String currentUserId,
+    required bool isLocked,
+  }) async {
+    await _quizService.updateQuiz(
+      quizId: docId,
+      userId: currentUserId,
+      updates: {'isLocked': isLocked},
+    );
   }
 
   Stream<List<Map<String, dynamic>>> readAllDatabases({
@@ -149,8 +202,9 @@ class DatabaseService {
 
   Future<Map<String, dynamic>> readDatabase(String docId) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true) throw Exception("Quiz not found");
-    
+    if (quiz == null || quiz['isDeleted'] == true)
+      throw Exception("Quiz not found");
+
     // Fetch questions from separate collection
     final questions = await _quizService.getQuizQuestions(docId);
     quiz['modules'] = questions;
@@ -168,7 +222,8 @@ class DatabaseService {
     Map<String, dynamic>? userAnswers,
   }) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true) throw Exception("Quiz not found");
+    if (quiz == null || quiz['isDeleted'] == true)
+      throw Exception("Quiz not found");
 
     final bool isCreator = quiz['creatorId'] == userId;
     final keysList = await _quizService.getAnswerKeys(docId);
@@ -182,7 +237,8 @@ class DatabaseService {
     }
 
     if (from == 'quizform') {
-      if (!isCreator) throw Exception("Only creator can access answers in editor");
+      if (!isCreator)
+        throw Exception("Only creator can access answers in editor");
     } else if (userAnswers != null && totalQuestions != null) {
       // Fetch questions for scoring
       final questions = await _quizService.getQuizQuestions(docId);
@@ -224,15 +280,26 @@ class DatabaseService {
     return attempts.docs.isNotEmpty;
   }
 
-  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData, Map<String, dynamic> markingScheme) {
+  Map<String, dynamic> _transformQuizData(
+    List<Map<String, Object>> inputData,
+    Map<String, dynamic> markingScheme,
+  ) {
     final Map<String, List<Map<String, dynamic>>> moduleMap = {};
     final List<Map<String, String>> answerKeys = [];
     final Map<String, dynamic> perQuestionMap = {};
 
     for (int i = 0; i < inputData.length; i++) {
       final item = inputData[i];
-      final String qUid = "q_${DateTime.now().microsecondsSinceEpoch}_$i";
-      final String qText = (item['question'] ?? '').toString();
+      // Preserve existing UID if available, otherwise generate one
+      final String qUid =
+          item['uid']?.toString() ??
+          (item['Q'] is Map ? (item['Q'] as Map)['id']?.toString() : null) ??
+          "q_${DateTime.now().microsecondsSinceEpoch}_$i";
+
+      final String qText =
+          (item['question'] ??
+                  (item['Q'] is Map ? (item['Q'] as Map)['text'] : ''))
+              .toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
 
@@ -243,22 +310,33 @@ class DatabaseService {
         };
       }
 
-      final choices = item['choices'] as List? ?? [];
+      final choices = (item['choices'] ?? item['As']) as List? ?? [];
       final answers = item['answers'] as List? ?? [];
 
       final List<Map<String, String>> optionsWithIds = [];
-      
+
       if (qType == "Integer") {
         if (answers.isNotEmpty) {
           answerKeys.add({'q': qUid, 'a': answers.first.toString()});
         }
       } else {
         for (int j = 0; j < choices.length; j++) {
-          final String optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
-          final String optText = choices[j].toString();
+          final choice = choices[j];
+          String optUid;
+          String optText;
+
+          if (choice is Map && choice.containsKey('id')) {
+            optUid = choice['id'].toString();
+            optText = choice['text']?.toString() ?? '';
+          } else {
+            optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
+            optText = choice.toString();
+          }
+
           optionsWithIds.add({'id': optUid, 'text': optText});
 
-          if (answers.contains(optText)) {
+          // Check if this option is an answer (by text or by ID)
+          if (answers.contains(optText) || answers.contains(optUid)) {
             answerKeys.add({'q': qUid, 'a': optUid});
           }
         }
@@ -281,10 +359,9 @@ class DatabaseService {
       markingScheme['perQuestion'] = perQuestionMap;
     }
 
-    final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) => {
-      'subject': e.key,
-      'data': e.value,
-    }).toList();
+    final List<Map<String, dynamic>> modules = moduleMap.entries
+        .map((e) => {'subject': e.key, 'data': e.value})
+        .toList();
 
     return {'modules': modules, 'answerkeys': answerKeys};
   }

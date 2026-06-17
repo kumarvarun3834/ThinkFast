@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'admin_service.dart';
 
 class UserService {
   final CollectionReference _users = FirebaseFirestore.instance.collection('users');
+  final AdminService _adminService = AdminService();
 
   /// ✅ Create a new user profile
   Future<void> createUserProfile({
@@ -10,23 +12,32 @@ class UserService {
     required String email,
     String? name,
   }) async {
-    // 1. Public Profile (Accessible by anyone)
+    // 1. Public Profile
     await _users.doc(uid).set({
       'name': name ?? '',
       'createdAt': FieldValue.serverTimestamp(),
       'lastActive': FieldValue.serverTimestamp(),
+      'lastQuizCreatedAt': null, // For rate limiting
       'quizCount': 0,
       'attemptCount': 0,
     }, SetOptions(merge: true));
 
-    // 2. Private Data (Accessible only by the owner)
+    // 2. Private Data
     await _users.doc(uid).collection('private').doc('details').set({
       'email': email,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    await _adminService.logAction(
+      actorId: uid,
+      action: 'create_profile',
+      targetId: uid,
+      details: 'New user registered: $email',
+      category: 'user',
+    );
   }
 
-  /// ✅ Fetch user profile by UID (Combines Public, Protected, and Private)
+  /// ✅ Fetch user profile
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
     try {
       final doc = await _users.doc(uid).get();
@@ -34,13 +45,11 @@ class UserService {
 
       final data = doc.data() as Map<String, dynamic>;
 
-      // Fetch protected data
       final protectedDoc = await _users.doc(uid).collection('protected').doc('details').get();
       if (protectedDoc.exists) {
         data.addAll(protectedDoc.data() as Map<String, dynamic>);
       }
 
-      // Fetch private data
       final privateDoc = await _users.doc(uid).collection('private').doc('details').get();
       if (privateDoc.exists) {
         data.addAll(privateDoc.data() as Map<String, dynamic>);
@@ -68,9 +77,17 @@ class UserService {
     if (bio != null) updates['bio'] = bio;
 
     await _users.doc(uid).set(updates, SetOptions(merge: true));
+
+    await _adminService.logAction(
+      actorId: uid,
+      action: 'update_profile',
+      targetId: uid,
+      details: 'Updated public profile fields: ${updates.keys.toList()}',
+      category: 'user',
+    );
   }
 
-  /// ✅ Update user protected details (AI context)
+  /// ✅ Update user protected details
   Future<void> updateProtectedDetails({
     required String uid,
     Map<String, dynamic>? details,
@@ -78,9 +95,18 @@ class UserService {
     if (details == null) return;
     details['updatedAt'] = FieldValue.serverTimestamp();
     await _users.doc(uid).collection('protected').doc('details').set(details, SetOptions(merge: true));
+    
+    // Logging protected changes might be too verbose, but doing it anyway per requirements
+    await _adminService.logAction(
+      actorId: uid,
+      action: 'update_protected_details',
+      targetId: uid,
+      details: 'Updated protected details',
+      category: 'user',
+    );
   }
 
-  /// ✅ Update user private details (Email, activeQuizId etc.)
+  /// ✅ Update user private details
   Future<void> updatePrivateDetails({
     required String uid,
     String? email,
@@ -101,5 +127,13 @@ class UserService {
     }
 
     await _users.doc(uid).collection('private').doc('details').set(updates, SetOptions(merge: true));
+
+    await _adminService.logAction(
+      actorId: uid,
+      action: 'update_private_details',
+      targetId: uid,
+      details: 'Updated private details',
+      category: 'user',
+    );
   }
 }

@@ -54,8 +54,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       }
 
       // 5. Shuffle questions internally within each type group and assemble
-      final List<String> typeOrder = ['Single Choice', 'Multiple Choice', 'Integer'];
-      
+      final List<String> typeOrder = [
+        'Single Choice',
+        'Multiple Choice',
+        'Integer',
+      ];
+
       // Also catch any other types not in our primary list
       final allTypes = typeGroups.keys.toList();
       for (var t in allTypes) {
@@ -80,7 +84,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       q["As"] = opts;
     }
 
-    // 2D Array format for Results (Application State): [ [qText, qUid, selectionList, visitedBool], ... ]
+    // 2D Array format for Results (Application State): [ [qText, qUid, selectionList, visitedBool, reviewBool], ... ]
     global.quizResult = global.quizData.map((q) {
       final qInfo = q["Q"] as Map;
       final qUid = qInfo['id'].toString();
@@ -90,7 +94,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         qText,
         qUid,
         <String>[], // Store selected optUids
-        false,
+        false, // visited
+        false, // marked for review
       ];
     }).toList();
   }
@@ -105,6 +110,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         qInfo['id'].toString(), // uid
         <String>[], // selections
         false, // visited
+        false, // marked for review
       ]);
     }
     return quizResult;
@@ -148,6 +154,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     setState(() {
       currentData = global.quizData[i];
       _timeLeft = Duration(seconds: timeSeconds.toInt()); // ⏱️ assign from DB
+      if (global.quizResult.isNotEmpty) {
+        global.quizResult[i][3] = true; // Mark first question as visited
+      }
     });
 
     _startTimer();
@@ -169,6 +178,177 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   void switchToResultScreen() {
     _submitAndFinish();
+  }
+
+  void _showSubmitConfirmation() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.5,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[600],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Text(
+                        "Submit Quiz?",
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GridView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 5,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                            ),
+                        itemCount: global.quizData.length,
+                        itemBuilder: (context, index) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: _getQuestionColor(
+                                global.quizResult[index],
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Center(
+                              child: Text(
+                                "${index + 1}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const Divider(color: Color(0xFF334155), height: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        children: [
+                          _buildLegendItem(Colors.green, "Answered"),
+                          _buildLegendItem(Colors.purple, "Marked for Review"),
+                          _buildLegendItem(Colors.blue, "Seen"),
+                          _buildLegendItem(Colors.grey, "Unseen"),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                side: const BorderSide(
+                                  color: Color(0xFF334155),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "CANCEL",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                switchToResultScreen();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                backgroundColor: const Color(0xFF2563EB),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "SUBMIT",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF94A3B8),
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void switchState() {
@@ -197,8 +377,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           child: TextField(
             controller: controller,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))],
-            style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0), fontSize: 20),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
+            ],
+            style: GoogleFonts.poppins(
+              color: const Color(0xFFE2E8F0),
+              fontSize: 20,
+            ),
             decoration: InputDecoration(
               labelText: "Enter Integer Answer",
               labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
@@ -216,7 +401,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               switchState();
             },
           ),
-        )
+        ),
       ];
     }
 
@@ -287,8 +472,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   Color _getQuestionColor(List<dynamic> question) {
     final selection = _getSelection(question);
-    if (selection.isEmpty) return Colors.grey; // not visited
-    return Colors.green;
+    final bool isVisited = (question.length > 3)
+        ? (question[3] as bool)
+        : false;
+    final bool isMarkedForReview = (question.length > 4)
+        ? (question[4] as bool)
+        : false;
+
+    if (isMarkedForReview) return Colors.purple; // Marked for Review
+    if (selection.isNotEmpty) return Colors.green; // Answered
+    if (isVisited) return Colors.blue; // Seen
+    return Colors.grey; // Unseen
   }
 
   String _format(Duration d) =>
@@ -362,7 +556,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: switchToResultScreen,
+                onPressed: _showSubmitConfirmation,
                 child: const Text(
                   "SUBMIT",
                   style: TextStyle(
@@ -381,7 +575,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               alignment: Alignment.center,
               child: Text(
                 _timer?.isActive == true
-                    ? "⏳ Time left: ${_format(_timeLeft)}"
+                    ? "⏱ Time left: ${_format(_timeLeft)}"
                     : "No active timer",
                 style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
               ),
@@ -458,41 +652,123 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 const SizedBox(height: 20),
                 Container(
                   margin: const EdgeInsets.all(20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1E293B),
-                          foregroundColor: const Color(0xFFE2E8F0),
-                          side: const BorderSide(color: Color(0xFF334155)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              foregroundColor: const Color(0xFFE2E8F0),
+                              side: const BorderSide(color: Color(0xFF334155)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: i > 0
+                                ? () {
+                                    i--;
+                                    switchState();
+                                  }
+                                : null,
+                            child: const Text("PREVIOUS"),
                           ),
-                        ),
-                        onPressed: i > 0
-                            ? () {
-                                i--;
-                                switchState();
-                              }
-                            : null,
-                        child: const Text("PREVIOUS"),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              foregroundColor: Colors.redAccent,
+                              side: const BorderSide(color: Colors.redAccent),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                global.quizResult[i][2] = <String>[];
+                              });
+                            },
+                            child: const Text("CLEAR"),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2563EB),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: i < global.quizData.length - 1
+                                ? () {
+                                    i++;
+                                    switchState();
+                                  }
+                                : null,
+                            child: const Text("NEXT"),
+                          ),
+                        ],
                       ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: global.quizResult[i][4] == true
+                                    ? Colors.purple
+                                    : const Color(0xFF1E293B),
+                                foregroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: global.quizResult[i][4] == true
+                                      ? Colors.purple
+                                      : const Color(0xFF334155),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  global.quizResult[i][4] =
+                                      !(global.quizResult[i][4] as bool);
+                                });
+                              },
+                              icon: Icon(
+                                global.quizResult[i][4] == true
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                size: 18,
+                              ),
+                              label: const Text("MARK FOR REVIEW"),
+                            ),
                           ),
-                        ),
-                        onPressed: i < global.quizData.length - 1
-                            ? () {
-                                i++;
-                                switchState();
-                              }
-                            : null,
-                        child: const Text("NEXT"),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: const Color(0xFF1E293B),
+                                foregroundColor: Colors.purpleAccent,
+                                side: const BorderSide(color: Colors.purpleAccent),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  global.quizResult[i][4] = true;
+                                  if (i < global.quizData.length - 1) {
+                                    i++;
+                                    switchState();
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.forward, size: 18),
+                              label: const Text("REVIEW & NEXT"),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
