@@ -272,6 +272,50 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'Admin Panel',
               onTap: () => _checkAndNavigate(context, "/Admin Panel"),
             ),
+          if (_isRegisteredAdmin)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: SwitchListTile(
+                  title: const Text(
+                    "Admin Mode",
+                    style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+                  ),
+                  secondary: Icon(
+                    _isAdmin ? Icons.visibility : Icons.visibility_off,
+                    color: const Color(0xFF3B82F6),
+                  ),
+                  value: _isAdmin,
+                  activeColor: const Color(0xFF3B82F6),
+                  onChanged: (bool value) async {
+                    try {
+                      await DatabaseService().toggleAdminMode(
+                        uid: widget.user!.uid,
+                        enable: value,
+                      );
+                      if (mounted) {
+                        setState(() => _isAdmin = value);
+                        // Refresh features or navigate if needed
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Admin Mode ${value ? 'Enabled' : 'Disabled'}")),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error: $e")),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            ),
           const Divider(color: Color(0xFF334155)),
           if (widget.user != null)
             _drawerItem(
