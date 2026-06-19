@@ -44,6 +44,19 @@ Administrators are stored in the `admins` collection, indexed by their Firebase 
 - Only admins with a **higher level** can add, update, or remove another admin.
 - Only admins with a **higher level** than the level being assigned can grant that specific level to a new admin.
 
+### Level-Based Privileges
+Administrative powers are locked behind specific level thresholds. **Note:** "Admin Mode" must be toggled **ON** in the sidebar to activate these privileges.
+
+| Level | Role Name | Manageable Features |
+| :--- | :--- | :--- |
+| **1** | Junior Moderator | View Admin UI, bypass quiz creation rate limits, **bypass Global Maintenance Mode**. |
+| **2** | Moderator | Manage Quiz Collaborators, Add participants to restricted quizzes. |
+| **3** | Lead Moderator | Soft-delete participant responses (Moderation). |
+| **5** | Platform Manager | Create quizzes on behalf of others, Issue global user bans. |
+| **8** | System Admin | **Toggle Global Maintenance Mode**, modify platform settings, **bypass AI rate limits**. |
+| **9** | Admin Manager | Add, Update, or Remove other administrators (Level 1-8). |
+| **10** | Super Admin | Full system access, manage all admin levels, hardcoded overrides. |
+
 ---
 
 ## 3. Audit Logs

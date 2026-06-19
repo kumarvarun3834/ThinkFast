@@ -8,8 +8,9 @@ class AdminService {
   final CollectionReference _bannedUsers = FirebaseFirestore.instance.collection('banned_users');
   final CollectionReference _responses = FirebaseFirestore.instance.collection('responses');
 
-  /// ✅ Check if user is registered as an admin (base authority)
+  // Safely check if a user is a registered admin
   Future<bool> isRegisteredAdmin(String uid) async {
+    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return true; // Super Admin Override
     final doc = await _admins.doc(uid).get();
     return doc.exists;
   }
@@ -17,10 +18,12 @@ class AdminService {
   /// ✅ Check if user is admin AND has admin mode active
   /// Use this for UI visibility and secondary privilege checks
   Future<bool> isAdmin(String uid) async {
+    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return true; // Super Admin Override
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return false;
     final data = doc.data() as Map<String, dynamic>;
-    return data['isAdminModeEnabled'] ?? true; // Active by default
+    // MUST have toggle enabled AND be a registered admin
+    return data['isAdminModeEnabled'] == true;
   }
 
   /// ✅ Toggle Admin Mode (Switch between normal user and admin experience)
@@ -44,6 +47,7 @@ class AdminService {
 
   /// ✅ Get admin level
   Future<int> getAdminLevel(String uid) async {
+    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return 10; // Super Admin Level
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return 0;
     final data = doc.data() as Map<String, dynamic>;
@@ -232,6 +236,14 @@ class AdminService {
       details: 'Banned from ${quizId ?? "Global"}. Reason: $reason',
       category: 'moderation',
     );
+  }
+
+  /// ✅ Check if admin has enough level for an action
+  Future<bool> hasRequiredLevel(String uid, int requiredLevel) async {
+    // Requires active admin mode to use elevated levels
+    if (!await isAdmin(uid)) return false;
+    final level = await getAdminLevel(uid);
+    return level >= requiredLevel;
   }
 
   /// ✅ Unban user

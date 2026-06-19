@@ -43,11 +43,12 @@ class DatabaseService {
 
     // 1. Global Maintenance Mode Check
     if (flags?['maintenance_mode'] == true) {
-      bool isAdminUser = false;
+      bool isUserAdmin = false;
       if (userId != null) {
-        isAdminUser = await _adminService.isAdmin(userId);
+        // All admins (Level 1+) can bypass maintenance check if admin mode is ON
+        isUserAdmin = await _adminService.isAdmin(userId);
       }
-      if (!isAdminUser) {
+      if (!isUserAdmin) {
         throw Exception(
           "System is currently under maintenance. Please try again later.",
         );
@@ -56,11 +57,12 @@ class DatabaseService {
 
     // 2. Specific Feature Flag Check
     if (flag != null && flags?[flag] == false) {
-      bool isAdminUser = false;
+      bool isUserAdmin = false;
       if (userId != null) {
-        isAdminUser = await _adminService.isAdmin(userId);
+        // Levels 1-10 can bypass feature flags if admin mode is ON
+        isUserAdmin = await _adminService.isAdmin(userId);
       }
-      if (!isAdminUser) {
+      if (!isUserAdmin) {
         final actionName = flag
             .replaceFirst('enable_', '')
             .replaceAll('_', ' ');
@@ -68,6 +70,15 @@ class DatabaseService {
           "Access Denied: '$actionName' is currently disabled by the administrator.",
         );
       }
+    }
+  }
+
+  /// 🔐 Helper to check required admin level for sensitive operations
+  Future<void> _ensureAdminLevel(String userId, int requiredLevel) async {
+    if (!await _adminService.hasRequiredLevel(userId, requiredLevel)) {
+      throw Exception(
+        "Access Denied: Administrative level $requiredLevel or higher required (and Admin Mode must be ON).",
+      );
     }
   }
 
@@ -88,19 +99,25 @@ class DatabaseService {
     String? quizId,
     required String reason,
     required String adminId,
-  }) => _adminService.banUser(
+  }) async {
+    await _ensureAdminLevel(adminId, 5); // Level 5+ for global bans
+    return _adminService.banUser(
         userId: userId, quizId: quizId, reason: reason, adminId: adminId);
+  }
 
   Future<void> softDeleteResponse({
     required String responseId,
     required String quizId,
     required String adminId,
     required String reason,
-  }) => _adminService.softDeleteResponse(
+  }) async {
+    await _ensureAdminLevel(adminId, 3); // Level 3+ for moderation
+    return _adminService.softDeleteResponse(
         responseId: responseId,
         quizId: quizId,
         adminId: adminId,
         reason: reason);
+  }
 
   Future<void> grantManagementAccess({
     required String quizId,
@@ -108,6 +125,7 @@ class DatabaseService {
     required Map<String, bool> permissions,
     required String addedBy,
   }) async {
+    await _ensureAdminLevel(addedBy, 2); // Level 2+ for collabs
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.grantQuizManagementAccess(
         quizId: quizId,
@@ -121,6 +139,7 @@ class DatabaseService {
     required String userId,
     required String addedBy,
   }) async {
+    await _ensureAdminLevel(addedBy, 2);
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.addParticipant(
         quizId: quizId, userId: userId, addedBy: addedBy);
@@ -131,6 +150,7 @@ class DatabaseService {
     required String userId,
     required String removedBy,
   }) async {
+    await _ensureAdminLevel(removedBy, 2);
     await _ensurePermission('management_features', userId: removedBy);
     return _adminService.removeQuizManagementAccess(
         quizId: quizId, userId: userId, removedBy: removedBy);
@@ -141,6 +161,24 @@ class DatabaseService {
 
   Future<bool> isUserBanned(String userId, {String? quizId}) =>
       _adminService.isUserBanned(userId, quizId: quizId);
+
+  Future<void> addOrUpdateAdmin({
+    required String targetUid,
+    required int level,
+    required String actorUid,
+  }) async {
+    await _ensureAdminLevel(actorUid, 9); // Only level 9-10 can manage admins
+    return _adminService.addOrUpdateAdmin(
+        targetUid: targetUid, level: level, actorUid: actorUid);
+  }
+
+  Future<void> removeAdmin({
+    required String targetUid,
+    required String actorUid,
+  }) async {
+    await _ensureAdminLevel(actorUid, 9);
+    return _adminService.removeAdmin(targetUid: targetUid, actorUid: actorUid);
+  }
 
   // --- User Profiles ---
 
@@ -239,6 +277,7 @@ class DatabaseService {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(data, scheme);
+    await _ensurePermission('enable_create_quiz', userId: creatorId);
     return await _quizService.createQuiz(
       clientToken: clientToken,
       creatorId: creatorId,

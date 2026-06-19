@@ -40,11 +40,13 @@ class AiService {
     }, SetOptions(merge: true));
   }
 
-  /// ✅ Check user usage quota
-  Future<int> getAiUsageToday(String userId) async {
-    await _checkAiEnabled(userId);
-    final doc = await _usage.doc(userId).get();
-    if (!doc.exists) return 0;
-    return (doc.data() as Map<String, dynamic>)['aiGenerationsToday'] ?? 0;
+  /// ✅ Check if user has AI generation quota remaining
+  Future<bool> hasAiQuota(String userId) async {
+    // Level 8+ bypasses AI rate limits
+    if (await _admin.hasRequiredLevel(userId, 8)) return true;
+
+    final used = await getAiUsageToday(userId);
+    const int dailyQuota = 5; // Example quota
+    return used < dailyQuota;
   }
 }
