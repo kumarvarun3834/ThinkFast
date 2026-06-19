@@ -18,16 +18,18 @@
 
 ### 3.2 Quiz Creation & Management
 - **Quiz Editor:** A comprehensive form to define quiz title, description, visibility (public/private), time limits, and marking schemes.
-- **Question Types:** Support for Single Choice, Multiple Choice, and Integer questions with configurable options.
+- **Attempt Limits (Select N out of M):** Creators can limit the number of questions a participant can attempt per section or question type, mimicking competitive exam environments.
+- **Question Types:** Support for Single Choice, Multiple Choice, and Integer questions with configurable options and solution descriptions.
 - **Idempotency & Rate Limiting:** Prevents duplicate quiz creation and limits how often a user can create new quizzes to prevent spam.
-- **Answer Keys:** Separate management of answer keys to ensure integrity during the quiz.
+- **Answer Keys:** Separate management of answer keys and solution explanations to ensure integrity during the quiz.
 - **My Quizzes:** A dedicated space for creators to manage their content, including editing and (soft) deleting.
 - **Participant Response Analytics:** Creators can view a list of all participants, their scores, and specific attempt details. The system also tracks aggregate performance metrics for each question and overall quiz statistics.
 
 ### 3.3 Quiz Participation
 - **Joining Quizzes:** Users can join quizzes via a unique Quiz ID or through deep links (`/quiz?id=...`).
-- **Real-time Quiz Experience:** A countdown-based quiz interface where users answer questions within the allotted time.
+- **Real-time Quiz Experience:** A countdown-based quiz interface with immersive UI. Includes a color-coded navigator that reflects the status (Seen, Answered, Marked for Review, Correct, Wrong).
 - **Attempt Tracking:** Users can view their history of quiz attempts and results.
+- **Detailed Review Mode:** After completion, users can review each question with highlighted correct answers, their own choices, and detailed solution explanations.
 - **Scoring:** Automated scoring based on the quiz's marking scheme.
 
 ### 3.4 AI Integration

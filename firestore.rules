@@ -23,10 +23,8 @@ service cloud.firestore {
     // Safely check if user is a registered admin AND has admin mode active
     function isGlobalAdmin() {
       let adminPath = /databases/$(database)/documents/admins/$(request.auth.uid);
-      return isAuthenticated() && (
-        request.auth.uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2' ||
-        (exists(adminPath) && get(adminPath).data.get('isAdminModeEnabled', true) == true)
-      );
+      return isAuthenticated() &&
+        (exists(adminPath) && get(adminPath).data.get('isAdminModeEnabled', true) == true);
     }
 
     function getQuizData(quizId) {

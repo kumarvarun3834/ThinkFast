@@ -10,8 +10,14 @@ import '../utils/global.dart' as global;
 class Main_Screen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
+  final bool showManagedQuizzes;
 
-  const Main_Screen({super.key, this.creator, this.showMyQuizzes = false});
+  const Main_Screen({
+    super.key,
+    this.creator,
+    this.showMyQuizzes = false,
+    this.showManagedQuizzes = false,
+  });
 
   @override
   State<Main_Screen> createState() => _Main_ScreenState();
@@ -42,7 +48,9 @@ class _Main_ScreenState extends State<Main_Screen> {
   Stream<List<Map<String, dynamic>>> readDatabases() {
     return DatabaseService().readAllDatabases(
       showMyQuizzes: widget.showMyQuizzes,
+      showManagedQuizzes: widget.showManagedQuizzes,
       creatorId: widget.creator?.uid,
+      userId: _user?.uid,
     );
   }
 
@@ -151,10 +159,17 @@ class _Main_ScreenState extends State<Main_Screen> {
                 },
               )
             : Text(
-                "THINKFAST",
+                global.isAdmin
+                    ? "THINKFAST (ADMIN)"
+                    : (widget.showMyQuizzes
+                        ? "MY QUIZZES"
+                        : (widget.showManagedQuizzes
+                            ? "MANAGED QUIZZES"
+                            : "THINKFAST")),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFE2E8F0),
+                  color:
+                      global.isAdmin ? Colors.redAccent : const Color(0xFFE2E8F0),
                   letterSpacing: 1.5,
                 ),
               ),

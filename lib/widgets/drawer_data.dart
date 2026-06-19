@@ -279,6 +279,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
             ),
           if (widget.user != null)
             _drawerItem(
+              icon: Icons.people_outline_rounded,
+              text: 'Managed Quizzes',
+              onTap: () => _checkAndNavigate(context, "/Managed Quizzes"),
+            ),
+          if (widget.user != null)
+            _drawerItem(
               icon: Icons.history_rounded,
               text: 'My Attempts',
               onTap: () => _checkAndNavigate(context, "/My Attempts"),

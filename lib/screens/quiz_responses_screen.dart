@@ -284,6 +284,8 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                       quizId: r['quizId'],
                                       attemptAnswers:
                                           r['answers'] as Map<String, dynamic>,
+                                      attemptReviewItems:
+                                          r['reviewItems'] as List<dynamic>?,
                                     ),
                                   ),
                                 );

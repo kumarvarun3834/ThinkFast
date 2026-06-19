@@ -272,6 +272,7 @@ class DatabaseService {
     required List<Map<String, Object>> data,
     required int time, // minutes
     Map<String, dynamic>? markingScheme,
+    Map<String, dynamic>? attemptLimits,
     bool allowMultipleAttempts = true,
     bool completeRandomShuffle = false,
   }) async {
@@ -286,9 +287,10 @@ class DatabaseService {
       description: description,
       visibility: visibility,
       questions: List<Map<String, dynamic>>.from(transformed['modules']),
-      answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
+      answerKeys: List<Map<String, dynamic>>.from(transformed['answerkeys']),
       timeInSeconds: time * 60,
       markingScheme: scheme,
+      attemptLimits: attemptLimits ?? {'type': 'none'},
       allowMultipleAttempts: allowMultipleAttempts,
       completeRandomShuffle: completeRandomShuffle,
     );
@@ -305,6 +307,7 @@ class DatabaseService {
     bool? allowMultipleAttempts,
     bool? completeRandomShuffle,
     Map<String, dynamic>? markingScheme,
+    Map<String, dynamic>? attemptLimits,
   }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
     final Map<String, dynamic> updates = {};
@@ -319,6 +322,7 @@ class DatabaseService {
       updates['completeRandomShuffle'] = completeRandomShuffle;
     }
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
+    if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
 
     if (data != null) {
       // Fetch current marking scheme to propagate to questions if not provided
@@ -333,7 +337,7 @@ class DatabaseService {
       await _quizService.updateAnswerKeys(
         quizId: docId,
         userId: currentUserId,
-        answerKeys: List<Map<String, String>>.from(transformed['answerkeys']),
+        answerKeys: List<Map<String, dynamic>>.from(transformed['answerkeys']),
       );
     }
 
@@ -376,7 +380,9 @@ class DatabaseService {
 
   Stream<List<Map<String, dynamic>>> readAllDatabases({
     bool showMyQuizzes = false,
+    bool showManagedQuizzes = false,
     String? creatorId,
+    String? userId,
   }) {
     // For streams, we can check global flags. If null, we assume enabled
     // but the stream itself doesn't easily support async permission checks before returning
@@ -387,6 +393,8 @@ class DatabaseService {
 
     if (showMyQuizzes && creatorId != null) {
       return _quizService.getMyQuizzes(creatorId);
+    } else if (showManagedQuizzes && userId != null) {
+      return _quizService.getManagedQuizzes(userId);
     } else {
       return _quizService.getPublicQuizzes();
     }
@@ -416,12 +424,13 @@ class DatabaseService {
 
   // --- Attempts & Scoring ---
 
-  Future<Map<String, List<String>>> getQuizAnswers(
+  Future<Map<String, dynamic>> getQuizAnswers(
     String docId,
     String userId, {
     String? from,
     int? totalQuestions,
     Map<String, dynamic>? userAnswers,
+    List<String>? reviewItems,
   }) async {
     await _ensurePermission('enable_take_quiz', userId: userId);
     final quiz = await _quizService.getQuiz(docId);
@@ -439,10 +448,17 @@ class DatabaseService {
     if (keysList == null) throw Exception("Answers not found");
 
     final Map<String, List<String>> correctKey = {};
+    final Map<String, String> solutions = {};
+
     for (var entry in keysList) {
       final qUid = entry['q'].toString();
       final optUid = entry['a'].toString();
-      correctKey.putIfAbsent(qUid, () => []).add(optUid);
+      if (optUid != '__desc__') {
+        correctKey.putIfAbsent(qUid, () => []).add(optUid);
+      }
+      if (entry.containsKey('s')) {
+        solutions[qUid] = entry['s'].toString();
+      }
     }
 
     if (from == 'quizform') {
@@ -469,9 +485,10 @@ class DatabaseService {
         correctKey: correctKey,
         markingScheme: quiz['markingScheme'] ?? {'type': 'default'},
         quizData: flattenedQuestions,
+        reviewItems: reviewItems,
       );
     }
-    return correctKey;
+    return {'answers': correctKey, 'solutions': solutions};
   }
 
   Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
@@ -505,7 +522,7 @@ class DatabaseService {
     Map<String, dynamic> markingScheme,
   ) {
     final Map<String, List<Map<String, dynamic>>> moduleMap = {};
-    final List<Map<String, String>> answerKeys = [];
+    final List<Map<String, dynamic>> answerKeys = [];
     final Map<String, dynamic> perQuestionMap = {};
 
     for (int i = 0; i < inputData.length; i++) {
@@ -520,6 +537,7 @@ class DatabaseService {
           (item['question'] ??
                   (item['Q'] is Map ? (item['Q'] as Map)['text'] : ''))
               .toString();
+      final String qDescription = (item['description'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
 
@@ -537,9 +555,10 @@ class DatabaseService {
 
       if (qType == "Integer") {
         if (answers.isNotEmpty) {
-          answerKeys.add({'q': qUid, 'a': answers.first.toString()});
+          answerKeys.add({'q': qUid, 'a': answers.first.toString(), 's': qDescription});
         }
       } else {
+        bool descriptionAdded = false;
         for (int j = 0; j < choices.length; j++) {
           final choice = choices[j];
           String optUid;
@@ -557,8 +576,17 @@ class DatabaseService {
 
           // Check if this option is an answer (by text or by ID)
           if (answers.contains(optText) || answers.contains(optUid)) {
-            answerKeys.add({'q': qUid, 'a': optUid});
+            final Map<String, dynamic> entry = {'q': qUid, 'a': optUid};
+            if (!descriptionAdded) {
+              entry['s'] = qDescription;
+              descriptionAdded = true;
+            }
+            answerKeys.add(entry);
           }
+        }
+        // If no answers were selected but there's a description, add a dummy entry or handle it
+        if (!descriptionAdded && qDescription.isNotEmpty) {
+           answerKeys.add({'q': qUid, 'a': '__desc__', 's': qDescription});
         }
       }
 

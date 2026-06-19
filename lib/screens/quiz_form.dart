@@ -35,6 +35,15 @@ class _QuizPageState extends State<QuizPage> {
   bool allowMultipleAttempts = true;
   bool completeRandomShuffle = false;
 
+  // Attempt Limits
+  String attemptLimitType = "none";
+  final Map<String, TextEditingController> _globalLimitControllers = {
+    "Single Choice": TextEditingController(),
+    "Multiple Choice": TextEditingController(),
+    "Integer": TextEditingController(),
+  };
+  final Map<String, Map<String, TextEditingController>> _moduleLimitControllers = {};
+
   // Modules
   final List<String> modulesList = ["General"];
   final TextEditingController _moduleController = TextEditingController();
@@ -83,10 +92,24 @@ class _QuizPageState extends State<QuizPage> {
         (global.featureFlags?['enable_ai'] ?? true);
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
 
+    _updateModuleLimitControllers();
+
     if (widget.docId.isNotEmpty) {
       _fetchQuiz(widget.docId);
     } else {
       questions.add({"subject": "General"});
+    }
+  }
+
+  void _updateModuleLimitControllers() {
+    for (var module in modulesList) {
+      if (!_moduleLimitControllers.containsKey(module)) {
+        _moduleLimitControllers[module] = {
+          "Single Choice": TextEditingController(),
+          "Multiple Choice": TextEditingController(),
+          "Integer": TextEditingController(),
+        };
+      }
     }
   }
 
@@ -186,6 +209,28 @@ class _QuizPageState extends State<QuizPage> {
             final scheme = data['markingScheme'] as Map;
             markingType = scheme['type'] ?? 'default';
           }
+
+          if (data['attemptLimits'] != null) {
+            final limits = data['attemptLimits'] as Map;
+            attemptLimitType = limits['type'] ?? 'none';
+            if (attemptLimitType == 'global') {
+              final g = limits['global'] as Map? ?? {};
+              _globalLimitControllers['Single Choice']!.text = (g['Single Choice'] ?? '').toString();
+              _globalLimitControllers['Multiple Choice']!.text = (g['Multiple Choice'] ?? '').toString();
+              _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '').toString();
+            } else if (attemptLimitType == 'per_module') {
+              final pm = limits['perModule'] as Map? ?? {};
+              pm.forEach((module, values) {
+                if (!modulesList.contains(module)) modulesList.add(module);
+                _updateModuleLimitControllers();
+                final mLimits = values as Map? ?? {};
+                _moduleLimitControllers[module]!['Single Choice']!.text = (mLimits['Single Choice'] ?? '').toString();
+                _moduleLimitControllers[module]!['Multiple Choice']!.text = (mLimits['Multiple Choice'] ?? '').toString();
+                _moduleLimitControllers[module]!['Integer']!.text = (mLimits['Integer'] ?? '').toString();
+              });
+            }
+          }
+
           questions.clear();
           modulesList.clear();
           if (!modulesList.contains("General")) modulesList.add("General");
@@ -228,6 +273,7 @@ class _QuizPageState extends State<QuizPage> {
                 "correct": q['correct'] ?? 4,
                 "wrong": q['wrong'] ?? -1,
                 "subject": subject,
+                "description": q['description'] ?? '',
               });
             }
           }
@@ -291,6 +337,31 @@ class _QuizPageState extends State<QuizPage> {
               (pqt['Integer']?['correct'] ?? 4).toString();
           _intWrongController.text =
               (pqt['Integer']?['wrong'] ?? -1).toString();
+        }
+
+        // Load Attempt Limits
+        final limits = data['attemptLimits'] as Map? ?? {};
+        attemptLimitType = limits['type'] ?? 'none';
+        if (attemptLimitType == 'global') {
+          final g = limits['global'] as Map? ?? {};
+          _globalLimitControllers['Single Choice']!.text = (g['Single Choice'] ?? '').toString();
+          _globalLimitControllers['Multiple Choice']!.text = (g['Multiple Choice'] ?? '').toString();
+          _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '').toString();
+        } else if (attemptLimitType == 'per_module') {
+          final pm = limits['perModule'] as Map? ?? {};
+          pm.forEach((module, values) {
+            if (!_moduleLimitControllers.containsKey(module)) {
+              _moduleLimitControllers[module] = {
+                "Single Choice": TextEditingController(),
+                "Multiple Choice": TextEditingController(),
+                "Integer": TextEditingController(),
+              };
+            }
+            final mLimits = values as Map? ?? {};
+            _moduleLimitControllers[module]!['Single Choice']!.text = (mLimits['Single Choice'] ?? '').toString();
+            _moduleLimitControllers[module]!['Multiple Choice']!.text = (mLimits['Multiple Choice'] ?? '').toString();
+            _moduleLimitControllers[module]!['Integer']!.text = (mLimits['Integer'] ?? '').toString();
+          });
         }
 
         final Map<String, dynamic> pqScheme =
@@ -521,6 +592,119 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
+  Widget _buildAttemptLimitsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Attempt Limits (Select N out of M)",
+          style: GoogleFonts.poppins(
+            color: const Color(0xFFE2E8F0),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Limit how many questions of each type a user can answer.",
+          style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          dropdownColor: const Color(0xFF1E293B),
+          value: attemptLimitType,
+          style: const TextStyle(color: Color(0xFFE2E8F0)),
+          items: const [
+            DropdownMenuItem(value: "none", child: Text("No Limits")),
+            DropdownMenuItem(value: "global", child: Text("Same for all modules")),
+            DropdownMenuItem(value: "per_module", child: Text("Different for each module")),
+          ],
+          onChanged: (v) => setState(() {
+            attemptLimitType = v!;
+            if (v == "per_module") _updateModuleLimitControllers();
+          }),
+          decoration: const InputDecoration(labelText: "Limit Mode"),
+        ),
+        if (attemptLimitType == "global") ...[
+          const SizedBox(height: 16),
+          _buildLimitRow("Single Choice", _globalLimitControllers["Single Choice"]!),
+          const SizedBox(height: 12),
+          _buildLimitRow("Multiple Choice", _globalLimitControllers["Multiple Choice"]!),
+          const SizedBox(height: 12),
+          _buildLimitRow("Integer", _globalLimitControllers["Integer"]!),
+        ],
+        if (attemptLimitType == "per_module") ...[
+          const SizedBox(height: 16),
+          ...modulesList.map((m) {
+            _updateModuleLimitControllers(); // Ensure controllers exist
+            final controllers = _moduleLimitControllers[m]!;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      m.toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF3B82F6),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildLimitRow("SC", controllers["Single Choice"]!, dense: true),
+                    const SizedBox(height: 8),
+                    _buildLimitRow("MC", controllers["Multiple Choice"]!, dense: true),
+                    const SizedBox(height: 8),
+                    _buildLimitRow("Int", controllers["Integer"]!, dense: true),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLimitRow(String label, TextEditingController controller, {bool dense = false}) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: const Color(0xFFE2E8F0),
+              fontSize: dense ? 13 : 14,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+            decoration: InputDecoration(
+              contentPadding: dense ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8) : null,
+              hintText: "No Limit",
+              hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _addNewForm() => setState(() => questions.add({"subject": "General"}));
 
   void _removeForm(int index) {
@@ -726,6 +910,26 @@ class _QuizPageState extends State<QuizPage> {
       };
     }
 
+    // Prepare Attempt Limits
+    final Map<String, dynamic> attemptLimits = {'type': attemptLimitType};
+    if (attemptLimitType == "global") {
+      attemptLimits['global'] = {
+        'Single Choice': int.tryParse(_globalLimitControllers['Single Choice']!.text),
+        'Multiple Choice': int.tryParse(_globalLimitControllers['Multiple Choice']!.text),
+        'Integer': int.tryParse(_globalLimitControllers['Integer']!.text),
+      };
+    } else if (attemptLimitType == "per_module") {
+      final Map<String, dynamic> perModule = {};
+      _moduleLimitControllers.forEach((module, controllers) {
+        perModule[module] = {
+          'Single Choice': int.tryParse(controllers['Single Choice']!.text),
+          'Multiple Choice': int.tryParse(controllers['Multiple Choice']!.text),
+          'Integer': int.tryParse(controllers['Integer']!.text),
+        };
+      });
+      attemptLimits['perModule'] = perModule;
+    }
+
     final db = DatabaseService();
 
     try {
@@ -739,6 +943,7 @@ class _QuizPageState extends State<QuizPage> {
           data: questions,
           time: time,
           markingScheme: markingScheme,
+          attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
         );
@@ -756,6 +961,7 @@ class _QuizPageState extends State<QuizPage> {
           data: questions,
           time: time,
           markingScheme: markingScheme,
+          attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
         );
@@ -780,8 +986,11 @@ class _QuizPageState extends State<QuizPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "Quiz Editor",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          global.isAdmin ? "Quiz Editor (ADMIN)" : "Quiz Editor",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: global.isAdmin ? Colors.redAccent : Colors.white,
+          ),
         ),
         actions: [
           if (_importEnabled)
@@ -920,6 +1129,8 @@ class _QuizPageState extends State<QuizPage> {
               _buildModulesSection(),
               const SizedBox(height: 24),
               _buildMarkingSchemeSection(),
+              const SizedBox(height: 24),
+              _buildAttemptLimitsSection(),
               const SizedBox(height: 24),
               ...modulesList.map((module) {
                 final moduleQuestions = questions

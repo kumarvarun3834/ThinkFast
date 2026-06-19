@@ -16,6 +16,7 @@ ThinkFast utilizes a **Modern Dark Minimalist** design language. The goal is to 
 | **Border** | `#334155` | ![#334155](https://via.placeholder.com/15/334155?text=+) | Subtle border color for separating UI elements. |
 | **Correct** | `greenAccent` | | Semantic color for correct answers and success states. |
 | **Incorrect**| `redAccent` | | Semantic color for wrong answers and errors. |
+| **Review** | `purple` | | Semantic color for questions marked for review. |
 | **Partial** | `orangeAccent`| | Semantic color for unanswered or partially correct states. |
 
 ## 3. Typography
@@ -41,9 +42,20 @@ ThinkFast utilizes a **Modern Dark Minimalist** design language. The goal is to 
 *   **Outline/Secondary:** Transparent background with `primaryAccent` border and text.
 
 ### 4.4 Quiz Interface
-*   **Countdown Timer:** Circular progress or bold digital clock using `primaryAccent`.
-*   **Question Modules:** Grouped by subject with clear visual dividers.
-*   **Option Selection:** Options glow with `primaryAccent` when selected.
+*   **Countdown Timer:** Bold digital clock in the sub-header.
+*   **Progress Navigator:** Horizontal scrollable row of circles.
+    *   **Blue:** Seen but not answered.
+    *   **Green:** Answered (Quiz Mode) or Correct (Review Mode).
+    *   **Red:** Wrong (Review Mode).
+    *   **Purple:** Marked for Review.
+    *   **Purple/Green Gradient:** Marked for Review + Correct/Answered.
+*   **Option Selection:** 
+    *   **Quiz Mode:** Active border highlights with `primaryAccent`.
+    *   **Review Mode:** Correct options highlighted with green background; incorrect selections with red borders. Includes status tags (e.g., "Correct choice").
+
+### 4.5 Post-Quiz Experience
+*   **Summary View:** Minimalist card with total score and categorized counts (Correct/Wrong/Skipped).
+*   **Attempt Details:** Transitions back to the Quiz module in a non-editable `ReviewMode`.
 
 ## 5. Assets
 *   **Logo:** `assets/images/quiz-logo.png` - A high-contrast version of the brand logo optimized for dark backgrounds.

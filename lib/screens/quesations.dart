@@ -154,7 +154,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     // assume global.currentQuizId is set when quiz is chosen
     final int timeSeconds = global.time;
 
-    _shuffleQuestionsAndOptions();
+    if (!global.isReviewMode) {
+      _shuffleQuestionsAndOptions();
+    }
 
     setState(() {
       currentData = global.quizData[i];
@@ -164,7 +166,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       }
     });
 
-    _startTimer();
+    if (!global.isReviewMode) {
+      _startTimer();
+    }
   }
 
   Future<void> _submitAndFinish() async {
@@ -237,12 +241,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         itemCount: global.quizData.length,
                         itemBuilder: (context, index) {
                           return Container(
-                            decoration: BoxDecoration(
-                              color: _getQuestionColor(
-                                global.quizResult[index],
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            decoration: _getQuestionDecoration(index),
                             child: Center(
                               child: Text(
                                 _getDisplayNumber(index),
@@ -377,27 +376,76 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   List<Widget> buttons_Data(Map<String, Object> quizData) {
     final String type = quizData["type"]?.toString() ?? "Single Choice";
+    final String qUid = (quizData["Q"] as Map?)?['id']?.toString() ?? "";
+    final bool limitReached = _isLimitReached();
 
     if (type == "Integer") {
+      final String correctVal =
+          global.correctAnswers[qUid]?.isNotEmpty == true
+              ? global.correctAnswers[qUid]!.first
+              : "";
+      final String userVal = _integerController.text.trim();
+      final bool isAnswered = userVal.isNotEmpty;
+      final bool isCorrect = global.isReviewMode && isAnswered && userVal == correctVal;
+      final bool isWrong = global.isReviewMode && isAnswered && userVal != correctVal;
+
       return [
+        if (limitReached)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              "⚠ Attempt limit reached for this section.",
+              style: GoogleFonts.poppins(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: TextField(
             controller: _integerController,
+            enabled: !global.isReviewMode && (!limitReached || isAnswered),
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
             ],
             style: GoogleFonts.poppins(
-              color: const Color(0xFFE2E8F0),
+              color: global.isReviewMode
+                  ? (isCorrect
+                      ? Colors.greenAccent
+                      : (isWrong ? Colors.redAccent : const Color(0xFFE2E8F0)))
+                  : (limitReached && !isAnswered ? const Color(0xFF475569) : const Color(0xFFE2E8F0)),
               fontSize: 20,
             ),
             decoration: InputDecoration(
-              labelText: "Enter Integer Answer",
-              labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+              labelText: global.isReviewMode
+                  ? (isAnswered ? "Integer Answer Review" : "Not Answered")
+                  : (limitReached && !isAnswered ? "Limit Reached" : "Enter Integer Answer"),
+              labelStyle: TextStyle(
+                color: global.isReviewMode
+                    ? (isCorrect
+                        ? Colors.greenAccent
+                        : (isWrong ? Colors.redAccent : const Color(0xFF94A3B8)))
+                    : (limitReached && !isAnswered ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF334155)),
+                borderSide: BorderSide(
+                  color: global.isReviewMode
+                      ? (isCorrect
+                          ? Colors.greenAccent
+                          : (isWrong ? Colors.redAccent : const Color(0xFF334155)))
+                      : (limitReached && !isAnswered ? const Color(0xFF1E293B) : const Color(0xFF334155)),
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: global.isReviewMode
+                      ? (isCorrect
+                          ? Colors.greenAccent
+                          : (isWrong ? Colors.redAccent : const Color(0xFF334155)))
+                      : (limitReached && !isAnswered ? const Color(0xFF1E293B) : const Color(0xFF334155)),
+                  width: (isCorrect || isWrong) ? 2 : 1,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -406,11 +454,34 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             ),
             onChanged: (val) {
               global.quizResult[i][2] = [val.trim()];
-              // Use silent state update for performance while typing
               global.quizResult[i][3] = true; // visited
+              setState(() {}); // Refresh to update limit status across quiz
             },
           ),
         ),
+        if (global.isReviewMode)
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+                const SizedBox(width: 12),
+                Text(
+                  "Correct Value: $correctVal",
+                  style: GoogleFonts.poppins(
+                    color: Colors.greenAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ];
     }
 
@@ -418,6 +489,18 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     // As is [{id, text}, ...]
     final List<dynamic> options = quizData["As"] as List? ?? [];
+
+    if (limitReached && _getSelection(global.quizResult[i]).isEmpty) {
+      database.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            "⚠ Attempt limit reached for this section.",
+            style: GoogleFonts.poppins(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
 
     for (var option in options) {
       if (option is Map) {
@@ -429,8 +512,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             quizData["type"]?.toString() ?? "Single Choice",
             optUid,
             optText,
-            switchState,
+            () {
+               switchState();
+               setState(() {}); // Force update for limit check
+            },
             global.quizResult[i],
+            isLimitReached: limitReached,
           ),
         );
       }
@@ -534,13 +621,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         width: 60,
         height: 60,
         margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: _getQuestionColor(global.quizResult[index]),
-          borderRadius: BorderRadius.circular(12),
-          border: i == index
-              ? Border.all(color: const Color(0xFF3B82F6), width: 2)
-              : null,
-        ),
+        decoration: _getQuestionDecoration(index, isCurrent: i == index),
         child: Center(
           child: Text(
             displayNum,
@@ -562,6 +643,50 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       return sel.map((e) => e.toString()).toList();
     }
     return <String>[];
+  }
+
+  bool _isLimitReached() {
+    if (global.isReviewMode) return false;
+    final limits = global.attemptLimits;
+    if (limits['type'] == 'none') return false;
+
+    final String currentSubject = currentData['subject']?.toString() ?? 'General';
+    final String currentType = currentData['type']?.toString() ?? 'Single Choice';
+
+    int limit = -1;
+    if (limits['type'] == 'global') {
+      limit = limits['global']?[currentType] ?? -1;
+    } else if (limits['type'] == 'per_module') {
+      limit = limits['perModule']?[currentSubject]?[currentType] ?? -1;
+    }
+
+    if (limit == -1) return false;
+
+    // Count how many questions of this type/module have answers
+    int answeredCount = 0;
+    for (int j = 0; j < global.quizData.length; j++) {
+      final q = global.quizData[j];
+      final r = global.quizResult[j];
+      
+      final String subject = q['subject']?.toString() ?? 'General';
+      final String type = q['type']?.toString() ?? 'Single Choice';
+      final selection = _getSelection(r);
+
+      if (subject == currentSubject && type == currentType && selection.isNotEmpty) {
+        // If it's the current question and it's already answered, don't count it towards the limit "block" 
+        // logic if we want to allow changing answers.
+        // But usually "N out of M" means once you pick N, you are done.
+        answeredCount++;
+      }
+    }
+
+    // If current question is NOT answered yet, and count is already >= limit, then BLOCKED.
+    final currentSelection = _getSelection(global.quizResult[i]);
+    if (currentSelection.isEmpty && answeredCount >= limit) {
+      return true;
+    }
+
+    return false;
   }
 
   List<int> _getCurrentModuleIndices() {
@@ -587,6 +712,133 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     }
 
     return List.generate(end - start + 1, (index) => start + index);
+  }
+
+  Widget _buildLimitStatusIndicator() {
+    final limits = global.attemptLimits;
+    final String currentSubject = currentData['subject']?.toString() ?? 'General';
+    final String currentType = currentData['type']?.toString() ?? 'Single Choice';
+
+    int limit = -1;
+    if (limits['type'] == 'global') {
+      limit = limits['global']?[currentType] ?? -1;
+    } else if (limits['type'] == 'per_module') {
+      limit = limits['perModule']?[currentSubject]?[currentType] ?? -1;
+    }
+
+    if (limit == -1) return const SizedBox.shrink();
+
+    int answeredCount = 0;
+    for (int j = 0; j < global.quizData.length; j++) {
+      if ((global.quizData[j]['subject']?.toString() ?? 'General') == currentSubject &&
+          (global.quizData[j]['type']?.toString() ?? 'Single Choice') == currentType &&
+          _getSelection(global.quizResult[j]).isNotEmpty) {
+        answeredCount++;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: (answeredCount >= limit ? Colors.orange : Colors.blue).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: (answeredCount >= limit ? Colors.orange : Colors.blue).withOpacity(0.5)),
+      ),
+      child: Text(
+        "Limit: $answeredCount/$limit",
+        style: GoogleFonts.poppins(
+          color: answeredCount >= limit ? Colors.orangeAccent : Colors.blueAccent,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Decoration _getQuestionDecoration(int index, {bool isCurrent = false}) {
+    final List<dynamic> question = global.quizResult[index];
+    final selection = _getSelection(question);
+    final bool isVisited = (question.length > 3) ? (question[3] as bool) : false;
+    final bool isMarkedForReview = (question.length > 4) ? (question[4] as bool) : false;
+    final bool isAnswered = selection.isNotEmpty;
+
+    // Correctness logic for Review Mode
+    bool isCorrect = false;
+    bool isWrong = false;
+    if (global.isReviewMode && isAnswered) {
+      final String qUid = question[1].toString();
+      final List<String> correct = global.correctAnswers[qUid] ?? [];
+      final String? qType = global.quizData[index]['type']?.toString();
+
+      if (qType == "Integer") {
+        final String userVal = selection.first.trim();
+        final String correctVal = correct.isNotEmpty ? correct.first.trim() : "";
+        isCorrect = userVal == correctVal;
+        isWrong = !isCorrect;
+      } else {
+        isCorrect = selection.length == correct.length &&
+            selection.every((s) => correct.contains(s));
+        isWrong = !isCorrect;
+      }
+    }
+
+    if (isMarkedForReview) {
+      List<Color> gradientColors = [Colors.purple, Colors.grey];
+      if (global.isReviewMode) {
+        if (isCorrect) {
+          gradientColors = [Colors.purple, Colors.green];
+        } else if (isWrong) {
+          gradientColors = [Colors.purple, Colors.red];
+        } else {
+          gradientColors = [Colors.purple, Colors.grey];
+        }
+      } else {
+        if (isAnswered) {
+          gradientColors = [Colors.purple, Colors.green];
+        } else {
+          gradientColors = [Colors.purple, Colors.blue];
+        }
+      }
+
+      return BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: isCurrent
+            ? Border.all(color: const Color(0xFF3B82F6), width: 3)
+            : null,
+      );
+    }
+
+    Color color = Colors.grey;
+    if (global.isReviewMode) {
+      if (isCorrect) {
+        color = Colors.green;
+      } else if (isWrong) {
+        color = Colors.red;
+      } else {
+        color = Colors.grey; // Not answered
+      }
+    } else {
+      if (isAnswered) {
+        color = Colors.green;
+      } else if (isVisited) {
+        color = Colors.blue;
+      } else {
+        color = Colors.grey;
+      }
+    }
+
+    return BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(12),
+      border: isCurrent
+          ? Border.all(color: const Color(0xFF3B82F6), width: 3)
+          : null,
+    );
   }
 
   Color _getQuestionColor(List<dynamic> question) {
@@ -670,22 +922,30 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           actions: [
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                onPressed: _showSubmitConfirmation,
-                child: const Text(
-                  "SUBMIT",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              child: global.isReviewMode
+                  ? IconButton(
+                      icon: const Icon(Icons.close, color: Color(0xFFE2E8F0)),
+                      onPressed: () {
+                        global.isReviewMode = false;
+                        Navigator.pop(context);
+                      },
+                    )
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: _showSubmitConfirmation,
+                      child: const Text(
+                        "SUBMIT",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
             ),
           ],
           bottom: PreferredSize(
@@ -695,10 +955,16 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               height: 30,
               alignment: Alignment.center,
               child: Text(
-                _timer?.isActive == true
-                    ? "⏱ Time left: ${_format(_timeLeft)}"
-                    : "No active timer",
-                style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+                global.isReviewMode
+                    ? "REVIEW MODE"
+                    : (_timer?.isActive == true
+                        ? "⏱ Time left: ${_format(_timeLeft)}"
+                        : "No active timer"),
+                style: TextStyle(
+                  color: global.isReviewMode ? Colors.orangeAccent : const Color(0xFFE2E8F0),
+                  fontSize: 14,
+                  fontWeight: global.isReviewMode ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
           ),
@@ -765,17 +1031,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                             child: Container(
                               width: 40,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: _getQuestionColor(
-                                  global.quizResult[globalIndex],
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                                border: isCurrent
-                                    ? Border.all(
-                                      color: const Color(0xFF3B82F6),
-                                      width: 2,
-                                    )
-                                    : null,
+                              decoration: _getQuestionDecoration(
+                                globalIndex,
+                                isCurrent: isCurrent,
                               ),
                               child: Center(
                                 child: Text(
@@ -948,6 +1206,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 ),
                               ),
                             ),
+                            if (!global.isReviewMode && global.attemptLimits['type'] != 'none')
+                               _buildLimitStatusIndicator(),
                             Text(
                               "Question ${_getDisplayNumber(i)} of ${moduleIndices.length}",
                               style: GoogleFonts.poppins(
@@ -988,6 +1248,44 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         width: double.infinity,
                         child: Column(children: buttons_Data(currentData)),
                       ),
+                      if (global.isReviewMode && global.solutions.containsKey(currentData['uid']?.toString() ?? ""))
+                        Container(
+                          margin: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.lightbulb_outline, color: Color(0xFF3B82F6), size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "SOLUTION",
+                                    style: GoogleFonts.poppins(
+                                      color: const Color(0xFF3B82F6),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                global.solutions[currentData['uid']?.toString()] ?? "",
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFE2E8F0),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 30),
                       Container(
                         margin: const EdgeInsets.all(20),
@@ -1079,6 +1377,7 @@ class buttons_opt extends StatelessWidget {
   final String optText;
   final String type;
   final List<dynamic> quizResultChunk;
+  final bool isLimitReached;
 
   buttons_opt(
     this.type,
@@ -1086,6 +1385,7 @@ class buttons_opt extends StatelessWidget {
     this.optText,
     this.onPressed,
     this.quizResultChunk, {
+    this.isLimitReached = false,
     super.key,
   });
 
@@ -1101,38 +1401,51 @@ class buttons_opt extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectionList = _getSelection();
     final bool isSelected = selectionList.contains(optUid);
+    final String qUid = quizResultChunk[1].toString();
+    final bool isCorrect = global.correctAnswers[qUid]?.contains(optUid) ?? false;
+    final bool isBlocked = isLimitReached && !isSelected;
 
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: OutlinedButton(
-        onPressed: () {
-          final sel = _getSelection();
-          if (type == "Single Choice") {
-            quizResultChunk[2] = [optUid];
-          } else {
-            if (sel.contains(optUid)) {
-              sel.remove(optUid);
-            } else {
-              sel.add(optUid);
-            }
-            quizResultChunk[2] = sel;
-          }
-          onPressed();
-        },
+        onPressed: (global.isReviewMode || isBlocked)
+            ? null
+            : () {
+                final sel = _getSelection();
+                if (type == "Single Choice") {
+                  quizResultChunk[2] = [optUid];
+                } else {
+                  if (sel.contains(optUid)) {
+                    sel.remove(optUid);
+                  } else {
+                    sel.add(optUid);
+                  }
+                  quizResultChunk[2] = sel;
+                }
+                onPressed();
+              },
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          backgroundColor: isSelected
-              ? const Color(0xFF3B82F6).withOpacity(0.2)
-              : const Color(0xFF1E293B),
-          foregroundColor: isSelected
-              ? const Color(0xFF3B82F6)
-              : const Color(0xFFE2E8F0),
+          backgroundColor: global.isReviewMode
+              ? (isCorrect
+                  ? Colors.green.withOpacity(0.15)
+                  : (isSelected ? Colors.red.withOpacity(0.1) : const Color(0xFF1E293B)))
+              : (isSelected
+                  ? const Color(0xFF3B82F6).withOpacity(0.2)
+                  : (isBlocked ? const Color(0xFF0F172A).withOpacity(0.5) : const Color(0xFF1E293B))),
+          foregroundColor: global.isReviewMode
+              ? (isCorrect
+                  ? Colors.greenAccent
+                  : (isSelected ? Colors.redAccent : const Color(0xFFE2E8F0)))
+              : (isSelected ? const Color(0xFF3B82F6) : (isBlocked ? const Color(0xFF475569) : const Color(0xFFE2E8F0))),
           side: BorderSide(
-            color: isSelected
-                ? const Color(0xFF3B82F6)
-                : const Color(0xFF334155),
-            width: 2,
+            color: global.isReviewMode
+                ? (isCorrect
+                    ? Colors.greenAccent
+                    : (isSelected ? Colors.redAccent : const Color(0xFF334155)))
+                : (isSelected ? const Color(0xFF3B82F6) : (isBlocked ? const Color(0xFF1E293B) : const Color(0xFF334155))),
+            width: (global.isReviewMode && (isCorrect || isSelected)) || (!global.isReviewMode && isSelected) ? 2.5 : 1,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1140,12 +1453,46 @@ class buttons_opt extends StatelessWidget {
         ),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text(
-            optText,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      optText,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: (isCorrect || isSelected) ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    if (global.isReviewMode) ...[
+                      if (isCorrect && isSelected)
+                        const Text("Correct choice",
+                            style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold))
+                      else if (isCorrect)
+                        const Text("Correct answer",
+                            style: TextStyle(
+                                color: Colors.greenAccent, fontSize: 10))
+                      else if (isSelected)
+                        const Text("Your incorrect choice",
+                            style: TextStyle(
+                                color: Colors.redAccent, fontSize: 10)),
+                    ]
+                  ],
+                ),
+              ),
+              if (global.isReviewMode) ...[
+                if (isCorrect)
+                  const Icon(Icons.check_circle,
+                      color: Colors.greenAccent, size: 20)
+                else if (isSelected)
+                  const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+              ],
+            ],
           ),
         ),
       ),

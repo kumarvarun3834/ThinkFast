@@ -19,9 +19,10 @@ class QuizService {
     required String description,
     required String visibility,
     required List<Map<String, dynamic>> questions,
-    required List<Map<String, String>> answerKeys,
+    required List<Map<String, dynamic>> answerKeys,
     required int timeInSeconds,
     Map<String, dynamic>? markingScheme,
+    Map<String, dynamic>? attemptLimits,
     bool allowMultipleAttempts = true,
     bool completeRandomShuffle = false,
     List<String>? tags,
@@ -92,6 +93,7 @@ class QuizService {
       'allowMultipleAttempts': allowMultipleAttempts,
       'completeRandomShuffle': completeRandomShuffle,
       'markingScheme': markingScheme ?? {'type': 'default'},
+      'attemptLimits': attemptLimits ?? {'type': 'none'},
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
       'isRestricted': false,
@@ -227,6 +229,29 @@ class QuizService {
             }).toList());
   }
 
+  /// ✅ Fetch Managed Quizzes (Where user is a collaborator)
+  Stream<List<Map<String, dynamic>>> getManagedQuizzes(String userId) {
+    return FirebaseFirestore.instance.collection('quiz_access')
+        .where('userId', isEqualTo: userId)
+        .where('role', isEqualTo: 'manager')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          List<Map<String, dynamic>> quizzes = [];
+          for (var doc in snapshot.docs) {
+            final quizId = doc.data()['quizId'];
+            final quizDoc = await _quizzes.doc(quizId).get();
+            if (quizDoc.exists) {
+              final data = quizDoc.data() as Map<String, dynamic>;
+              data['id'] = quizDoc.id;
+              if (data['isDeleted'] == false) {
+                quizzes.add(data);
+              }
+            }
+          }
+          return quizzes;
+        });
+  }
+
   /// ✅ Check if user has access to a quiz
   Future<bool> hasAccess(String quizId, String userId) async {
     // 0. Check if user is banned
@@ -256,7 +281,7 @@ class QuizService {
   Future<void> updateAnswerKeys({
     required String quizId,
     required String userId,
-    required List<Map<String, String>> answerKeys,
+    required List<Map<String, dynamic>> answerKeys,
   }) async {
     await _answerKeys.doc(quizId).update({
       'answerkeys': answerKeys,

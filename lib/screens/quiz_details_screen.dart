@@ -617,6 +617,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       _quizData!['completeRandomShuffle'] ?? false;
                   global.markingScheme =
                       _quizData!['markingScheme'] ?? {"type": "default"};
+                  global.attemptLimits =
+                      _quizData!['attemptLimits'] ?? {"type": "none"};
                   global.currentUserProfile = _userProfile;
                   global.creatorProfile = _creatorProfile;
 

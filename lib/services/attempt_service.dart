@@ -17,6 +17,7 @@ class AttemptService {
     required Map<String, List<String>> correctKey,
     required Map<String, dynamic> markingScheme,
     required List<dynamic> quizData,
+    List<String>? reviewItems,
   }) async {
     int score = 0;
 
@@ -82,6 +83,7 @@ class AttemptService {
       score: score,
       totalQuestions: totalQuestions,
       answers: userAnswers,
+      reviewItems: reviewItems,
     );
   }
 
@@ -93,6 +95,7 @@ class AttemptService {
     required int score,
     required int totalQuestions,
     required Map<String, dynamic> answers,
+    List<String>? reviewItems,
   }) async {
     final attemptData = {
       'userId': userId,
@@ -101,6 +104,7 @@ class AttemptService {
       'score': score,
       'totalQuestions': totalQuestions,
       'answers': answers,
+      'reviewItems': reviewItems ?? [],
       'status': 1,
       'timestamp': FieldValue.serverTimestamp(),
     };

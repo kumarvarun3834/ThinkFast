@@ -20,6 +20,7 @@ class QuizForm extends StatefulWidget {
 
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _correctAnswerController =
       TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
@@ -55,6 +56,9 @@ class _QuizFormState extends State<QuizForm> {
 
     if (widget.form_data_part["question"] != null) {
       _questionController.text = widget.form_data_part["question"] as String;
+    }
+    if (widget.form_data_part["description"] != null) {
+      _descriptionController.text = widget.form_data_part["description"] as String;
     }
 
     // Load existing type
@@ -109,6 +113,7 @@ class _QuizFormState extends State<QuizForm> {
       "type": _selectedValue ?? "",
       "subject": _selectedModule ?? "General",
       "question": _questionController.text.trim(),
+      "description": _descriptionController.text.trim(),
       "choices": choices,
       "answers": answers,
       "correct": int.tryParse(_correctController.text) ?? 4,
@@ -264,9 +269,29 @@ class _QuizFormState extends State<QuizForm> {
             TextField(
               controller: _questionController,
               style: const TextStyle(color: Color(0xFFE2E8F0)),
+              maxLines: null,
               decoration: const InputDecoration(
                 labelText: "Question Prompt",
                 labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF334155)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                ),
+              ),
+              onChanged: (_) => _emitData(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              maxLines: null,
+              decoration: const InputDecoration(
+                labelText: "Solution / Description",
+                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                hintText: "Explain the answer...",
+                hintStyle: TextStyle(color: Color(0xFF475569), fontSize: 12),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(color: Color(0xFF334155)),
                 ),

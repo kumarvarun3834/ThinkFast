@@ -121,6 +121,12 @@ class MyApp extends StatelessWidget {
             );
             wrapInGradient = false;
             break;
+          case '/Managed Quizzes':
+            page = Main_Screen(
+              showManagedQuizzes: true,
+            );
+            wrapInGradient = false;
+            break;
           case '/Create Quiz':
             page = QuizPage("");
             wrapInGradient = false;

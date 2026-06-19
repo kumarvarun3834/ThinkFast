@@ -39,6 +39,7 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
 | `visibility` | String | `public` or `private`. |
 | `time` | Number | Duration in seconds. |
 | `markingScheme` | Map | Configuration for scoring (e.g., `default`, `per_question`, `per_question_type`). |
+| `attemptLimits` | Map | Configuration for attempt constraints (e.g., `none`, `global`, `per_module`). |
 | `isDeleted` | Boolean | Soft delete flag. |
 | `isLocked` | Boolean | Prevents new attempts if true. |
 | `modules` | Array | Organized list of question modules. |
@@ -64,7 +65,7 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
 ### 3.1 Idempotency in Quiz Creation
 To prevent duplicate quizzes due to network retries, `createQuiz` accepts a `clientToken`. The service checks for an existing quiz with the same `creatorId` and `clientToken` before proceeding with creation.
 
-### 3.2 Dynamic Scoring Engine
+### 3.2 Dynamic Scoring Engine & Attempt Limits
 The `AttemptService` calculates scores based on a flexible `markingScheme`:
 - **Entire Quiz (Global):** Fixed points for correct/wrong answers across the entire quiz.
 - **Per Question Type:** Different points for Single Choice, Multiple Choice, and Integer.
@@ -72,10 +73,19 @@ The `AttemptService` calculates scores based on a flexible `markingScheme`:
 
 For **Integer** questions, the system performs a trimmed, case-insensitive string comparison between the user's input and the stored answer.
 
-### 3.3 Rate Limiting
+**Attempt Limits (Select N out of M):**
+The platform enforces attempt quotas per section or type. The `Quesations` screen tracks active selections and disables further input once the limit is reached for a specific module or question type, mimicking competitive exam logic.
+
+### 3.3 Enhanced Review Mode
+Post-quiz analysis is handled by re-using the `Quesations` module in `isReviewMode`.
+- **Navigator Colors:** Circle indicators use a gradient (Purple to Green/Red) if a question was both Marked for Review and answered.
+- **Solution Layer:** Fetches solution descriptions from `answer_keys` and displays them in a dedicated card beneath the question.
+- **State Preservation:** The "Marked for Review" state is persisted in the `responses` collection, allowing users to revisit their exam-time thought process.
+
+### 3.4 Rate Limiting
 A time-based rate limit is enforced on quiz creation. Users must wait a configurable interval (stored in `FeatureFlags`) between creating consecutive quizzes. Admins are exempt from this limit.
 
-### 3.4 Deep Linking
+### 3.5 Deep Linking
 Using the `app_links` package, the app handles URLs like `thinkfast.app/quiz?id=XYZ`.
 - **Logic:** `_handleDeepLink` in `main.dart` extracts the `quizId` and navigates the user to the `QuizDetailsScreen` via the `navigatorKey`.
 

@@ -1,64 +1,86 @@
 {
   "title": "ThinkFast Technical Test",
-  "description": "A test quiz covering different question types and marking schemes.",
-  "time": 600,
+  "description": "A comprehensive test covering Dart, Flutter, and complex marking schemes with attempt limits.",
+  "time": 900,
   "markingScheme": {
-    "type": "per_question_type"
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Multiple Choice": { "correct": 5, "wrong": -2 },
+      "Integer": { "correct": 10, "wrong": 0 }
+    }
+  },
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Dart Basics": {
+        "Single Choice": 1,
+        "Multiple Choice": 1,
+        "Integer": 1
+      },
+      "Flutter UI": {
+        "Single Choice": 2,
+        "Multiple Choice": 1,
+        "Integer": 1
+      }
+    }
   },
   "questions": [
     {
       "question": "Which of these is a built-in collection type in Dart?",
-      "choices": [
-        "Map",
-        "Dictionary",
-        "ArrayList",
-        "HashMap"
-      ],
-      "answers": [
-        "Map"
-      ],
+      "choices": ["Map", "Dictionary", "ArrayList", "HashMap"],
+      "answers": ["Map"],
       "type": "Single Choice",
-      "subject": "Dart Basics"
+      "subject": "Dart Basics",
+      "description": "Dart has three core collection types: List, Set, and Map. 'Dictionary' and 'HashMap' are terms from other languages or specific implementations (though HashMap exists in dart:collection)."
     },
     {
       "question": "Select all keywords used for asynchronous programming in Dart.",
-      "choices": [
-        "async",
-        "await",
-        "future",
-        "yield",
-        "defer"
-      ],
-      "answers": [
-        "async",
-        "await",
-        "yield"
-      ],
+      "choices": ["async", "await", "future", "yield", "defer"],
+      "answers": ["async", "await", "yield"],
       "type": "Multiple Choice",
-      "subject": "Asynchronous Dart"
+      "subject": "Dart Basics",
+      "description": "async and await are for Futures; yield is for Streams. 'future' is a class, not a keyword, and 'defer' is not used in Dart."
+    },
+    {
+      "question": "What is the result of '5 ~/ 2' in Dart?",
+      "choices": [],
+      "answers": ["2"],
+      "type": "Integer",
+      "subject": "Dart Basics",
+      "description": "The ~/ operator performs integer division (truncating division) in Dart."
+    },
+    {
+      "question": "Which widget is used for repeating content in a scrollable list?",
+      "choices": ["ListView", "Column", "Stack", "Container"],
+      "answers": ["ListView"],
+      "type": "Single Choice",
+      "subject": "Flutter UI",
+      "description": "ListView is the most commonly used scrolling widget for linear arrays of children."
     },
     {
       "question": "How many widgets can a 'Center' widget have as its direct child?",
       "choices": [],
-      "answers": [
-        "1"
-      ],
+      "answers": ["1"],
       "type": "Integer",
-      "subject": "Flutter UI"
+      "subject": "Flutter UI",
+      "description": "Center is a SingleChildRenderObjectWidget, meaning it can only take one child."
     },
     {
-      "question": "Which Flutter command is used to check for errors in your environment?",
-      "choices": [
-        "flutter doctor",
-        "flutter check",
-        "flutter inspect",
-        "flutter analyze"
-      ],
-      "answers": [
-        "flutter doctor"
-      ],
+      "question": "Select the widgets that support multiple children.",
+      "choices": ["Row", "Column", "Stack", "SizedBox", "Padding"],
+      "answers": ["Row", "Column", "Stack"],
+      "type": "Multiple Choice",
+      "subject": "Flutter UI",
+      "description": "Row, Column, and Stack are MultiChildRenderObjectWidgets. SizedBox and Padding only accept a single child."
+    },
+    {
+      "question": "Which command is used to check for environment errors?",
+      "choices": ["flutter doctor", "flutter check", "flutter inspect", "flutter analyze"],
+      "answers": ["flutter doctor"],
       "type": "Single Choice",
-      "subject": "Flutter Tooling"
+      "subject": "Flutter UI",
+      "description": "The 'flutter doctor' command diagnostics your environment and reports the status of your Flutter installation."
     }
   ]
 }

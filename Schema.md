@@ -27,6 +27,7 @@
 | `visibility` | String | `public` or `private`. |
 | `time` | Number | Duration in seconds. |
 | `markingScheme` | Map | Config: `{type: 'default'|'per_question'|'per_question_type', global: {}, perQuestion: {}, perQuestionType: {}}`. |
+| `attemptLimits` | Map | Config: `{type: 'none'|'global'|'per_module', global: {}, perModule: {}}`. |
 | `isDeleted` | Boolean | Soft delete flag. |
 | `isLocked` | Boolean | Prevents new attempts. |
 | `modules` | Array | Ordered modules containing question metadata. |
@@ -46,6 +47,7 @@
 | `score` | Number | Points earned. |
 | `totalQuestions` | Number | Total questions in quiz. |
 | `answers` | Map | `{questionId: selection}`. |
+| `reviewItems` | List<String> | List of question IDs marked for review during the session. |
 | `status` | Number | Attempt status (e.g., 1 for completed). |
 | `timestamp` | Timestamp | Submission time. |
 

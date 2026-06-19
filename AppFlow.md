@@ -20,8 +20,9 @@ Creators manage the lifecycle of a quiz from inception to analyzing results.
 1.  **Home Screen:** Tap the "Create" button or navigate to "My Quizzes".
 2.  **Quiz Editor (QuizPage):**
     *   Enter Quiz Metadata (Title, Description, Time, Visibility).
-    *   Configure Marking Scheme (Global or Per-Question).
-    *   Add/Edit Questions (Manual entry or AI-assisted generation).
+    *   Configure Marking Scheme (Global, Per-Type, or Per-Question).
+    *   Set Attempt Limits ("Select N out of M") globally or per-module.
+    *   Add/Edit Questions (Manual entry, AI-assisted, or JSON import).
 3.  **Publishing:** Save the quiz to Firestore.
 4.  **Management:**
     *   **Edit:** Modify existing quizzes.
@@ -38,10 +39,12 @@ Participants join quizzes and complete them within the set time limits.
 2.  **Quiz Details:** View title, description, and rules before starting.
 3.  **Quiz Experience (Questions Screen):**
     *   Countdown timer starts.
-    *   Navigate through modules (Single Choice, Multiple Choice, Integer).
+    *   Navigate through modules with the color-coded navigator (Blue: Seen, Green: Answered, Purple: Review).
+    *   Observe attempt limits per section.
     *   Submit answers before the timer expires.
-4.  **Result Screen:** View the final score, correct/incorrect answers, and detailed breakdown.
-5.  **History:** Access **My Attempts** to view past performance across all quizzes.
+4.  **Result Screen:** View the final score summary. Tap **"SEE ATTEMPT DETAILS"** to enter Review Mode.
+5.  **Review Mode:** Re-uses the Quiz module with tagged correct/incorrect options, solution explanations, and performance-based navigator colors (Green: Correct, Red: Wrong).
+6.  **History:** Access **My Attempts** to view past performance and re-enter Review Mode for any previous attempt.
 
 ## 4. Admin Flow
 Administrators have elevated access to maintain platform health.

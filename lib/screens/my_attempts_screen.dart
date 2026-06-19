@@ -117,6 +117,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                               builder: (context) => ResultScreen(
                                 quizId: attempt['quizId'],
                                 attemptAnswers: attempt['answers'] as Map<String, dynamic>,
+                                attemptReviewItems: attempt['reviewItems'] as List<dynamic>?,
                               ),
                             ),
                           );
