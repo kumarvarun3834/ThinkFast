@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
+import '../utils/global.dart' as global;
+
 class Main_Screen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
@@ -25,8 +27,14 @@ class _Main_ScreenState extends State<Main_Screen> {
   @override
   void initState() {
     super.initState();
-    _auth.authStateChanges().listen((u) {
-      if (mounted) setState(() => _user = u);
+    _auth.authStateChanges().listen((u) async {
+      if (mounted) {
+        setState(() => _user = u);
+        if (u != null && global.currentUserProfile == null) {
+          await DatabaseService().initAppData(u.uid);
+          if (mounted) setState(() {}); // Refresh with new global data
+        }
+      }
     });
   }
 

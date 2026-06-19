@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../services/firebase_direct_commands.dart';
 import '../widgets/ImageContainer.dart';
 
 /// SPLASH SCREEN
@@ -15,10 +16,13 @@ class _MySplashState extends State<MySplash> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () async {
       if (mounted) {
-        if (FirebaseAuth.instance.currentUser != null) {
-          Navigator.pushReplacementNamed(context, '/home');
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          // Prefetch essential data once
+          await DatabaseService().initAppData(user.uid);
+          if (mounted) Navigator.pushReplacementNamed(context, '/home');
         } else {
           Navigator.pushReplacementNamed(context, '/login');
         }
@@ -48,4 +52,3 @@ class _MySplashState extends State<MySplash> {
     );
   }
 }
-

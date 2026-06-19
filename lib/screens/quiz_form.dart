@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:thinkfast/add_quiz_data.dart';
-import 'package:thinkfast/widgets/drawer_data.dart';
-import 'package:thinkfast/services/admin_service.dart';
-import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/widgets/drawer_data.dart';
 
 import '../utils/global.dart' as global;
 
@@ -36,12 +35,30 @@ class _QuizPageState extends State<QuizPage> {
 
   // Marking Scheme
   String markingType = "default";
-  final TextEditingController _globalCorrectController = TextEditingController(text: "4");
-  final TextEditingController _globalWrongController = TextEditingController(text: "-1");
-  final TextEditingController _scCorrectController = TextEditingController(text: "4");
-  final TextEditingController _scWrongController = TextEditingController(text: "-1");
-  final TextEditingController _mcCorrectController = TextEditingController(text: "4");
-  final TextEditingController _mcWrongController = TextEditingController(text: "-1");
+  final TextEditingController _globalCorrectController = TextEditingController(
+    text: "4",
+  );
+  final TextEditingController _globalWrongController = TextEditingController(
+    text: "-1",
+  );
+  final TextEditingController _scCorrectController = TextEditingController(
+    text: "4",
+  );
+  final TextEditingController _scWrongController = TextEditingController(
+    text: "-1",
+  );
+  final TextEditingController _mcCorrectController = TextEditingController(
+    text: "4",
+  );
+  final TextEditingController _mcWrongController = TextEditingController(
+    text: "-1",
+  );
+  final TextEditingController _intCorrectController = TextEditingController(
+    text: "4",
+  );
+  final TextEditingController _intWrongController = TextEditingController(
+    text: "-1",
+  );
 
   // Questions
   final List<Map<String, Object>> questions = [];
@@ -53,53 +70,15 @@ class _QuizPageState extends State<QuizPage> {
     _descriptionController = TextEditingController();
     _timeController = TextEditingController();
 
-    FirebaseAuth.instance.authStateChanges().listen((u) {
-      if (mounted) {
-        setState(() => user = u);
-        if (u != null) {
-          _checkAdminStatus(u.uid);
-        }
-      }
-    });
+    user = FirebaseAuth.instance.currentUser;
+    _isAdmin = global.isAdmin;
+    _isAi = global.currentUserProfile?['role'] == 'ai';
+    _importEnabled = global.featureFlags?['enable_import'] ?? false;
 
     if (widget.docId.isNotEmpty) {
       _fetchQuiz(widget.docId);
     } else {
       questions.add({});
-    }
-
-    _loadFeatureFlags();
-  }
-
-  Future<void> _loadFeatureFlags() async {
-    try {
-      final flags = await SettingsService().getFeatureFlags();
-      if (mounted) {
-        setState(() {
-          _importEnabled = flags?['enable_import'] ?? false;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _checkAdminStatus(String uid) async {
-    final db = DatabaseService();
-    final isAdmin = await AdminService().isAdmin(uid);
-    
-    // Fetch profile if not already loaded to check for AI role
-    Map<String, dynamic>? profile = global.currentUserProfile;
-    if (profile == null) {
-      profile = await db.getUserProfile(uid);
-      global.currentUserProfile = profile;
-    }
-    
-    final bool isAi = profile?['role'] == 'ai';
-
-    if (mounted) {
-      setState(() {
-        _isAdmin = isAdmin;
-        _isAi = isAi;
-      });
     }
   }
 
@@ -109,7 +88,10 @@ class _QuizPageState extends State<QuizPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: Text("Import Quiz Data", style: GoogleFonts.poppins(color: Colors.white)),
+        title: Text(
+          "Import Quiz Data",
+          style: GoogleFonts.poppins(color: Colors.white),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -127,7 +109,9 @@ class _QuizPageState extends State<QuizPage> {
                 hintStyle: const TextStyle(color: Color(0xFF475569)),
                 filled: true,
                 fillColor: const Color(0xFF0F172A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],
@@ -135,7 +119,10 @@ class _QuizPageState extends State<QuizPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL", style: TextStyle(color: Color(0xFF94A3B8))),
+            child: const Text(
+              "CANCEL",
+              style: TextStyle(color: Color(0xFF94A3B8)),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -145,7 +132,9 @@ class _QuizPageState extends State<QuizPage> {
                 _importQuizData(input);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+            ),
             child: const Text("IMPORT"),
           ),
         ],
@@ -166,24 +155,31 @@ class _QuizPageState extends State<QuizPage> {
       }
 
       final dynamic decoded = jsonDecode(jsonContent);
-      final Map<String, dynamic> data = decoded is List ? {"data": decoded} : decoded;
+      final Map<String, dynamic> data = decoded is List
+          ? {"data": decoded}
+          : decoded;
 
       setState(() {
-        if (data['title'] != null) _titleController.text = data['title'].toString();
-        if (data['description'] != null) _descriptionController.text = data['description'].toString();
+        if (data['title'] != null) {
+          _titleController.text = data['title'].toString();
+        }
+        if (data['description'] != null) {
+          _descriptionController.text = data['description'].toString();
+        }
         if (data['time'] != null) {
-          _timeController.text = (data['time'] is int) 
-              ? (data['time'] ~/ 60).toString() 
+          _timeController.text = (data['time'] is int)
+              ? (data['time'] ~/ 60).toString()
               : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
         }
-        
+
         if (data['markingScheme'] != null) {
           final scheme = data['markingScheme'] as Map;
           markingType = scheme['type'] ?? 'default';
           // Load other fields if necessary
         }
 
-        final List<dynamic> rawData = (data['data'] ?? data['questions'] ?? []) as List;
+        final List<dynamic> rawData =
+            (data['data'] ?? data['questions'] ?? []) as List;
         if (rawData.isNotEmpty) {
           questions.clear();
           for (var q in rawData) {
@@ -193,14 +189,17 @@ class _QuizPageState extends State<QuizPage> {
               final qInfo = q['Q'] as Map;
               final qText = qInfo['text'].toString();
               final List<dynamic> opts = q['As'] as List;
-              final List<String> choiceTexts = opts.map((o) => (o as Map)['text'].toString()).toList();
-              
+              final List<String> choiceTexts = opts
+                  .map((o) => (o as Map)['text'].toString())
+                  .toList();
+
               // Note: Importer usually won't have answer_keys unless it's a full export
               // If it's internal, we might not have 'answers' field directly in 'data'
               questions.add({
                 "question": qText,
                 "choices": choiceTexts,
-                "answers": <String>[], // Answers need to be set manually or provided in 'answers'
+                "answers": <String>[],
+                // Answers need to be set manually or provided in 'answers'
                 "type": q['type'] ?? 'Single Choice',
               });
             } else {
@@ -217,19 +216,24 @@ class _QuizPageState extends State<QuizPage> {
           }
         }
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Data imported successfully")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Data imported successfully")),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Import error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
     }
   }
 
   Future<void> _fetchQuiz(String docId) async {
     try {
       final db = DatabaseService();
-      final data = await db.readDatabase(docId);
+      // Get current user ID for security check
+      final String? uid = FirebaseAuth.instance.currentUser?.uid;
+      final data = await db.readDatabase(docId, userId: uid);
 
       // Get current user ID for security check in getQuizAnswers
-      final String? uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception("User not authenticated");
 
       // Fetch answers because readDatabase strips them
@@ -246,17 +250,28 @@ class _QuizPageState extends State<QuizPage> {
         final scheme = data['markingScheme'] as Map? ?? {};
         markingType = scheme['type'] ?? 'default';
         if (markingType == 'entire_quiz') {
-          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4).toString();
-          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1).toString();
+          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4)
+              .toString();
+          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1)
+              .toString();
         } else if (markingType == 'per_question_type') {
           final pqt = scheme['perQuestionType'] as Map? ?? {};
-          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4).toString();
-          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1).toString();
-          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4).toString();
-          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1).toString();
+          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4)
+              .toString();
+          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1)
+              .toString();
+          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4)
+              .toString();
+          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1)
+              .toString();
+          _intCorrectController.text = (pqt['Integer']?['correct'] ?? 4)
+              .toString();
+          _intWrongController.text = (pqt['Integer']?['wrong'] ?? -1)
+              .toString();
         }
 
-        final Map<String, dynamic> pqScheme = (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
+        final Map<String, dynamic> pqScheme =
+            (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
 
         final List<dynamic> rawModules = data['modules'] as List? ?? [];
         final List<Map<String, Object>> transformed = [];
@@ -339,13 +354,25 @@ class _QuizPageState extends State<QuizPage> {
               children: [
                 DropdownButtonFormField<String>(
                   dropdownColor: const Color(0xFF1E293B),
-                  value: markingType,
+                  initialValue: markingType,
                   style: const TextStyle(color: Color(0xFFE2E8F0)),
                   items: const [
-                    DropdownMenuItem(value: "default", child: Text("Default (+4, -1)")),
-                    DropdownMenuItem(value: "entire_quiz", child: Text("Custom Global")),
-                    DropdownMenuItem(value: "per_question_type", child: Text("Per Question Type")),
-                    DropdownMenuItem(value: "per_question", child: Text("Per Question")),
+                    DropdownMenuItem(
+                      value: "default",
+                      child: Text("Default (+4, -1)"),
+                    ),
+                    DropdownMenuItem(
+                      value: "entire_quiz",
+                      child: Text("Custom Global"),
+                    ),
+                    DropdownMenuItem(
+                      value: "per_question_type",
+                      child: Text("Per Question Type"),
+                    ),
+                    DropdownMenuItem(
+                      value: "per_question",
+                      child: Text("Per Question"),
+                    ),
                   ],
                   onChanged: (v) => setState(() => markingType = v!),
                   decoration: const InputDecoration(labelText: "Scheme Type"),
@@ -359,7 +386,9 @@ class _QuizPageState extends State<QuizPage> {
                           controller: _globalCorrectController,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Color(0xFFE2E8F0)),
-                          decoration: const InputDecoration(labelText: "Correct Score"),
+                          decoration: const InputDecoration(
+                            labelText: "Correct Score",
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -368,7 +397,9 @@ class _QuizPageState extends State<QuizPage> {
                           controller: _globalWrongController,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Color(0xFFE2E8F0)),
-                          decoration: const InputDecoration(labelText: "Wrong Score"),
+                          decoration: const InputDecoration(
+                            labelText: "Wrong Score",
+                          ),
                         ),
                       ),
                     ],
@@ -376,9 +407,23 @@ class _QuizPageState extends State<QuizPage> {
                 ],
                 if (markingType == "per_question_type") ...[
                   const SizedBox(height: 16),
-                  _buildTypeMarkingRow("Single Choice", _scCorrectController, _scWrongController),
+                  _buildTypeMarkingRow(
+                    "Single Choice",
+                    _scCorrectController,
+                    _scWrongController,
+                  ),
                   const SizedBox(height: 12),
-                  _buildTypeMarkingRow("Multiple Choice", _mcCorrectController, _mcWrongController),
+                  _buildTypeMarkingRow(
+                    "Multiple Choice",
+                    _mcCorrectController,
+                    _mcWrongController,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTypeMarkingRow(
+                    "Integer",
+                    _intCorrectController,
+                    _intWrongController,
+                  ),
                 ],
               ],
             ),
@@ -389,14 +434,21 @@ class _QuizPageState extends State<QuizPage> {
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
               "Note: Only administrators can modify the marking scheme.",
-              style: TextStyle(color: Colors.orangeAccent.withOpacity(0.8), fontSize: 12),
+              style: TextStyle(
+                color: Colors.orangeAccent.withValues(alpha: 0.8),
+                fontSize: 12,
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildTypeMarkingRow(String type, TextEditingController correct, TextEditingController wrong) {
+  Widget _buildTypeMarkingRow(
+    String type,
+    TextEditingController correct,
+    TextEditingController wrong,
+  ) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -407,7 +459,13 @@ class _QuizPageState extends State<QuizPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(type, style: const TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold)),
+          Text(
+            type,
+            style: const TextStyle(
+              color: Color(0xFF3B82F6),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -438,9 +496,12 @@ class _QuizPageState extends State<QuizPage> {
   void _addNewForm() => setState(() => questions.add({}));
 
   void _removeForm(int index) {
-    if (questions.length > 1) {
-      setState(() => questions.removeAt(index));
-    }
+    setState(() {
+      questions.removeAt(index);
+      if (questions.isEmpty) {
+        questions.add({});
+      }
+    });
   }
 
   void _updateFormData(int index, Map<String, Object> data) {
@@ -512,6 +573,10 @@ class _QuizPageState extends State<QuizPage> {
           'correct': int.tryParse(_mcCorrectController.text) ?? 4,
           'wrong': int.tryParse(_mcWrongController.text) ?? -1,
         },
+        'Integer': {
+          'correct': int.tryParse(_intCorrectController.text) ?? 4,
+          'wrong': int.tryParse(_intWrongController.text) ?? -1,
+        },
       };
     }
 
@@ -521,7 +586,7 @@ class _QuizPageState extends State<QuizPage> {
       if (widget.docId.isEmpty) {
         final newId = await db.createDatabase(
           creatorId: user!.uid,
-          user: user!.displayName ?? user!.uid ?? "",
+          user: user!.displayName ?? user!.uid,
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
           visibility: visibility,
@@ -571,9 +636,12 @@ class _QuizPageState extends State<QuizPage> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         actions: [
-          if (_importEnabled && (_isAdmin || _isAi))
+          if (_importEnabled)
             IconButton(
-              icon: const Icon(Icons.file_download_outlined, color: Color(0xFF3B82F6)),
+              icon: const Icon(
+                Icons.file_download_outlined,
+                color: Color(0xFF3B82F6),
+              ),
               onPressed: _showImportDialog,
               tooltip: "Import Data",
             ),
@@ -627,7 +695,7 @@ class _QuizPageState extends State<QuizPage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 dropdownColor: const Color(0xFF1E293B),
-                value: visibility,
+                initialValue: visibility,
                 style: const TextStyle(color: Color(0xFFE2E8F0)),
                 items: const [
                   DropdownMenuItem(value: "public", child: Text("Public")),
@@ -647,7 +715,7 @@ class _QuizPageState extends State<QuizPage> {
                   style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
                 ),
                 value: allowMultipleAttempts,
-                activeColor: const Color(0xFF3B82F6),
+                activeThumbColor: const Color(0xFF3B82F6),
                 onChanged: (bool value) {
                   setState(() {
                     allowMultipleAttempts = value;

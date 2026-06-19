@@ -18,11 +18,11 @@
 
 ### 3.2 Quiz Creation & Management
 - **Quiz Editor:** A comprehensive form to define quiz title, description, visibility (public/private), time limits, and marking schemes.
-- **Question Types:** Support for multiple-choice questions with configurable options.
+- **Question Types:** Support for Single Choice, Multiple Choice, and Integer questions with configurable options.
 - **Idempotency & Rate Limiting:** Prevents duplicate quiz creation and limits how often a user can create new quizzes to prevent spam.
 - **Answer Keys:** Separate management of answer keys to ensure integrity during the quiz.
 - **My Quizzes:** A dedicated space for creators to manage their content, including editing and (soft) deleting.
-- **Participant Response Analytics:** Creators can view a list of all participants, their scores, and specific attempt details (which answers they got right/wrong).
+- **Participant Response Analytics:** Creators can view a list of all participants, their scores, and specific attempt details. The system also tracks aggregate performance metrics for each question and overall quiz statistics.
 
 ### 3.3 Quiz Participation
 - **Joining Quizzes:** Users can join quizzes via a unique Quiz ID or through deep links (`/quiz?id=...`).

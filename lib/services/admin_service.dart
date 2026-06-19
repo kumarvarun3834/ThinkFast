@@ -5,6 +5,8 @@ class AdminService {
   final CollectionReference _reports = FirebaseFirestore.instance.collection('reports');
   final CollectionReference _auditLogs = FirebaseFirestore.instance.collection('audit_logs');
   final CollectionReference _quizAccess = FirebaseFirestore.instance.collection('quiz_access');
+  final CollectionReference _bannedUsers = FirebaseFirestore.instance.collection('banned_users');
+  final CollectionReference _responses = FirebaseFirestore.instance.collection('responses');
 
   /// ✅ Check if user is registered as an admin (base authority)
   Future<bool> isRegisteredAdmin(String uid) async {
@@ -138,13 +140,22 @@ class AdminService {
     });
   }
 
-  /// ✅ Grant quiz management access
+  /// ✅ Grant quiz management access (Collaborators)
   Future<void> grantQuizManagementAccess({
     required String quizId,
     required String userId,
     required Map<String, bool> permissions,
     required String addedBy,
   }) async {
+    // Only App Admin or Quiz Owner can add managers
+    final bool isAppAdmin = await isAdmin(addedBy);
+    final quizDoc = await FirebaseFirestore.instance.collection('quizzes').doc(quizId).get();
+    final bool isOwner = quizDoc.exists && quizDoc.data()?['creatorId'] == addedBy;
+
+    if (!isAppAdmin && !isOwner) {
+      throw Exception("Unauthorized: Only the Quiz Owner or an App Admin can manage collaborators.");
+    }
+
     await _quizAccess.doc('${quizId}_$userId').set({
       'quizId': quizId,
       'userId': userId,
@@ -156,43 +167,140 @@ class AdminService {
 
     await logAction(
       actorId: addedBy,
-      action: 'grant_access',
+      action: 'grant_management_access',
       targetId: quizId,
-      details: 'Granted manager access to $userId',
-      category: 'admin',
+      details: 'Granted manager access to $userId with perms: $permissions',
+      category: 'quiz_management',
     );
   }
 
-  /// ✅ Remove management access
-  Future<void> removeQuizManagementAccess({
+  /// ✅ Add specific participant to a restricted quiz
+  Future<void> addParticipant({
     required String quizId,
     required String userId,
-    required String removedBy,
+    required String addedBy,
   }) async {
-    await _quizAccess.doc('${quizId}_$userId').delete();
+    await _quizAccess.doc('${quizId}_$userId').set({
+      'quizId': quizId,
+      'userId': userId,
+      'addedBy': addedBy,
+      'role': 'participant',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
 
     await logAction(
-      actorId: removedBy,
-      action: 'remove_access',
+      actorId: addedBy,
+      action: 'add_participant',
       targetId: quizId,
-      details: 'Removed manager access for $userId',
-      category: 'admin',
+      details: 'Added participant $userId to quiz',
+      category: 'quiz_management',
     );
   }
 
-  /// ✅ Member can quit quiz management
-  Future<void> quitQuizManagement({
-    required String quizId,
+  /// ✅ Ban a user from a specific quiz or globally
+  Future<void> banUser({
     required String userId,
+    String? quizId,
+    required String reason,
+    required String adminId,
   }) async {
-    await _quizAccess.doc('${quizId}_$userId').delete();
+    if (quizId == null) {
+      // Global Ban: Requires App Admin
+      if (!await isAdmin(adminId)) {
+        throw Exception("Unauthorized: Only App Admins can perform global bans.");
+      }
+    } else {
+      // Quiz Ban: Requires App Admin OR Quiz Manager with 'canModerate'
+      if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+        throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+      }
+    }
+
+    final String banId = quizId != null ? '${quizId}_$userId' : 'global_$userId';
+    await _bannedUsers.doc(banId).set({
+      'userId': userId,
+      'quizId': quizId, // null means global
+      'reason': reason,
+      'bannedBy': adminId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
 
     await logAction(
-      actorId: userId,
-      action: 'quit_management',
-      targetId: quizId,
-      details: 'User voluntarily left quiz management',
-      category: 'admin',
+      actorId: adminId,
+      action: 'ban_user',
+      targetId: userId,
+      details: 'Banned from ${quizId ?? "Global"}. Reason: $reason',
+      category: 'moderation',
+    );
+  }
+
+  /// ✅ Unban user
+  Future<void> unbanUser({
+    required String userId,
+    String? quizId,
+    required String adminId,
+  }) async {
+    if (quizId == null) {
+      if (!await isAdmin(adminId)) {
+        throw Exception("Unauthorized: Only App Admins can perform global unbans.");
+      }
+    } else {
+      if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+        throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+      }
+    }
+
+    final String banId = quizId != null ? '${quizId}_$userId' : 'global_$userId';
+    await _bannedUsers.doc(banId).delete();
+
+    await logAction(
+      actorId: adminId,
+      action: 'unban_user',
+      targetId: userId,
+      details: 'Unbanned from ${quizId ?? "Global"}',
+      category: 'moderation',
+    );
+  }
+
+  /// ✅ Check if user is banned
+  Future<bool> isUserBanned(String userId, {String? quizId}) async {
+    // Check global ban first
+    final globalBan = await _bannedUsers.doc('global_$userId').get();
+    if (globalBan.exists) return true;
+
+    // Check quiz-specific ban
+    if (quizId != null) {
+      final quizBan = await _bannedUsers.doc('${quizId}_$userId').get();
+      return quizBan.exists;
+    }
+    return false;
+  }
+
+  /// ✅ Soft delete a response (shows "Deleted by Admin" to user)
+  Future<void> softDeleteResponse({
+    required String responseId,
+    required String quizId,
+    required String adminId,
+    required String reason,
+  }) async {
+    // Requires App Admin OR Quiz Manager with 'canModerate'
+    if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+      throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+    }
+
+    await _responses.doc(responseId).update({
+      'isDeleted': true,
+      'deletedBy': adminId,
+      'deleteReason': reason,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await logAction(
+      actorId: adminId,
+      action: 'soft_delete_response',
+      targetId: responseId,
+      details: 'Reason: $reason',
+      category: 'moderation',
     );
   }
 
@@ -208,20 +316,69 @@ class AdminService {
             }).toList());
   }
 
-  /// ✅ Master control: Force delete or update any quiz (Admin only)
+  /// ✅ Master control: Force delete or update any quiz (App Admin only)
   Future<void> masterQuizControl({
     required String quizId,
     required Map<String, dynamic> updates,
     required String adminId,
   }) async {
+    final bool isAppAdmin = await isAdmin(adminId);
+    if (!isAppAdmin) throw Exception("Unauthorized: App Admin privileges required.");
+
     await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update(updates);
     
     await logAction(
       actorId: adminId,
       action: 'master_control_update',
       targetId: quizId,
-      details: 'Admin performed master update: ${updates.keys.toList()}',
-      category: 'admin',
+      details: 'App Admin performed master update: ${updates.keys.toList()}',
+      category: 'admin_master',
+    );
+  }
+
+  /// ✅ Check if user has specific management permission for a quiz
+  /// Returns true if user is the Quiz Owner, an App Admin, or a Manager with the right permission.
+  Future<bool> canManageQuiz(String quizId, String userId, {String? permission}) async {
+    // 1. App Admin has global access
+    if (await isAdmin(userId)) return true;
+
+    // 2. Check if user is the owner
+    final quizDoc = await FirebaseFirestore.instance.collection('quizzes').doc(quizId).get();
+    if (quizDoc.exists && quizDoc.data()?['creatorId'] == userId) return true;
+
+    // 3. Check if user is a manager with specific permission
+    final accessDoc = await _quizAccess.doc('${quizId}_$userId').get();
+    if (accessDoc.exists) {
+      final data = accessDoc.data() as Map<String, dynamic>;
+      if (data['role'] == 'manager') {
+        if (permission == null) return true; // Just checking for general manager role
+        final perms = data['permissions'] as Map<String, dynamic>? ?? {};
+        return perms[permission] == true;
+      }
+    }
+
+    return false;
+  }
+
+  /// ✅ Remove management access
+  Future<void> removeQuizManagementAccess({
+    required String quizId,
+    required String userId,
+    required String removedBy,
+  }) async {
+    // Only App Admin or Quiz Owner can remove managers
+    if (!await canManageQuiz(quizId, removedBy)) {
+      throw Exception("Unauthorized: Insufficient permissions to remove collaborators.");
+    }
+
+    await _quizAccess.doc('${quizId}_$userId').delete();
+
+    await logAction(
+      actorId: removedBy,
+      action: 'remove_management_access',
+      targetId: quizId,
+      details: 'Removed manager access for $userId',
+      category: 'quiz_management',
     );
   }
 
@@ -229,17 +386,9 @@ class AdminService {
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) {
     return _quizAccess
         .where('quizId', isEqualTo: quizId)
+        .where('role', isEqualTo: 'manager')
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
-  }
-
-  /// ✅ Check if user is manager with specific permission
-  Future<bool> hasPermission(String quizId, String userId, String permission) async {
-    final doc = await _quizAccess.doc('${quizId}_$userId').get();
-    if (!doc.exists) return false;
-    final data = doc.data() as Map<String, dynamic>;
-    final perms = data['permissions'] as Map<String, dynamic>? ?? {};
-    return perms[permission] == true;
   }
 
   /// ✅ Get all audit logs (Admin only)

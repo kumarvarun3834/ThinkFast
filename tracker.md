@@ -30,6 +30,8 @@
 - [x] Quiz Idempotency and Rate Limiting
 - [x] Answer Key Security (Separation from Questions)
 - [x] My Quizzes Dashboard (Edit/Soft-Delete)
+- [x] Aggregate Quiz Performance Analytics
+- [x] Per-Question Correctness Tracking
 
 ### Quiz Participation (The Participant Flow)
 - [x] Quiz Discovery (Public Feed & Quiz ID Search)
@@ -66,6 +68,7 @@
 ---
 
 ## 📈 Recent Updates
+- **v1.0.5:** Integrated `AnalyticsService` for tracking question-level success rates.
 - **v1.0.0:** Finalized `QuizResponsesScreen` for creator analytics.
 - **v0.9.5:** Implemented `AppLinks` for seamless quiz joining via URLs.
 - **v0.9.0:** Added Admin Panel and Feature Flags system.

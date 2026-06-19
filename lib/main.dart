@@ -11,6 +11,7 @@ import 'package:thinkfast/screens/result_screen.dart';
 import 'package:thinkfast/screens/about_us.dart';
 import 'package:thinkfast/screens/quiz_responses_screen.dart';
 import 'package:thinkfast/screens/my_attempts_screen.dart';
+import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
@@ -160,6 +161,12 @@ class MyApp extends StatelessWidget {
             page = QuizResponsesScreen(
               quizId: args['quizId'],
               quizTitle: args['quizTitle'],
+            );
+            wrapInGradient = false;
+            break;
+          case '/Manage Collaborators':
+            page = QuizCollaboratorsScreen(
+              quizId: settings.arguments as String,
             );
             wrapInGradient = false;
             break;

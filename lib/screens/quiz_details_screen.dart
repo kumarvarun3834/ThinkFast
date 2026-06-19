@@ -1,8 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
@@ -23,6 +23,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = true;
   bool _isAdmin = false;
+  bool _canManage = false;
   Map<String, dynamic>? _quizData;
 
   // Colors (Fixed Palette)
@@ -45,7 +46,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   Future<void> _fetchQuizDetails() async {
     try {
       final db = DatabaseService();
-      final data = await db.readDatabase(widget.quizId);
+      final data = await db.readDatabase(widget.quizId, userId: _user?.uid);
 
       // Fetch profiles but don't let failure here stop the process
       Map<String, dynamic>? creatorProfile;
@@ -64,9 +65,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         activeQuizId = userProfile?['activeQuizId'];
         activeQuizExpiry = userProfile?['activeQuizExpiry'];
         hasAttempted = await db.hasUserAttemptedQuiz(_user!.uid, widget.quizId);
-        
+
         // Use AdminService to check status
         isAdmin = await AdminService().isAdmin(_user!.uid);
+        _canManage = await AdminService().canManageQuiz(
+          widget.quizId,
+          _user!.uid,
+        );
       }
 
       setState(() {
@@ -74,6 +79,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         _creatorProfile = creatorProfile;
         _userProfile = userProfile;
         _isAdmin = isAdmin;
+        _canManage = _canManage;
         _quizData!['activeQuizId'] = activeQuizId;
         _quizData!['activeQuizExpiry'] = activeQuizExpiry;
         _quizData!['hasAttempted'] = hasAttempted;
@@ -143,9 +149,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(newLocked ? "Quiz Locked" : "Quiz Unlocked")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(newLocked ? "Quiz Locked" : "Quiz Unlocked")),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -302,13 +308,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     }
 
     final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
-    final bool canManage = isOwner || _isAdmin;
+    final bool canManage = _canManage;
     final bool isPublic = _quizData!['visibility'] == 'public';
 
     final title = _quizData!['title'] ?? 'Untitled Quiz';
     final description = _quizData!['description'] ?? 'No description provided';
     final timeLimit = "${(_quizData!['time'] ?? 0) ~/ 60} Minutes";
-    
+
     // Calculate total questions from modules
     final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
     final int count = rawModules.fold<int>(0, (sum, module) {
@@ -340,11 +346,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               padding: const EdgeInsets.only(right: 16.0),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.redAccent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                    border: Border.all(
+                      color: Colors.redAccent.withOpacity(0.5),
+                    ),
                   ),
                   child: Text(
                     "ADMIN",
@@ -374,7 +385,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 Expanded(
                   child: InkWell(
                     onTap: () {
-                      final link = "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
+                      final link =
+                          "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
                       Clipboard.setData(ClipboardData(text: link)).then((_) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -385,7 +397,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(8),
@@ -394,7 +409,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.link_rounded, size: 18, color: _primaryAccent),
+                          Icon(
+                            Icons.link_rounded,
+                            size: 18,
+                            color: _primaryAccent,
+                          ),
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -408,7 +427,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(Icons.copy_all_rounded, size: 16, color: _labelColor),
+                          Icon(
+                            Icons.copy_all_rounded,
+                            size: 16,
+                            color: _labelColor,
+                          ),
                         ],
                       ),
                     ),
@@ -478,24 +501,33 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               () async {
                 final db = DatabaseService();
                 final String? activeQuizId = _quizData!['activeQuizId'];
-                final Timestamp? activeQuizExpiry = _quizData!['activeQuizExpiry'];
+                final Timestamp? activeQuizExpiry =
+                    _quizData!['activeQuizExpiry'];
 
                 if (activeQuizId != null) {
                   bool isExpired = false;
                   if (activeQuizExpiry != null) {
-                    isExpired = activeQuizExpiry.toDate().isBefore(DateTime.now());
+                    isExpired = activeQuizExpiry.toDate().isBefore(
+                      DateTime.now(),
+                    );
                   }
 
                   if (isExpired) {
                     // Auto-submit blank and clean up
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cleaning up previous expired session...')),
+                      const SnackBar(
+                        content: Text(
+                          'Cleaning up previous expired session...',
+                        ),
+                      ),
                     );
                     await db.handleExpiredQuiz(_user!.uid, activeQuizId);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('You are already taking another quiz ($activeQuizId). Finish it first!'),
+                        content: Text(
+                          'You are already taking another quiz ($activeQuizId). Finish it first!',
+                        ),
                         backgroundColor: Colors.orange,
                       ),
                     );
@@ -506,20 +538,25 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 if (_quizData!['isLocked'] == true) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('This quiz is locked and not accepting new responses'),
+                      content: Text(
+                        'This quiz is locked and not accepting new responses',
+                      ),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
                   return;
                 }
 
-                final bool allowMultiple = _quizData!['allowMultipleAttempts'] ?? true;
+                final bool allowMultiple =
+                    _quizData!['allowMultipleAttempts'] ?? true;
                 final bool hasAttempted = _quizData!['hasAttempted'] ?? false;
 
                 if (!allowMultiple && hasAttempted && !isOwner) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('You have already attempted this quiz. Multiple attempts are disabled.'),
+                      content: Text(
+                        'You have already attempted this quiz. Multiple attempts are disabled.',
+                      ),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
@@ -541,7 +578,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 if (!_user!.emailVerified) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Please verify your email to start the quiz'),
+                      content: Text(
+                        'Please verify your email to start the quiz',
+                      ),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -551,14 +590,17 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                 if (isPublic || canManage) {
                   final List<Map<String, Object>> flattenedQuestions = [];
-                  final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
-                  
+                  final List<dynamic> rawModules =
+                      _quizData!['modules'] as List? ?? [];
+
                   for (var module in rawModules) {
                     final String subject = module['subject'].toString();
-                    final List<dynamic> questions = module['data'] as List? ?? [];
+                    final List<dynamic> questions =
+                        module['data'] as List? ?? [];
                     for (var q in questions) {
                       final qMap = Map<String, Object>.from(q);
-                      qMap['subject'] = subject; // Re-inject for flat processing in Questions screen
+                      qMap['subject'] =
+                          subject; // Re-inject for flat processing in Questions screen
                       flattenedQuestions.add(qMap);
                     }
                   }
@@ -567,16 +609,19 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                   global.ID = _quizData!['id'];
                   global.time = _quizData!['time'] as int;
-                  global.markingScheme = _quizData!['markingScheme'] ?? {"type": "default"};
+                  global.markingScheme =
+                      _quizData!['markingScheme'] ?? {"type": "default"};
                   global.currentUserProfile = _userProfile;
                   global.creatorProfile = _creatorProfile;
 
                   // Mark as active quiz with expiry (Duration + 5 mins buffer)
                   final int quizDurationSeconds = _quizData!['time'] as int;
-                  final DateTime expiry = DateTime.now().add(Duration(seconds: quizDurationSeconds + 300));
-                  
+                  final DateTime expiry = DateTime.now().add(
+                    Duration(seconds: quizDurationSeconds + 300),
+                  );
+
                   await db.updateActiveQuiz(
-                    uid: _user!.uid, 
+                    uid: _user!.uid,
                     quizId: _quizData!['id'],
                     expiry: expiry,
                   );
@@ -622,10 +667,19 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 );
               }, icon: Icons.analytics_outlined),
               const SizedBox(height: 16),
+              _actionButton("Manage Collaborators", () {
+                Navigator.pushNamed(
+                  context,
+                  "/Manage Collaborators",
+                  arguments: _quizData!['id'],
+                );
+              }, icon: Icons.people_outline),
+              const SizedBox(height: 16),
               _actionButton("Update Quiz", () {
                 final List<Map<String, Object>> flattenedQuestions = [];
-                final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
-                
+                final List<dynamic> rawModules =
+                    _quizData!['modules'] as List? ?? [];
+
                 for (var module in rawModules) {
                   final String subject = module['subject'].toString();
                   final List<dynamic> questions = module['data'] as List? ?? [];

@@ -14,6 +14,9 @@ ThinkFast utilizes a **Modern Dark Minimalist** design language. The goal is to 
 | **Label/Hint** | `#94A3B8` | ![#94A3B8](https://via.placeholder.com/15/94A3B8?text=+) | Muted gray-blue for secondary text and placeholders. |
 | **Primary Text** | `#E2E8F0` | ![#E2E8F0](https://via.placeholder.com/15/E2E8F0?text=+) | Light off-white/gray for high readability. |
 | **Border** | `#334155` | ![#334155](https://via.placeholder.com/15/334155?text=+) | Subtle border color for separating UI elements. |
+| **Correct** | `greenAccent` | | Semantic color for correct answers and success states. |
+| **Incorrect**| `redAccent` | | Semantic color for wrong answers and errors. |
+| **Partial** | `orangeAccent`| | Semantic color for unanswered or partially correct states. |
 
 ## 3. Typography
 *   **Primary Font:** `Poppins` (Google Fonts)

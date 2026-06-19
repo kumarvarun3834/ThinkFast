@@ -18,6 +18,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
   bool _isSubmitted = false;
+  late final TextEditingController _integerController;
 
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
@@ -120,6 +121,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _integerController = TextEditingController();
     // Hide status bar and navigation bar (Immersive Mode)
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _loadQuizWithTime(); // fetch from Firestore
@@ -127,6 +129,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _integerController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     // Restore system UI when leaving
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -358,6 +361,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       global.quizResult[i][0] = qInfo['text'].toString(); // question text
       global.quizResult[i][1] = qInfo['id'].toString(); // question uid
       global.quizResult[i][3] = true; // visited
+
+      // Sync integer controller if needed
+      if (currentData["type"] == "Integer") {
+        final List<String> sel = _getSelection(global.quizResult[i]);
+        final String val = sel.isNotEmpty ? sel.first : "";
+        if (_integerController.text != val) {
+          _integerController.text = val;
+        }
+      }
     });
   }
 
@@ -365,17 +377,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     final String type = quizData["type"]?.toString() ?? "Single Choice";
 
     if (type == "Integer") {
-      final TextEditingController controller = TextEditingController();
-      final List<String> currentSelection = _getSelection(global.quizResult[i]);
-      if (currentSelection.isNotEmpty) {
-        controller.text = currentSelection.first;
-      }
-
       return [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: TextField(
-            controller: controller,
+            controller: _integerController,
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
@@ -398,7 +404,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             ),
             onChanged: (val) {
               global.quizResult[i][2] = [val.trim()];
-              switchState();
+              // Use silent state update for performance while typing
+              global.quizResult[i][3] = true; // visited
             },
           ),
         ),
@@ -614,168 +621,306 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         ),
         body: Container(
           color: const Color(0xFF0F172A),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    margin: const EdgeInsets.all(40),
-                    width: double.infinity,
-                    child: Card(
-                      color: const Color(0xFF1E293B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: Color(0xFF334155)),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Text(
-                          "Question: ${(currentData["Q"] as Map?)?['text'] ?? ""}",
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFFE2E8F0),
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  margin: const EdgeInsets.all(20),
-                  width: double.infinity,
-                  child: Column(children: buttons_Data(currentData)),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  margin: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E293B),
-                              foregroundColor: const Color(0xFFE2E8F0),
-                              side: const BorderSide(color: Color(0xFF334155)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              // 🔝 Navigation & Status Block at Top
+              Container(
+                color: const Color(0xFF1E293B),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: global.quizData.length,
+                        itemBuilder: (context, index) {
+                          bool isCurrent = i == index;
+                          return GestureDetector(
+                            onTap: () {
+                              i = index;
+                              switchState();
+                            },
+                            child: Container(
+                              width: 40,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                color: _getQuestionColor(
+                                  global.quizResult[index],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: isCurrent
+                                    ? Border.all(
+                                      color: const Color(0xFF3B82F6),
+                                      width: 2,
+                                    )
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  "${index + 1}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                            onPressed: i > 0
-                                ? () {
-                                    i--;
-                                    switchState();
-                                  }
-                                : null,
-                            child: const Text("PREVIOUS"),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0F172A),
+                                  foregroundColor: const Color(0xFFE2E8F0),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  minimumSize: const Size(0, 36),
+                                  side: const BorderSide(
+                                    color: Color(0xFF334155),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed:
+                                    i > 0
+                                        ? () {
+                                          i--;
+                                          switchState();
+                                        }
+                                        : null,
+                                child: const Icon(Icons.arrow_back_ios, size: 14),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  minimumSize: const Size(0, 36),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                onPressed:
+                                    i < global.quizData.length - 1
+                                        ? () {
+                                          i++;
+                                          switchState();
+                                        }
+                                        : null,
+                                child: Row(
+                                  children: [
+                                    const Text(
+                                      "NEXT",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_ios, size: 14),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1E293B),
+                              backgroundColor: const Color(0xFF0F172A),
                               foregroundColor: Colors.redAccent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              minimumSize: const Size(0, 36),
                               side: const BorderSide(color: Colors.redAccent),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                             onPressed: () {
                               setState(() {
                                 global.quizResult[i][2] = <String>[];
+                                if (currentData["type"] == "Integer") {
+                                  _integerController.clear();
+                                }
                               });
                             },
                             child: const Text("CLEAR"),
                           ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2563EB),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: i < global.quizData.length - 1
-                                ? () {
-                                    i++;
-                                    switchState();
-                                  }
-                                : null,
-                            child: const Text("NEXT"),
-                          ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                backgroundColor: global.quizResult[i][4] == true
-                                    ? Colors.purple
-                                    : const Color(0xFF1E293B),
-                                foregroundColor: Colors.white,
-                                side: BorderSide(
-                                  color: global.quizResult[i][4] == true
-                                      ? Colors.purple
-                                      : const Color(0xFF334155),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF3B82F6),
+                                  width: 1,
                                 ),
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  global.quizResult[i][4] =
-                                      !(global.quizResult[i][4] as bool);
-                                });
-                              },
-                              icon: Icon(
-                                global.quizResult[i][4] == true
-                                    ? Icons.bookmark
-                                    : Icons.bookmark_border,
-                                size: 18,
+                              child: Text(
+                                (currentData["type"]?.toString() ??
+                                        "Single Choice")
+                                    .toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF3B82F6),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
-                              label: const Text("MARK FOR REVIEW"),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                backgroundColor: const Color(0xFF1E293B),
-                                foregroundColor: Colors.purpleAccent,
-                                side: const BorderSide(color: Colors.purpleAccent),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                            Text(
+                              "Question ${i + 1} of ${global.quizData.length}",
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF94A3B8),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
                               ),
-                              onPressed: () {
-                                setState(() {
-                                  global.quizResult[i][4] = true;
-                                  if (i < global.quizData.length - 1) {
-                                    i++;
-                                    switchState();
-                                  }
-                                });
-                              },
-                              icon: const Icon(Icons.forward, size: 18),
-                              label: const Text("REVIEW & NEXT"),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                          width: double.infinity,
+                          child: Card(
+                            color: const Color(0xFF1E293B),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: const BorderSide(color: Color(0xFF334155)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Text(
+                                "${(currentData["Q"] as Map?)?['text'] ?? ""}",
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFE2E8F0),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20),
+                        width: double.infinity,
+                        child: Column(children: buttons_Data(currentData)),
+                      ),
+                      const SizedBox(height: 30),
+                      Container(
+                        margin: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  backgroundColor:
+                                      global.quizResult[i][4] == true
+                                          ? Colors.purple
+                                          : const Color(0xFF1E293B),
+                                  foregroundColor: Colors.white,
+                                  side: BorderSide(
+                                    color: global.quizResult[i][4] == true
+                                        ? Colors.purple
+                                        : const Color(0xFF334155),
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    global.quizResult[i][4] =
+                                        !(global.quizResult[i][4] as bool);
+                                  });
+                                },
+                                icon: Icon(
+                                  global.quizResult[i][4] == true
+                                      ? Icons.bookmark
+                                      : Icons.bookmark_border,
+                                  size: 18,
+                                ),
+                                label: const Text("MARK FOR REVIEW"),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  foregroundColor: Colors.purpleAccent,
+                                  side: const BorderSide(
+                                    color: Colors.purpleAccent,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    global.quizResult[i][4] = true;
+                                    if (i < global.quizData.length - 1) {
+                                      i++;
+                                      switchState();
+                                    }
+                                  });
+                                },
+                                icon: const Icon(Icons.forward, size: 18),
+                                label: const Text("REVIEW & NEXT"),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

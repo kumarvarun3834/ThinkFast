@@ -33,6 +33,8 @@ Located in `lib/services/`, these services handle specific collections or logic:
 - `UserService`: Manages user profiles and sensitive data in sub-collections.
 - `AttemptService`: Handles scoring logic and the `responses` collection.
 - `AiService`: Manages AI generation logs and quotas.
+- `AnalyticsService`: Tracks quiz-level and question-level performance statistics.
+- `AdminService`: Handles audit logging and platform-wide configurations.
 
 ### 3.2 The Unified Database Service (`DatabaseService`)
 Located in `lib/services/firebase_direct_commands.dart`, this class acts as a central hub. Instead of UI code interacting with multiple services, it calls `DatabaseService`, which coordinates the necessary domain services. This simplifies the UI-to-Logic interface.
@@ -47,11 +49,11 @@ Quizzes are stored in a normalized way to optimize for quiz-taking performance a
 - The `_transformQuizData` method in `DatabaseService` handles converting the editor's flat list into this multi-collection structure.
 
 ### 4.2 Scoring Engine
-Scoring is performed server-side or via the `AttemptService`. It supports:
+Scoring is performed by the `AttemptService` and mirrored in the `ResultScreen` UI for immediate feedback. It supports:
 - **Single Choice:** Equality check on option IDs.
 - **Multiple Choice:** Set-based comparison (all correct must be selected, no wrong ones).
-- **Integer:** Case-insensitive string matching.
-- **Marking Schemes:** The engine dynamically pulls point values from the quiz's `markingScheme` map.
+- **Integer:** Trimmed string comparison.
+- **Marking Schemes:** The engine dynamically pulls point values from the quiz's `markingScheme` map, supporting global, per-type, and per-question configurations.
 
 ### 4.3 Deep Link Routing
 In `main.dart`, the `AppLinks` stream is initialized at startup. When a link is detected:

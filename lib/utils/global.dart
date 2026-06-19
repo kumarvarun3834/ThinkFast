@@ -8,6 +8,9 @@ String ID = "";
 String currentAttemptId = "";
 Map<String, dynamic>? currentUserProfile;
 Map<String, dynamic>? creatorProfile;
+Map<String, dynamic>? featureFlags;
+bool isAdmin = false;
+bool isRegisteredAdmin = false;
 
 // 🎨 Theme Colors (ThinkFast Palette)
 const Color bgColor = Color(0xFF0F172A); // Deep Blue/Black Background

@@ -38,23 +38,26 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
 | `description` | String | Quiz description. |
 | `visibility` | String | `public` or `private`. |
 | `time` | Number | Duration in seconds. |
-| `markingScheme` | Map | Configuration for scoring (e.g., `default`, `per_question`). |
+| `markingScheme` | Map | Configuration for scoring (e.g., `default`, `per_question`, `per_question_type`). |
 | `isDeleted` | Boolean | Soft delete flag. |
 | `isLocked` | Boolean | Prevents new attempts if true. |
+| `modules` | Array | Organized list of question modules. |
+| `totalQuestions`| Number | Total number of questions in the quiz. |
 
 ### 2.3 Quiz Content
 - **Questions (`/quiz_questions/{quizId}`):** Stores an array of modules, where each module contains a list of questions (UID, type, text, options).
 - **Answer Keys (`/answer_keys/{quizId}`):** Stores the mapping of question IDs to correct option IDs/values.
+- **Quiz Stats (`/quiz_stats/{quizId}`):** Aggregate stats like total attempts, average score, and highest score.
+- **Question Stats (`/quiz_question_stats/{questionId}`):** Performance metrics per question (total attempts, correct/wrong count).
 
-### 2.4 Attempts (`/responses/{attemptId}`)
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `userId` | String | UID of the participant. |
-| `quizId` | String | ID of the quiz attempted. |
-| `score` | Number | Points earned. |
-| `totalQuestions` | Number | Total questions in the quiz. |
-| `answers` | Map | User's selected answers (Question UID -> Selection). |
-| `timestamp` | Timestamp | When the attempt was submitted. |
+### 2.4 Attempts & Responses
+- **Global Responses (`/responses/{attemptId}`):** Root collection for all quiz attempts across the platform.
+- **User Attempts (`/all_attempts/{attemptId}`):** Redundant copy or specific view of attempts.
+- **Quiz-Specific Attempts (`/quiz_attempts/{quizId}/attempts/{attemptId}`):** Sub-collection for quick lookup of all attempts for a specific quiz.
+
+### 2.5 AI & Usage
+- **AI Generations (`/ai_generations/{id}`):** Logs of AI quiz generation prompts and results.
+- **User Usage (`/user_usage/{uid}`):** Tracks daily AI quotas and activity (e.g., `aiGenerationsToday`).
 
 ## 3. Key Technical Implementations
 
@@ -63,9 +66,11 @@ To prevent duplicate quizzes due to network retries, `createQuiz` accepts a `cli
 
 ### 3.2 Dynamic Scoring Engine
 The `AttemptService` calculates scores based on a flexible `markingScheme`:
-- **Default:** Fixed points for correct/wrong answers.
-- **Per Question Type:** Different points for Single Choice vs. Multiple Choice.
+- **Entire Quiz (Global):** Fixed points for correct/wrong answers across the entire quiz.
+- **Per Question Type:** Different points for Single Choice, Multiple Choice, and Integer.
 - **Per Question:** Specific points defined at the individual question level.
+
+For **Integer** questions, the system performs a trimmed, case-insensitive string comparison between the user's input and the stored answer.
 
 ### 3.3 Rate Limiting
 A time-based rate limit is enforced on quiz creation. Users must wait a configurable interval (stored in `FeatureFlags`) between creating consecutive quizzes. Admins are exempt from this limit.
@@ -82,6 +87,13 @@ The `AiService` tracks daily generations per user. Before invoking AI generation
 - **Ownership:** Creators can update/delete their own quizzes.
 - **Admin Overrides:** Users with the `admin` role in their profile (or `isAdminMode` enabled) bypass standard ownership and rate-limiting checks.
 - **Private Data:** Sensitive user information is stored in sub-collections with restricted read access.
+
+### 4.4 Soft Delete Policy
+When a quiz is soft-deleted (`isDeleted: true`):
+- It is hidden from all public feeds and search results.
+- It is removed from the creator's "My Quizzes" dashboard.
+- Any attempt to access it via direct ID or deep link by a regular user or the owner results in a "Quiz not found" error.
+- App Administrators with `isAdminMode` enabled bypass these restrictions and can view the quiz and its responses.
 
 ## 5. Deployment & CI/CD
 - **Firebase Hosting:** Web version (if applicable).

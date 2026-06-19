@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/services/settings_service.dart';
 
+import 'package:thinkfast/utils/global.dart' as global;
+
 class SidebarMenu extends StatefulWidget {
   final User? user;
 
@@ -23,34 +25,21 @@ class _SidebarMenuState extends State<SidebarMenu> {
   void initState() {
     super.initState();
     if (widget.user != null) {
-      _fetchUserProfile();
-      _checkAdminStatus();
+      _isAdmin = global.isAdmin;
+      _isRegisteredAdmin = global.isRegisteredAdmin;
+      _canCreateQuiz = global.featureFlags?['enable_create_quiz'] ?? true;
+      
+      final profile = global.currentUserProfile;
+      if (profile != null) {
+        _userName = profile['name'];
+        _userPhotoUrl = profile['photoUrl'];
+      }
+      
+      // Fallbacks if not loaded yet or missing
+      if (_userName == null || _userPhotoUrl == null) {
+        _fetchUserProfile();
+      }
     }
-    _loadFeatureFlags();
-  }
-
-  Future<void> _checkAdminStatus() async {
-    try {
-      final isRegistered = await DatabaseService().isRegisteredAdmin(widget.user!.uid);
-      final isAdmin = await DatabaseService().isAdmin(widget.user!.uid);
-      if (mounted) {
-        setState(() {
-          _isRegisteredAdmin = isRegistered;
-          _isAdmin = isAdmin;
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _loadFeatureFlags() async {
-    try {
-      final flags = await SettingsService().getFeatureFlags();
-      if (mounted && flags != null) {
-        setState(() {
-          _canCreateQuiz = flags['enable_create_quiz'] ?? true;
-        });
-      }
-    } catch (_) {}
   }
 
   Future<void> _fetchUserProfile() async {
@@ -298,6 +287,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                         uid: widget.user!.uid,
                         enable: value,
                       );
+                      global.isAdmin = value;
                       if (mounted) {
                         setState(() => _isAdmin = value);
                         // Refresh features or navigate if needed

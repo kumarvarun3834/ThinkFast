@@ -7,6 +7,7 @@
 
 ## 2. Security & Data Privacy
 - **The "No-Answers-in-Questions" Rule:** Never store answer keys or correct values within the `quiz_questions` collection. Correct answers must reside in the `answer_keys` collection to prevent client-side inspection.
+- **Integer Question Logic:** For integer-type questions, always use `.trim()` on both user input and the correct answer before comparison to avoid whitespace issues.
 - **Verification Guard:** Core write features (Creating quizzes, submitting attempts) must be protected by an email verification check.
 - **Private Data:** Sensitive user data (emails, active sessions) must be stored in the `private` or `protected` sub-collections of a user's document, never in the root user document.
 
@@ -26,7 +27,7 @@
 
 ## 5. Firebase & Database
 - **Batching:** Use `WriteBatch` for operations that involve multiple document updates (e.g., submitting an attempt which updates responses, user stats, and active quiz status).
-- **Soft Deletes:** Quizzes should never be permanently deleted from Firestore. Use the `isDeleted: true` flag.
+- **Soft Deletes:** Quizzes should never be permanently deleted from Firestore. Use the `isDeleted: true` flag. Once soft-deleted, access is restricted for all regular users AND the owner; only App Administrators can access these quizzes.
 - **Timestamping:** Every document must have `createdAt` and `updatedAt` fields using `FieldValue.serverTimestamp()`.
 
 ## 6. Admin & Moderation

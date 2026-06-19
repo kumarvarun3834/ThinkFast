@@ -5,6 +5,8 @@ import 'quiz_service.dart';
 import 'attempt_service.dart';
 import 'settings_service.dart';
 
+import '../utils/global.dart' as global;
+
 /// 🚀 Unified Database Service (Facade for specialized services)
 class DatabaseService {
   final UserService _userService = UserService();
@@ -12,6 +14,24 @@ class DatabaseService {
   final AttemptService _attemptService = AttemptService();
   final SettingsService _settingsService = SettingsService();
   final AdminService _adminService = AdminService();
+
+  // --- App Initialization ---
+
+  Future<void> initAppData(String uid) async {
+    try {
+      // 1. Fetch Profile
+      global.currentUserProfile = await _userService.getUserProfile(uid);
+
+      // 2. Fetch Admin Status
+      global.isRegisteredAdmin = await _adminService.isRegisteredAdmin(uid);
+      global.isAdmin = await _adminService.isAdmin(uid);
+
+      // 3. Fetch Feature Flags
+      global.featureFlags = await _settingsService.getFeatureFlags();
+    } catch (e) {
+      print("Error initializing app data: $e");
+    }
+  }
 
   // --- Admin & Experience Switching ---
 
@@ -22,6 +42,58 @@ class DatabaseService {
 
   Future<void> toggleAdminMode({required String uid, required bool enable}) =>
       _adminService.toggleAdminMode(uid: uid, enable: enable);
+
+  // --- Quiz Moderation & Management ---
+
+  Future<void> banUser({
+    required String userId,
+    String? quizId,
+    required String reason,
+    required String adminId,
+  }) => _adminService.banUser(
+        userId: userId, quizId: quizId, reason: reason, adminId: adminId);
+
+  Future<void> softDeleteResponse({
+    required String responseId,
+    required String quizId,
+    required String adminId,
+    required String reason,
+  }) => _adminService.softDeleteResponse(
+        responseId: responseId,
+        quizId: quizId,
+        adminId: adminId,
+        reason: reason);
+
+  Future<void> grantManagementAccess({
+    required String quizId,
+    required String userId,
+    required Map<String, bool> permissions,
+    required String addedBy,
+  }) => _adminService.grantQuizManagementAccess(
+        quizId: quizId,
+        userId: userId,
+        permissions: permissions,
+        addedBy: addedBy);
+
+  Future<void> addParticipant({
+    required String quizId,
+    required String userId,
+    required String addedBy,
+  }) => _adminService.addParticipant(
+        quizId: quizId, userId: userId, addedBy: addedBy);
+
+  Future<void> removeManagementAccess({
+    required String quizId,
+    required String userId,
+    required String removedBy,
+  }) => _adminService.removeQuizManagementAccess(
+        quizId: quizId, userId: userId, removedBy: removedBy);
+
+  Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
+      _adminService.getQuizManagers(quizId);
+
+  Future<bool> isUserBanned(String userId, {String? quizId}) =>
+      _adminService.isUserBanned(userId, quizId: quizId);
 
   // --- User Profiles ---
 
@@ -66,7 +138,7 @@ class DatabaseService {
 
   Future<void> handleExpiredQuiz(String uid, String quizId) async {
     try {
-      final quiz = await readDatabase(quizId);
+      final quiz = await readDatabase(quizId, userId: uid);
 
       // Calculate total questions from modules
       final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
@@ -206,9 +278,17 @@ class DatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>> readDatabase(String docId) async {
+  Future<Map<String, dynamic>> readDatabase(String docId, {String? userId}) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true) {
+    if (quiz == null) throw Exception("Quiz not found");
+
+    final bool isDeleted = quiz['isDeleted'] ?? false;
+    bool isAdminUser = false;
+    if (userId != null) {
+      isAdminUser = await _adminService.isAdmin(userId);
+    }
+
+    if (isDeleted && !isAdminUser) {
       throw Exception("Quiz not found");
     }
 
@@ -229,7 +309,12 @@ class DatabaseService {
     Map<String, dynamic>? userAnswers,
   }) async {
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz == null || quiz['isDeleted'] == true) {
+    if (quiz == null) throw Exception("Quiz not found");
+
+    final bool isDeleted = quiz['isDeleted'] ?? false;
+    final bool isAdminUser = await _adminService.isAdmin(userId);
+
+    if (isDeleted && !isAdminUser) {
       throw Exception("Quiz not found");
     }
 

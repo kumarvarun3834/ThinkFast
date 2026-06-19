@@ -9,7 +9,7 @@ The entry point of the application ensures that users are authenticated and veri
     *   If **Logged In but Not Verified**: Redirect to **Verification Screen**.
     *   If **Logged In and Verified**: Redirect to **Home Screen**.
 3.  **Login/Signup:** Users can sign up with Email/Password or use Google Sign-In.
-4.  **Verification:** A mandatory step where users must verify their email address.
+4.  **Verification:** A mandatory step where users must verify their email address. The screen includes an auto-check timer that reloads the user state every 4 seconds. Once verified, the user is redirected to the **Profile Screen**.
 
 ## 2. Creator Flow (Quiz Management)
 Creators manage the lifecycle of a quiz from inception to analyzing results.

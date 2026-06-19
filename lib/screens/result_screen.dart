@@ -46,7 +46,7 @@ class _ResultScreenState extends State<ResultScreen> {
         userAnswers = widget.attemptAnswers!;
         
         // Fetch quiz data (questions)
-        final quiz = await db.readDatabase(_quizId);
+        final quiz = await db.readDatabase(_quizId, userId: user.uid);
         _displayQuizData = [];
         final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
         for (var module in rawModules) {

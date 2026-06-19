@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/screens/result_screen.dart';
+import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 class QuizResponsesScreen extends StatefulWidget {
   final String quizId;
@@ -29,6 +30,87 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   final Color _labelColor = const Color(0xFF94A3B8);
   final Color _borderColor = const Color(0xFF334155);
 
+  void _showModerationOptions(
+    BuildContext context,
+    Map<String, dynamic> response,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(
+              Icons.delete_sweep_outlined,
+              color: Colors.redAccent,
+            ),
+            title: const Text(
+              "Soft Delete Response",
+              style: TextStyle(color: Colors.white),
+            ),
+            onTap: () async {
+              Navigator.pop(context);
+              _confirmAction("Soft delete this response?", () async {
+                await DatabaseService().softDeleteResponse(
+                  responseId: response['id'],
+                  quizId: widget.quizId,
+                  adminId: FirebaseAuth.instance.currentUser!.uid,
+                  reason: "Moderated by Admin",
+                );
+              });
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.block_flipped, color: Colors.redAccent),
+            title: const Text(
+              "Ban User from Quiz",
+              style: TextStyle(color: Colors.white),
+            ),
+            onTap: () async {
+              Navigator.pop(context);
+              _confirmAction("Ban user ${response['userId']}?", () async {
+                await DatabaseService().banUser(
+                  userId: response['userId'],
+                  quizId: widget.quizId,
+                  reason: "Banned by Admin",
+                  adminId: FirebaseAuth.instance.currentUser!.uid,
+                );
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmAction(String title, Future<void> Function() action) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await action();
+              Navigator.pop(context);
+              setState(() {});
+            },
+            child: const Text("Confirm"),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'N/A';
     final DateTime date = timestamp.toDate();
@@ -50,6 +132,23 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
           ),
         ),
         iconTheme: IconThemeData(color: _valueColor),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.person_off_outlined,
+              color: Colors.redAccent,
+            ),
+            onPressed: () {
+              // Navigation to Banned Users screen if I had one
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Banned Users list coming soon..."),
+                ),
+              );
+            },
+            tooltip: "View Banned Users",
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -108,22 +207,23 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
 
                 // Filter by User ID if search text is not empty
                 if (_searchUserId.isNotEmpty) {
-                  responses =
-                      responses
-                          .where(
-                            (r) => (r['userId'] ?? '')
-                                .toString()
-                                .toLowerCase()
-                                .contains(_searchUserId.toLowerCase()),
-                          )
-                          .toList();
+                  responses = responses
+                      .where(
+                        (r) => (r['userId'] ?? '')
+                            .toString()
+                            .toLowerCase()
+                            .contains(_searchUserId.toLowerCase()),
+                      )
+                      .toList();
                 }
 
                 // 1. Determine attempt numbers by sorting by timestamp ASC first
                 responses.sort((a, b) {
-                  final tA = (a['timestamp'] as dynamic)?.toDate() ??
+                  final tA =
+                      (a['timestamp'] as dynamic)?.toDate() ??
                       DateTime.fromMillisecondsSinceEpoch(0);
-                  final tB = (b['timestamp'] as dynamic)?.toDate() ??
+                  final tB =
+                      (b['timestamp'] as dynamic)?.toDate() ??
                       DateTime.fromMillisecondsSinceEpoch(0);
                   return tA.compareTo(tB);
                 });
@@ -182,18 +282,52 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => ResultScreen(
                                       quizId: r['quizId'],
-                                      attemptAnswers: r['answers'] as Map<String, dynamic>,
+                                      attemptAnswers:
+                                          r['answers'] as Map<String, dynamic>,
                                     ),
                                   ),
                                 );
                               },
-                              title: Text(
-                                "User ID: ${r['userId']}",
-                                style: GoogleFonts.poppins(
-                                  color: _valueColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                              onLongPress: () {
+                                _showModerationOptions(context, r);
+                              },
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      "User ID: ${r['userId']}",
+                                      style: GoogleFonts.poppins(
+                                        color: _valueColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                  if (r['isDeleted'] == true)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.redAccent.withOpacity(
+                                          0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "DELETED",
+                                        style: TextStyle(
+                                          color: Colors.redAccent,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,10 +364,9 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                       Text(
                                         "Score: $score / $total",
                                         style: GoogleFonts.poppins(
-                                          color:
-                                              score >= (total / 2)
-                                                  ? Colors.greenAccent
-                                                  : Colors.redAccent,
+                                          color: score >= (total / 2)
+                                              ? Colors.greenAccent
+                                              : Colors.redAccent,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),

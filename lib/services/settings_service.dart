@@ -18,26 +18,45 @@ class SettingsService {
   /// ✅ Fetch Feature Flags (Cached for session)
   Future<Map<String, dynamic>?> getFeatureFlags() async {
     final doc = await _featureFlags.doc('production').get();
+    
+    final defaultFlags = {
+      'enable_ai': true,
+      'enable_import': true,
+      'enable_login': true,
+      'enable_register': true,
+      'enable_create_quiz': true,
+      'maintenance_mode': false,
+      'random_quiz_generator': true,
+      'user_action_logging': true,
+      'management_features': true,
+      'enable_quiz_creation_rate_limit': true,
+      'quiz_creation_rate_limit_minutes': 5,
+    };
+
     if (!doc.exists) {
-      // Return default flags if none exist
-      final defaultFlags = {
-        'enable_ai': true,
-        'enable_login': true,
-        'enable_register': true,
-        'enable_create_quiz': true,
-        'maintenance_mode': false,
-        'random_quiz_generator': true,
-        'user_action_logging': true,
-        'management_features': true,
-        'enable_quiz_creation_rate_limit': true,
-        'quiz_creation_rate_limit_minutes': 5,
+      await _featureFlags.doc('production').set({
+        ...defaultFlags,
         'updatedAt': FieldValue.serverTimestamp(),
-      };
-      // Allow everyone to create the settings template if it doesn't exist
-      await _featureFlags.doc('production').set(defaultFlags);
+      });
       return defaultFlags;
     }
-    return doc.data() as Map<String, dynamic>?;
+
+    final data = doc.data() as Map<String, dynamic>;
+    
+    // Check if any default flag is missing and update if necessary
+    bool needsUpdate = false;
+    defaultFlags.forEach((key, value) {
+      if (!data.containsKey(key)) {
+        data[key] = value;
+        needsUpdate = true;
+      }
+    });
+
+    if (needsUpdate) {
+      await _featureFlags.doc('production').update(data);
+    }
+
+    return data;
   }
 
   /// ✅ Stream Feature Flags for live updates

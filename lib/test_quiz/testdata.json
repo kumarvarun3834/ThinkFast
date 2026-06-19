@@ -1,0 +1,60 @@
+{
+  "title": "ThinkFast Technical Test",
+  "description": "A test quiz covering different question types and marking schemes.",
+  "time": 600,
+  "markingScheme": {
+    "type": "per_question_type"
+  },
+  "questions": [
+    {
+      "question": "Which of these is a built-in collection type in Dart?",
+      "choices": [
+        "Map",
+        "Dictionary",
+        "ArrayList",
+        "HashMap"
+      ],
+      "answers": [
+        "Map"
+      ],
+      "type": "Single Choice"
+    },
+    {
+      "question": "Select all keywords used for asynchronous programming in Dart.",
+      "choices": [
+        "async",
+        "await",
+        "future",
+        "yield",
+        "defer"
+      ],
+      "answers": [
+        "async",
+        "await",
+        "yield"
+      ],
+      "type": "Multiple Choice"
+    },
+    {
+      "question": "How many widgets can a 'Center' widget have as its direct child?",
+      "choices": [],
+      "answers": [
+        "1"
+      ],
+      "type": "Integer"
+    },
+    {
+      "question": "Which Flutter command is used to check for errors in your environment?",
+      "choices": [
+        "flutter doctor",
+        "flutter check",
+        "flutter inspect",
+        "flutter analyze"
+      ],
+      "answers": [
+        "flutter doctor"
+      ],
+      "type": "Single Choice"
+    }
+  ]
+}

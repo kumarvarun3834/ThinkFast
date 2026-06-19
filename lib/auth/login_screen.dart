@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -31,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
+        await DatabaseService().initAppData(user.uid);
         if (!user.emailVerified) {
           Navigator.pushReplacementNamed(context, '/verify');
         } else {
@@ -57,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final user = await auth.signInWithGoogle();
       if (user != null) {
+        await DatabaseService().initAppData(user.uid);
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {

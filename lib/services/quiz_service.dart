@@ -228,13 +228,23 @@ class QuizService {
 
   /// ✅ Check if user has access to a quiz
   Future<bool> hasAccess(String quizId, String userId) async {
+    // 0. Check if user is banned
+    final isBanned = await _adminService.isUserBanned(userId, quizId: quizId);
+    if (isBanned) return false;
+
     final quiz = await getQuiz(quizId);
     if (quiz == null) return false;
+
+    final bool isDeleted = quiz['isDeleted'] ?? false;
+    final isAdmin = await _adminService.isAdmin(userId);
+
+    // If quiz is soft-deleted, only admins can access it.
+    // Owners and regular users are blocked.
+    if (isDeleted && !isAdmin) return false;
 
     if (quiz['visibility'] == 'public') return true;
     if (quiz['creatorId'] == userId) return true;
 
-    final isAdmin = await _adminService.isAdmin(userId);
     if (isAdmin) return true;
 
     final access = await FirebaseFirestore.instance.collection('quiz_access').doc('${quizId}_$userId').get();
