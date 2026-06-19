@@ -221,6 +221,19 @@ class _Main_ScreenState extends State<Main_Screen> {
           },
         ),
       ),
+      floatingActionButton: global.featureFlags?['random_quiz_generator'] == true
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                // To be implemented: Navigate to a random public quiz
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Random Quiz feature coming soon!")),
+                );
+              },
+              backgroundColor: const Color(0xFF2563EB),
+              icon: const Icon(Icons.shuffle_rounded),
+              label: const Text("RANDOM"),
+            )
+          : null,
     );
   }
 }

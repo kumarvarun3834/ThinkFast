@@ -4,6 +4,7 @@ List<Map<String, Object>> quizData = [];
 List<dynamic> quizResult = [];
 Map<String, dynamic> markingScheme = {"type": "default"};
 int time = 10;
+bool completeRandomShuffle = false;
 String ID = "";
 String currentAttemptId = "";
 Map<String, dynamic>? currentUserProfile;

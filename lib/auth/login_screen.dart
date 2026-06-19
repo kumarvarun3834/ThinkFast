@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 import 'auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +18,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService auth = AuthService();
   bool loading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchFlags();
+  }
+
+  Future<void> _fetchFlags() async {
+    if (global.featureFlags == null) {
+      await DatabaseService().getFeatureFlags();
+    }
+  }
+
   void login() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       _show("Please fill all fields");
@@ -32,7 +45,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
-        await DatabaseService().initAppData(user.uid);
+        final db = DatabaseService();
+        await db.initAppData(user.uid);
+
+        // Check if login is enabled or if user is an admin
+        final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
+        final bool isAdmin = global.isAdmin || global.isRegisteredAdmin;
+
+        if (!loginEnabled && !isAdmin) {
+          await auth.logout();
+          _show("Login is currently disabled by the administrator.");
+          return;
+        }
+
         if (!user.emailVerified) {
           Navigator.pushReplacementNamed(context, '/verify');
         } else {
@@ -59,7 +84,19 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final user = await auth.signInWithGoogle();
       if (user != null) {
-        await DatabaseService().initAppData(user.uid);
+        final db = DatabaseService();
+        await db.initAppData(user.uid);
+
+        // Check if login is enabled or if user is an admin
+        final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
+        final bool isAdmin = global.isAdmin || global.isRegisteredAdmin;
+
+        if (!loginEnabled && !isAdmin) {
+          await auth.logout();
+          _show("Login is currently disabled by the administrator.");
+          return;
+        }
+
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {

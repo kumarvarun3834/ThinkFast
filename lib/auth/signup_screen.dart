@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 import 'auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -17,6 +19,18 @@ class _SignupScreenState extends State<SignupScreen> {
   final AuthService auth = AuthService();
   bool loading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchFlags();
+  }
+
+  Future<void> _fetchFlags() async {
+    if (global.featureFlags == null) {
+      await DatabaseService().getFeatureFlags();
+    }
+  }
+
   void signup() async {
     if (nameController.text.isEmpty ||
         emailController.text.isEmpty ||
@@ -28,6 +42,15 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => loading = true);
 
     try {
+      final db = DatabaseService();
+      final flags = global.featureFlags ?? await db.getFeatureFlags();
+
+      if (flags?['enable_register'] == false) {
+        _show("Registration is currently disabled by the administrator.");
+        setState(() => loading = false);
+        return;
+      }
+
       final user = await auth.signUp(
         emailController.text.trim(),
         passwordController.text.trim(),
@@ -37,9 +60,22 @@ class _SignupScreenState extends State<SignupScreen> {
         // optionally store name in Firebase Auth
         await user.updateDisplayName(nameController.text.trim());
 
+        // Check if login is enabled
+        await db.initAppData(user.uid);
+        final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
+        final bool isAdmin = global.isAdmin || global.isRegisteredAdmin;
+
         if (mounted) {
-          _show("Signup successful! Please verify your email.");
-          Navigator.pushReplacementNamed(context, '/verify');
+          if (!loginEnabled && !isAdmin) {
+            await auth.logout();
+            _show(
+              "Account created! However, login is currently disabled by the administrator.",
+            );
+            Navigator.pushReplacementNamed(context, '/login');
+          } else {
+            _show("Signup successful! Please verify your email.");
+            Navigator.pushReplacementNamed(context, '/verify');
+          }
         }
       }
     } catch (e) {

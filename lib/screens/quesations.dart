@@ -23,60 +23,62 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
     final random = Random();
+    List<Map<String, Object>> shuffledQuestions = [];
 
-    // 1. Group questions by Subject/Module
-    Map<String, List<Map<String, dynamic>>> moduleGroups = {};
-    for (var q in global.quizData) {
-      final subject = q['subject']?.toString() ?? 'General';
-      moduleGroups.putIfAbsent(subject, () => []).add(q);
-    }
-
-    // 2. Layer 1: Shuffle subjects
-    List<String> subjectKeys = moduleGroups.keys.toList();
-    subjectKeys.shuffle(random);
-
-    List<Map<String, Object>> finalQuestions = [];
-
-    // 3. Process each subject
-    for (var subject in subjectKeys) {
-      var moduleQuestions = moduleGroups[subject]!;
-
-      // 4. Layer 2: Group by Type within subject to maintain specific order
-      // Order: Single Choice -> Multiple Choice -> Integer
-      Map<String, List<Map<String, dynamic>>> typeGroups = {
-        'Single Choice': [],
-        'Multiple Choice': [],
-        'Integer': [],
-      };
-
-      for (var q in moduleQuestions) {
-        final type = q['type']?.toString() ?? 'Single Choice';
-        typeGroups.putIfAbsent(type, () => []).add(q);
+    if (global.completeRandomShuffle) {
+      // 1. Simply global shuffle across all modules
+      shuffledQuestions = List<Map<String, Object>>.from(global.quizData);
+      shuffledQuestions.shuffle(random);
+    } else {
+      // 2. Module-wise randomization
+      // Group questions by subject
+      Map<String, List<Map<String, Object>>> moduleGroups = {};
+      for (var q in global.quizData) {
+        String subject = q['subject']?.toString() ?? 'General';
+        moduleGroups.putIfAbsent(subject, () => []).add(q);
       }
 
-      // 5. Shuffle questions internally within each type group and assemble
+      // Shuffle which module appears first
+      List<String> modules = moduleGroups.keys.toList();
+      modules.shuffle(random);
+
+      // Group by type within each module and shuffle within types
       final List<String> typeOrder = [
         'Single Choice',
         'Multiple Choice',
-        'Integer',
+        'Integer'
       ];
 
-      // Also catch any other types not in our primary list
-      final allTypes = typeGroups.keys.toList();
-      for (var t in allTypes) {
-        if (!typeOrder.contains(t)) typeOrder.add(t);
-      }
+      for (var module in modules) {
+        List<Map<String, Object>> moduleQuestions = moduleGroups[module]!;
 
-      for (var type in typeOrder) {
-        var group = typeGroups[type] ?? [];
-        if (group.isEmpty) continue;
+        // Group by type
+        Map<String, List<Map<String, Object>>> typeGroups = {};
+        for (var q in moduleQuestions) {
+          String type = q['type']?.toString() ?? 'Single Choice';
+          typeGroups.putIfAbsent(type, () => []).add(q);
+        }
 
-        group.shuffle(random); // Shuffle questions of this type
-        finalQuestions.addAll(group.cast<Map<String, Object>>());
+        // Add to shuffled list in specific type order
+        for (var type in typeOrder) {
+          if (typeGroups.containsKey(type)) {
+            List<Map<String, Object>> questionsOfType = typeGroups[type]!;
+            questionsOfType.shuffle(random);
+            shuffledQuestions.addAll(questionsOfType);
+          }
+        }
+
+        // Add any types not in the standard order list (if any)
+        typeGroups.forEach((type, questions) {
+          if (!typeOrder.contains(type)) {
+            questions.shuffle(random);
+            shuffledQuestions.addAll(questions);
+          }
+        });
       }
     }
 
-    global.quizData = finalQuestions;
+    global.quizData = shuffledQuestions;
 
     for (var q in global.quizData) {
       // Shuffle choices (As is [{id, text}, ...])
@@ -243,7 +245,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                             ),
                             child: Center(
                               child: Text(
-                                "${index + 1}",
+                                _getDisplayNumber(index),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -437,35 +439,120 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   }
 
   List<Widget> menu_opt() {
-    return [
-      for (int j = 0; j < global.quizData.length; j++)
-        GestureDetector(
-          onTap: () {
-            i = j;
-            switchState();
-            Navigator.pop(context); // Close the drawer
-          },
-          child: Container(
-            width: 70,
-            height: 70,
-            margin: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: _getQuestionColor(global.quizResult[j]),
-              borderRadius: BorderRadius.circular(12),
+    if (global.completeRandomShuffle) {
+      return [
+        for (int j = 0; j < global.quizData.length; j++)
+          _buildQuestionCircle(j, (j + 1).toString()),
+      ];
+    }
+
+    // Module-wise grouping in drawer
+    List<Widget> groupedWidgets = [];
+    String lastSubject = "";
+    List<Widget> moduleCircles = [];
+    int moduleQuestionCounter = 0;
+
+    void flushModule() {
+      if (moduleCircles.isNotEmpty) {
+        groupedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: List.from(moduleCircles),
             ),
-            child: Center(
-              child: Text(
-                "${j + 1}",
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 24,
+          ),
+        );
+        moduleCircles.clear();
+      }
+    }
+
+    for (int j = 0; j < global.quizData.length; j++) {
+      String subject = global.quizData[j]['subject']?.toString() ?? 'General';
+
+      if (subject != lastSubject) {
+        flushModule();
+        lastSubject = subject;
+        moduleQuestionCounter = 0;
+        groupedWidgets.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_open_rounded,
+                    color: Color(0xFF3B82F6), size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  subject.toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF3B82F6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      moduleQuestionCounter++;
+      moduleCircles
+          .add(_buildQuestionCircle(j, moduleQuestionCounter.toString()));
+    }
+    flushModule();
+
+    return groupedWidgets;
+  }
+
+  String _getDisplayNumber(int index) {
+    if (global.completeRandomShuffle) return (index + 1).toString();
+    int counter = 0;
+    String currentSubject =
+        global.quizData[index]['subject']?.toString() ?? 'General';
+    for (int j = index; j >= 0; j--) {
+      if ((global.quizData[j]['subject']?.toString() ?? 'General') ==
+          currentSubject) {
+        counter++;
+      } else {
+        break;
+      }
+    }
+    return counter.toString();
+  }
+
+  Widget _buildQuestionCircle(int index, String displayNum) {
+    return GestureDetector(
+      onTap: () {
+        i = index;
+        switchState();
+        Navigator.pop(context); // Close the drawer
+      },
+      child: Container(
+        width: 60,
+        height: 60,
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: _getQuestionColor(global.quizResult[index]),
+          borderRadius: BorderRadius.circular(12),
+          border: i == index
+              ? Border.all(color: const Color(0xFF3B82F6), width: 2)
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            displayNum,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
           ),
         ),
-    ];
+      ),
+    );
   }
 
   // ✅ safe selector (2D Array)
@@ -475,6 +562,31 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       return sel.map((e) => e.toString()).toList();
     }
     return <String>[];
+  }
+
+  List<int> _getCurrentModuleIndices() {
+    if (global.completeRandomShuffle || global.quizData.isEmpty) {
+      return List.generate(global.quizData.length, (index) => index);
+    }
+
+    final String currentSubject =
+        global.quizData[i]['subject']?.toString() ?? 'General';
+
+    int start = i;
+    while (start > 0 &&
+        (global.quizData[start - 1]['subject']?.toString() ?? 'General') ==
+            currentSubject) {
+      start--;
+    }
+
+    int end = i;
+    while (end < global.quizData.length - 1 &&
+        (global.quizData[end + 1]['subject']?.toString() ?? 'General') ==
+            currentSubject) {
+      end++;
+    }
+
+    return List.generate(end - start + 1, (index) => start + index);
   }
 
   Color _getQuestionColor(List<dynamic> question) {
@@ -513,6 +625,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final List<int> moduleIndices = _getCurrentModuleIndices();
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -608,12 +722,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(8),
-                  child: Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: menu_opt(),
-                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: global.completeRandomShuffle
+                      ? Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: menu_opt(),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: menu_opt(),
+                        ),
                 ),
               ),
             ],
@@ -634,12 +753,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: global.quizData.length,
+                        itemCount: moduleIndices.length,
                         itemBuilder: (context, index) {
-                          bool isCurrent = i == index;
+                          int globalIndex = moduleIndices[index];
+                          bool isCurrent = i == globalIndex;
                           return GestureDetector(
                             onTap: () {
-                              i = index;
+                              i = globalIndex;
                               switchState();
                             },
                             child: Container(
@@ -647,7 +767,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               margin: const EdgeInsets.symmetric(horizontal: 4),
                               decoration: BoxDecoration(
                                 color: _getQuestionColor(
-                                  global.quizResult[index],
+                                  global.quizResult[globalIndex],
                                 ),
                                 borderRadius: BorderRadius.circular(8),
                                 border: isCurrent
@@ -659,7 +779,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               ),
                               child: Center(
                                 child: Text(
-                                  "${index + 1}",
+                                  _getDisplayNumber(globalIndex),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -792,8 +912,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 ),
                               ),
                               child: Text(
-                                (currentData["type"]?.toString() ??
-                                        "Single Choice")
+                                (currentData["subject"]?.toString() ??
+                                        "General")
                                     .toUpperCase(),
                                 style: GoogleFonts.poppins(
                                   color: const Color(0xFF3B82F6),
@@ -803,8 +923,33 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 ),
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF94A3B8).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: const Color(0xFF94A3B8),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                (currentData["type"]?.toString() ??
+                                        "Single Choice")
+                                    .toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFF94A3B8),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
                             Text(
-                              "Question ${i + 1} of ${global.quizData.length}",
+                              "Question ${_getDisplayNumber(i)} of ${moduleIndices.length}",
                               style: GoogleFonts.poppins(
                                 color: const Color(0xFF94A3B8),
                                 fontSize: 12,

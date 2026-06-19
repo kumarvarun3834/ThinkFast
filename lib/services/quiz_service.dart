@@ -23,6 +23,7 @@ class QuizService {
     required int timeInSeconds,
     Map<String, dynamic>? markingScheme,
     bool allowMultipleAttempts = true,
+    bool completeRandomShuffle = false,
     List<String>? tags,
   }) async {
     // 1. Idempotency Check
@@ -89,6 +90,7 @@ class QuizService {
       'visibility': visibility,
       'time': timeInSeconds,
       'allowMultipleAttempts': allowMultipleAttempts,
+      'completeRandomShuffle': completeRandomShuffle,
       'markingScheme': markingScheme ?? {'type': 'default'},
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),

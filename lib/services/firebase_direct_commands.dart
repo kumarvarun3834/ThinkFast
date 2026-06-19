@@ -273,11 +273,11 @@ class DatabaseService {
     required int time, // minutes
     Map<String, dynamic>? markingScheme,
     bool allowMultipleAttempts = true,
+    bool completeRandomShuffle = false,
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(data, scheme);
-    await _ensurePermission('enable_create_quiz', userId: creatorId);
     return await _quizService.createQuiz(
       clientToken: clientToken,
       creatorId: creatorId,
@@ -290,6 +290,7 @@ class DatabaseService {
       timeInSeconds: time * 60,
       markingScheme: scheme,
       allowMultipleAttempts: allowMultipleAttempts,
+      completeRandomShuffle: completeRandomShuffle,
     );
   }
 
@@ -302,6 +303,7 @@ class DatabaseService {
     List<Map<String, Object>>? data,
     int? time, // minutes
     bool? allowMultipleAttempts,
+    bool? completeRandomShuffle,
     Map<String, dynamic>? markingScheme,
   }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
@@ -312,6 +314,9 @@ class DatabaseService {
     if (time != null) updates['time'] = time * 60;
     if (allowMultipleAttempts != null) {
       updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    }
+    if (completeRandomShuffle != null) {
+      updates['completeRandomShuffle'] = completeRandomShuffle;
     }
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
 

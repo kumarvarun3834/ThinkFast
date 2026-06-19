@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:thinkfast/utils/global.dart' as global;
+import 'settings_service.dart';
 
 class AdminService {
   final CollectionReference _admins = FirebaseFirestore.instance.collection('admins');
@@ -7,6 +9,8 @@ class AdminService {
   final CollectionReference _quizAccess = FirebaseFirestore.instance.collection('quiz_access');
   final CollectionReference _bannedUsers = FirebaseFirestore.instance.collection('banned_users');
   final CollectionReference _responses = FirebaseFirestore.instance.collection('responses');
+  final CollectionReference _allAttempts = FirebaseFirestore.instance.collection('all_attempts');
+  final CollectionReference _quizAttempts = FirebaseFirestore.instance.collection('quiz_attempts');
 
   // Safely check if a user is a registered admin
   Future<bool> isRegisteredAdmin(String uid) async {
@@ -134,6 +138,10 @@ class AdminService {
     required String details,
     String category = 'general',
   }) async {
+    // Check if logging is enabled
+    final flags = global.featureFlags ?? await SettingsService().getFeatureFlags();
+    if (flags?['user_action_logging'] == false) return;
+
     await _auditLogs.add({
       'actorId': actorId,
       'action': action,
@@ -297,21 +305,34 @@ class AdminService {
   }) async {
     // Requires App Admin OR Quiz Manager with 'canModerate'
     if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
-      throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+      throw Exception(
+        "Unauthorized: You do not have moderation rights for this quiz.",
+      );
     }
 
-    await _responses.doc(responseId).update({
+    final batch = FirebaseFirestore.instance.batch();
+    final Map<String, dynamic> updates = {
       'isDeleted': true,
       'deletedBy': adminId,
       'deleteReason': reason,
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    // Update all three locations where response data is stored
+    batch.update(_responses.doc(responseId), updates);
+    batch.update(_allAttempts.doc(responseId), updates);
+    batch.update(
+      _quizAttempts.doc(quizId).collection('attempts').doc(responseId),
+      updates,
+    );
+
+    await batch.commit();
 
     await logAction(
       actorId: adminId,
       action: 'soft_delete_response',
       targetId: responseId,
-      details: 'Reason: $reason',
+      details: 'Quiz: $quizId, Reason: $reason',
       category: 'moderation',
     );
   }

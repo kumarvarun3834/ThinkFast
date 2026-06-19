@@ -29,9 +29,11 @@ class _QuizPageState extends State<QuizPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _timeController;
+  final ScrollController _scrollController = ScrollController();
 
   String visibility = "private";
   bool allowMultipleAttempts = true;
+  bool completeRandomShuffle = false;
 
   // Modules
   final List<String> modulesList = ["General"];
@@ -66,6 +68,7 @@ class _QuizPageState extends State<QuizPage> {
 
   // Questions
   final List<Map<String, Object>> questions = [];
+  final Map<String, GlobalKey> _moduleKeys = {};
 
   @override
   void initState() {
@@ -76,7 +79,8 @@ class _QuizPageState extends State<QuizPage> {
 
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
-    _isAi = global.currentUserProfile?['role'] == 'ai';
+    _isAi = (global.currentUserProfile?['role'] == 'ai' || _isAdmin) &&
+        (global.featureFlags?['enable_ai'] ?? true);
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
 
     if (widget.docId.isNotEmpty) {
@@ -262,6 +266,7 @@ class _QuizPageState extends State<QuizPage> {
         _descriptionController.text = data['description'] ?? '';
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
+        completeRandomShuffle = data['completeRandomShuffle'] ?? false;
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
         // Load Marking Scheme
@@ -531,6 +536,17 @@ class _QuizPageState extends State<QuizPage> {
     setState(() => questions[index] = data);
   }
 
+  void _scrollToModule(String module) {
+    final key = _moduleKeys[module];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Widget _buildModulesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,6 +624,31 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                   ))
               .toList(),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF334155)),
+          ),
+          child: SwitchListTile(
+            title: const Text(
+              "Complete Random Shuffle",
+              style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+            ),
+            subtitle: const Text(
+              "Mix all questions across all modules",
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+            ),
+            value: completeRandomShuffle,
+            activeColor: const Color(0xFF3B82F6),
+            onChanged: (bool value) {
+              setState(() {
+                completeRandomShuffle = value;
+              });
+            },
+          ),
         ),
       ],
     );
@@ -699,6 +740,7 @@ class _QuizPageState extends State<QuizPage> {
           time: time,
           markingScheme: markingScheme,
           allowMultipleAttempts: allowMultipleAttempts,
+          completeRandomShuffle: completeRandomShuffle,
         );
         setState(() {
           widget.docId = newId;
@@ -715,6 +757,7 @@ class _QuizPageState extends State<QuizPage> {
           time: time,
           markingScheme: markingScheme,
           allowMultipleAttempts: allowMultipleAttempts,
+          completeRandomShuffle: completeRandomShuffle,
         );
         global.ID = widget.docId;
       }
@@ -758,7 +801,52 @@ class _QuizPageState extends State<QuizPage> {
       ),
       drawer: Drawer(
         backgroundColor: const Color(0xFF1E293B),
-        child: SidebarMenu(user: user),
+        child: Column(
+          children: [
+            Expanded(child: SidebarMenu(user: user)),
+            if (modulesList.isNotEmpty) ...[
+              const Divider(color: Color(0xFF334155), height: 1),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: const Color(0xFF0F172A),
+                child: Text(
+                  "QUIZ MODULES",
+                  style: GoogleFonts.poppins(
+                    color: const Color(0xFF3B82F6),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: modulesList.length,
+                  itemBuilder: (context, index) {
+                    final module = modulesList[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.folder_open_rounded,
+                          size: 20, color: Color(0xFF94A3B8)),
+                      title: Text(
+                        module,
+                        style: const TextStyle(
+                            color: Color(0xFFE2E8F0), fontSize: 14),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _scrollToModule(module);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
       body: Theme(
         data: Theme.of(context).copyWith(
@@ -775,6 +863,7 @@ class _QuizPageState extends State<QuizPage> {
           ),
         ),
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
@@ -827,47 +916,90 @@ class _QuizPageState extends State<QuizPage> {
                   });
                 },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               _buildModulesSection(),
               const SizedBox(height: 24),
               _buildMarkingSchemeSection(),
               const SizedBox(height: 24),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: questions.length,
-                itemBuilder: (context, index) => Card(
-                  color: const Color(0xFF1E293B),
-                  margin: const EdgeInsets.symmetric(vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: Color(0xFF334155)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      children: [
-                        QuizForm(
-                          form_data_part: questions[index],
-                          onChanged: (d) => _updateFormData(index, d),
-                          showIndividualMarking: markingType == "per_question",
-                          moduleOptions: modulesList,
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              color: Colors.redAccent,
+              ...modulesList.map((module) {
+                final moduleQuestions = questions
+                    .asMap()
+                    .entries
+                    .where((e) => e.value['subject'] == module)
+                    .toList();
+
+                if (moduleQuestions.isEmpty) return const SizedBox.shrink();
+
+                // Ensure a key exists for this module for scrolling
+                final key =
+                    _moduleKeys.putIfAbsent(module, () => GlobalKey());
+
+                return Column(
+                  key: key,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.folder_open_rounded,
+                              color: Color(0xFF3B82F6)),
+                          const SizedBox(width: 8),
+                          Text(
+                            module.toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFF3B82F6),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
                             ),
-                            onPressed: () => _removeForm(index),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: Divider(
+                                  color: const Color(0xFF3B82F6)
+                                      .withOpacity(0.3))),
+                        ],
+                      ),
+                    ),
+                    ...moduleQuestions.map((entry) {
+                      final index = entry.key;
+                      return Card(
+                        color: const Color(0xFF1E293B),
+                        margin: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: const BorderSide(color: Color(0xFF334155)),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              QuizForm(
+                                form_data_part: questions[index],
+                                onChanged: (d) => _updateFormData(index, d),
+                                showIndividualMarking:
+                                    markingType == "per_question",
+                                moduleOptions: modulesList,
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.redAccent,
+                                  ),
+                                  onPressed: () => _removeForm(index),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+                      );
+                    }).toList(),
+                  ],
+                );
+              }).toList(),
               const SizedBox(height: 80),
             ],
           ),
