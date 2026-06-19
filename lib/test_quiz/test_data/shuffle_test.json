@@ -1,0 +1,26 @@
+{
+  "title": "Randomized Chaos",
+  "description": "Tests the complete random shuffle feature which ignores module grouping.",
+  "time": 0,
+  "completeRandomShuffle": true,
+  "questions": [
+    {
+      "question": "Q1 - Subject A",
+      "choices": ["1", "2"],
+      "answers": ["1"],
+      "subject": "Module A"
+    },
+    {
+      "question": "Q2 - Subject B",
+      "choices": ["1", "2"],
+      "answers": ["1"],
+      "subject": "Module B"
+    },
+    {
+      "question": "Q3 - Subject C",
+      "choices": ["1", "2"],
+      "answers": ["1"],
+      "subject": "Module C"
+    }
+  ]
+}

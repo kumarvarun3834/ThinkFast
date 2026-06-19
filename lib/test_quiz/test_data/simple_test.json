@@ -1,0 +1,10 @@
+{
+  "title": "Minimalist Quiz",
+  "questions": [
+    {
+      "question": "Is this a simple test?",
+      "choices": ["Yes", "No"],
+      "answers": ["Yes"]
+    }
+  ]
+}

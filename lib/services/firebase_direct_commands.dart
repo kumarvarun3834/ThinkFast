@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'admin_service.dart';
-import 'user_service.dart';
-import 'quiz_service.dart';
-import 'attempt_service.dart';
-import 'settings_service.dart';
 
 import '../utils/global.dart' as global;
+import 'admin_service.dart';
+import 'attempt_service.dart';
+import 'quiz_service.dart';
+import 'settings_service.dart';
+import 'user_service.dart';
 
 /// 🚀 Unified Database Service (Facade for specialized services)
 class DatabaseService {
@@ -102,7 +102,11 @@ class DatabaseService {
   }) async {
     await _ensureAdminLevel(adminId, 5); // Level 5+ for global bans
     return _adminService.banUser(
-        userId: userId, quizId: quizId, reason: reason, adminId: adminId);
+      userId: userId,
+      quizId: quizId,
+      reason: reason,
+      adminId: adminId,
+    );
   }
 
   Future<void> softDeleteResponse({
@@ -113,10 +117,11 @@ class DatabaseService {
   }) async {
     await _ensureAdminLevel(adminId, 3); // Level 3+ for moderation
     return _adminService.softDeleteResponse(
-        responseId: responseId,
-        quizId: quizId,
-        adminId: adminId,
-        reason: reason);
+      responseId: responseId,
+      quizId: quizId,
+      adminId: adminId,
+      reason: reason,
+    );
   }
 
   Future<void> grantManagementAccess({
@@ -128,10 +133,11 @@ class DatabaseService {
     await _ensureAdminLevel(addedBy, 2); // Level 2+ for collabs
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.grantQuizManagementAccess(
-        quizId: quizId,
-        userId: userId,
-        permissions: permissions,
-        addedBy: addedBy);
+      quizId: quizId,
+      userId: userId,
+      permissions: permissions,
+      addedBy: addedBy,
+    );
   }
 
   Future<void> addParticipant({
@@ -142,7 +148,10 @@ class DatabaseService {
     await _ensureAdminLevel(addedBy, 2);
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.addParticipant(
-        quizId: quizId, userId: userId, addedBy: addedBy);
+      quizId: quizId,
+      userId: userId,
+      addedBy: addedBy,
+    );
   }
 
   Future<void> removeManagementAccess({
@@ -153,7 +162,10 @@ class DatabaseService {
     await _ensureAdminLevel(removedBy, 2);
     await _ensurePermission('management_features', userId: removedBy);
     return _adminService.removeQuizManagementAccess(
-        quizId: quizId, userId: userId, removedBy: removedBy);
+      quizId: quizId,
+      userId: userId,
+      removedBy: removedBy,
+    );
   }
 
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
@@ -169,7 +181,10 @@ class DatabaseService {
   }) async {
     await _ensureAdminLevel(actorUid, 9); // Only level 9-10 can manage admins
     return _adminService.addOrUpdateAdmin(
-        targetUid: targetUid, level: level, actorUid: actorUid);
+      targetUid: targetUid,
+      level: level,
+      actorUid: actorUid,
+    );
   }
 
   Future<void> removeAdmin({
@@ -190,7 +205,11 @@ class DatabaseService {
   }) async {
     await _ensurePermission(null, userId: uid); // Basic maintenance check
     return _userService.createUserProfile(
-        uid: uid, email: email, name: name, photoUrl: photoUrl);
+      uid: uid,
+      email: email,
+      name: name,
+      photoUrl: photoUrl,
+    );
   }
 
   Future<Map<String, dynamic>?> getUserProfile(String uid) async {
@@ -270,11 +289,12 @@ class DatabaseService {
     required String description,
     required String visibility,
     required List<Map<String, Object>> data,
-    required int time, // minutes
+    int? time, // minutes
     Map<String, dynamic>? markingScheme,
     Map<String, dynamic>? attemptLimits,
     bool allowMultipleAttempts = true,
     bool completeRandomShuffle = false,
+    int perQuestionTime = 0,
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
@@ -288,11 +308,12 @@ class DatabaseService {
       visibility: visibility,
       questions: List<Map<String, dynamic>>.from(transformed['modules']),
       answerKeys: List<Map<String, dynamic>>.from(transformed['answerkeys']),
-      timeInSeconds: time * 60,
+      timeInSeconds: (time ?? 0) * 60,
       markingScheme: scheme,
       attemptLimits: attemptLimits ?? {'type': 'none'},
       allowMultipleAttempts: allowMultipleAttempts,
       completeRandomShuffle: completeRandomShuffle,
+      perQuestionTime: perQuestionTime,
     );
   }
 
@@ -306,6 +327,7 @@ class DatabaseService {
     int? time, // minutes
     bool? allowMultipleAttempts,
     bool? completeRandomShuffle,
+    int? perQuestionTime,
     Map<String, dynamic>? markingScheme,
     Map<String, dynamic>? attemptLimits,
   }) async {
@@ -321,6 +343,7 @@ class DatabaseService {
     if (completeRandomShuffle != null) {
       updates['completeRandomShuffle'] = completeRandomShuffle;
     }
+    if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
     if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
 
@@ -400,8 +423,14 @@ class DatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>> readDatabase(String docId, {String? userId}) async {
-    await _ensurePermission(null, userId: userId); // Basic maintenance/read check
+  Future<Map<String, dynamic>> readDatabase(
+    String docId, {
+    String? userId,
+  }) async {
+    await _ensurePermission(
+      null,
+      userId: userId,
+    ); // Basic maintenance/read check
     final quiz = await _quizService.getQuiz(docId);
     if (quiz == null) throw Exception("Quiz not found");
 
@@ -540,6 +569,7 @@ class DatabaseService {
       final String qDescription = (item['description'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
+      final int qTimer = int.tryParse(item['timer']?.toString() ?? '0') ?? 0;
 
       if (markingScheme['type'] == 'per_question') {
         perQuestionMap[qUid] = {
@@ -555,7 +585,11 @@ class DatabaseService {
 
       if (qType == "Integer") {
         if (answers.isNotEmpty) {
-          answerKeys.add({'q': qUid, 'a': answers.first.toString(), 's': qDescription});
+          answerKeys.add({
+            'q': qUid,
+            'a': answers.first.toString(),
+            's': qDescription,
+          });
         }
       } else {
         bool descriptionAdded = false;
@@ -586,13 +620,14 @@ class DatabaseService {
         }
         // If no answers were selected but there's a description, add a dummy entry or handle it
         if (!descriptionAdded && qDescription.isNotEmpty) {
-           answerKeys.add({'q': qUid, 'a': '__desc__', 's': qDescription});
+          answerKeys.add({'q': qUid, 'a': '__desc__', 's': qDescription});
         }
       }
 
       final questionData = {
         'uid': qUid,
         'type': qType,
+        'timer': qTimer,
         'Q': {'id': qUid, 'text': qText},
         'As': optionsWithIds,
       };
@@ -608,8 +643,12 @@ class DatabaseService {
     }
 
     // Sort questions within each subject to ensure Module > Single > Multiple > Integer order
-    final List<String> typeOrder = ['Single Choice', 'Multiple Choice', 'Integer'];
-    
+    final List<String> typeOrder = [
+      'Single Choice',
+      'Multiple Choice',
+      'Integer',
+    ];
+
     final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) {
       final subject = e.key;
       final List<Map<String, dynamic>> questions = e.value;
@@ -618,7 +657,7 @@ class DatabaseService {
       questions.sort((a, b) {
         final typeA = a['type']?.toString() ?? 'Single Choice';
         final typeB = b['type']?.toString() ?? 'Single Choice';
-        
+
         int indexA = typeOrder.indexOf(typeA);
         int indexB = typeOrder.indexOf(typeB);
 

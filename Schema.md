@@ -25,7 +25,8 @@
 | `title` | String | Quiz title. |
 | `description` | String | Quiz description. |
 | `visibility` | String | `public` or `private`. |
-| `time` | Number | Duration in seconds. |
+| `time` | Number | Duration in seconds (0 means Unlimited). |
+| `perQuestionTime` | Number | Duration in seconds for each question (0 if disabled). |
 | `markingScheme` | Map | Config: `{type: 'default'|'per_question'|'per_question_type', global: {}, perQuestion: {}, perQuestionType: {}}`. |
 | `attemptLimits` | Map | Config: `{type: 'none'|'global'|'per_module', global: {}, perModule: {}}`. |
 | `isDeleted` | Boolean | Soft delete flag. |

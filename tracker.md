@@ -24,6 +24,7 @@
 
 ### Quiz Creation (The Creator Flow)
 - [x] Comprehensive Quiz Editor (`QuizPage`)
+- [x] **Flexible Timing (Unlimited / Per Question Timer)**
 - [x] Support for Single Choice, Multiple Choice, and Integer Questions
 - [x] AI-Assisted Quiz Generation (`AiService`)
 - [x] Flexible Marking Schemes (Global, Per-Type, Per-Question)

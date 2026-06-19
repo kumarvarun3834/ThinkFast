@@ -37,7 +37,8 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
 | `title` | String | Quiz title. |
 | `description` | String | Quiz description. |
 | `visibility` | String | `public` or `private`. |
-| `time` | Number | Duration in seconds. |
+| `time` | Number | Duration in seconds (0 means Unlimited). |
+| `perQuestionTime` | Number | Independent countdown timer for every question. |
 | `markingScheme` | Map | Configuration for scoring (e.g., `default`, `per_question`, `per_question_type`). |
 | `attemptLimits` | Map | Configuration for attempt constraints (e.g., `none`, `global`, `per_module`). |
 | `isDeleted` | Boolean | Soft delete flag. |

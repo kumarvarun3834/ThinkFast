@@ -28,6 +28,8 @@ class _QuizFormState extends State<QuizForm> {
       TextEditingController(text: "4");
   final TextEditingController _wrongController =
       TextEditingController(text: "-1");
+  final TextEditingController _timerController =
+      TextEditingController(text: "0");
   Set<int> _selectedAnswers = {};
   String? _selectedValue;
   String? _selectedModule;
@@ -42,6 +44,9 @@ class _QuizFormState extends State<QuizForm> {
     }
     if (widget.form_data_part["wrong"] != null) {
       _wrongController.text = widget.form_data_part["wrong"].toString();
+    }
+    if (widget.form_data_part["timer"] != null) {
+      _timerController.text = widget.form_data_part["timer"].toString();
     }
     if (widget.form_data_part["subject"] != null) {
       _selectedModule = widget.form_data_part["subject"] as String;
@@ -118,6 +123,7 @@ class _QuizFormState extends State<QuizForm> {
       "answers": answers,
       "correct": int.tryParse(_correctController.text) ?? 4,
       "wrong": int.tryParse(_wrongController.text) ?? -1,
+      "timer": int.tryParse(_timerController.text) ?? 0,
     });
   }
 
@@ -302,9 +308,9 @@ class _QuizFormState extends State<QuizForm> {
               onChanged: (_) => _emitData(),
             ),
             const SizedBox(height: 16),
-            if (widget.showIndividualMarking) ...[
-              Row(
-                children: [
+            Row(
+              children: [
+                if (widget.showIndividualMarking) ...[
                   Expanded(
                     child: TextField(
                       controller: _correctController,
@@ -330,10 +336,24 @@ class _QuizFormState extends State<QuizForm> {
                       onChanged: (_) => _emitData(),
                     ),
                   ),
+                  const SizedBox(width: 12),
                 ],
-              ),
-              const SizedBox(height: 16),
-            ],
+                Expanded(
+                  child: TextField(
+                    controller: _timerController,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Color(0xFFE2E8F0)),
+                    decoration: const InputDecoration(
+                      labelText: "Q Timer (sec)",
+                      labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                      hintText: "0 = use global",
+                    ),
+                    onChanged: (_) => _emitData(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             if (_selectedValue == "Integer")
               TextField(
                 controller: _correctAnswerController,

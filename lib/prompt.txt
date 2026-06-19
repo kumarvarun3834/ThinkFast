@@ -1,0 +1,159 @@
+If you're already planning an **interactive pre-quiz questionnaire**, then I would actually remove some of the profile fields and move them into the quiz creation flow.
+
+### Keep in Profile (Long-term Preferences)
+
+These rarely change:
+
+* Class / Grade
+* Age (optional)
+* Study Goal
+* Interests
+* Learning Topics
+* Preferred Language
+* Difficulty Preference
+* Study Hours/Week
+* Target Exam
+* Learning Style
+
+---
+
+### Ask During Quiz Generation (Per-Quiz Settings)
+
+Your list is much better suited here because users may want different settings for different quizzes.
+
+Examples:
+
+#### Content
+
+* Topic
+* Subtopics
+* Topics to avoid
+
+#### Difficulty
+
+* Skill Level
+* Difficulty
+* Distractor Style
+* Cognitive Level
+
+#### Format
+
+* Question Count
+* Question Type
+* Hints
+* Explanations
+
+#### Presentation
+
+* Tone
+* Language Variant
+
+#### Quiz Behavior
+
+* Feedback Timing
+
+---
+
+### Things I'd Add to Your Interactive Flow
+
+#### Time Limit
+
+Examples:
+
+* No limit
+* 10 min
+* 20 min
+* 30 min
+
+AI can adjust question complexity accordingly.
+
+---
+
+#### Previous Mistakes Focus
+
+Ask:
+
+> "Would you like this quiz to focus on topics you've struggled with before?"
+
+This becomes powerful once analytics exist.
+
+---
+
+#### Adaptive Quiz
+
+Ask:
+
+> "Should difficulty adjust based on your answers?"
+
+* Yes
+* No
+
+---
+
+#### Coverage Mode
+
+Ask:
+
+> "What should this quiz focus on?"
+
+* Entire syllabus
+* Selected topics
+* Weak topics
+* Revision only
+* Mixed
+
+---
+
+#### Question Source
+
+Ask:
+
+> Generate from:
+
+* Textbook style
+* Competitive exam style
+* Previous year pattern
+* AI generated
+* Mixed
+
+---
+
+### One More Suggestion
+
+Don't show 13+ questions at once.
+
+Instead use a conversational wizard:
+
+```text
+AI: What topic would you like to study today?
+
+User: Quantum Mechanics
+
+AI: Great. Which areas should I focus on?
+□ Wave Functions
+□ Schrödinger Equation
+□ Operators
+□ Mixed
+
+User: Mixed
+
+AI: How challenging should the quiz be?
+○ Easy
+○ Medium
+○ Hard
+○ Adaptive
+
+AI: How many questions?
+
+User: 20
+```
+
+Then auto-fill everything else from the user's profile.
+
+Most users will abandon a setup flow if they have to answer 15+ questions every time. A good rule is:
+
+* **Profile = permanent preferences**
+* **Quiz wizard = session-specific preferences**
+* **Analytics = inferred automatically from performance**
+
+That usually gives the best balance between personalization and completion rate.

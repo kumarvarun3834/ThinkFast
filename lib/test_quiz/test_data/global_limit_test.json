@@ -1,0 +1,49 @@
+{
+  "title": "Global Constraint Test",
+  "description": "Tests attempt limits that apply across the entire quiz regardless of module.",
+  "time": 0,
+  "attemptLimits": {
+    "type": "global",
+    "global": {
+      "Single Choice": 2,
+      "Integer": 1
+    }
+  },
+  "questions": [
+    {
+      "question": "Subject A - Q1",
+      "choices": ["A", "B"],
+      "answers": ["A"],
+      "type": "Single Choice",
+      "subject": "Module 1"
+    },
+    {
+      "question": "Subject B - Q1",
+      "choices": ["A", "B"],
+      "answers": ["B"],
+      "type": "Single Choice",
+      "subject": "Module 2"
+    },
+    {
+      "question": "Subject C - Q1",
+      "choices": ["A", "B"],
+      "answers": ["A"],
+      "type": "Single Choice",
+      "subject": "Module 3"
+    },
+    {
+      "question": "Only one integer allowed in the whole quiz.",
+      "choices": [],
+      "answers": ["100"],
+      "type": "Integer",
+      "subject": "Module 1"
+    },
+    {
+      "question": "This integer should be blocked if the first is answered.",
+      "choices": [],
+      "answers": ["200"],
+      "type": "Integer",
+      "subject": "Module 2"
+    }
+  ]
+}

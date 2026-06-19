@@ -29,6 +29,7 @@ class _QuizPageState extends State<QuizPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _timeController;
+  late final TextEditingController _perQuestionTimeController;
   final ScrollController _scrollController = ScrollController();
 
   String visibility = "private";
@@ -78,6 +79,7 @@ class _QuizPageState extends State<QuizPage> {
   // Questions
   final List<Map<String, Object>> questions = [];
   final Map<String, GlobalKey> _moduleKeys = {};
+  final Map<int, GlobalKey> _questionKeys = {};
 
   @override
   void initState() {
@@ -85,6 +87,7 @@ class _QuizPageState extends State<QuizPage> {
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
     _timeController = TextEditingController();
+    _perQuestionTimeController = TextEditingController(text: "0");
 
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
@@ -204,6 +207,9 @@ class _QuizPageState extends State<QuizPage> {
                 ? (data['time'] ~/ 60).toString()
                 : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
           }
+          if (data['perQuestionTime'] != null) {
+            _perQuestionTimeController.text = data['perQuestionTime'].toString();
+          }
 
           if (data['markingScheme'] != null) {
             final scheme = data['markingScheme'] as Map;
@@ -232,6 +238,7 @@ class _QuizPageState extends State<QuizPage> {
           }
 
           questions.clear();
+          _questionKeys.clear();
           modulesList.clear();
           if (!modulesList.contains("General")) modulesList.add("General");
         }
@@ -249,6 +256,7 @@ class _QuizPageState extends State<QuizPage> {
               modulesList.add(subject);
             }
 
+            Map<String, Object> newQ;
             // Support both internal format and external easy format
             if (q['Q'] != null) {
               final qInfo = q['Q'] as Map;
@@ -257,15 +265,19 @@ class _QuizPageState extends State<QuizPage> {
               final List<String> choiceTexts =
                   opts.map((o) => (o as Map)['text'].toString()).toList();
 
-              questions.add({
+              newQ = {
                 "question": qText,
                 "choices": choiceTexts,
                 "answers": <String>[],
                 "type": q['type'] ?? 'Single Choice',
                 "subject": subject,
-              });
+                "correct": 4,
+                "wrong": -1,
+                "timer": q['timer'] ?? 0,
+                "description": "",
+              };
             } else {
-              questions.add({
+              newQ = {
                 "question": q['question']?.toString() ?? '',
                 "choices": List<String>.from(q['choices'] ?? []),
                 "answers": List<String>.from(q['answers'] ?? []),
@@ -273,8 +285,23 @@ class _QuizPageState extends State<QuizPage> {
                 "correct": q['correct'] ?? 4,
                 "wrong": q['wrong'] ?? -1,
                 "subject": subject,
+                "timer": q['timer'] ?? 0,
                 "description": q['description'] ?? '',
-              });
+              };
+            }
+
+            // Check if same Q already exists
+            int existingIndex = questions.indexWhere((element) =>
+                element['question'].toString().trim().toLowerCase() ==
+                newQ['question'].toString().trim().toLowerCase());
+
+            if (existingIndex != -1) {
+              // Found duplicate. Check if data is different.
+              if (!_isQuestionDataSame(questions[existingIndex], newQ)) {
+                questions[existingIndex] = newQ;
+              }
+            } else {
+              questions.add(newQ);
             }
           }
         }
@@ -305,7 +332,9 @@ class _QuizPageState extends State<QuizPage> {
       if (uid == null) throw Exception("User not authenticated");
 
       // Fetch answers because readDatabase strips them
-      final answersMap = await db.getQuizAnswers(docId, uid, from: 'quizform');
+      final response = await db.getQuizAnswers(docId, uid, from: 'quizform');
+      final Map<String, List<String>> answersMap = response['answers'];
+      final Map<String, String> solutionsMap = response['solutions'];
 
       setState(() {
         _titleController.text = data['title'] ?? '';
@@ -313,6 +342,7 @@ class _QuizPageState extends State<QuizPage> {
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         completeRandomShuffle = data['completeRandomShuffle'] ?? false;
+        _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0).toString();
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
         // Load Marking Scheme
@@ -413,6 +443,8 @@ class _QuizPageState extends State<QuizPage> {
               "type": q['type'] ?? 'Single Choice',
               "correct": qCorrect,
               "wrong": qWrong,
+              "timer": q['timer'] ?? 0,
+              "description": solutionsMap[qUid] ?? '',
             });
           }
         }
@@ -717,7 +749,51 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   void _updateFormData(int index, Map<String, Object> data) {
+    final bool subjectChanged = questions[index]['subject'] != data['subject'];
     setState(() => questions[index] = data);
+
+    if (subjectChanged) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToQuestion(index);
+      });
+    }
+  }
+
+  void _scrollToQuestion(int index) {
+    final key = _questionKeys[index];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  bool _isQuestionDataSame(Map<String, Object> q1, Map<String, Object> q2) {
+    if (q1['type'] != q2['type']) return false;
+    if (q1['subject'] != q2['subject']) return false;
+    if (q1['correct'] != q2['correct']) return false;
+    if (q1['wrong'] != q2['wrong']) return false;
+    if (q1['description'] != q2['description']) return false;
+
+    // Compare choices
+    final List c1 = q1['choices'] as List? ?? [];
+    final List c2 = q2['choices'] as List? ?? [];
+    if (c1.length != c2.length) return false;
+    for (int i = 0; i < c1.length; i++) {
+      if (c1[i].toString() != c2[i].toString()) return false;
+    }
+
+    // Compare answers
+    final List a1 = q1['answers'] as List? ?? [];
+    final List a2 = q2['answers'] as List? ?? [];
+    if (a1.length != a2.length) return false;
+    for (int i = 0; i < a1.length; i++) {
+      if (a1[i].toString() != a2[i].toString()) return false;
+    }
+
+    return true;
   }
 
   void _scrollToModule(String module) {
@@ -790,11 +866,12 @@ class _QuizPageState extends State<QuizPage> {
         Wrap(
           spacing: 8,
           children: modulesList
-              .map((m) => Chip(
+              .map((m) => InputChip(
                     label: Text(m,
                         style:
                             const TextStyle(color: Colors.white, fontSize: 12)),
                     backgroundColor: const Color(0xFF1E293B),
+                    onPressed: () => _scrollToModule(m),
                     deleteIcon: const Icon(Icons.close,
                         size: 14, color: Colors.redAccent),
                     onDeleted: m == "General"
@@ -856,12 +933,14 @@ class _QuizPageState extends State<QuizPage> {
     }
 
     final time = int.tryParse(_timeController.text.trim());
-    if (time == null || time <= 0) {
+    if (time == null || time < 0) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Invalid time")));
       return;
     }
+
+    final perQuestionTime = int.tryParse(_perQuestionTimeController.text.trim()) ?? 0;
 
     for (int i = 0; i < questions.length; i++) {
       final qText = (questions[i]['question'] ?? '').toString().trim();
@@ -946,6 +1025,7 @@ class _QuizPageState extends State<QuizPage> {
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
+          perQuestionTime: perQuestionTime,
         );
         setState(() {
           widget.docId = newId;
@@ -964,6 +1044,7 @@ class _QuizPageState extends State<QuizPage> {
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
+          perQuestionTime: perQuestionTime,
         );
         global.ID = widget.docId;
       }
@@ -1093,7 +1174,28 @@ class _QuizPageState extends State<QuizPage> {
                 style: const TextStyle(color: Color(0xFFE2E8F0)),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: "Timer (minutes)"),
+                decoration: const InputDecoration(
+                  labelText: "Timer (minutes)",
+                  hintText: "0 = Unlimited",
+                  suffixText: "min",
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _perQuestionTimeController,
+                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "Per Question (sec)",
+                        hintText: "0 = None",
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
@@ -1175,7 +1277,11 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     ...moduleQuestions.map((entry) {
                       final index = entry.key;
+                      final qKey =
+                          _questionKeys.putIfAbsent(index, () => GlobalKey());
+
                       return Card(
+                        key: qKey,
                         color: const Color(0xFF1E293B),
                         margin: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(

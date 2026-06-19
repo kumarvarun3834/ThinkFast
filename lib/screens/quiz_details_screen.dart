@@ -613,6 +613,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                   global.ID = _quizData!['id'];
                   global.time = _quizData!['time'] as int;
+                  global.perQuestionTime = _quizData!['perQuestionTime'] ?? 0;
                   global.completeRandomShuffle =
                       _quizData!['completeRandomShuffle'] ?? false;
                   global.markingScheme =

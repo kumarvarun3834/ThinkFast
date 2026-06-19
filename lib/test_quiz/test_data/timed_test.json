@@ -1,0 +1,32 @@
+{
+  "title": "Time Pressure Simulation",
+  "description": "A test for various timing configurations: global, generalized per-question, and individual overrides.",
+  "time": 600,
+  "perQuestionTime": 30,
+  "questions": [
+    {
+      "question": "What is the capital of France? (Generalized 30s)",
+      "choices": ["London", "Berlin", "Paris", "Madrid"],
+      "answers": ["Paris"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 0
+    },
+    {
+      "question": "Quick! 5 + 7? (Individual Override 10s)",
+      "choices": ["10", "11", "12", "13"],
+      "answers": ["12"],
+      "type": "Single Choice",
+      "subject": "Math",
+      "timer": 10
+    },
+    {
+      "question": "Solve this complex equation for X: 3x^2 + 5x - 2 = 0. (Individual Override 120s)",
+      "choices": ["1/3, -2", "2, -1/3", "1, -2/3", "0"],
+      "answers": ["1/3, -2"],
+      "type": "Single Choice",
+      "subject": "Math",
+      "timer": 120
+    }
+  ]
+}

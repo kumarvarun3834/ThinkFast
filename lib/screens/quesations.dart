@@ -152,7 +152,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   Future<void> _loadQuizWithTime() async {
     // assume global.currentQuizId is set when quiz is chosen
-    final int timeSeconds = global.time;
+    int timeSeconds = global.time;
+    
+    // Check if first question has a custom timer
+    final firstQ = global.quizData.isNotEmpty ? global.quizData[0] : null;
+    final int qTimer = int.tryParse(firstQ?['timer']?.toString() ?? '0') ?? 0;
+    
+    if (qTimer > 0) {
+      timeSeconds = qTimer;
+    } else if (global.perQuestionTime > 0) {
+      timeSeconds = global.perQuestionTime;
+    }
 
     if (!global.isReviewMode) {
       _shuffleQuestionsAndOptions();
@@ -166,7 +176,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       }
     });
 
-    if (!global.isReviewMode) {
+    if (!global.isReviewMode && global.time > 0) {
       _startTimer();
     }
   }
@@ -362,6 +372,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       global.quizResult[i][0] = qInfo['text'].toString(); // question text
       global.quizResult[i][1] = qInfo['id'].toString(); // question uid
       global.quizResult[i][3] = true; // visited
+
+      if (!global.isReviewMode) {
+        final int qTimer = int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
+        if (qTimer > 0) {
+          _timeLeft = Duration(seconds: qTimer);
+          _startTimer();
+        } else if (global.perQuestionTime > 0) {
+          _timeLeft = Duration(seconds: global.perQuestionTime);
+          _startTimer();
+        }
+      }
 
       // Sync integer controller if needed
       if (currentData["type"] == "Integer") {
@@ -612,11 +633,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   Widget _buildQuestionCircle(int index, String displayNum) {
     return GestureDetector(
-      onTap: () {
-        i = index;
-        switchState();
-        Navigator.pop(context); // Close the drawer
-      },
+      onTap: (global.perQuestionTime > 0 && index < i && !global.isReviewMode)
+          ? null
+          : () {
+              i = index;
+              switchState();
+              Navigator.pop(context); // Close the drawer
+            },
       child: Container(
         width: 60,
         height: 60,
@@ -625,8 +648,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         child: Center(
           child: Text(
             displayNum,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: (global.perQuestionTime > 0 && index < i && !global.isReviewMode) 
+                  ? Colors.white.withOpacity(0.3) 
+                  : Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -868,8 +893,20 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         if (_timeLeft.inSeconds > 0) {
           _timeLeft -= const Duration(seconds: 1);
         } else {
-          t.cancel();
-          switchToResultScreen();
+          if (global.perQuestionTime > 0) {
+            // Per Question Time Up
+            if (i < global.quizData.length - 1) {
+              i++;
+              switchState();
+            } else {
+              t.cancel();
+              switchToResultScreen();
+            }
+          } else {
+            // Global Quiz Time Up
+            t.cancel();
+            switchToResultScreen();
+          }
         }
       });
     });
@@ -957,9 +994,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               child: Text(
                 global.isReviewMode
                     ? "REVIEW MODE"
-                    : (_timer?.isActive == true
-                        ? "⏱ Time left: ${_format(_timeLeft)}"
-                        : "No active timer"),
+                    : (global.time == 0
+                        ? "⏱ Unlimited Time"
+                        : (_timer?.isActive == true
+                            ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
+                            : "No active timer")),
                 style: TextStyle(
                   color: global.isReviewMode ? Colors.orangeAccent : const Color(0xFFE2E8F0),
                   fontSize: 14,
@@ -1023,11 +1062,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           int globalIndex = moduleIndices[index];
                           bool isCurrent = i == globalIndex;
+                          bool isLocked = global.perQuestionTime > 0 && globalIndex < i && !global.isReviewMode;
+                          
                           return GestureDetector(
-                            onTap: () {
-                              i = globalIndex;
-                              switchState();
-                            },
+                            onTap: isLocked
+                                ? null
+                                : () {
+                                    i = globalIndex;
+                                    switchState();
+                                  },
                             child: Container(
                               width: 40,
                               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -1038,8 +1081,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               child: Center(
                                 child: Text(
                                   _getDisplayNumber(globalIndex),
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: isLocked ? Colors.white.withOpacity(0.3) : Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1073,7 +1116,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 onPressed:
-                                    i > 0
+                                    (i > 0 && !(global.perQuestionTime > 0 && !global.isReviewMode))
                                         ? () {
                                           i--;
                                           switchState();

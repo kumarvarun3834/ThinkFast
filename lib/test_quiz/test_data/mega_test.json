@@ -1,0 +1,65 @@
+{
+  "title": "ThinkFast Mega Configuration Test",
+  "description": "The ultimate test case: Multiple modules, every question type, mixed marking schemes, and strict attempt limits.",
+  "time": 1800,
+  "perQuestionTime": 45,
+  "markingScheme": {
+    "type": "per_question",
+    "perQuestion": {
+      "bonus_q": { "correct": 20, "wrong": -5 }
+    }
+  },
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Advanced Math": {
+        "Integer": 1
+      },
+      "World History": {
+        "Single Choice": 1,
+        "Multiple Choice": 1
+      }
+    }
+  },
+  "questions": [
+    {
+      "uid": "bonus_q",
+      "question": "What is the answer to life, the universe, and everything?",
+      "choices": [],
+      "answers": ["42"],
+      "type": "Integer",
+      "subject": "Advanced Math",
+      "timer": 10,
+      "description": "Deep individual scoring (+20/-5) and a very short individual timer (10s)."
+    },
+    {
+      "question": "Solve for X: 2x + 5 = 15",
+      "choices": [],
+      "answers": ["5"],
+      "type": "Integer",
+      "subject": "Advanced Math",
+      "description": "Standard integer question, follows generalized 45s timer."
+    },
+    {
+      "question": "Who was the first President of the United States?",
+      "choices": ["Thomas Jefferson", "George Washington", "Abraham Lincoln", "John Adams"],
+      "answers": ["George Washington"],
+      "type": "Single Choice",
+      "subject": "World History"
+    },
+    {
+      "question": "Select the Axis powers of WWII.",
+      "choices": ["Germany", "UK", "Italy", "Japan", "USA"],
+      "answers": ["Germany", "Italy", "Japan"],
+      "type": "Multiple Choice",
+      "subject": "World History"
+    },
+    {
+      "question": "This question is in a module with no specific limits.",
+      "choices": ["True", "False"],
+      "answers": ["True"],
+      "type": "Single Choice",
+      "subject": "General Knowledge"
+    }
+  ]
+}

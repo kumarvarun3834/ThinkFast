@@ -1,0 +1,35 @@
+{
+  "title": "Solo Module Challenge",
+  "description": "High-stakes single module test with varying scores per question and no timer.",
+  "time": 0,
+  "markingScheme": { "type": "per_question" },
+  "questions": [
+    {
+      "question": "Easy Question (+2/-1)",
+      "choices": ["Correct", "Wrong"],
+      "answers": ["Correct"],
+      "correct": 2,
+      "wrong": -1,
+      "subject": "Main",
+      "description": "Simple concepts, low penalty."
+    },
+    {
+      "question": "Critical Question (+50/-50)",
+      "choices": ["Safe", "Hazardous"],
+      "answers": ["Safe"],
+      "correct": 50,
+      "wrong": -50,
+      "subject": "Main",
+      "description": "Determines your grade. Extremely high stakes."
+    },
+    {
+      "question": "Final Integer (+100/0)",
+      "choices": [],
+      "answers": ["99"],
+      "correct": 100,
+      "wrong": 0,
+      "subject": "Main",
+      "description": "Bonus point opportunity."
+    }
+  ]
+}

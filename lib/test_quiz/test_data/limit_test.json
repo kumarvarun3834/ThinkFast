@@ -1,0 +1,54 @@
+{
+  "title": "Selection Quota Test",
+  "description": "Tests attempt limits per question type and per module.",
+  "time": 0,
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Logic": {
+        "Single Choice": 1,
+        "Integer": 1
+      },
+      "Trivia": {
+        "Multiple Choice": 1
+      }
+    }
+  },
+  "questions": [
+    {
+      "question": "Logic 1: All cats are animals. Some animals are black. Therefore, some cats are black.",
+      "choices": ["True", "False", "Not necessarily"],
+      "answers": ["Not necessarily"],
+      "type": "Single Choice",
+      "subject": "Logic"
+    },
+    {
+      "question": "Logic 2: If A > B and B > C, then A > C.",
+      "choices": ["True", "False"],
+      "answers": ["True"],
+      "type": "Single Choice",
+      "subject": "Logic"
+    },
+    {
+      "question": "Math Logic: Result of 10 + 10?",
+      "choices": [],
+      "answers": ["20"],
+      "type": "Integer",
+      "subject": "Logic"
+    },
+    {
+      "question": "Select the primary colors.",
+      "choices": ["Red", "Green", "Blue", "Yellow"],
+      "answers": ["Red", "Blue", "Yellow"],
+      "type": "Multiple Choice",
+      "subject": "Trivia"
+    },
+    {
+      "question": "Select the gas giant planets.",
+      "choices": ["Earth", "Jupiter", "Saturn", "Mars"],
+      "answers": ["Jupiter", "Saturn"],
+      "type": "Multiple Choice",
+      "subject": "Trivia"
+    }
+  ]
+}

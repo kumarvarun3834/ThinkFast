@@ -1,0 +1,29 @@
+{
+  "title": "Numerical Accuracy Challenge",
+  "description": "A quiz consisting entirely of numerical entry questions to test the Integer input system.",
+  "time": 0,
+  "questions": [
+    {
+      "question": "What is the square root of 144?",
+      "choices": [],
+      "answers": ["12"],
+      "type": "Integer",
+      "subject": "Basic Arithmetic",
+      "description": "12 * 12 = 144."
+    },
+    {
+      "question": "Value of '100 / 4'?",
+      "choices": [],
+      "answers": ["25"],
+      "type": "Integer",
+      "subject": "Basic Arithmetic"
+    },
+    {
+      "question": "How many days are in a non-leap year?",
+      "choices": [],
+      "answers": ["365"],
+      "type": "Integer",
+      "subject": "General Knowledge"
+    }
+  ]
+}

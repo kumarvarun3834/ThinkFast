@@ -1,0 +1,25 @@
+{
+  "title": "Legacy Schema Compatibility",
+  "description": "Tests the importer's ability to handle the internal Q and As structure.",
+  "questions": [
+    {
+      "Q": { "text": "Is the internal format supported?" },
+      "As": [
+        { "text": "Yes" },
+        { "text": "No" }
+      ],
+      "type": "Single Choice",
+      "subject": "System"
+    },
+    {
+      "Q": { "text": "Select the types supported by this schema." },
+      "As": [
+        { "text": "Single Choice" },
+        { "text": "Multiple Choice" },
+        { "text": "Integer" }
+      ],
+      "type": "Multiple Choice",
+      "subject": "System"
+    }
+  ]
+}
