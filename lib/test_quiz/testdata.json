@@ -17,7 +17,8 @@
       "answers": [
         "Map"
       ],
-      "type": "Single Choice"
+      "type": "Single Choice",
+      "subject": "Dart Basics"
     },
     {
       "question": "Select all keywords used for asynchronous programming in Dart.",
@@ -33,7 +34,8 @@
         "await",
         "yield"
       ],
-      "type": "Multiple Choice"
+      "type": "Multiple Choice",
+      "subject": "Asynchronous Dart"
     },
     {
       "question": "How many widgets can a 'Center' widget have as its direct child?",
@@ -41,7 +43,8 @@
       "answers": [
         "1"
       ],
-      "type": "Integer"
+      "type": "Integer",
+      "subject": "Flutter UI"
     },
     {
       "question": "Which Flutter command is used to check for errors in your environment?",
@@ -54,7 +57,8 @@
       "answers": [
         "flutter doctor"
       ],
-      "type": "Single Choice"
+      "type": "Single Choice",
+      "subject": "Flutter Tooling"
     }
   ]
 }

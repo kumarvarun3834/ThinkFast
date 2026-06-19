@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class SettingsService {
   final CollectionReference _settings = FirebaseFirestore.instance.collection('settings');
@@ -25,6 +26,11 @@ class SettingsService {
       'enable_login': true,
       'enable_register': true,
       'enable_create_quiz': true,
+      'enable_edit_quiz': true,
+      'enable_delete_quiz': true,
+      'enable_take_quiz': true,
+      'enable_profile_edit': true,
+      'enable_analytics': true,
       'maintenance_mode': false,
       'random_quiz_generator': true,
       'user_action_logging': true,
@@ -34,15 +40,19 @@ class SettingsService {
     };
 
     if (!doc.exists) {
-      await _featureFlags.doc('production').set({
-        ...defaultFlags,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      try {
+        await _featureFlags.doc('production').set({
+          ...defaultFlags,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        debugPrint("Silent fail: Could not initialize feature flags document (Permission Denied)");
+      }
       return defaultFlags;
     }
 
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Check if any default flag is missing and update if necessary
     bool needsUpdate = false;
     defaultFlags.forEach((key, value) {
@@ -53,7 +63,11 @@ class SettingsService {
     });
 
     if (needsUpdate) {
-      await _featureFlags.doc('production').update(data);
+      try {
+        await _featureFlags.doc('production').update(data);
+      } catch (e) {
+        debugPrint("Silent fail: Could not update missing feature flags (Permission Denied)");
+      }
     }
 
     return data;

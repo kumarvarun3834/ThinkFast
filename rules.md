@@ -4,6 +4,7 @@
 - **Facade First:** UI components must NOT interact with domain-specific services (`QuizService`, `UserService`, etc.) directly. Always use the `DatabaseService` facade.
 - **Service Independence:** Domain services should remain independent. If logic requires multiple services, handle it within `DatabaseService`.
 - **Async Safety:** All database operations must be `async` and include appropriate `try-catch` blocks or propagate errors to be handled by the UI.
+- **Permission Toggles:** All operations in `DatabaseService` must call `_ensurePermission` to respect global feature flags. Administrators bypass these toggles unless it's a critical safety block.
 
 ## 2. Security & Data Privacy
 - **The "No-Answers-in-Questions" Rule:** Never store answer keys or correct values within the `quiz_questions` collection. Correct answers must reside in the `answer_keys` collection to prevent client-side inspection.

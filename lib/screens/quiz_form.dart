@@ -33,6 +33,10 @@ class _QuizPageState extends State<QuizPage> {
   String visibility = "private";
   bool allowMultipleAttempts = true;
 
+  // Modules
+  final List<String> modulesList = ["General"];
+  final TextEditingController _moduleController = TextEditingController();
+
   // Marking Scheme
   String markingType = "default";
   final TextEditingController _globalCorrectController = TextEditingController(
@@ -78,25 +82,27 @@ class _QuizPageState extends State<QuizPage> {
     if (widget.docId.isNotEmpty) {
       _fetchQuiz(widget.docId);
     } else {
-      questions.add({});
+      questions.add({"subject": "General"});
     }
   }
 
-  void _showImportDialog() {
+  void _showImportDialog({bool append = false}) {
     final TextEditingController importController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
         title: Text(
-          "Import Quiz Data",
+          append ? "Import More Quiz Data" : "Import Quiz Data",
           style: GoogleFonts.poppins(color: Colors.white),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "Paste a JSON string or a direct link to a JSON file.",
+              append
+                  ? "Append new data to the existing quiz."
+                  : "Paste a JSON string or a direct link to a JSON file.",
               style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -129,20 +135,20 @@ class _QuizPageState extends State<QuizPage> {
               final input = importController.text.trim();
               if (input.isNotEmpty) {
                 Navigator.pop(context);
-                _importQuizData(input);
+                _importQuizData(input, append: append);
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF3B82F6),
             ),
-            child: const Text("IMPORT"),
+            child: Text(append ? "APPEND" : "IMPORT"),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _importQuizData(String input) async {
+  Future<void> _importQuizData(String input, {bool append = false}) async {
     try {
       String jsonContent = input;
       if (input.startsWith("http")) {
@@ -155,55 +161,61 @@ class _QuizPageState extends State<QuizPage> {
       }
 
       final dynamic decoded = jsonDecode(jsonContent);
-      final Map<String, dynamic> data = decoded is List
-          ? {"data": decoded}
-          : decoded;
+      final Map<String, dynamic> data =
+          decoded is List ? {"data": decoded} : decoded;
 
       setState(() {
-        if (data['title'] != null) {
-          _titleController.text = data['title'].toString();
-        }
-        if (data['description'] != null) {
-          _descriptionController.text = data['description'].toString();
-        }
-        if (data['time'] != null) {
-          _timeController.text = (data['time'] is int)
-              ? (data['time'] ~/ 60).toString()
-              : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
-        }
+        if (!append) {
+          if (data['title'] != null) {
+            _titleController.text = data['title'].toString();
+          }
+          if (data['description'] != null) {
+            _descriptionController.text = data['description'].toString();
+          }
+          if (data['time'] != null) {
+            _timeController.text = (data['time'] is int)
+                ? (data['time'] ~/ 60).toString()
+                : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
+          }
 
-        if (data['markingScheme'] != null) {
-          final scheme = data['markingScheme'] as Map;
-          markingType = scheme['type'] ?? 'default';
-          // Load other fields if necessary
+          if (data['markingScheme'] != null) {
+            final scheme = data['markingScheme'] as Map;
+            markingType = scheme['type'] ?? 'default';
+          }
+          questions.clear();
+          modulesList.clear();
+          if (!modulesList.contains("General")) modulesList.add("General");
         }
 
         final List<dynamic> rawData =
             (data['data'] ?? data['questions'] ?? []) as List;
         if (rawData.isNotEmpty) {
-          questions.clear();
           for (var q in rawData) {
+            String subject = 'General';
+            if (q['subject'] != null) {
+              subject = q['subject'].toString();
+            }
+
+            if (!modulesList.contains(subject)) {
+              modulesList.add(subject);
+            }
+
             // Support both internal format and external easy format
             if (q['Q'] != null) {
-              // Internal pattern uid/type/Q/Opt
               final qInfo = q['Q'] as Map;
               final qText = qInfo['text'].toString();
               final List<dynamic> opts = q['As'] as List;
-              final List<String> choiceTexts = opts
-                  .map((o) => (o as Map)['text'].toString())
-                  .toList();
+              final List<String> choiceTexts =
+                  opts.map((o) => (o as Map)['text'].toString()).toList();
 
-              // Note: Importer usually won't have answer_keys unless it's a full export
-              // If it's internal, we might not have 'answers' field directly in 'data'
               questions.add({
                 "question": qText,
                 "choices": choiceTexts,
                 "answers": <String>[],
-                // Answers need to be set manually or provided in 'answers'
                 "type": q['type'] ?? 'Single Choice',
+                "subject": subject,
               });
             } else {
-              // Easy format: { question, choices: [], answers: [], type }
               questions.add({
                 "question": q['question']?.toString() ?? '',
                 "choices": List<String>.from(q['choices'] ?? []),
@@ -211,18 +223,24 @@ class _QuizPageState extends State<QuizPage> {
                 "type": q['type'] ?? 'Single Choice',
                 "correct": q['correct'] ?? 4,
                 "wrong": q['wrong'] ?? -1,
+                "subject": subject,
               });
             }
           }
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Data imported successfully")),
+        SnackBar(
+          content: Text(
+            append
+                ? "Data appended successfully"
+                : "Data imported successfully",
+          ),
+        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Import error: $e")));
     }
   }
 
@@ -250,24 +268,24 @@ class _QuizPageState extends State<QuizPage> {
         final scheme = data['markingScheme'] as Map? ?? {};
         markingType = scheme['type'] ?? 'default';
         if (markingType == 'entire_quiz') {
-          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4)
-              .toString();
-          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1)
-              .toString();
+          _globalCorrectController.text =
+              (scheme['global']?['correct'] ?? 4).toString();
+          _globalWrongController.text =
+              (scheme['global']?['wrong'] ?? -1).toString();
         } else if (markingType == 'per_question_type') {
           final pqt = scheme['perQuestionType'] as Map? ?? {};
-          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4)
-              .toString();
-          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1)
-              .toString();
-          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4)
-              .toString();
-          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1)
-              .toString();
-          _intCorrectController.text = (pqt['Integer']?['correct'] ?? 4)
-              .toString();
-          _intWrongController.text = (pqt['Integer']?['wrong'] ?? -1)
-              .toString();
+          _scCorrectController.text =
+              (pqt['Single Choice']?['correct'] ?? 4).toString();
+          _scWrongController.text =
+              (pqt['Single Choice']?['wrong'] ?? -1).toString();
+          _mcCorrectController.text =
+              (pqt['Multiple Choice']?['correct'] ?? 4).toString();
+          _mcWrongController.text =
+              (pqt['Multiple Choice']?['wrong'] ?? -1).toString();
+          _intCorrectController.text =
+              (pqt['Integer']?['correct'] ?? 4).toString();
+          _intWrongController.text =
+              (pqt['Integer']?['wrong'] ?? -1).toString();
         }
 
         final Map<String, dynamic> pqScheme =
@@ -276,8 +294,13 @@ class _QuizPageState extends State<QuizPage> {
         final List<dynamic> rawModules = data['modules'] as List? ?? [];
         final List<Map<String, Object>> transformed = [];
 
+        modulesList.clear();
+        if (!modulesList.contains("General")) modulesList.add("General");
+
         for (var module in rawModules) {
           final String qSubject = module['subject'].toString();
+          if (!modulesList.contains(qSubject)) modulesList.add(qSubject);
+
           final List<dynamic> rawQuestions = module['data'] as List? ?? [];
 
           for (var q in rawQuestions) {
@@ -493,19 +516,101 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
-  void _addNewForm() => setState(() => questions.add({}));
+  void _addNewForm() => setState(() => questions.add({"subject": "General"}));
 
   void _removeForm(int index) {
     setState(() {
       questions.removeAt(index);
       if (questions.isEmpty) {
-        questions.add({});
+        questions.add({"subject": "General"});
       }
     });
   }
 
   void _updateFormData(int index, Map<String, Object> data) {
     setState(() => questions[index] = data);
+  }
+
+  Widget _buildModulesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Modules",
+              style: GoogleFonts.poppins(
+                color: const Color(0xFFE2E8F0),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (_importEnabled)
+              TextButton.icon(
+                onPressed: () => _showImportDialog(append: true),
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: const Text("IMPORT MORE"),
+                style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF3B82F6)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _moduleController,
+                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                decoration: const InputDecoration(
+                  labelText: "New Module Name",
+                  hintText: "e.g. Mathematics, Science...",
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () {
+                final m = _moduleController.text.trim();
+                if (m.isNotEmpty && !modulesList.contains(m)) {
+                  setState(() {
+                    modulesList.add(m);
+                    _moduleController.clear();
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6)),
+              child: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: modulesList
+              .map((m) => Chip(
+                    label: Text(m,
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12)),
+                    backgroundColor: const Color(0xFF1E293B),
+                    deleteIcon: const Icon(Icons.close,
+                        size: 14, color: Colors.redAccent),
+                    onDeleted: m == "General"
+                        ? null
+                        : () {
+                            setState(() => modulesList.remove(m));
+                          },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: const BorderSide(color: Color(0xFF334155)),
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
+    );
   }
 
   Future<void> _saveQuiz() async {
@@ -723,6 +828,8 @@ class _QuizPageState extends State<QuizPage> {
                 },
               ),
               const SizedBox(height: 24),
+              _buildModulesSection(),
+              const SizedBox(height: 24),
               _buildMarkingSchemeSection(),
               const SizedBox(height: 24),
               ListView.builder(
@@ -744,6 +851,7 @@ class _QuizPageState extends State<QuizPage> {
                           form_data_part: questions[index],
                           onChanged: (d) => _updateFormData(index, d),
                           showIndividualMarking: markingType == "per_question",
+                          moduleOptions: modulesList,
                         ),
                         Align(
                           alignment: Alignment.centerRight,

@@ -33,6 +33,44 @@ class DatabaseService {
     }
   }
 
+  Future<Map<String, dynamic>?> getFeatureFlags() =>
+      _settingsService.getFeatureFlags();
+
+  /// 🔐 Helper to check global feature flags and admin overrides
+  Future<void> _ensurePermission(String? flag, {String? userId}) async {
+    final flags =
+        global.featureFlags ?? await _settingsService.getFeatureFlags();
+
+    // 1. Global Maintenance Mode Check
+    if (flags?['maintenance_mode'] == true) {
+      bool isAdminUser = false;
+      if (userId != null) {
+        isAdminUser = await _adminService.isAdmin(userId);
+      }
+      if (!isAdminUser) {
+        throw Exception(
+          "System is currently under maintenance. Please try again later.",
+        );
+      }
+    }
+
+    // 2. Specific Feature Flag Check
+    if (flag != null && flags?[flag] == false) {
+      bool isAdminUser = false;
+      if (userId != null) {
+        isAdminUser = await _adminService.isAdmin(userId);
+      }
+      if (!isAdminUser) {
+        final actionName = flag
+            .replaceFirst('enable_', '')
+            .replaceAll('_', ' ');
+        throw Exception(
+          "Access Denied: '$actionName' is currently disabled by the administrator.",
+        );
+      }
+    }
+  }
+
   // --- Admin & Experience Switching ---
 
   Future<bool> isRegisteredAdmin(String uid) =>
@@ -69,25 +107,34 @@ class DatabaseService {
     required String userId,
     required Map<String, bool> permissions,
     required String addedBy,
-  }) => _adminService.grantQuizManagementAccess(
+  }) async {
+    await _ensurePermission('management_features', userId: addedBy);
+    return _adminService.grantQuizManagementAccess(
         quizId: quizId,
         userId: userId,
         permissions: permissions,
         addedBy: addedBy);
+  }
 
   Future<void> addParticipant({
     required String quizId,
     required String userId,
     required String addedBy,
-  }) => _adminService.addParticipant(
+  }) async {
+    await _ensurePermission('management_features', userId: addedBy);
+    return _adminService.addParticipant(
         quizId: quizId, userId: userId, addedBy: addedBy);
+  }
 
   Future<void> removeManagementAccess({
     required String quizId,
     required String userId,
     required String removedBy,
-  }) => _adminService.removeQuizManagementAccess(
+  }) async {
+    await _ensurePermission('management_features', userId: removedBy);
+    return _adminService.removeQuizManagementAccess(
         quizId: quizId, userId: userId, removedBy: removedBy);
+  }
 
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
       _adminService.getQuizManagers(quizId);
@@ -102,17 +149,23 @@ class DatabaseService {
     required String email,
     String? name,
     String? photoUrl,
-  }) => _userService.createUserProfile(
+  }) async {
+    await _ensurePermission(null, userId: uid); // Basic maintenance check
+    return _userService.createUserProfile(
         uid: uid, email: email, name: name, photoUrl: photoUrl);
+  }
 
-  Future<Map<String, dynamic>?> getUserProfile(String uid) =>
-      _userService.getUserProfile(uid);
+  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
+    await _ensurePermission(null, userId: uid);
+    return _userService.getUserProfile(uid);
+  }
 
   Future<void> updateUserProfile({
     required String uid,
     String? name,
     String? email,
   }) async {
+    await _ensurePermission('enable_profile_edit', userId: uid);
     await _userService.updateUserProfile(uid: uid, name: name);
     if (email != null) {
       await _userService.updatePrivateDetails(uid: uid, email: email);
@@ -122,19 +175,25 @@ class DatabaseService {
   Future<void> updateProtectedDetails({
     required String uid,
     required Map<String, dynamic> details,
-  }) => _userService.updateProtectedDetails(uid: uid, details: details);
+  }) async {
+    await _ensurePermission(null, userId: uid);
+    return _userService.updateProtectedDetails(uid: uid, details: details);
+  }
 
   Future<void> updateActiveQuiz({
     required String uid,
     String? quizId,
     DateTime? expiry,
     bool clear = false,
-  }) => _userService.updatePrivateDetails(
-    uid: uid,
-    activeQuizId: quizId,
-    activeQuizExpiry: expiry,
-    clearActiveQuiz: clear,
-  );
+  }) async {
+    await _ensurePermission(null, userId: uid);
+    return _userService.updatePrivateDetails(
+      uid: uid,
+      activeQuizId: quizId,
+      activeQuizExpiry: expiry,
+      clearActiveQuiz: clear,
+    );
+  }
 
   Future<void> handleExpiredQuiz(String uid, String quizId) async {
     try {
@@ -177,6 +236,7 @@ class DatabaseService {
     Map<String, dynamic>? markingScheme,
     bool allowMultipleAttempts = true,
   }) async {
+    await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(data, scheme);
     return await _quizService.createQuiz(
@@ -205,6 +265,7 @@ class DatabaseService {
     bool? allowMultipleAttempts,
     Map<String, dynamic>? markingScheme,
   }) async {
+    await _ensurePermission('enable_edit_quiz', userId: currentUserId);
     final Map<String, dynamic> updates = {};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
@@ -245,6 +306,7 @@ class DatabaseService {
     required String docId,
     required String currentUserId,
   }) async {
+    await _ensurePermission('enable_delete_quiz', userId: currentUserId);
     final quiz = await _quizService.getQuiz(docId);
     final bool isAdmin = await _adminService.isAdmin(currentUserId);
 
@@ -260,6 +322,7 @@ class DatabaseService {
     required String currentUserId,
     required bool isLocked,
   }) async {
+    await _ensurePermission('management_features', userId: currentUserId);
     await _quizService.updateQuiz(
       quizId: docId,
       userId: currentUserId,
@@ -271,6 +334,13 @@ class DatabaseService {
     bool showMyQuizzes = false,
     String? creatorId,
   }) {
+    // For streams, we can check global flags. If null, we assume enabled
+    // but the stream itself doesn't easily support async permission checks before returning
+    if (global.featureFlags?['maintenance_mode'] == true &&
+        global.isAdmin == false) {
+      return Stream.value([]);
+    }
+
     if (showMyQuizzes && creatorId != null) {
       return _quizService.getMyQuizzes(creatorId);
     } else {
@@ -279,6 +349,7 @@ class DatabaseService {
   }
 
   Future<Map<String, dynamic>> readDatabase(String docId, {String? userId}) async {
+    await _ensurePermission(null, userId: userId); // Basic maintenance/read check
     final quiz = await _quizService.getQuiz(docId);
     if (quiz == null) throw Exception("Quiz not found");
 
@@ -308,6 +379,7 @@ class DatabaseService {
     int? totalQuestions,
     Map<String, dynamic>? userAnswers,
   }) async {
+    await _ensurePermission('enable_take_quiz', userId: userId);
     final quiz = await _quizService.getQuiz(docId);
     if (quiz == null) throw Exception("Quiz not found");
 
@@ -358,11 +430,21 @@ class DatabaseService {
     return correctKey;
   }
 
-  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) =>
-      _attemptService.getUserAttempts(userId);
+  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
+    if (global.featureFlags?['maintenance_mode'] == true &&
+        global.isAdmin == false) {
+      return Stream.value([]);
+    }
+    return _attemptService.getUserAttempts(userId);
+  }
 
-  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) =>
-      _attemptService.getQuizAttempts(quizId);
+  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) {
+    if (global.featureFlags?['maintenance_mode'] == true &&
+        global.isAdmin == false) {
+      return Stream.value([]);
+    }
+    return _attemptService.getQuizAttempts(quizId);
+  }
 
   Future<bool> hasUserAttemptedQuiz(String userId, String quizId) async {
     final attempts = await FirebaseFirestore.instance

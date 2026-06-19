@@ -3,11 +3,14 @@
 ## 1. Authentication Flow
 The entry point of the application ensures that users are authenticated and verified before accessing core features.
 
-1.  **Splash Screen:** Initial loading and checking authentication state.
-2.  **Auth Gate:**
-    *   If **Not Logged In**: Redirect to **Login Screen**.
-    *   If **Logged In but Not Verified**: Redirect to **Verification Screen**.
-    *   If **Logged In and Verified**: Redirect to **Home Screen**.
+1.  **Splash Screen:** The entry point where the app initializes Firebase and checks for **Maintenance Mode**.
+    *   If **Maintenance Mode** is ON: Redirect to **Maintenance Screen**.
+        *   Regular users see the maintenance message.
+        *   Administrators see a "Bypass" button to enter the app.
+    *   If **Maintenance Mode** is OFF:
+        *   If **Not Logged In**: Redirect to **Login Screen**.
+        *   If **Logged In but Not Verified**: Redirect to **Verification Screen**.
+        *   If **Logged In and Verified**: Redirect to **Home Screen**.
 3.  **Login/Signup:** Users can sign up with Email/Password or use Google Sign-In.
 4.  **Verification:** A mandatory step where users must verify their email address. The screen includes an auto-check timer that reloads the user state every 4 seconds. Once verified, the user is redirected to the **Profile Screen**.
 
@@ -67,3 +70,4 @@ Administrators have elevated access to maintain platform health.
 | `/Quiz Responses` | `QuizResponsesScreen` | Detailed participant analytics for creators. |
 | `/profile` | `ProfileScreen` | User account management. |
 | `/Admin Panel` | `AdminPanel` | Platform administration. |
+| `/maintenance` | `MaintenanceScreen` | Global maintenance landing page. |

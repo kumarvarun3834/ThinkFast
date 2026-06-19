@@ -68,6 +68,8 @@
 ---
 
 ## 📈 Recent Updates
+- **v1.0.7:** Added "Double Tap to Instant Submit" for unexpired active quizzes.
+- **v1.0.6:** Added Maintenance Mode bypass for administrators.
 - **v1.0.5:** Integrated `AnalyticsService` for tracking question-level success rates.
 - **v1.0.0:** Finalized `QuizResponsesScreen` for creator analytics.
 - **v0.9.5:** Implemented `AppLinks` for seamless quiz joining via URLs.

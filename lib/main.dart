@@ -16,6 +16,7 @@ import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
+import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/services/firebase_options.dart';
@@ -168,6 +169,10 @@ class MyApp extends StatelessWidget {
             page = QuizCollaboratorsScreen(
               quizId: settings.arguments as String,
             );
+            wrapInGradient = false;
+            break;
+          case '/maintenance':
+            page = const MaintenanceScreen();
             wrapInGradient = false;
             break;
           default:

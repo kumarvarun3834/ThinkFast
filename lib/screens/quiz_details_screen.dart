@@ -254,34 +254,38 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     VoidCallback onPressed, {
     bool isPrimary = false,
     IconData? icon,
+    VoidCallback? onDoubleTap,
   }) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isPrimary
-            ? _btnColor
-            : Colors.white.withValues(alpha: 0.05),
-        foregroundColor: Colors.white,
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: isPrimary ? BorderSide.none : BorderSide(color: _borderColor),
-        ),
-        elevation: isPrimary ? 4 : 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            text.toUpperCase(),
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.1,
-            ),
+    return GestureDetector(
+      onDoubleTap: onDoubleTap,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isPrimary
+              ? _btnColor
+              : Colors.white.withValues(alpha: 0.05),
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isPrimary ? BorderSide.none : BorderSide(color: _borderColor),
           ),
-          if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 20)],
-        ],
+          elevation: isPrimary ? 4 : 0,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              text.toUpperCase(),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+            if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 20)],
+          ],
+        ),
       ),
     );
   }
@@ -526,7 +530,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'You are already taking another quiz ($activeQuizId). Finish it first!',
+                          'You are already taking another quiz ($activeQuizId). Finish it first! (Double tap to instant submit previous)',
                         ),
                         backgroundColor: Colors.orange,
                       ),
@@ -635,6 +639,25 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               },
               isPrimary: true,
               icon: Icons.play_arrow_rounded,
+              onDoubleTap: () async {
+                final db = DatabaseService();
+                final String? activeQuizId = _quizData!['activeQuizId'];
+
+                if (activeQuizId != null && _user != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Instant submitting previous session...'),
+                    ),
+                  );
+                  await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+
+                  // Update UI state to reflect cleared active quiz
+                  setState(() {
+                    _quizData!['activeQuizId'] = null;
+                    _quizData!['activeQuizExpiry'] = null;
+                  });
+                }
+              },
             ),
             if (canManage) ...[
               const SizedBox(height: 16),

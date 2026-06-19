@@ -310,8 +310,8 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                         vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.redAccent.withOpacity(
-                                          0.1,
+                                        color: Colors.redAccent.withValues(
+                                          alpha: 0.1,
                                         ),
                                         borderRadius: BorderRadius.circular(4),
                                         border: Border.all(

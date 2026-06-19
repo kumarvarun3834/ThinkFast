@@ -1,8 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
-import 'package:thinkfast/services/settings_service.dart';
-
 import 'package:thinkfast/utils/global.dart' as global;
 
 class SidebarMenu extends StatefulWidget {
@@ -28,13 +26,13 @@ class _SidebarMenuState extends State<SidebarMenu> {
       _isAdmin = global.isAdmin;
       _isRegisteredAdmin = global.isRegisteredAdmin;
       _canCreateQuiz = global.featureFlags?['enable_create_quiz'] ?? true;
-      
+
       final profile = global.currentUserProfile;
       if (profile != null) {
         _userName = profile['name'];
         _userPhotoUrl = profile['photoUrl'];
       }
-      
+
       // Fallbacks if not loaded yet or missing
       if (_userName == null || _userPhotoUrl == null) {
         _fetchUserProfile();
@@ -50,7 +48,8 @@ class _SidebarMenuState extends State<SidebarMenu> {
         if (profile['name'] != null && profile['name'].toString().isNotEmpty) {
           setState(() => _userName = profile['name']);
         }
-        if (profile['photoUrl'] != null && profile['photoUrl'].toString().isNotEmpty) {
+        if (profile['photoUrl'] != null &&
+            profile['photoUrl'].toString().isNotEmpty) {
           setState(() => _userPhotoUrl = profile['photoUrl']);
         }
         if (_userName != null && _userPhotoUrl != null) return;
@@ -59,14 +58,18 @@ class _SidebarMenuState extends State<SidebarMenu> {
 
     // Fallback to Google displayName and photoURL
     if (mounted && widget.user != null) {
-      if (_userName == null && widget.user!.displayName != null && widget.user!.displayName!.isNotEmpty) {
+      if (_userName == null &&
+          widget.user!.displayName != null &&
+          widget.user!.displayName!.isNotEmpty) {
         setState(() => _userName = widget.user!.displayName);
       }
-      if (_userPhotoUrl == null && widget.user!.photoURL != null && widget.user!.photoURL!.isNotEmpty) {
+      if (_userPhotoUrl == null &&
+          widget.user!.photoURL != null &&
+          widget.user!.photoURL!.isNotEmpty) {
         setState(() => _userPhotoUrl = widget.user!.photoURL);
       }
     }
-    
+
     // Final fallback to email for name
     if (mounted && _userName == null) {
       setState(() => _userName = widget.user?.email?.split('@')[0]);
@@ -79,20 +82,28 @@ class _SidebarMenuState extends State<SidebarMenu> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E293B),
-        title: const Text("Join Quiz", style: TextStyle(color: Color(0xFFE2E8F0))),
+        title: const Text(
+          "Join Quiz",
+          style: TextStyle(color: Color(0xFFE2E8F0)),
+        ),
         content: TextField(
           controller: idController,
           style: const TextStyle(color: Color(0xFFE2E8F0)),
           decoration: const InputDecoration(
             hintText: "Enter Quiz ID",
             hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF334155))),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF334155)),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Color(0xFF94A3B8))),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Color(0xFF94A3B8)),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -109,7 +120,9 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 Navigator.pushNamed(context, "/Quiz Details", arguments: id);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+            ),
             child: const Text("Join"),
           ),
         ],
@@ -117,7 +130,11 @@ class _SidebarMenuState extends State<SidebarMenu> {
     );
   }
 
-  void _checkAndNavigate(BuildContext context, String route, {Object? arguments}) {
+  void _checkAndNavigate(
+    BuildContext context,
+    String route, {
+    Object? arguments,
+  }) {
     if (widget.user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please login to use this feature")),
@@ -150,7 +167,9 @@ class _SidebarMenuState extends State<SidebarMenu> {
             decoration: const BoxDecoration(color: Color(0xFF0F172A)),
             currentAccountPicture: CircleAvatar(
               backgroundColor: const Color(0xFF1E293B),
-              backgroundImage: _userPhotoUrl != null ? NetworkImage(_userPhotoUrl!) : null,
+              backgroundImage: _userPhotoUrl != null
+                  ? NetworkImage(_userPhotoUrl!)
+                  : null,
               child: _userPhotoUrl == null
                   ? const Icon(Icons.person, size: 40, color: Color(0xFF3B82F6))
                   : null,
@@ -161,13 +180,19 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 Flexible(
                   child: Text(
                     _userName ?? (widget.user == null ? "Guest" : "User"),
-                    style: const TextStyle(color: Color(0xFFE2E8F0), fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Color(0xFFE2E8F0),
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (widget.user != null && !widget.user!.emailVerified)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     margin: const EdgeInsets.only(left: 8),
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.2),
@@ -230,7 +255,10 @@ class _SidebarMenuState extends State<SidebarMenu> {
             text: 'Join Quiz by ID',
             onTap: () {
               if (widget.user == null || !widget.user!.emailVerified) {
-                _checkAndNavigate(context, ""); // This will trigger the verification check
+                _checkAndNavigate(
+                  context,
+                  "",
+                ); // This will trigger the verification check
               } else {
                 Navigator.pop(context);
                 _showJoinByIdDialog(context);
@@ -292,14 +320,18 @@ class _SidebarMenuState extends State<SidebarMenu> {
                         setState(() => _isAdmin = value);
                         // Refresh features or navigate if needed
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Admin Mode ${value ? 'Enabled' : 'Disabled'}")),
+                          SnackBar(
+                            content: Text(
+                              "Admin Mode ${value ? 'Enabled' : 'Disabled'}",
+                            ),
+                          ),
                         );
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Error: $e")),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text("Error: $e")));
                       }
                     }
                   },
@@ -329,7 +361,11 @@ class _SidebarMenuState extends State<SidebarMenu> {
     );
   }
 
-  Widget _drawerItem({required IconData icon, required String text, required VoidCallback onTap}) {
+  Widget _drawerItem({
+    required IconData icon,
+    required String text,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFF3B82F6)),
       title: Text(

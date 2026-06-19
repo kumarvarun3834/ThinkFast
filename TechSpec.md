@@ -83,10 +83,9 @@ Using the `app_links` package, the app handles URLs like `thinkfast.app/quiz?id=
 The `AiService` tracks daily generations per user. Before invoking AI generation, the system checks `aiGenerationsToday` against a quota to manage costs and prevent abuse.
 
 ## 4. Security Rules
-- **Authentication:** All core write operations require a verified email.
-- **Ownership:** Creators can update/delete their own quizzes.
-- **Admin Overrides:** Users with the `admin` role in their profile (or `isAdminMode` enabled) bypass standard ownership and rate-limiting checks.
+- **Admin Overrides:** Users with the `admin` role in their profile (or `isAdminMode` enabled) bypass standard ownership and rate-limiting checks, as well as global feature flag restrictions.
 - **Private Data:** Sensitive user information is stored in sub-collections with restricted read access.
+- **Global Permission Guards:** Every database operation in `DatabaseService` is guarded by a feature flag check. If a feature (e.g., `enable_create_quiz`) is toggled off in `feature_flags`, only administrators can perform that action.
 
 ### 4.4 Soft Delete Policy
 When a quiz is soft-deleted (`isDeleted: true`):

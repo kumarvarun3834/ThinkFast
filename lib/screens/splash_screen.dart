@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/firebase_direct_commands.dart';
 import '../widgets/ImageContainer.dart';
+import '../utils/global.dart' as global;
 
 /// SPLASH SCREEN
 class MySplash extends StatefulWidget {
@@ -18,11 +19,24 @@ class _MySplashState extends State<MySplash> {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () async {
       if (mounted) {
+        final db = DatabaseService();
         final user = FirebaseAuth.instance.currentUser;
+
         if (user != null) {
-          // Prefetch essential data once
-          await DatabaseService().initAppData(user.uid);
-          if (mounted) Navigator.pushReplacementNamed(context, '/home');
+          await db.initAppData(user.uid);
+        } else {
+          // If not logged in, still fetch flags for maintenance check
+          global.featureFlags = await db.getFeatureFlags();
+        }
+
+        if (!mounted) return;
+
+        final bool isMaintenance = global.featureFlags?['maintenance_mode'] == true;
+
+        if (isMaintenance) {
+          Navigator.pushReplacementNamed(context, '/maintenance');
+        } else if (user != null) {
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           Navigator.pushReplacementNamed(context, '/login');
         }

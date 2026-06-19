@@ -4,11 +4,13 @@ class QuizForm extends StatefulWidget {
   final Map<String, Object> form_data_part;
   final void Function(Map<String, Object>) onChanged;
   final bool showIndividualMarking;
+  final List<String> moduleOptions;
 
   const QuizForm({
     super.key,
     required this.form_data_part,
     required this.onChanged,
+    required this.moduleOptions,
     this.showIndividualMarking = false,
   });
 
@@ -18,13 +20,16 @@ class QuizForm extends StatefulWidget {
 
 class _QuizFormState extends State<QuizForm> {
   final TextEditingController _questionController = TextEditingController();
-  final TextEditingController _subjectController = TextEditingController();
-  final TextEditingController _correctAnswerController = TextEditingController();
+  final TextEditingController _correctAnswerController =
+      TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
-  final TextEditingController _correctController = TextEditingController(text: "4");
-  final TextEditingController _wrongController = TextEditingController(text: "-1");
+  final TextEditingController _correctController =
+      TextEditingController(text: "4");
+  final TextEditingController _wrongController =
+      TextEditingController(text: "-1");
   Set<int> _selectedAnswers = {};
   String? _selectedValue;
+  String? _selectedModule;
 
   @override
   void initState() {
@@ -38,8 +43,16 @@ class _QuizFormState extends State<QuizForm> {
       _wrongController.text = widget.form_data_part["wrong"].toString();
     }
     if (widget.form_data_part["subject"] != null) {
-      _subjectController.text = widget.form_data_part["subject"] as String;
+      _selectedModule = widget.form_data_part["subject"] as String;
     }
+
+    if (_selectedModule == null ||
+        !widget.moduleOptions.contains(_selectedModule)) {
+      _selectedModule = widget.moduleOptions.isNotEmpty
+          ? widget.moduleOptions.first
+          : "General";
+    }
+
     if (widget.form_data_part["question"] != null) {
       _questionController.text = widget.form_data_part["question"] as String;
     }
@@ -94,7 +107,7 @@ class _QuizFormState extends State<QuizForm> {
 
     widget.onChanged({
       "type": _selectedValue ?? "",
-      "subject": _subjectController.text.trim(),
+      "subject": _selectedModule ?? "General",
       "question": _questionController.text.trim(),
       "choices": choices,
       "answers": answers,
@@ -216,9 +229,14 @@ class _QuizFormState extends State<QuizForm> {
               },
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _subjectController,
+            DropdownButtonFormField<String>(
+              dropdownColor: const Color(0xFF1E293B),
               style: const TextStyle(color: Color(0xFFE2E8F0)),
+              value: widget.moduleOptions.contains(_selectedModule)
+                  ? _selectedModule
+                  : (widget.moduleOptions.isNotEmpty
+                      ? widget.moduleOptions.first
+                      : null),
               decoration: const InputDecoration(
                 labelText: "Subject / Module Name",
                 labelStyle: TextStyle(color: Color(0xFF94A3B8)),
@@ -229,7 +247,18 @@ class _QuizFormState extends State<QuizForm> {
                   borderSide: BorderSide(color: Color(0xFF3B82F6)),
                 ),
               ),
-              onChanged: (_) => _emitData(),
+              items: widget.moduleOptions.map((String module) {
+                return DropdownMenuItem<String>(
+                  value: module,
+                  child: Text(module),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedModule = value;
+                });
+                _emitData();
+              },
             ),
             const SizedBox(height: 16),
             TextField(

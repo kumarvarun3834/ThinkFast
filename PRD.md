@@ -14,7 +14,7 @@
 - **Multi-method Login:** Support for Email/Password and Google Sign-In.
 - **Email Verification:** Mandatory email verification for accessing core features like quiz creation and participation.
 - **User Profiles:** Users can manage their display name and profile picture (synced from Google or custom).
-- **Session Management:** Secure logout and persistence using Firebase Auth.
+- **Session Management:** Secure logout and persistence using Firebase Auth. Includes active session protection to prevent simultaneous quizzes, with a "Double Tap to Bypass" mechanism for clearing stuck or unexpired sessions.
 
 ### 3.2 Quiz Creation & Management
 - **Quiz Editor:** A comprehensive form to define quiz title, description, visibility (public/private), time limits, and marking schemes.
