@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/settings_service.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -52,7 +53,7 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -66,7 +67,7 @@ class _AdminPanelState extends State<AdminPanel> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+              child: CircularProgressIndicator(color: global.primaryAccent),
             );
           }
 
@@ -108,7 +109,7 @@ class _AdminPanelState extends State<AdminPanel> {
     return Text(
       title,
       style: GoogleFonts.poppins(
-        color: const Color(0xFF3B82F6),
+        color: global.primaryAccent,
         fontSize: 14,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.2,
@@ -131,9 +132,9 @@ class _AdminPanelState extends State<AdminPanel> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: global.borderColor),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -147,16 +148,16 @@ class _AdminPanelState extends State<AdminPanel> {
             child: SwitchListTile(
               title: Text(
                 displayTitle,
-                style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 16),
+                style: const TextStyle(color: global.valueColor, fontSize: 16),
               ),
               subtitle: !canManage
                   ? const Text(
                       "Insufficient Level",
-                      style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                      style: TextStyle(color: global.errorColor, fontSize: 12),
                     )
                   : null,
               value: value,
-              activeColor: const Color(0xFF3B82F6),
+              activeColor: global.primaryAccent,
               onChanged: (newValue) async {
                 try {
                   await _settingsService.updateFeatureFlag(key, newValue);
@@ -181,9 +182,9 @@ class _AdminPanelState extends State<AdminPanel> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: global.borderColor),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -199,20 +200,20 @@ class _AdminPanelState extends State<AdminPanel> {
                 const Expanded(
                   child: Text(
                     "Creation Rate Limit (Minutes)",
-                    style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 16),
+                    style: TextStyle(color: global.valueColor, fontSize: 16),
                   ),
                 ),
                 SizedBox(
                   width: 80,
                   child: TextField(
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: global.valueColor),
                     textAlign: TextAlign.center,
                     decoration: const InputDecoration(
                       isDense: true,
                       contentPadding: EdgeInsets.symmetric(vertical: 8),
                       enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF334155)),
+                        borderSide: BorderSide(color: global.borderColor),
                       ),
                     ),
                     controller: TextEditingController(

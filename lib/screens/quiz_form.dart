@@ -1,13 +1,12 @@
-import 'dart:convert';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/services/quiz_data_processor.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
+import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 import '../utils/global.dart' as global;
 
@@ -43,7 +42,8 @@ class _QuizPageState extends State<QuizPage> {
     "Multiple Choice": TextEditingController(),
     "Integer": TextEditingController(),
   };
-  final Map<String, Map<String, TextEditingController>> _moduleLimitControllers = {};
+  final Map<String, Map<String, TextEditingController>>
+  _moduleLimitControllers = {};
 
   // Modules
   final List<String> modulesList = ["General"];
@@ -91,7 +91,8 @@ class _QuizPageState extends State<QuizPage> {
 
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
-    _isAi = (global.currentUserProfile?['role'] == 'ai' || _isAdmin) &&
+    _isAi =
+        (global.currentUserProfile?['role'] == 'ai' || _isAdmin) &&
         (global.featureFlags?['enable_ai'] ?? true);
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
 
@@ -121,10 +122,10 @@ class _QuizPageState extends State<QuizPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: global.cardColor,
         title: Text(
           append ? "Import More Quiz Data" : "Import Quiz Data",
-          style: GoogleFonts.poppins(color: Colors.white),
+          style: GoogleFonts.poppins(color: global.valueColor),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -133,18 +134,18 @@ class _QuizPageState extends State<QuizPage> {
               append
                   ? "Append new data to the existing quiz."
                   : "Paste a JSON string or a direct link to a JSON file.",
-              style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13),
+              style: TextStyle(color: global.labelColor, fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: importController,
               maxLines: 5,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
+              style: const TextStyle(color: global.valueColor, fontSize: 13),
               decoration: InputDecoration(
                 hintText: "Enter JSON or URL...",
-                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                hintStyle: const TextStyle(color: global.hintColor),
                 filled: true,
-                fillColor: const Color(0xFF0F172A),
+                fillColor: global.bgColor,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -157,7 +158,7 @@ class _QuizPageState extends State<QuizPage> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               "CANCEL",
-              style: TextStyle(color: Color(0xFF94A3B8)),
+              style: TextStyle(color: global.labelColor),
             ),
           ),
           ElevatedButton(
@@ -169,7 +170,7 @@ class _QuizPageState extends State<QuizPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: global.primaryAccent,
             ),
             child: Text(append ? "APPEND" : "IMPORT"),
           ),
@@ -180,59 +181,38 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _importQuizData(String input, {bool append = false}) async {
     try {
-      String jsonContent = input;
-      if (input.startsWith("http")) {
-        final response = await http.get(Uri.parse(input));
-        if (response.statusCode == 200) {
-          jsonContent = response.body;
-        } else {
-          throw Exception("Failed to fetch data from link");
-        }
-      }
-
-      final dynamic decoded = jsonDecode(jsonContent);
-      final Map<String, dynamic> data =
-          decoded is List ? {"data": decoded} : decoded;
+      final result = await QuizDataProcessor.processImportData(input);
 
       setState(() {
         if (!append) {
-          if (data['title'] != null) {
-            _titleController.text = data['title'].toString();
+          if (result.title != null) _titleController.text = result.title!;
+          if (result.description != null) {
+            _descriptionController.text = result.description!;
           }
-          if (data['description'] != null) {
-            _descriptionController.text = data['description'].toString();
+          if (result.time != null) {
+            _timeController.text = (result.time! ~/ 60).toString();
           }
-          if (data['time'] != null) {
-            _timeController.text = (data['time'] is int)
-                ? (data['time'] ~/ 60).toString()
-                : (int.tryParse(data['time'].toString()) ?? 0 ~/ 60).toString();
-          }
-          if (data['perQuestionTime'] != null) {
-            _perQuestionTimeController.text = data['perQuestionTime'].toString();
+          if (result.perQuestionTime != null) {
+            _perQuestionTimeController.text = result.perQuestionTime.toString();
           }
 
-          if (data['markingScheme'] != null) {
-            final scheme = data['markingScheme'] as Map;
-            markingType = scheme['type'] ?? 'default';
-          }
+          if (result.markingType != null) markingType = result.markingType!;
 
-          if (data['attemptLimits'] != null) {
-            final limits = data['attemptLimits'] as Map;
-            attemptLimitType = limits['type'] ?? 'none';
-            if (attemptLimitType == 'global') {
-              final g = limits['global'] as Map? ?? {};
-              _globalLimitControllers['Single Choice']!.text = (g['Single Choice'] ?? '').toString();
-              _globalLimitControllers['Multiple Choice']!.text = (g['Multiple Choice'] ?? '').toString();
-              _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '').toString();
-            } else if (attemptLimitType == 'per_module') {
-              final pm = limits['perModule'] as Map? ?? {};
-              pm.forEach((module, values) {
+          if (result.attemptLimitType != null) {
+            attemptLimitType = result.attemptLimitType!;
+            if (attemptLimitType == 'global' && result.globalLimits != null) {
+              result.globalLimits!.forEach((key, value) {
+                _globalLimitControllers[key]?.text = value.toString();
+              });
+            } else if (attemptLimitType == 'per_module' &&
+                result.perModuleLimits != null) {
+              result.perModuleLimits!.forEach((module, values) {
                 if (!modulesList.contains(module)) modulesList.add(module);
                 _updateModuleLimitControllers();
-                final mLimits = values as Map? ?? {};
-                _moduleLimitControllers[module]!['Single Choice']!.text = (mLimits['Single Choice'] ?? '').toString();
-                _moduleLimitControllers[module]!['Multiple Choice']!.text = (mLimits['Multiple Choice'] ?? '').toString();
-                _moduleLimitControllers[module]!['Integer']!.text = (mLimits['Integer'] ?? '').toString();
+                (values as Map).forEach((key, value) {
+                  _moduleLimitControllers[module]?[key]?.text = value
+                      .toString();
+                });
               });
             }
           }
@@ -243,66 +223,27 @@ class _QuizPageState extends State<QuizPage> {
           if (!modulesList.contains("General")) modulesList.add("General");
         }
 
-        final List<dynamic> rawData =
-            (data['data'] ?? data['questions'] ?? []) as List;
-        if (rawData.isNotEmpty) {
-          for (var q in rawData) {
-            String subject = 'General';
-            if (q['subject'] != null) {
-              subject = q['subject'].toString();
-            }
+        for (var newQ in result.questions) {
+          String subject = newQ['subject'] as String? ?? 'General';
+          if (!modulesList.contains(subject)) modulesList.add(subject);
 
-            if (!modulesList.contains(subject)) {
-              modulesList.add(subject);
-            }
-
-            Map<String, Object> newQ;
-            // Support both internal format and external easy format
-            if (q['Q'] != null) {
-              final qInfo = q['Q'] as Map;
-              final qText = qInfo['text'].toString();
-              final List<dynamic> opts = q['As'] as List;
-              final List<String> choiceTexts =
-                  opts.map((o) => (o as Map)['text'].toString()).toList();
-
-              newQ = {
-                "question": qText,
-                "choices": choiceTexts,
-                "answers": <String>[],
-                "type": q['type'] ?? 'Single Choice',
-                "subject": subject,
-                "correct": 4,
-                "wrong": -1,
-                "timer": q['timer'] ?? 0,
-                "description": "",
-              };
-            } else {
-              newQ = {
-                "question": q['question']?.toString() ?? '',
-                "choices": List<String>.from(q['choices'] ?? []),
-                "answers": List<String>.from(q['answers'] ?? []),
-                "type": q['type'] ?? 'Single Choice',
-                "correct": q['correct'] ?? 4,
-                "wrong": q['wrong'] ?? -1,
-                "subject": subject,
-                "timer": q['timer'] ?? 0,
-                "description": q['description'] ?? '',
-              };
-            }
-
-            // Check if same Q already exists
-            int existingIndex = questions.indexWhere((element) =>
+          // Check if same Q already exists
+          int existingIndex = questions.indexWhere(
+            (element) =>
                 element['question'].toString().trim().toLowerCase() ==
-                newQ['question'].toString().trim().toLowerCase());
+                newQ['question'].toString().trim().toLowerCase(),
+          );
 
-            if (existingIndex != -1) {
-              // Found duplicate. Check if data is different.
-              if (!_isQuestionDataSame(questions[existingIndex], newQ)) {
-                questions[existingIndex] = newQ;
-              }
-            } else {
-              questions.add(newQ);
+          if (existingIndex != -1) {
+            // Found duplicate. Check if data is different.
+            if (!QuizDataProcessor.isQuestionDataSame(
+              questions[existingIndex],
+              newQ,
+            )) {
+              questions[existingIndex] = newQ;
             }
+          } else {
+            questions.add(newQ);
           }
         }
       });
@@ -316,8 +257,9 @@ class _QuizPageState extends State<QuizPage> {
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Import error: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
     }
   }
 
@@ -342,31 +284,32 @@ class _QuizPageState extends State<QuizPage> {
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         completeRandomShuffle = data['completeRandomShuffle'] ?? false;
-        _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0).toString();
+        _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0)
+            .toString();
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
         // Load Marking Scheme
         final scheme = data['markingScheme'] as Map? ?? {};
         markingType = scheme['type'] ?? 'default';
         if (markingType == 'entire_quiz') {
-          _globalCorrectController.text =
-              (scheme['global']?['correct'] ?? 4).toString();
-          _globalWrongController.text =
-              (scheme['global']?['wrong'] ?? -1).toString();
+          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4)
+              .toString();
+          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1)
+              .toString();
         } else if (markingType == 'per_question_type') {
           final pqt = scheme['perQuestionType'] as Map? ?? {};
-          _scCorrectController.text =
-              (pqt['Single Choice']?['correct'] ?? 4).toString();
-          _scWrongController.text =
-              (pqt['Single Choice']?['wrong'] ?? -1).toString();
-          _mcCorrectController.text =
-              (pqt['Multiple Choice']?['correct'] ?? 4).toString();
-          _mcWrongController.text =
-              (pqt['Multiple Choice']?['wrong'] ?? -1).toString();
-          _intCorrectController.text =
-              (pqt['Integer']?['correct'] ?? 4).toString();
-          _intWrongController.text =
-              (pqt['Integer']?['wrong'] ?? -1).toString();
+          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4)
+              .toString();
+          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1)
+              .toString();
+          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4)
+              .toString();
+          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1)
+              .toString();
+          _intCorrectController.text = (pqt['Integer']?['correct'] ?? 4)
+              .toString();
+          _intWrongController.text = (pqt['Integer']?['wrong'] ?? -1)
+              .toString();
         }
 
         // Load Attempt Limits
@@ -374,9 +317,12 @@ class _QuizPageState extends State<QuizPage> {
         attemptLimitType = limits['type'] ?? 'none';
         if (attemptLimitType == 'global') {
           final g = limits['global'] as Map? ?? {};
-          _globalLimitControllers['Single Choice']!.text = (g['Single Choice'] ?? '').toString();
-          _globalLimitControllers['Multiple Choice']!.text = (g['Multiple Choice'] ?? '').toString();
-          _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '').toString();
+          _globalLimitControllers['Single Choice']!.text =
+              (g['Single Choice'] ?? '').toString();
+          _globalLimitControllers['Multiple Choice']!.text =
+              (g['Multiple Choice'] ?? '').toString();
+          _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '')
+              .toString();
         } else if (attemptLimitType == 'per_module') {
           final pm = limits['perModule'] as Map? ?? {};
           pm.forEach((module, values) {
@@ -388,9 +334,12 @@ class _QuizPageState extends State<QuizPage> {
               };
             }
             final mLimits = values as Map? ?? {};
-            _moduleLimitControllers[module]!['Single Choice']!.text = (mLimits['Single Choice'] ?? '').toString();
-            _moduleLimitControllers[module]!['Multiple Choice']!.text = (mLimits['Multiple Choice'] ?? '').toString();
-            _moduleLimitControllers[module]!['Integer']!.text = (mLimits['Integer'] ?? '').toString();
+            _moduleLimitControllers[module]!['Single Choice']!.text =
+                (mLimits['Single Choice'] ?? '').toString();
+            _moduleLimitControllers[module]!['Multiple Choice']!.text =
+                (mLimits['Multiple Choice'] ?? '').toString();
+            _moduleLimitControllers[module]!['Integer']!.text =
+                (mLimits['Integer'] ?? '').toString();
           });
         }
 
@@ -471,7 +420,7 @@ class _QuizPageState extends State<QuizPage> {
         Text(
           "Marking Scheme",
           style: GoogleFonts.poppins(
-            color: const Color(0xFFE2E8F0),
+            color: global.valueColor,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -484,9 +433,9 @@ class _QuizPageState extends State<QuizPage> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  dropdownColor: const Color(0xFF1E293B),
+                  dropdownColor: global.cardColor,
                   initialValue: markingType,
-                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  style: const TextStyle(color: global.valueColor),
                   items: const [
                     DropdownMenuItem(
                       value: "default",
@@ -516,7 +465,7 @@ class _QuizPageState extends State<QuizPage> {
                         child: TextField(
                           controller: _globalCorrectController,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Color(0xFFE2E8F0)),
+                          style: const TextStyle(color: global.valueColor),
                           decoration: const InputDecoration(
                             labelText: "Correct Score",
                           ),
@@ -527,7 +476,7 @@ class _QuizPageState extends State<QuizPage> {
                         child: TextField(
                           controller: _globalWrongController,
                           keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Color(0xFFE2E8F0)),
+                          style: const TextStyle(color: global.valueColor),
                           decoration: const InputDecoration(
                             labelText: "Wrong Score",
                           ),
@@ -583,9 +532,9 @@ class _QuizPageState extends State<QuizPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: global.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,7 +542,7 @@ class _QuizPageState extends State<QuizPage> {
           Text(
             type,
             style: const TextStyle(
-              color: Color(0xFF3B82F6),
+              color: global.primaryAccent,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -604,7 +553,7 @@ class _QuizPageState extends State<QuizPage> {
                 child: TextField(
                   controller: correct,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  style: const TextStyle(color: global.valueColor),
                   decoration: const InputDecoration(labelText: "Correct"),
                 ),
               ),
@@ -613,7 +562,7 @@ class _QuizPageState extends State<QuizPage> {
                 child: TextField(
                   controller: wrong,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Color(0xFFE2E8F0)),
+                  style: const TextStyle(color: global.valueColor),
                   decoration: const InputDecoration(labelText: "Wrong"),
                 ),
               ),
@@ -631,7 +580,7 @@ class _QuizPageState extends State<QuizPage> {
         Text(
           "Attempt Limits (Select N out of M)",
           style: GoogleFonts.poppins(
-            color: const Color(0xFFE2E8F0),
+            color: global.valueColor,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
@@ -639,17 +588,26 @@ class _QuizPageState extends State<QuizPage> {
         const SizedBox(height: 8),
         Text(
           "Limit how many questions of each type a user can answer.",
-          style: GoogleFonts.poppins(color: const Color(0xFF94A3B8), fontSize: 12),
+          style: GoogleFonts.poppins(
+            color: global.labelColor,
+            fontSize: 12,
+          ),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          dropdownColor: const Color(0xFF1E293B),
+          dropdownColor: global.cardColor,
           value: attemptLimitType,
-          style: const TextStyle(color: Color(0xFFE2E8F0)),
+          style: const TextStyle(color: global.valueColor),
           items: const [
             DropdownMenuItem(value: "none", child: Text("No Limits")),
-            DropdownMenuItem(value: "global", child: Text("Same for all modules")),
-            DropdownMenuItem(value: "per_module", child: Text("Different for each module")),
+            DropdownMenuItem(
+              value: "global",
+              child: Text("Same for all modules"),
+            ),
+            DropdownMenuItem(
+              value: "per_module",
+              child: Text("Different for each module"),
+            ),
           ],
           onChanged: (v) => setState(() {
             attemptLimitType = v!;
@@ -659,9 +617,15 @@ class _QuizPageState extends State<QuizPage> {
         ),
         if (attemptLimitType == "global") ...[
           const SizedBox(height: 16),
-          _buildLimitRow("Single Choice", _globalLimitControllers["Single Choice"]!),
+          _buildLimitRow(
+            "Single Choice",
+            _globalLimitControllers["Single Choice"]!,
+          ),
           const SizedBox(height: 12),
-          _buildLimitRow("Multiple Choice", _globalLimitControllers["Multiple Choice"]!),
+          _buildLimitRow(
+            "Multiple Choice",
+            _globalLimitControllers["Multiple Choice"]!,
+          ),
           const SizedBox(height: 12),
           _buildLimitRow("Integer", _globalLimitControllers["Integer"]!),
         ],
@@ -675,9 +639,9 @@ class _QuizPageState extends State<QuizPage> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: global.cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF334155)),
+                  border: Border.all(color: global.borderColor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,15 +649,23 @@ class _QuizPageState extends State<QuizPage> {
                     Text(
                       m.toUpperCase(),
                       style: const TextStyle(
-                        color: Color(0xFF3B82F6),
+                        color: global.primaryAccent,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildLimitRow("SC", controllers["Single Choice"]!, dense: true),
+                    _buildLimitRow(
+                      "SC",
+                      controllers["Single Choice"]!,
+                      dense: true,
+                    ),
                     const SizedBox(height: 8),
-                    _buildLimitRow("MC", controllers["Multiple Choice"]!, dense: true),
+                    _buildLimitRow(
+                      "MC",
+                      controllers["Multiple Choice"]!,
+                      dense: true,
+                    ),
                     const SizedBox(height: 8),
                     _buildLimitRow("Int", controllers["Integer"]!, dense: true),
                   ],
@@ -706,7 +678,11 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
-  Widget _buildLimitRow(String label, TextEditingController controller, {bool dense = false}) {
+  Widget _buildLimitRow(
+    String label,
+    TextEditingController controller, {
+    bool dense = false,
+  }) {
     return Row(
       children: [
         Expanded(
@@ -714,7 +690,7 @@ class _QuizPageState extends State<QuizPage> {
           child: Text(
             label,
             style: TextStyle(
-              color: const Color(0xFFE2E8F0),
+              color: global.valueColor,
               fontSize: dense ? 13 : 14,
             ),
           ),
@@ -725,11 +701,16 @@ class _QuizPageState extends State<QuizPage> {
             controller: controller,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+            style: const TextStyle(color: global.valueColor, fontSize: 14),
             decoration: InputDecoration(
-              contentPadding: dense ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8) : null,
+              contentPadding: dense
+                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                  : null,
               hintText: "No Limit",
-              hintStyle: const TextStyle(color: Color(0xFF475569), fontSize: 12),
+              hintStyle: const TextStyle(
+                color: global.hintColor,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
@@ -770,32 +751,6 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  bool _isQuestionDataSame(Map<String, Object> q1, Map<String, Object> q2) {
-    if (q1['type'] != q2['type']) return false;
-    if (q1['subject'] != q2['subject']) return false;
-    if (q1['correct'] != q2['correct']) return false;
-    if (q1['wrong'] != q2['wrong']) return false;
-    if (q1['description'] != q2['description']) return false;
-
-    // Compare choices
-    final List c1 = q1['choices'] as List? ?? [];
-    final List c2 = q2['choices'] as List? ?? [];
-    if (c1.length != c2.length) return false;
-    for (int i = 0; i < c1.length; i++) {
-      if (c1[i].toString() != c2[i].toString()) return false;
-    }
-
-    // Compare answers
-    final List a1 = q1['answers'] as List? ?? [];
-    final List a2 = q2['answers'] as List? ?? [];
-    if (a1.length != a2.length) return false;
-    for (int i = 0; i < a1.length; i++) {
-      if (a1[i].toString() != a2[i].toString()) return false;
-    }
-
-    return true;
-  }
-
   void _scrollToModule(String module) {
     final key = _moduleKeys[module];
     if (key != null && key.currentContext != null) {
@@ -817,7 +772,7 @@ class _QuizPageState extends State<QuizPage> {
             Text(
               "Modules",
               style: GoogleFonts.poppins(
-                color: const Color(0xFFE2E8F0),
+                color: global.valueColor,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -828,7 +783,8 @@ class _QuizPageState extends State<QuizPage> {
                 icon: const Icon(Icons.add_circle_outline, size: 18),
                 label: const Text("IMPORT MORE"),
                 style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF3B82F6)),
+                  foregroundColor: global.primaryAccent,
+                ),
               ),
           ],
         ),
@@ -838,7 +794,7 @@ class _QuizPageState extends State<QuizPage> {
             Expanded(
               child: TextField(
                 controller: _moduleController,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 decoration: const InputDecoration(
                   labelText: "New Module Name",
                   hintText: "e.g. Mathematics, Science...",
@@ -857,7 +813,8 @@ class _QuizPageState extends State<QuizPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6)),
+                backgroundColor: global.primaryAccent,
+              ),
               child: const Icon(Icons.add),
             ),
           ],
@@ -866,44 +823,50 @@ class _QuizPageState extends State<QuizPage> {
         Wrap(
           spacing: 8,
           children: modulesList
-              .map((m) => InputChip(
-                    label: Text(m,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 12)),
-                    backgroundColor: const Color(0xFF1E293B),
-                    onPressed: () => _scrollToModule(m),
-                    deleteIcon: const Icon(Icons.close,
-                        size: 14, color: Colors.redAccent),
-                    onDeleted: m == "General"
-                        ? null
-                        : () {
-                            setState(() => modulesList.remove(m));
-                          },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: Color(0xFF334155)),
-                    ),
-                  ))
+              .map(
+                (m) => InputChip(
+                  label: Text(
+                    m,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  backgroundColor: global.cardColor,
+                  onPressed: () => _scrollToModule(m),
+                  deleteIcon: const Icon(
+                    Icons.close,
+                    size: 14,
+                    color: Colors.redAccent,
+                  ),
+                  onDeleted: m == "General"
+                      ? null
+                      : () {
+                          setState(() => modulesList.remove(m));
+                        },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: global.borderColor),
+                  ),
+                ),
+              )
               .toList(),
         ),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: global.cardColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF334155)),
+            border: Border.all(color: global.borderColor),
           ),
           child: SwitchListTile(
             title: const Text(
               "Complete Random Shuffle",
-              style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+              style: TextStyle(color: global.valueColor, fontSize: 14),
             ),
             subtitle: const Text(
               "Mix all questions across all modules",
-              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+              style: TextStyle(color: global.labelColor, fontSize: 11),
             ),
             value: completeRandomShuffle,
-            activeColor: const Color(0xFF3B82F6),
+            activeColor: global.primaryAccent,
             onChanged: (bool value) {
               setState(() {
                 completeRandomShuffle = value;
@@ -940,7 +903,8 @@ class _QuizPageState extends State<QuizPage> {
       return;
     }
 
-    final perQuestionTime = int.tryParse(_perQuestionTimeController.text.trim()) ?? 0;
+    final perQuestionTime =
+        int.tryParse(_perQuestionTimeController.text.trim()) ?? 0;
 
     for (int i = 0; i < questions.length; i++) {
       final qText = (questions[i]['question'] ?? '').toString().trim();
@@ -993,8 +957,12 @@ class _QuizPageState extends State<QuizPage> {
     final Map<String, dynamic> attemptLimits = {'type': attemptLimitType};
     if (attemptLimitType == "global") {
       attemptLimits['global'] = {
-        'Single Choice': int.tryParse(_globalLimitControllers['Single Choice']!.text),
-        'Multiple Choice': int.tryParse(_globalLimitControllers['Multiple Choice']!.text),
+        'Single Choice': int.tryParse(
+          _globalLimitControllers['Single Choice']!.text,
+        ),
+        'Multiple Choice': int.tryParse(
+          _globalLimitControllers['Multiple Choice']!.text,
+        ),
         'Integer': int.tryParse(_globalLimitControllers['Integer']!.text),
       };
     } else if (attemptLimitType == "per_module") {
@@ -1062,7 +1030,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -1070,41 +1038,44 @@ class _QuizPageState extends State<QuizPage> {
           global.isAdmin ? "Quiz Editor (ADMIN)" : "Quiz Editor",
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            color: global.isAdmin ? Colors.redAccent : Colors.white,
+            color: Colors.white,
           ),
         ),
         actions: [
+          if (global.isAdmin) const AdminBadge(),
           if (_importEnabled)
             IconButton(
               icon: const Icon(
                 Icons.file_download_outlined,
-                color: Color(0xFF3B82F6),
+                color: global.primaryAccent,
               ),
               onPressed: _showImportDialog,
               tooltip: "Import Data",
             ),
           IconButton(
-            icon: const Icon(Icons.save_rounded, color: Color(0xFF3B82F6)),
+            icon: const Icon(Icons.save_rounded, color: global.primaryAccent),
             onPressed: _saveQuiz,
           ),
         ],
       ),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: global.cardColor,
         child: Column(
           children: [
             Expanded(child: SidebarMenu(user: user)),
             if (modulesList.isNotEmpty) ...[
-              const Divider(color: Color(0xFF334155), height: 1),
+              const Divider(color: global.borderColor, height: 1),
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: const Color(0xFF0F172A),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                color: global.bgColor,
                 child: Text(
                   "QUIZ MODULES",
                   style: GoogleFonts.poppins(
-                    color: const Color(0xFF3B82F6),
+                    color: global.primaryAccent,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                     letterSpacing: 1.2,
@@ -1119,12 +1090,17 @@ class _QuizPageState extends State<QuizPage> {
                     final module = modulesList[index];
                     return ListTile(
                       dense: true,
-                      leading: const Icon(Icons.folder_open_rounded,
-                          size: 20, color: Color(0xFF94A3B8)),
+                      leading: const Icon(
+                        Icons.folder_open_rounded,
+                        size: 20,
+                        color: global.labelColor,
+                      ),
                       title: Text(
                         module,
                         style: const TextStyle(
-                            color: Color(0xFFE2E8F0), fontSize: 14),
+                          color: global.valueColor,
+                          fontSize: 14,
+                        ),
                       ),
                       onTap: () {
                         Navigator.pop(context);
@@ -1141,14 +1117,14 @@ class _QuizPageState extends State<QuizPage> {
       body: Theme(
         data: Theme.of(context).copyWith(
           inputDecorationTheme: InputDecorationTheme(
-            labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+            labelStyle: const TextStyle(color: global.labelColor),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF334155)),
+              borderSide: const BorderSide(color: global.borderColor),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+              borderSide: const BorderSide(color: global.primaryAccent),
             ),
           ),
         ),
@@ -1159,19 +1135,19 @@ class _QuizPageState extends State<QuizPage> {
             children: [
               TextField(
                 controller: _titleController,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 decoration: const InputDecoration(labelText: "Quiz Title"),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _descriptionController,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 decoration: const InputDecoration(labelText: "Description"),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _timeController,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
@@ -1186,7 +1162,7 @@ class _QuizPageState extends State<QuizPage> {
                   Expanded(
                     child: TextField(
                       controller: _perQuestionTimeController,
-                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      style: const TextStyle(color: global.valueColor),
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: const InputDecoration(
@@ -1199,9 +1175,9 @@ class _QuizPageState extends State<QuizPage> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: global.cardColor,
                 initialValue: visibility,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 items: const [
                   DropdownMenuItem(value: "public", child: Text("Public")),
                   DropdownMenuItem(value: "private", child: Text("Private")),
@@ -1213,14 +1189,14 @@ class _QuizPageState extends State<QuizPage> {
               SwitchListTile(
                 title: const Text(
                   "Allow Multiple Attempts",
-                  style: TextStyle(color: Color(0xFFE2E8F0)),
+                  style: TextStyle(color: global.valueColor),
                 ),
                 subtitle: const Text(
                   "If disabled, users can only take this quiz once",
-                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                  style: TextStyle(color: global.labelColor, fontSize: 12),
                 ),
                 value: allowMultipleAttempts,
-                activeThumbColor: const Color(0xFF3B82F6),
+                activeThumbColor: global.primaryAccent,
                 onChanged: (bool value) {
                   setState(() {
                     allowMultipleAttempts = value;
@@ -1244,8 +1220,7 @@ class _QuizPageState extends State<QuizPage> {
                 if (moduleQuestions.isEmpty) return const SizedBox.shrink();
 
                 // Ensure a key exists for this module for scrolling
-                final key =
-                    _moduleKeys.putIfAbsent(module, () => GlobalKey());
+                final key = _moduleKeys.putIfAbsent(module, () => GlobalKey());
 
                 return Column(
                   key: key,
@@ -1255,8 +1230,10 @@ class _QuizPageState extends State<QuizPage> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Row(
                         children: [
-                          const Icon(Icons.folder_open_rounded,
-                              color: Color(0xFF3B82F6)),
+                          const Icon(
+                            Icons.folder_open_rounded,
+                            color: Color(0xFF3B82F6),
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             module.toUpperCase(),
@@ -1269,24 +1246,27 @@ class _QuizPageState extends State<QuizPage> {
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                              child: Divider(
-                                  color: const Color(0xFF3B82F6)
-                                      .withOpacity(0.3))),
+                            child: Divider(
+                              color: const Color(0xFF3B82F6).withOpacity(0.3),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     ...moduleQuestions.map((entry) {
                       final index = entry.key;
-                      final qKey =
-                          _questionKeys.putIfAbsent(index, () => GlobalKey());
+                      final qKey = _questionKeys.putIfAbsent(
+                        index,
+                        () => GlobalKey(),
+                      );
 
                       return Card(
                         key: qKey,
-                        color: const Color(0xFF1E293B),
+                        color: global.cardColor,
                         margin: const EdgeInsets.symmetric(vertical: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: Color(0xFF334155)),
+                          side: const BorderSide(color: global.borderColor),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -1304,7 +1284,7 @@ class _QuizPageState extends State<QuizPage> {
                                 child: IconButton(
                                   icon: const Icon(
                                     Icons.delete_outline_rounded,
-                                    color: Colors.redAccent,
+                                    color: global.errorColor,
                                   ),
                                   onPressed: () => _removeForm(index),
                                 ),
@@ -1317,13 +1297,13 @@ class _QuizPageState extends State<QuizPage> {
                   ],
                 );
               }).toList(),
-              const SizedBox(height: 80),
+              const SizedBox(height: 120),
             ],
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2563EB),
+        backgroundColor: global.btnColor,
         foregroundColor: Colors.white,
         onPressed: _addNewForm,
         child: const Icon(Icons.add_rounded, size: 30),

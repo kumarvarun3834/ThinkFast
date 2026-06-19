@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 import '../utils/global.dart' as global;
 
@@ -61,7 +62,7 @@ class _Main_ScreenState extends State<Main_Screen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Link copied to clipboard: $shareUrl"),
-            backgroundColor: const Color(0xFF3B82F6),
+            backgroundColor: global.primaryAccent,
           ),
         );
       }
@@ -77,10 +78,10 @@ class _Main_ScreenState extends State<Main_Screen> {
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         elevation: 0,
-        color: const Color(0xFF1E293B),
+        color: global.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0xFF334155)),
+          side: const BorderSide(color: global.borderColor),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -95,7 +96,7 @@ class _Main_ScreenState extends State<Main_Screen> {
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFFE2E8F0),
+                        color: global.valueColor,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -103,7 +104,7 @@ class _Main_ScreenState extends State<Main_Screen> {
                       "Created by: ${data['user'] ?? 'Anonymous'}",
                       style: GoogleFonts.poppins(
                         fontSize: 12,
-                        color: const Color(0xFF94A3B8),
+                        color: global.labelColor,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -113,7 +114,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               IconButton(
                 icon: const Icon(
                   Icons.share_rounded,
-                  color: Color(0xFF3B82F6),
+                  color: global.primaryAccent,
                   size: 20,
                 ),
                 onPressed: () => _shareQuiz(data['id']),
@@ -121,7 +122,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               ),
               const Icon(
                 Icons.arrow_forward_ios_rounded,
-                color: Color(0xFF334155),
+                color: global.borderColor,
                 size: 18,
               ),
             ],
@@ -135,7 +136,7 @@ class _Main_ScreenState extends State<Main_Screen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -144,11 +145,11 @@ class _Main_ScreenState extends State<Main_Screen> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
+                style: GoogleFonts.poppins(color: global.valueColor),
                 decoration: InputDecoration(
                   hintText: "Search quizzes...",
                   hintStyle: GoogleFonts.poppins(
-                    color: const Color(0xFF94A3B8),
+                    color: global.labelColor,
                   ),
                   border: InputBorder.none,
                 ),
@@ -159,22 +160,20 @@ class _Main_ScreenState extends State<Main_Screen> {
                 },
               )
             : Text(
-                global.isAdmin
-                    ? "THINKFAST (ADMIN)"
-                    : (widget.showMyQuizzes
-                        ? "MY QUIZZES"
-                        : (widget.showManagedQuizzes
-                            ? "MANAGED QUIZZES"
-                            : "THINKFAST")),
+                widget.showMyQuizzes
+                    ? "MY QUIZZES"
+                    : (widget.showManagedQuizzes
+                        ? "MANAGED QUIZZES"
+                        : "THINKFAST"),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color:
-                      global.isAdmin ? Colors.redAccent : const Color(0xFFE2E8F0),
+                  color: global.valueColor,
                   letterSpacing: 1.5,
                 ),
               ),
-        iconTheme: const IconThemeData(color: Color(0xFFE2E8F0)),
+        iconTheme: const IconThemeData(color: global.valueColor),
         actions: [
+          if (global.isAdmin) const AdminBadge(),
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
             onPressed: () {
@@ -190,17 +189,17 @@ class _Main_ScreenState extends State<Main_Screen> {
         ],
       ),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: global.cardColor,
         child: SidebarMenu(user: _user),
       ),
       body: Container(
-        color: const Color(0xFF0F172A),
+        color: global.bgColor,
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: readDatabases(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                child: CircularProgressIndicator(color: global.primaryAccent),
               );
             }
 
@@ -208,7 +207,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               return const Center(
                 child: Text(
                   "No quizzes available",
-                  style: TextStyle(color: Color(0xFF94A3B8)),
+                  style: TextStyle(color: global.labelColor),
                 ),
               );
             }
@@ -222,7 +221,7 @@ class _Main_ScreenState extends State<Main_Screen> {
               return const Center(
                 child: Text(
                   "No matching quizzes found",
-                  style: TextStyle(color: Color(0xFF94A3B8)),
+                  style: TextStyle(color: global.labelColor),
                 ),
               );
             }
@@ -244,7 +243,7 @@ class _Main_ScreenState extends State<Main_Screen> {
                   const SnackBar(content: Text("Random Quiz feature coming soon!")),
                 );
               },
-              backgroundColor: const Color(0xFF2563EB),
+              backgroundColor: global.btnColor,
               icon: const Icon(Icons.shuffle_rounded),
               label: const Text("RANDOM"),
             )

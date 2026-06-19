@@ -24,12 +24,13 @@
 
 ### Quiz Creation (The Creator Flow)
 - [x] Comprehensive Quiz Editor (`QuizPage`)
-- [x] **Flexible Timing (Unlimited / Per Question Timer)**
+- [x] **Flexible Timing (Unlimited / Per Question / Individual Q)**
 - [x] Support for Single Choice, Multiple Choice, and Integer Questions
 - [x] AI-Assisted Quiz Generation (`AiService`)
 - [x] Flexible Marking Schemes (Global, Per-Type, Per-Question)
 - [x] **Attempt Limits ("Select N out of M") Logic**
 - [x] Quiz Idempotency and Rate Limiting
+- [x] **JSON Import Engine with Smart Deduplication (`QuizDataProcessor`)**
 - [x] Answer Key Security (Separation from Questions)
 - [x] My Quizzes Dashboard (Edit/Soft-Delete)
 - [x] **Managed Quizzes Dashboard (Collaborators)**
@@ -51,6 +52,8 @@
 - [x] Admin Panel (Feature Flags & Settings)
 - [x] Admin Mode/Elevated Privilege Switching
 - [x] **Visual Feedback for Admin Mode (Admin Shield)**
+- [x] **Modular Presentation Components (`quiz_widgets.dart`)**
+- [x] **Centralized Theme Tokens (`global.dart`)**
 - [x] Detailed Audit Logging for Actions
 - [x] AI Usage Quota Tracking
 
@@ -73,6 +76,7 @@
 ---
 
 ## 📈 Recent Updates
+- **v1.2.0:** Centralized theme tokens, refactored data processor, and enhanced timer hierarchy.
 - **v1.1.0:** Implemented "Attempt Limits" (N out of M) and Enhanced Review Mode with solutions.
 - **v1.0.7:** Added "Double Tap to Instant Submit" for unexpired active quizzes.
 - **v1.0.6:** Added Maintenance Mode bypass for administrators.

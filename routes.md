@@ -18,4 +18,16 @@
 
 9. /Quiz Details: Detailed View of a specific Quiz
 
-10. /Quiz Result: Final Score and Breakdown Screen
+10. /Quiz Result: Final Score and Summary Screen
+
+11. /Managed Quizzes: Quizzes where the user is a collaborator
+
+12. /My Attempts: Personal attempt history
+
+13. /Quiz Responses: Participant analytics for creators
+
+14. /Manage Collaborators: Interface to add/remove quiz managers
+
+15. /Admin Panel: Global platform settings (Admin only)
+
+16. /maintenance: Landing page for system-wide maintenance

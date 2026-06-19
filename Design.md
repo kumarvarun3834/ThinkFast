@@ -3,21 +3,25 @@
 ## 1. Design Philosophy
 ThinkFast utilizes a **Modern Dark Minimalist** design language. The goal is to reduce cognitive load during high-pressure quiz sessions while maintaining a high-tech, professional aesthetic suitable for both educational and casual environments.
 
-## 2. Color Palette (The "Slate & Sapphire" Theme)
+## 2. Standardized Color Palette (The "Slate & Sapphire" Theme)
 
-| Role | Hex Code | Visual Sample | Description |
+All colors are centralized in `lib/utils/global.dart` for cross-platform consistency.
+
+| Role | Hex Code | Global Variable | Description |
 | :--- | :--- | :--- | :--- |
-| **Background** | `#0F172A` | ![#0F172A](https://via.placeholder.com/15/0F172A?text=+) | Deep navy/black used for the primary scaffolding. |
-| **Surface/Card** | `#1E293B` | ![#1E293B](https://via.placeholder.com/15/1E293B?text=+) | Slate blue used for cards, list items, and containers. |
-| **Primary Accent**| `#3B82F6` | ![#3B82F6](https://via.placeholder.com/15/3B82F6?text=+) | Bright electric blue for highlights, icons, and focus states. |
-| **Button** | `#2563EB` | ![#2563EB](https://via.placeholder.com/15/2563EB?text=+) | Solid blue used for primary call-to-action buttons. |
-| **Label/Hint** | `#94A3B8` | ![#94A3B8](https://via.placeholder.com/15/94A3B8?text=+) | Muted gray-blue for secondary text and placeholders. |
-| **Primary Text** | `#E2E8F0` | ![#E2E8F0](https://via.placeholder.com/15/E2E8F0?text=+) | Light off-white/gray for high readability. |
-| **Border** | `#334155` | ![#334155](https://via.placeholder.com/15/334155?text=+) | Subtle border color for separating UI elements. |
-| **Correct** | `greenAccent` | | Semantic color for correct answers and success states. |
-| **Incorrect**| `redAccent` | | Semantic color for wrong answers and errors. |
-| **Review** | `purple` | | Semantic color for questions marked for review. |
-| **Partial** | `orangeAccent`| | Semantic color for unanswered or partially correct states. |
+| **Background** | `#0F172A` | `bgColor` | Deep navy/black used for the primary scaffolding. |
+| **Surface/Card** | `#1E293B` | `cardColor` | Slate blue used for cards, list items, and containers. |
+| **Primary Accent**| `#3B82F6` | `primaryAccent` | Bright electric blue for highlights, icons, and focus states. |
+| **Button** | `#2563EB` | `btnColor` | Solid blue used for primary call-to-action buttons. |
+| **Label/Hint** | `#94A3B8` | `labelColor` | Muted gray-blue for secondary text and placeholders. |
+| **Primary Text** | `#E2E8F0` | `valueColor` | Light off-white/gray for high readability. |
+| **Disabled/Hint** | `#475569` | `hintColor` | Darker gray for inactive or disabled states. |
+| **Border** | `#334155` | `borderColor` | Subtle border color for separating UI elements. |
+| **Correct** | `greenAccent` | `successColor` | Semantic color for correct answers and success states. |
+| **Incorrect**| `redAccent` | `errorColor` | Semantic color for wrong answers and errors. |
+| **Review** | `purple` | `reviewColor` | Semantic color for questions marked for review. |
+| **Seen** | `blueAccent` | `infoColor` | Indicators for visited but unattempted questions. |
+| **Partial** | `orangeAccent`| `warningColor` | Indicators for limited attempts or pending states. |
 
 ## 3. Typography
 *   **Primary Font:** `Poppins` (Google Fonts)

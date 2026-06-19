@@ -207,7 +207,7 @@ class AboutUsScreen extends StatelessWidget {
                 style: GoogleFonts.poppins(fontSize: 12, color: _labelColor),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 100),
           ],
         ),
       ),

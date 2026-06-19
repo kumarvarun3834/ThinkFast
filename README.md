@@ -7,6 +7,8 @@ ThinkFast is a high-performance, feature-rich quiz platform built with Flutter a
 ### 🛠️ For Creators
 *   **Dynamic Quiz Creation**: Build complex quizzes with multiple-choice questions, custom timers, and descriptions.
 *   **Attempt Limits**: Implement "Select N out of M" logic with global or module-specific constraints for each question type.
+*   **Flexible Timing**: Set global, per-question, or individual override timers (0 for unlimited).
+*   **Managed Quizzes**: Add collaborators as managers to help administer specific quizzes.
 *   **Quiz Locking**: Instantly stop new responses while keeping your quiz public and visible.
 *   **Attempt Management**: Toggle between single or multiple attempts to control user interaction.
 *   **Creator Analytics**: View detailed response logs, sorted by attempt number and User ID for precise insights.

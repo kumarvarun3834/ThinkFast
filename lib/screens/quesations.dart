@@ -203,7 +203,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1E293B),
+      backgroundColor: global.cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -265,14 +265,14 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         },
                       ),
                     ),
-                    const Divider(color: Color(0xFF334155), height: 32),
+                    const Divider(color: global.borderColor, height: 32),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24.0),
                       child: Column(
                         children: [
                           _buildLegendItem(Colors.green, "Answered"),
-                          _buildLegendItem(Colors.purple, "Marked for Review"),
-                          _buildLegendItem(Colors.blue, "Seen"),
+                          _buildLegendItem(global.reviewColor, "Marked for Review"),
+                          _buildLegendItem(global.infoColor, "Seen"),
                           _buildLegendItem(Colors.grey, "Unseen"),
                         ],
                       ),
@@ -289,7 +289,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                   vertical: 16,
                                 ),
                                 side: const BorderSide(
-                                  color: Color(0xFF334155),
+                                  color: global.borderColor,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -297,7 +297,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               ),
                               child: const Text(
                                 "CANCEL",
-                                style: TextStyle(color: Colors.white),
+                                style: TextStyle(color: global.valueColor),
                               ),
                             ),
                           ),
@@ -312,7 +312,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
-                                backgroundColor: const Color(0xFF2563EB),
+                                backgroundColor: global.btnColor,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -320,7 +320,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               child: const Text(
                                 "SUBMIT",
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: global.valueColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -431,9 +431,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             style: GoogleFonts.poppins(
               color: global.isReviewMode
                   ? (isCorrect
-                      ? Colors.greenAccent
-                      : (isWrong ? Colors.redAccent : const Color(0xFFE2E8F0)))
-                  : (limitReached && !isAnswered ? const Color(0xFF475569) : const Color(0xFFE2E8F0)),
+                      ? global.successColor
+                      : (isWrong ? global.errorColor : global.valueColor))
+                  : (limitReached && !isAnswered ? global.hintColor : global.valueColor),
               fontSize: 20,
             ),
             decoration: InputDecoration(
@@ -443,18 +443,18 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               labelStyle: TextStyle(
                 color: global.isReviewMode
                     ? (isCorrect
-                        ? Colors.greenAccent
-                        : (isWrong ? Colors.redAccent : const Color(0xFF94A3B8)))
-                    : (limitReached && !isAnswered ? const Color(0xFF475569) : const Color(0xFF94A3B8)),
+                        ? global.successColor
+                        : (isWrong ? global.errorColor : global.labelColor))
+                    : (limitReached && !isAnswered ? global.hintColor : global.labelColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: global.isReviewMode
                       ? (isCorrect
-                          ? Colors.greenAccent
-                          : (isWrong ? Colors.redAccent : const Color(0xFF334155)))
-                      : (limitReached && !isAnswered ? const Color(0xFF1E293B) : const Color(0xFF334155)),
+                          ? global.successColor
+                          : (isWrong ? global.errorColor : global.borderColor))
+                      : (limitReached && !isAnswered ? global.cardColor : global.borderColor),
                 ),
               ),
               disabledBorder: OutlineInputBorder(
@@ -462,15 +462,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 borderSide: BorderSide(
                   color: global.isReviewMode
                       ? (isCorrect
-                          ? Colors.greenAccent
-                          : (isWrong ? Colors.redAccent : const Color(0xFF334155)))
-                      : (limitReached && !isAnswered ? const Color(0xFF1E293B) : const Color(0xFF334155)),
+                          ? global.successColor
+                          : (isWrong ? global.errorColor : global.borderColor))
+                      : (limitReached && !isAnswered ? global.cardColor : global.borderColor),
                   width: (isCorrect || isWrong) ? 2 : 1,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFF3B82F6)),
+                borderSide: const BorderSide(color: global.primaryAccent),
               ),
             ),
             onChanged: (val) {
@@ -517,7 +517,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             "⚠ Attempt limit reached for this section.",
-            style: GoogleFonts.poppins(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(color: global.warningColor, fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
       );
@@ -594,7 +594,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 Text(
                   subject.toUpperCase(),
                   style: GoogleFonts.poppins(
-                    color: const Color(0xFF3B82F6),
+                    color: global.primaryAccent,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1.2,
@@ -765,14 +765,14 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: (answeredCount >= limit ? Colors.orange : Colors.blue).withOpacity(0.1),
+        color: (answeredCount >= limit ? global.warningColor : global.infoColor).withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: (answeredCount >= limit ? Colors.orange : Colors.blue).withOpacity(0.5)),
+        border: Border.all(color: (answeredCount >= limit ? global.warningColor : global.infoColor).withOpacity(0.5)),
       ),
       child: Text(
         "Limit: $answeredCount/$limit",
         style: GoogleFonts.poppins(
-          color: answeredCount >= limit ? Colors.orangeAccent : Colors.blueAccent,
+          color: answeredCount >= limit ? global.warningColor : global.infoColor,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
@@ -808,20 +808,20 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     }
 
     if (isMarkedForReview) {
-      List<Color> gradientColors = [Colors.purple, Colors.grey];
+      List<Color> gradientColors = [global.reviewColor, Colors.grey];
       if (global.isReviewMode) {
         if (isCorrect) {
-          gradientColors = [Colors.purple, Colors.green];
+          gradientColors = [global.reviewColor, Colors.green];
         } else if (isWrong) {
-          gradientColors = [Colors.purple, Colors.red];
+          gradientColors = [global.reviewColor, global.errorColor];
         } else {
-          gradientColors = [Colors.purple, Colors.grey];
+          gradientColors = [global.reviewColor, Colors.grey];
         }
       } else {
         if (isAnswered) {
-          gradientColors = [Colors.purple, Colors.green];
+          gradientColors = [global.reviewColor, Colors.green];
         } else {
-          gradientColors = [Colors.purple, Colors.blue];
+          gradientColors = [global.reviewColor, global.infoColor];
         }
       }
 
@@ -833,7 +833,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         ),
         borderRadius: BorderRadius.circular(12),
         border: isCurrent
-            ? Border.all(color: const Color(0xFF3B82F6), width: 3)
+            ? Border.all(color: global.primaryAccent, width: 3)
             : null,
       );
     }
@@ -843,7 +843,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       if (isCorrect) {
         color = Colors.green;
       } else if (isWrong) {
-        color = Colors.red;
+        color = global.errorColor;
       } else {
         color = Colors.grey; // Not answered
       }
@@ -851,7 +851,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       if (isAnswered) {
         color = Colors.green;
       } else if (isVisited) {
-        color = Colors.blue;
+        color = global.infoColor;
       } else {
         color = Colors.grey;
       }
@@ -861,7 +861,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       color: color,
       borderRadius: BorderRadius.circular(12),
       border: isCurrent
-          ? Border.all(color: const Color(0xFF3B82F6), width: 3)
+          ? Border.all(color: global.primaryAccent, width: 3)
           : null,
     );
   }
@@ -875,9 +875,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         ? (question[4] as bool)
         : false;
 
-    if (isMarkedForReview) return Colors.purple; // Marked for Review
+    if (isMarkedForReview) return global.reviewColor; // Marked for Review
     if (selection.isNotEmpty) return Colors.green; // Answered
-    if (isVisited) return Colors.blue; // Seen
+    if (isVisited) return global.infoColor; // Seen
     return Colors.grey; // Unseen
   }
 
@@ -939,18 +939,18 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         );
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: global.bgColor,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           title: Text(
             "Quiz",
-            style: GoogleFonts.poppins(color: const Color(0xFFE2E8F0)),
+            style: GoogleFonts.poppins(color: global.valueColor),
           ),
           centerTitle: true,
           leading: Builder(
             builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: Color(0xFFE2E8F0)),
+              icon: const Icon(Icons.menu, color: global.valueColor),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -961,7 +961,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               padding: const EdgeInsets.only(right: 8.0),
               child: global.isReviewMode
                   ? IconButton(
-                      icon: const Icon(Icons.close, color: Color(0xFFE2E8F0)),
+                      icon: const Icon(Icons.close, color: global.valueColor),
                       onPressed: () {
                         global.isReviewMode = false;
                         Navigator.pop(context);
@@ -969,7 +969,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                     )
                   : ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
+                        backgroundColor: global.btnColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -978,7 +978,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       child: const Text(
                         "SUBMIT",
                         style: TextStyle(
-                          color: Colors.white,
+                          color: global.valueColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -988,7 +988,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(30),
             child: Container(
-              color: const Color(0xFF1E293B),
+              color: global.cardColor,
               height: 30,
               alignment: Alignment.center,
               child: Text(
@@ -1000,7 +1000,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                             ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
                             : "No active timer")),
                 style: TextStyle(
-                  color: global.isReviewMode ? Colors.orangeAccent : const Color(0xFFE2E8F0),
+                  color: global.isReviewMode ? global.warningColor : global.valueColor,
                   fontSize: 14,
                   fontWeight: global.isReviewMode ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -1009,16 +1009,16 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           ),
         ),
         drawer: Drawer(
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: global.cardColor,
           child: Column(
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+                decoration: const BoxDecoration(color: global.bgColor),
                 child: Center(
                   child: Text(
                     'Questions',
                     style: GoogleFonts.poppins(
-                      color: const Color(0xFFE2E8F0),
+                      color: global.valueColor,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1035,11 +1035,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           children: menu_opt(),
                         )
                       : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: menu_opt(),
                         ),
                 ),
               ),
+              const SizedBox(height: 80),
             ],
           ),
         ),
@@ -1049,7 +1049,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             children: [
               // 🔝 Navigation & Status Block at Top
               Container(
-                color: const Color(0xFF1E293B),
+                color: global.cardColor,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
                   children: [
@@ -1082,7 +1082,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 child: Text(
                                   _getDisplayNumber(globalIndex),
                                   style: TextStyle(
-                                    color: isLocked ? Colors.white.withOpacity(0.3) : Colors.white,
+                                    color: isLocked ? global.valueColor.withOpacity(0.3) : global.valueColor,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1102,14 +1102,14 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                             children: [
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0F172A),
-                                  foregroundColor: const Color(0xFFE2E8F0),
+                                  backgroundColor: global.bgColor,
+                                  foregroundColor: global.valueColor,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                   ),
                                   minimumSize: const Size(0, 36),
-                                  side: const BorderSide(
-                                    color: Color(0xFF334155),
+                                  side: BorderSide(
+                                    color: global.borderColor,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -1127,7 +1127,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               const SizedBox(width: 8),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2563EB),
+                                  backgroundColor: global.btnColor,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 20,
@@ -1161,13 +1161,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           ),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0F172A),
-                              foregroundColor: Colors.redAccent,
+                              backgroundColor: global.bgColor,
+                              foregroundColor: global.errorColor,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 12,
                               ),
                               minimumSize: const Size(0, 36),
-                              side: const BorderSide(color: Colors.redAccent),
+                              side: BorderSide(color: global.errorColor),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -1205,10 +1205,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                color: global.primaryAccent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: const Color(0xFF3B82F6),
+                                  color: global.primaryAccent,
                                   width: 1,
                                 ),
                               ),
@@ -1217,7 +1217,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                         "General")
                                     .toUpperCase(),
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFF3B82F6),
+                                  color: global.primaryAccent,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
@@ -1230,10 +1230,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF94A3B8).withOpacity(0.1),
+                                color: global.labelColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: const Color(0xFF94A3B8),
+                                  color: global.labelColor,
                                   width: 1,
                                 ),
                               ),
@@ -1242,7 +1242,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                         "Single Choice")
                                     .toUpperCase(),
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFF94A3B8),
+                                  color: global.labelColor,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
@@ -1254,7 +1254,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                             Text(
                               "Question ${_getDisplayNumber(i)} of ${moduleIndices.length}",
                               style: GoogleFonts.poppins(
-                                color: const Color(0xFF94A3B8),
+                                color: global.labelColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1267,17 +1267,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           margin: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                           width: double.infinity,
                           child: Card(
-                            color: const Color(0xFF1E293B),
+                            color: global.cardColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
-                              side: const BorderSide(color: Color(0xFF334155)),
+                              side: BorderSide(color: global.borderColor),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(24.0),
                               child: Text(
                                 "${(currentData["Q"] as Map?)?['text'] ?? ""}",
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFFE2E8F0),
+                                  color: global.valueColor,
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -1296,21 +1296,21 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           margin: const EdgeInsets.all(20),
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
+                            color: global.cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.3)),
+                            border: Border.all(color: global.primaryAccent.withOpacity(0.3)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.lightbulb_outline, color: Color(0xFF3B82F6), size: 20),
+                                  const Icon(Icons.lightbulb_outline, color: global.primaryAccent, size: 20),
                                   const SizedBox(width: 8),
                                   Text(
                                     "SOLUTION",
                                     style: GoogleFonts.poppins(
-                                      color: const Color(0xFF3B82F6),
+                                      color: global.primaryAccent,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 1.1,
@@ -1322,7 +1322,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               Text(
                                 global.solutions[currentData['uid']?.toString()] ?? "",
                                 style: GoogleFonts.poppins(
-                                  color: const Color(0xFFE2E8F0),
+                                  color: global.valueColor,
                                   fontSize: 14,
                                 ),
                               ),
@@ -1342,13 +1342,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                   ),
                                   backgroundColor:
                                       global.quizResult[i][4] == true
-                                          ? Colors.purple
-                                          : const Color(0xFF1E293B),
+                                          ? global.reviewColor
+                                          : global.cardColor,
                                   foregroundColor: Colors.white,
                                   side: BorderSide(
                                     color: global.quizResult[i][4] == true
-                                        ? Colors.purple
-                                        : const Color(0xFF334155),
+                                        ? global.reviewColor
+                                        : global.borderColor,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1376,10 +1376,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
                                   ),
-                                  backgroundColor: const Color(0xFF1E293B),
-                                  foregroundColor: Colors.purpleAccent,
+                                  backgroundColor: global.cardColor,
+                                  foregroundColor: global.warningColor,
                                   side: const BorderSide(
-                                    color: Colors.purpleAccent,
+                                    color: global.warningColor,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -1401,7 +1401,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -1473,21 +1473,21 @@ class buttons_opt extends StatelessWidget {
           backgroundColor: global.isReviewMode
               ? (isCorrect
                   ? Colors.green.withOpacity(0.15)
-                  : (isSelected ? Colors.red.withOpacity(0.1) : const Color(0xFF1E293B)))
+                  : (isSelected ? global.errorColor.withOpacity(0.1) : global.cardColor))
               : (isSelected
-                  ? const Color(0xFF3B82F6).withOpacity(0.2)
-                  : (isBlocked ? const Color(0xFF0F172A).withOpacity(0.5) : const Color(0xFF1E293B))),
+                  ? global.primaryAccent.withOpacity(0.2)
+                  : (isBlocked ? global.bgColor.withOpacity(0.5) : global.cardColor)),
           foregroundColor: global.isReviewMode
               ? (isCorrect
                   ? Colors.greenAccent
-                  : (isSelected ? Colors.redAccent : const Color(0xFFE2E8F0)))
-              : (isSelected ? const Color(0xFF3B82F6) : (isBlocked ? const Color(0xFF475569) : const Color(0xFFE2E8F0))),
+                  : (isSelected ? global.errorColor : global.valueColor))
+              : (isSelected ? global.primaryAccent : (isBlocked ? global.hintColor : global.valueColor)),
           side: BorderSide(
             color: global.isReviewMode
                 ? (isCorrect
                     ? Colors.greenAccent
-                    : (isSelected ? Colors.redAccent : const Color(0xFF334155)))
-                : (isSelected ? const Color(0xFF3B82F6) : (isBlocked ? const Color(0xFF1E293B) : const Color(0xFF334155))),
+                    : (isSelected ? global.errorColor : global.borderColor))
+                : (isSelected ? global.primaryAccent : (isBlocked ? global.bgColor : global.borderColor)),
             width: (global.isReviewMode && (isCorrect || isSelected)) || (!global.isReviewMode && isSelected) ? 2.5 : 1,
           ),
           shape: RoundedRectangleBorder(
@@ -1521,9 +1521,9 @@ class buttons_opt extends StatelessWidget {
                             style: TextStyle(
                                 color: Colors.greenAccent, fontSize: 10))
                       else if (isSelected)
-                        const Text("Your incorrect choice",
+                        Text("Your incorrect choice",
                             style: TextStyle(
-                                color: Colors.redAccent, fontSize: 10)),
+                                color: global.errorColor, fontSize: 10)),
                     ]
                   ],
                 ),
@@ -1533,7 +1533,7 @@ class buttons_opt extends StatelessWidget {
                   const Icon(Icons.check_circle,
                       color: Colors.greenAccent, size: 20)
                 else if (isSelected)
-                  const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+                  Icon(Icons.cancel, color: global.errorColor, size: 20),
               ],
             ],
           ),

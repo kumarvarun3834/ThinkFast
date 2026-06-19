@@ -5,6 +5,7 @@ import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/screens/result_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 class MyAttemptsScreen extends StatefulWidget {
   const MyAttemptsScreen({super.key});
@@ -142,21 +143,10 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                     ),
                                   ),
                                   if (status == 1)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: Colors.green),
-                                      ),
-                                      child: Text(
-                                        "LOCKED",
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.green,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                    const StatusBadge(
+                                      text: "LOCKED",
+                                      color: Colors.green,
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     ),
                                 ],
                               ),
@@ -168,7 +158,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                   Text(
                                     "Score: $score / $total",
                                     style: GoogleFonts.poppins(
-                                      color: score >= (total / 2) ? Colors.greenAccent : Colors.redAccent,
+                                      color: score >= (total / 2) ? global.successColor : global.errorColor,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),

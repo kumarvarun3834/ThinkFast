@@ -100,24 +100,12 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text("Sign Up"),
         centerTitle: true,
-        // actions: [
-        //   TextButton(
-        //     onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-        //     child: const Text(
-        //       "SKIP",
-        //       style: TextStyle(
-        //         color: Color(0xFF3B82F6),
-        //         fontWeight: FontWeight.bold,
-        //       ),
-        //     ),
-        //   ),
-        // ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -129,68 +117,68 @@ class _SignupScreenState extends State<SignupScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFFE2E8F0),
+                color: global.valueColor,
               ),
             ),
             const SizedBox(height: 40),
             TextField(
               controller: nameController,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: global.valueColor),
               decoration: InputDecoration(
                 labelText: "Full Name",
-                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: const TextStyle(color: global.labelColor),
                 enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.person, color: Color(0xFF3B82F6)),
+                prefixIcon: const Icon(Icons.person, color: global.primaryAccent),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: emailController,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: global.valueColor),
               decoration: InputDecoration(
                 labelText: "Email",
-                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: const TextStyle(color: global.labelColor),
                 enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.email, color: Color(0xFF3B82F6)),
+                prefixIcon: const Icon(Icons.email, color: global.primaryAccent),
               ),
             ),
             const SizedBox(height: 20),
             TextField(
               controller: passwordController,
               obscureText: true,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: global.valueColor),
               decoration: InputDecoration(
                 labelText: "Password",
-                labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: const TextStyle(color: global.labelColor),
                 enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.lock, color: Color(0xFF3B82F6)),
+                prefixIcon: const Icon(Icons.lock, color: global.primaryAccent),
               ),
             ),
             const SizedBox(height: 30),
             loading
-                ? const CircularProgressIndicator(color: Color(0xFF3B82F6))
+                ? const CircularProgressIndicator(color: global.primaryAccent)
                 : SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: signup,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
+                        backgroundColor: global.btnColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -212,7 +200,7 @@ class _SignupScreenState extends State<SignupScreen> {
               children: [
                 const Text(
                   "Already have an account?",
-                  style: TextStyle(color: Color(0xFF94A3B8)),
+                  style: TextStyle(color: global.labelColor),
                 ),
                 TextButton(
                   onPressed: () =>
@@ -220,13 +208,14 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: const Text(
                     "Login",
                     style: TextStyle(
-                      color: Color(0xFF3B82F6),
+                      color: global.primaryAccent,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

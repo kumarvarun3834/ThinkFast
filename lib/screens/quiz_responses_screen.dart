@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/result_screen.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/widgets/quiz_widgets.dart';
+
+import '../utils/global.dart' as global;
 
 class QuizResponsesScreen extends StatefulWidget {
   final String quizId;
@@ -23,12 +26,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   // Colors (consistent with project)
-  final Color _bgColor = const Color(0xFF0F172A);
-  final Color _cardColor = const Color(0xFF1E293B);
-  final Color _primaryAccent = const Color(0xFF3B82F6);
-  final Color _valueColor = const Color(0xFFE2E8F0);
-  final Color _labelColor = const Color(0xFF94A3B8);
-  final Color _borderColor = const Color(0xFF334155);
+  final Color _bgColor = global.bgColor;
+  final Color _cardColor = global.cardColor;
+  final Color _primaryAccent = global.primaryAccent;
+  final Color _valueColor = global.valueColor;
+  final Color _labelColor = global.labelColor;
+  final Color _borderColor = global.borderColor;
 
   void _showModerationOptions(
     BuildContext context,
@@ -46,7 +49,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
           ListTile(
             leading: const Icon(
               Icons.delete_sweep_outlined,
-              color: Colors.redAccent,
+              color: global.errorColor,
             ),
             title: const Text(
               "Soft Delete Response",
@@ -65,7 +68,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.block_flipped, color: Colors.redAccent),
+            leading: const Icon(Icons.block_flipped, color: global.errorColor),
             title: const Text(
               "Ban User from Quiz",
               style: TextStyle(color: Colors.white),
@@ -136,7 +139,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
           IconButton(
             icon: const Icon(
               Icons.person_off_outlined,
-              color: Colors.redAccent,
+              color: global.errorColor,
             ),
             onPressed: () {
               // Navigation to Banned Users screen if I had one
@@ -306,27 +309,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                     ),
                                   ),
                                   if (r['isDeleted'] == true)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
+                                    const StatusBadge(
+                                      text: "DELETED",
+                                      color: global.errorColor,
+                                      padding: EdgeInsets.symmetric(
                                         horizontal: 6,
                                         vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.redAccent.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(
-                                          color: Colors.redAccent,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        "DELETED",
-                                        style: TextStyle(
-                                          color: Colors.redAccent,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
                                       ),
                                     ),
                                 ],
@@ -337,29 +325,13 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Container(
+                                      StatusBadge(
+                                        text: "Attempt #${r['attemptNumber']}",
+                                        color: _primaryAccent,
+                                        fontSize: 12,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                           vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _primaryAccent.withValues(
-                                            alpha: 0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          border: Border.all(
-                                            color: _primaryAccent,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Attempt #${r['attemptNumber']}",
-                                          style: GoogleFonts.poppins(
-                                            color: _primaryAccent,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -367,8 +339,8 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                         "Score: $score / $total",
                                         style: GoogleFonts.poppins(
                                           color: score >= (total / 2)
-                                              ? Colors.greenAccent
-                                              : Colors.redAccent,
+                                              ? global.successColor
+                                              : global.errorColor,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizForm extends StatefulWidget {
   final Map<String, Object> form_data_part;
@@ -152,22 +153,22 @@ class _QuizFormState extends State<QuizForm> {
       children: [
         Checkbox(
           value: _selectedAnswers.contains(index),
-          activeColor: const Color(0xFF3B82F6),
-          side: const BorderSide(color: Color(0xFF94A3B8)),
+          activeColor: global.primaryAccent,
+          side: const BorderSide(color: global.labelColor),
           onChanged: (val) => _toggleAnswer(index, val),
         ),
         Expanded(
           child: TextField(
             controller: _choiceControllers[index],
-            style: const TextStyle(color: Color(0xFFE2E8F0)),
+            style: const TextStyle(color: global.valueColor),
             decoration: InputDecoration(
               labelText: "Choice ${index + 1}",
-              labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+              labelStyle: const TextStyle(color: global.labelColor),
               enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF334155)),
+                borderSide: BorderSide(color: global.borderColor),
               ),
               focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                borderSide: BorderSide(color: global.primaryAccent),
               ),
             ),
             onChanged: (_) => _emitData(),
@@ -176,7 +177,7 @@ class _QuizFormState extends State<QuizForm> {
         IconButton(
           icon: const Icon(
             Icons.remove_circle_outline_rounded,
-            color: Colors.redAccent,
+            color: global.errorColor,
           ),
           onPressed: () {
             setState(() {
@@ -200,10 +201,10 @@ class _QuizFormState extends State<QuizForm> {
     final List<String> _options = ["Multiple Choice", "Single Choice", "Integer"];
 
     return Material(
-      color: const Color(0xFF1E293B),
+      color: global.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF334155)),
+        side: const BorderSide(color: global.borderColor),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -211,19 +212,19 @@ class _QuizFormState extends State<QuizForm> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
-              dropdownColor: const Color(0xFF1E293B),
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              dropdownColor: global.cardColor,
+              style: const TextStyle(color: global.valueColor),
               initialValue: _options.contains(_selectedValue)
                   ? _selectedValue
                   : null,
               decoration: const InputDecoration(
                 labelText: "Question Type",
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: TextStyle(color: global.labelColor),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
               ),
               items: _options.map((String option) {
@@ -241,8 +242,8 @@ class _QuizFormState extends State<QuizForm> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              dropdownColor: const Color(0xFF1E293B),
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              dropdownColor: global.cardColor,
+              style: const TextStyle(color: global.valueColor),
               value: widget.moduleOptions.contains(_selectedModule)
                   ? _selectedModule
                   : (widget.moduleOptions.isNotEmpty
@@ -250,12 +251,12 @@ class _QuizFormState extends State<QuizForm> {
                       : null),
               decoration: const InputDecoration(
                 labelText: "Subject / Module Name",
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: TextStyle(color: global.labelColor),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
               ),
               items: widget.moduleOptions.map((String module) {
@@ -274,16 +275,16 @@ class _QuizFormState extends State<QuizForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _questionController,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: global.valueColor),
               maxLines: null,
               decoration: const InputDecoration(
                 labelText: "Question Prompt",
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: TextStyle(color: global.labelColor),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
               ),
               onChanged: (_) => _emitData(),
@@ -291,18 +292,18 @@ class _QuizFormState extends State<QuizForm> {
             const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
-              style: const TextStyle(color: Color(0xFFE2E8F0)),
+              style: const TextStyle(color: global.valueColor),
               maxLines: null,
               decoration: const InputDecoration(
                 labelText: "Solution / Description",
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                labelStyle: TextStyle(color: global.labelColor),
                 hintText: "Explain the answer...",
-                hintStyle: TextStyle(color: Color(0xFF475569), fontSize: 12),
+                hintStyle: TextStyle(color: global.hintColor, fontSize: 12),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF334155)),
+                  borderSide: BorderSide(color: global.borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                  borderSide: BorderSide(color: global.primaryAccent),
                 ),
               ),
               onChanged: (_) => _emitData(),
@@ -315,10 +316,10 @@ class _QuizFormState extends State<QuizForm> {
                     child: TextField(
                       controller: _correctController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      style: const TextStyle(color: global.valueColor),
                       decoration: const InputDecoration(
                         labelText: "Correct Score",
-                        labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                        labelStyle: TextStyle(color: global.labelColor),
                       ),
                       onChanged: (_) => _emitData(),
                     ),
@@ -328,10 +329,10 @@ class _QuizFormState extends State<QuizForm> {
                     child: TextField(
                       controller: _wrongController,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(color: Color(0xFFE2E8F0)),
+                      style: const TextStyle(color: global.valueColor),
                       decoration: const InputDecoration(
                         labelText: "Wrong Score",
-                        labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                        labelStyle: TextStyle(color: global.labelColor),
                       ),
                       onChanged: (_) => _emitData(),
                     ),
@@ -342,10 +343,10 @@ class _QuizFormState extends State<QuizForm> {
                   child: TextField(
                     controller: _timerController,
                     keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Color(0xFFE2E8F0)),
+                    style: const TextStyle(color: global.valueColor),
                     decoration: const InputDecoration(
                       labelText: "Q Timer (sec)",
-                      labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                      labelStyle: TextStyle(color: global.labelColor),
                       hintText: "0 = use global",
                     ),
                     onChanged: (_) => _emitData(),
@@ -358,15 +359,15 @@ class _QuizFormState extends State<QuizForm> {
               TextField(
                 controller: _correctAnswerController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(color: Color(0xFFE2E8F0)),
+                style: const TextStyle(color: global.valueColor),
                 decoration: const InputDecoration(
                   labelText: "Correct Integer Value",
-                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                  labelStyle: TextStyle(color: global.labelColor),
                   enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF334155)),
+                    borderSide: BorderSide(color: global.borderColor),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFF3B82F6)),
+                    borderSide: BorderSide(color: global.primaryAccent),
                   ),
                 ),
                 onChanged: (_) => _emitData(),
@@ -380,7 +381,7 @@ class _QuizFormState extends State<QuizForm> {
                   child: Text(
                     "⚠️ Select at least one correct answer",
                     style: TextStyle(
-                      color: Colors.orangeAccent.withValues(alpha: 0.8),
+                      color: global.warningColor.withOpacity(0.8),
                       fontSize: 12,
                     ),
                   ),
@@ -395,13 +396,13 @@ class _QuizFormState extends State<QuizForm> {
                     children: [
                       const Icon(
                         Icons.add_circle_outline_rounded,
-                        color: Color(0xFF3B82F6),
+                        color: global.primaryAccent,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         "Add Choice",
                         style: TextStyle(
-                          color: const Color(0xFF3B82F6),
+                          color: global.primaryAccent,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

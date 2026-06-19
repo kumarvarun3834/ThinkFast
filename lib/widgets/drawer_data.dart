@@ -81,19 +81,19 @@ class _SidebarMenuState extends State<SidebarMenu> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: global.cardColor,
         title: const Text(
           "Join Quiz",
-          style: TextStyle(color: Color(0xFFE2E8F0)),
+          style: TextStyle(color: global.valueColor),
         ),
         content: TextField(
           controller: idController,
-          style: const TextStyle(color: Color(0xFFE2E8F0)),
+          style: const TextStyle(color: global.valueColor),
           decoration: const InputDecoration(
             hintText: "Enter Quiz ID",
-            hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+            hintStyle: TextStyle(color: global.labelColor),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF334155)),
+              borderSide: BorderSide(color: global.borderColor),
             ),
           ),
         ),
@@ -102,7 +102,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               "Cancel",
-              style: TextStyle(color: Color(0xFF94A3B8)),
+              style: TextStyle(color: global.labelColor),
             ),
           ),
           ElevatedButton(
@@ -121,7 +121,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: global.primaryAccent,
             ),
             child: const Text("Join"),
           ),
@@ -159,19 +159,19 @@ class _SidebarMenuState extends State<SidebarMenu> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E293B),
+      color: global.cardColor,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF0F172A)),
+            decoration: const BoxDecoration(color: global.bgColor),
             currentAccountPicture: CircleAvatar(
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: global.cardColor,
               backgroundImage: _userPhotoUrl != null
                   ? NetworkImage(_userPhotoUrl!)
                   : null,
               child: _userPhotoUrl == null
-                  ? const Icon(Icons.person, size: 40, color: Color(0xFF3B82F6))
+                  ? const Icon(Icons.person, size: 40, color: global.primaryAccent)
                   : null,
             ),
             accountName: Row(
@@ -181,7 +181,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   child: Text(
                     _userName ?? (widget.user == null ? "Guest" : "User"),
                     style: const TextStyle(
-                      color: Color(0xFFE2E8F0),
+                      color: global.valueColor,
                       fontWeight: FontWeight.bold,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -195,14 +195,14 @@ class _SidebarMenuState extends State<SidebarMenu> {
                     ),
                     margin: const EdgeInsets.only(left: 8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: global.warningColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: Colors.orange),
+                      border: Border.all(color: global.warningColor),
                     ),
                     child: const Text(
                       "UNVERIFIED",
                       style: TextStyle(
-                        color: Colors.orange,
+                        color: global.warningColor,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -212,7 +212,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
             ),
             accountEmail: Text(
               widget.user?.uid ?? "Welcome to ThinkFast",
-              style: const TextStyle(color: Color(0xFF94A3B8)),
+              style: const TextStyle(color: global.labelColor),
             ),
           ),
           if (widget.user == null)
@@ -300,21 +300,21 @@ class _SidebarMenuState extends State<SidebarMenu> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: global.bgColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF334155)),
+                  border: Border.all(color: global.borderColor),
                 ),
                 child: SwitchListTile(
                   title: const Text(
                     "Admin Mode",
-                    style: TextStyle(color: Color(0xFFE2E8F0), fontSize: 14),
+                    style: TextStyle(color: global.valueColor, fontSize: 14),
                   ),
                   secondary: Icon(
                     _isAdmin ? Icons.visibility : Icons.visibility_off,
-                    color: const Color(0xFF3B82F6),
+                    color: global.primaryAccent,
                   ),
                   value: _isAdmin,
-                  activeColor: const Color(0xFF3B82F6),
+                  activeColor: global.primaryAccent,
                   onChanged: (bool value) async {
                     try {
                       await DatabaseService().toggleAdminMode(
@@ -344,7 +344,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 ),
               ),
             ),
-          const Divider(color: Color(0xFF334155)),
+          const Divider(color: global.borderColor),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.logout_rounded,
@@ -373,10 +373,10 @@ class _SidebarMenuState extends State<SidebarMenu> {
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF3B82F6)),
+      leading: Icon(icon, color: global.primaryAccent),
       title: Text(
         text,
-        style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 16),
+        style: const TextStyle(color: global.valueColor, fontSize: 16),
       ),
       onTap: onTap,
     );

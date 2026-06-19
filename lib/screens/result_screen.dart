@@ -230,21 +230,21 @@ class _ResultScreenState extends State<ResultScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: global.bgColor,
         body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+          child: CircularProgressIndicator(color: global.primaryAccent),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           "Quiz Result",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: global.valueColor),
         ),
         centerTitle: true,
       ),
@@ -258,10 +258,10 @@ class _ResultScreenState extends State<ResultScreen> {
       child: Column(
         children: [
           Card(
-            color: const Color(0xFF1E293B),
+            color: global.cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFF334155)),
+              side: const BorderSide(color: global.borderColor),
             ),
             child: MarksPanel(
               totalCorrectAnswers: totalMarks,
@@ -270,19 +270,19 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           const SizedBox(height: 16),
           Card(
-            color: const Color(0xFF1E293B),
+            color: global.cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFF334155)),
+              side: const BorderSide(color: global.borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildSummaryStat("Correct", _correctCount, Colors.greenAccent),
-                  _buildSummaryStat("Wrong", _wrongCount, Colors.redAccent),
-                  _buildSummaryStat("Skipped", _unattemptedCount, Colors.orangeAccent),
+                  _buildSummaryStat("Correct", _correctCount, global.successColor),
+                  _buildSummaryStat("Wrong", _wrongCount, global.errorColor),
+                  _buildSummaryStat("Skipped", _unattemptedCount, global.warningColor),
                 ],
               ),
             ),
@@ -311,7 +311,7 @@ class _ResultScreenState extends State<ResultScreen> {
               Navigator.pushNamed(context, "/Quiz");
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: global.btnColor,
               foregroundColor: Colors.white,
               minimumSize: const Size(double.infinity, 56),
               shape: RoundedRectangleBorder(
@@ -328,9 +328,9 @@ class _ResultScreenState extends State<ResultScreen> {
           OutlinedButton.icon(
             onPressed: () => Navigator.pushNamedAndRemoveUntil(context, "/home", (r) => false),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
+              foregroundColor: global.valueColor,
               minimumSize: const Size(double.infinity, 56),
-              side: const BorderSide(color: Color(0xFF334155)),
+              side: const BorderSide(color: global.borderColor),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -338,6 +338,7 @@ class _ResultScreenState extends State<ResultScreen> {
             icon: const Icon(Icons.home_outlined),
             label: const Text("BACK TO HOME"),
           ),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -357,7 +358,7 @@ class _ResultScreenState extends State<ResultScreen> {
         Text(
           label,
           style: GoogleFonts.poppins(
-            color: const Color(0xFF94A3B8),
+            color: global.labelColor,
             fontSize: 12,
           ),
         ),

@@ -77,6 +77,15 @@ For **Integer** questions, the system performs a trimmed, case-insensitive strin
 **Attempt Limits (Select N out of M):**
 The platform enforces attempt quotas per section or type. The `Quesations` screen tracks active selections and disables further input once the limit is reached for a specific module or question type, mimicking competitive exam logic.
 
+**Timer Hierarchy:**
+The quiz engine manages timing with the following precedence:
+1.  **Individual Q Timer:** Specific duration for a single question.
+2.  **Generalized Q Timer:** Default duration for all questions in the quiz.
+3.  **Global Quiz Timer:** Cumulative duration for the entire session.
+4.  **Unlimited:** Active if all of the above are set to 0.
+
+Forward-only navigation is enforced when per-question timers are active to ensure exam integrity.
+
 ### 3.3 Enhanced Review Mode
 Post-quiz analysis is handled by re-using the `Quesations` module in `isReviewMode`.
 - **Navigator Colors:** Circle indicators use a gradient (Purple to Green/Red) if a question was both Marked for Review and answered.

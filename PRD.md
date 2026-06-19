@@ -19,6 +19,8 @@
 ### 3.2 Quiz Creation & Management
 - **Quiz Editor:** A comprehensive form to define quiz title, description, visibility (public/private), time limits, and marking schemes.
 - **Attempt Limits (Select N out of M):** Creators can limit the number of questions a participant can attempt per section or question type, mimicking competitive exam environments.
+- **Flexible Timing:** Support for total quiz duration (0 for unlimited), generalized per-question timers, and specific individual question overrides.
+- **Managed Quizzes & Collaborators:** Owners can add managers to quizzes to help monitor responses and moderate participants.
 - **Question Types:** Support for Single Choice, Multiple Choice, and Integer questions with configurable options and solution descriptions.
 - **Idempotency & Rate Limiting:** Prevents duplicate quiz creation and limits how often a user can create new quizzes to prevent spam.
 - **Answer Keys:** Separate management of answer keys and solution explanations to ensure integrity during the quiz.
