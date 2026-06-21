@@ -1,9 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 import '../utils/global.dart' as global;
@@ -12,12 +13,14 @@ class Main_Screen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
   final bool showManagedQuizzes;
+  final bool showTrash;
 
   const Main_Screen({
     super.key,
     this.creator,
     this.showMyQuizzes = false,
     this.showManagedQuizzes = false,
+    this.showTrash = false,
   });
 
   @override
@@ -30,6 +33,10 @@ class _Main_ScreenState extends State<Main_Screen> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+
+  // Selection Logic
+  final Set<String> _selectedQuizIds = {};
+  bool _isSelectionMode = false;
 
   @override
   void initState() {
@@ -45,11 +52,76 @@ class _Main_ScreenState extends State<Main_Screen> {
     });
   }
 
+  void _toggleSelection(String id) {
+    setState(() {
+      if (_selectedQuizIds.contains(id)) {
+        _selectedQuizIds.remove(id);
+        if (_selectedQuizIds.isEmpty) _isSelectionMode = false;
+      } else {
+        _selectedQuizIds.add(id);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  Future<void> _handleBulkAction() async {
+    if (_selectedQuizIds.isEmpty) return;
+
+    final String title = widget.showTrash ? "Restore Selected?" : "Delete Selected?";
+    final String content = widget.showTrash 
+        ? "These quizzes will be moved back to your active list."
+        : "These quizzes will be moved to the Recycle Bin.";
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        title: Text(title, style: const TextStyle(color: Colors.white)),
+        content: Text(content, style: const TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: widget.showTrash ? global.successColor : global.errorColor),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(widget.showTrash ? "RESTORE" : "DELETE", style: const TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final db = DatabaseService();
+      try {
+        for (String id in _selectedQuizIds) {
+          if (widget.showTrash) {
+            await db.restoreDatabase(docId: id, currentUserId: _user!.uid);
+          } else {
+            await db.deleteDatabase(docId: id, currentUserId: _user!.uid);
+          }
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("${_selectedQuizIds.length} quizzes processed")),
+          );
+          setState(() {
+            _selectedQuizIds.clear();
+            _isSelectionMode = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Bulk Error: $e")));
+        }
+      }
+    }
+  }
+
   /// 🔥 READ QUIZZES
   Stream<List<Map<String, dynamic>>> readDatabases() {
     return DatabaseService().readAllDatabases(
       showMyQuizzes: widget.showMyQuizzes,
       showManagedQuizzes: widget.showManagedQuizzes,
+      showTrash: widget.showTrash,
       creatorId: widget.creator?.uid,
       userId: _user?.uid,
     );
@@ -71,22 +143,40 @@ class _Main_ScreenState extends State<Main_Screen> {
 
   /// 🧩 QUIZ CARD (Minimized)
   Widget buildQuizCard(Map<String, dynamic> data) {
+    final bool isSelected = _selectedQuizIds.contains(data['id']);
+    final bool canSelect = widget.showMyQuizzes || widget.showTrash;
+
     return InkWell(
+      onLongPress: canSelect ? () => _toggleSelection(data['id']) : null,
       onTap: () {
-        Navigator.pushNamed(context, "/Quiz Details", arguments: data['id']);
+        if (_isSelectionMode) {
+          _toggleSelection(data['id']);
+        } else if (widget.showTrash) {
+          _showRestoreDialog(data);
+        } else {
+          Navigator.pushNamed(context, "/Quiz Details", arguments: data['id']);
+        }
       },
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         elevation: 0,
-        color: global.cardColor,
+        color: isSelected ? global.primaryAccent.withOpacity(0.15) : global.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: global.borderColor),
+          side: BorderSide(color: isSelected ? global.primaryAccent : global.borderColor, width: isSelected ? 2 : 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
+              if (_isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0),
+                  child: Icon(
+                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: isSelected ? global.primaryAccent : global.labelColor,
+                  ),
+                ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,34 +190,107 @@ class _Main_ScreenState extends State<Main_Screen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      "Created by: ${data['user'] ?? 'Anonymous'}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: global.labelColor,
-                        letterSpacing: 0.5,
+                    if (widget.showTrash)
+                      _buildTrashSubtitle(data)
+                    else
+                      Text(
+                        "Created by: ${data['user'] ?? 'Anonymous'}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: global.labelColor,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(
-                  Icons.share_rounded,
-                  color: global.primaryAccent,
-                  size: 20,
+              if (!widget.showTrash && !_isSelectionMode)
+                IconButton(
+                  icon: const Icon(
+                    Icons.share_rounded,
+                    color: global.primaryAccent,
+                    size: 20,
+                  ),
+                  onPressed: () => _shareQuiz(data['id']),
+                  tooltip: "Share Quiz Link",
                 ),
-                onPressed: () => _shareQuiz(data['id']),
-                tooltip: "Share Quiz Link",
-              ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: global.borderColor,
-                size: 18,
-              ),
+              if (!_isSelectionMode)
+                Icon(
+                  widget.showTrash
+                      ? Icons.restore_from_trash_rounded
+                      : Icons.arrow_forward_ios_rounded,
+                  color: widget.showTrash
+                      ? global.successColor
+                      : global.borderColor,
+                  size: 18,
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrashSubtitle(Map<String, dynamic> data) {
+    final Timestamp? deletedAt = data['deletedAt'];
+    if (deletedAt == null) return const SizedBox.shrink();
+
+    final DateTime expiry = deletedAt.toDate().add(const Duration(days: 7));
+    final Duration timeLeft = expiry.difference(DateTime.now());
+    final int daysLeft = timeLeft.inDays;
+
+    return Text(
+      daysLeft > 0 ? "Expires in: $daysLeft days" : "Expires today",
+      style: GoogleFonts.poppins(
+        fontSize: 12,
+        color: global.errorColor,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  void _showRestoreDialog(Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        title: Text(
+          "Restore Quiz?",
+          style: GoogleFonts.poppins(color: global.valueColor),
+        ),
+        content: Text(
+          "Do you want to restore '${data['title']}'? It will be visible to participants again.",
+          style: const TextStyle(color: global.labelColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.successColor,
+            ),
+            onPressed: () async {
+              try {
+                await DatabaseService().restoreDatabase(
+                  docId: data['id'],
+                  currentUserId: _user!.uid,
+                );
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Quiz restored successfully")),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Restore error: $e")));
+              }
+            },
+            child: const Text("RESTORE", style: TextStyle(color: Colors.black)),
+          ),
+        ],
       ),
     );
   }
@@ -141,54 +304,70 @@ class _Main_ScreenState extends State<Main_Screen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: GoogleFonts.poppins(color: global.valueColor),
-                decoration: InputDecoration(
-                  hintText: "Search quizzes...",
-                  hintStyle: GoogleFonts.poppins(
-                    color: global.labelColor,
-                  ),
-                  border: InputBorder.none,
-                ),
-                onChanged: (value) {
+        leading: _isSelectionMode 
+          ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() {
+              _isSelectionMode = false;
+              _selectedQuizIds.clear();
+            }))
+          : null,
+        title: _isSelectionMode
+            ? Text("${_selectedQuizIds.length} Selected", style: const TextStyle(color: Colors.white))
+            : (_isSearching
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: GoogleFonts.poppins(color: global.valueColor),
+                    decoration: InputDecoration(
+                      hintText: "Search quizzes...",
+                      hintStyle: GoogleFonts.poppins(color: global.labelColor),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.toLowerCase();
+                      });
+                    },
+                  )
+                : Text(
+                    widget.showTrash
+                        ? "RECYCLE BIN"
+                        : (widget.showMyQuizzes
+                              ? "MY QUIZZES"
+                              : (widget.showManagedQuizzes
+                                    ? "MANAGED QUIZZES"
+                                    : "THINKFAST")),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: global.valueColor,
+                      letterSpacing: 1.5,
+                    ),
+                  )),
+        iconTheme: const IconThemeData(color: global.valueColor),
+        actions: _isSelectionMode
+          ? [
+              IconButton(
+                icon: Icon(widget.showTrash ? Icons.restore_rounded : Icons.delete_sweep_rounded, 
+                           color: widget.showTrash ? global.successColor : global.errorColor),
+                onPressed: _handleBulkAction,
+              ),
+            ]
+          : [
+              if (global.isAdmin) const AdminBadge(),
+              IconButton(
+                icon: Icon(_isSearching ? Icons.close : Icons.search),
+                onPressed: () {
                   setState(() {
-                    _searchQuery = value.toLowerCase();
+                    _isSearching = !_isSearching;
+                    if (!_isSearching) {
+                      _searchQuery = "";
+                      _searchController.clear();
+                    }
                   });
                 },
-              )
-            : Text(
-                widget.showMyQuizzes
-                    ? "MY QUIZZES"
-                    : (widget.showManagedQuizzes
-                        ? "MANAGED QUIZZES"
-                        : "THINKFAST"),
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: global.valueColor,
-                  letterSpacing: 1.5,
-                ),
               ),
-        iconTheme: const IconThemeData(color: global.valueColor),
-        actions: [
-          if (global.isAdmin) const AdminBadge(),
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchQuery = "";
-                  _searchController.clear();
-                }
-              });
-            },
-          ),
-        ],
+            ],
       ),
-      drawer: Drawer(
+      drawer: _isSelectionMode ? null : Drawer(
         backgroundColor: global.cardColor,
         child: SidebarMenu(user: _user),
       ),
@@ -235,12 +414,14 @@ class _Main_ScreenState extends State<Main_Screen> {
           },
         ),
       ),
-      floatingActionButton: global.featureFlags?['random_quiz_generator'] == true
+      floatingActionButton:
+          global.featureFlags?['random_quiz_generator'] == true && !_isSelectionMode
           ? FloatingActionButton.extended(
               onPressed: () {
-                // To be implemented: Navigate to a random public quiz
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Random Quiz feature coming soon!")),
+                  const SnackBar(
+                    content: Text("Random Quiz feature coming soon!"),
+                  ),
                 );
               },
               backgroundColor: global.btnColor,

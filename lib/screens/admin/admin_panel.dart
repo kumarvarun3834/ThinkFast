@@ -145,28 +145,33 @@ class _AdminPanelState extends State<AdminPanel> {
           ),
           child: AbsorbPointer(
             absorbing: !canManage,
-            child: SwitchListTile(
-              title: Text(
-                displayTitle,
-                style: const TextStyle(color: global.valueColor, fontSize: 16),
+            child: Material(
+              color: Colors.transparent,
+              child: SwitchListTile(
+                title: Text(
+                  displayTitle,
+                  style: const TextStyle(color: global.valueColor, fontSize: 16),
+                ),
+                subtitle: !canManage
+                    ? const Text(
+                        "Insufficient Level",
+                        style: TextStyle(color: global.errorColor, fontSize: 12),
+                      )
+                    : null,
+                value: value,
+                activeColor: global.primaryAccent,
+                onChanged: (newValue) async {
+                  try {
+                    await _settingsService.updateFeatureFlag(key, newValue);
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Error updating $key: $e")),
+                      );
+                    }
+                  }
+                },
               ),
-              subtitle: !canManage
-                  ? const Text(
-                      "Insufficient Level",
-                      style: TextStyle(color: global.errorColor, fontSize: 12),
-                    )
-                  : null,
-              value: value,
-              activeColor: global.primaryAccent,
-              onChanged: (newValue) async {
-                try {
-                  await _settingsService.updateFeatureFlag(key, newValue);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error updating $key: $e")),
-                  );
-                }
-              },
             ),
           ),
         ),

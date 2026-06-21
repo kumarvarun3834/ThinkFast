@@ -177,6 +177,15 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   TextButton.icon(
+                                    onPressed: () => _confirmDelete(attempt),
+                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    label: const Text("Delete"),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: global.errorColor,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
                                     onPressed: status == 1
                                         ? null
                                         : () {
@@ -205,6 +214,54 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                 );
               },
             ),
+    );
+  }
+
+  void _confirmDelete(Map<String, dynamic> attempt) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        title: const Text("Delete Attempt?", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "This attempt will be removed from your history. This action cannot be undone.",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.errorColor,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              try {
+                await DatabaseService().softDeleteResponse(
+                  responseId: attempt['id'],
+                  quizId: attempt['quizId'],
+                  actorId: _user!.uid,
+                  reason: "User deleted own attempt",
+                );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Attempt moved to trash (Soft Delete)")),
+                  );
+                }
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error: $e")),
+                );
+              }
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
     );
   }
 }

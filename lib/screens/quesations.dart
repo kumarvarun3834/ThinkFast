@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -46,7 +47,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       final List<String> typeOrder = [
         'Single Choice',
         'Multiple Choice',
-        'Integer'
+        'Integer',
       ];
 
       for (var module in modules) {
@@ -153,11 +154,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Future<void> _loadQuizWithTime() async {
     // assume global.currentQuizId is set when quiz is chosen
     int timeSeconds = global.time;
-    
+
     // Check if first question has a custom timer
     final firstQ = global.quizData.isNotEmpty ? global.quizData[0] : null;
     final int qTimer = int.tryParse(firstQ?['timer']?.toString() ?? '0') ?? 0;
-    
+
     if (qTimer > 0) {
       timeSeconds = qTimer;
     } else if (global.perQuestionTime > 0) {
@@ -271,7 +272,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       child: Column(
                         children: [
                           _buildLegendItem(Colors.green, "Answered"),
-                          _buildLegendItem(global.reviewColor, "Marked for Review"),
+                          _buildLegendItem(
+                            global.reviewColor,
+                            "Marked for Review",
+                          ),
                           _buildLegendItem(global.infoColor, "Seen"),
                           _buildLegendItem(Colors.grey, "Unseen"),
                         ],
@@ -374,7 +378,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       global.quizResult[i][3] = true; // visited
 
       if (!global.isReviewMode) {
-        final int qTimer = int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
+        final int qTimer =
+            int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
         if (qTimer > 0) {
           _timeLeft = Duration(seconds: qTimer);
           _startTimer();
@@ -401,14 +406,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     final bool limitReached = _isLimitReached();
 
     if (type == "Integer") {
-      final String correctVal =
-          global.correctAnswers[qUid]?.isNotEmpty == true
-              ? global.correctAnswers[qUid]!.first
-              : "";
+      final String correctVal = global.correctAnswers[qUid]?.isNotEmpty == true
+          ? global.correctAnswers[qUid]!.first
+          : "";
       final String userVal = _integerController.text.trim();
       final bool isAnswered = userVal.isNotEmpty;
-      final bool isCorrect = global.isReviewMode && isAnswered && userVal == correctVal;
-      final bool isWrong = global.isReviewMode && isAnswered && userVal != correctVal;
+      final bool isCorrect =
+          global.isReviewMode && isAnswered && userVal == correctVal;
+      final bool isWrong =
+          global.isReviewMode && isAnswered && userVal != correctVal;
 
       return [
         if (limitReached)
@@ -416,7 +422,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(
               "⚠ Attempt limit reached for this section.",
-              style: GoogleFonts.poppins(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
+              style: GoogleFonts.poppins(
+                color: Colors.orangeAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         Padding(
@@ -431,30 +441,40 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             style: GoogleFonts.poppins(
               color: global.isReviewMode
                   ? (isCorrect
-                      ? global.successColor
-                      : (isWrong ? global.errorColor : global.valueColor))
-                  : (limitReached && !isAnswered ? global.hintColor : global.valueColor),
+                        ? global.successColor
+                        : (isWrong ? global.errorColor : global.valueColor))
+                  : (limitReached && !isAnswered
+                        ? global.hintColor
+                        : global.valueColor),
               fontSize: 20,
             ),
             decoration: InputDecoration(
               labelText: global.isReviewMode
                   ? (isAnswered ? "Integer Answer Review" : "Not Answered")
-                  : (limitReached && !isAnswered ? "Limit Reached" : "Enter Integer Answer"),
+                  : (limitReached && !isAnswered
+                        ? "Limit Reached"
+                        : "Enter Integer Answer"),
               labelStyle: TextStyle(
                 color: global.isReviewMode
                     ? (isCorrect
-                        ? global.successColor
-                        : (isWrong ? global.errorColor : global.labelColor))
-                    : (limitReached && !isAnswered ? global.hintColor : global.labelColor),
+                          ? global.successColor
+                          : (isWrong ? global.errorColor : global.labelColor))
+                    : (limitReached && !isAnswered
+                          ? global.hintColor
+                          : global.labelColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: global.isReviewMode
                       ? (isCorrect
-                          ? global.successColor
-                          : (isWrong ? global.errorColor : global.borderColor))
-                      : (limitReached && !isAnswered ? global.cardColor : global.borderColor),
+                            ? global.successColor
+                            : (isWrong
+                                  ? global.errorColor
+                                  : global.borderColor))
+                      : (limitReached && !isAnswered
+                            ? global.cardColor
+                            : global.borderColor),
                 ),
               ),
               disabledBorder: OutlineInputBorder(
@@ -462,9 +482,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 borderSide: BorderSide(
                   color: global.isReviewMode
                       ? (isCorrect
-                          ? global.successColor
-                          : (isWrong ? global.errorColor : global.borderColor))
-                      : (limitReached && !isAnswered ? global.cardColor : global.borderColor),
+                            ? global.successColor
+                            : (isWrong
+                                  ? global.errorColor
+                                  : global.borderColor))
+                      : (limitReached && !isAnswered
+                            ? global.cardColor
+                            : global.borderColor),
                   width: (isCorrect || isWrong) ? 2 : 1,
                 ),
               ),
@@ -485,13 +509,19 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.greenAccent.withOpacity(0.5)),
+              border: Border.all(
+                color: Colors.greenAccent.withValues(alpha: 0.5),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.greenAccent,
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
                 Text(
                   "Correct Value: $correctVal",
@@ -517,7 +547,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             "⚠ Attempt limit reached for this section.",
-            style: GoogleFonts.poppins(color: global.warningColor, fontSize: 12, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              color: global.warningColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       );
@@ -534,8 +568,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             optUid,
             optText,
             () {
-               switchState();
-               setState(() {}); // Force update for limit check
+              switchState();
+              setState(() {}); // Force update for limit check
             },
             global.quizResult[i],
             isLimitReached: limitReached,
@@ -568,6 +602,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             child: Wrap(
               spacing: 10,
               runSpacing: 10,
+              alignment: WrapAlignment.start,
               children: List.from(moduleCircles),
             ),
           ),
@@ -588,8 +623,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Row(
               children: [
-                const Icon(Icons.folder_open_rounded,
-                    color: Color(0xFF3B82F6), size: 16),
+                const Icon(
+                  Icons.folder_open_rounded,
+                  color: Color(0xFF3B82F6),
+                  size: 16,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   subject.toUpperCase(),
@@ -607,8 +645,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       }
 
       moduleQuestionCounter++;
-      moduleCircles
-          .add(_buildQuestionCircle(j, moduleQuestionCounter.toString()));
+      moduleCircles.add(
+        _buildQuestionCircle(j, moduleQuestionCounter.toString()),
+      );
     }
     flushModule();
 
@@ -649,8 +688,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           child: Text(
             displayNum,
             style: TextStyle(
-              color: (global.perQuestionTime > 0 && index < i && !global.isReviewMode) 
-                  ? Colors.white.withOpacity(0.3) 
+              color:
+                  (global.perQuestionTime > 0 &&
+                      index < i &&
+                      !global.isReviewMode)
+                  ? Colors.white.withValues(alpha: 0.3)
                   : Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -675,8 +717,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     final limits = global.attemptLimits;
     if (limits['type'] == 'none') return false;
 
-    final String currentSubject = currentData['subject']?.toString() ?? 'General';
-    final String currentType = currentData['type']?.toString() ?? 'Single Choice';
+    final String currentSubject =
+        currentData['subject']?.toString() ?? 'General';
+    final String currentType =
+        currentData['type']?.toString() ?? 'Single Choice';
 
     int limit = -1;
     if (limits['type'] == 'global') {
@@ -692,13 +736,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     for (int j = 0; j < global.quizData.length; j++) {
       final q = global.quizData[j];
       final r = global.quizResult[j];
-      
+
       final String subject = q['subject']?.toString() ?? 'General';
       final String type = q['type']?.toString() ?? 'Single Choice';
       final selection = _getSelection(r);
 
-      if (subject == currentSubject && type == currentType && selection.isNotEmpty) {
-        // If it's the current question and it's already answered, don't count it towards the limit "block" 
+      if (subject == currentSubject &&
+          type == currentType &&
+          selection.isNotEmpty) {
+        // If it's the current question and it's already answered, don't count it towards the limit "block"
         // logic if we want to allow changing answers.
         // But usually "N out of M" means once you pick N, you are done.
         answeredCount++;
@@ -741,8 +787,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
   Widget _buildLimitStatusIndicator() {
     final limits = global.attemptLimits;
-    final String currentSubject = currentData['subject']?.toString() ?? 'General';
-    final String currentType = currentData['type']?.toString() ?? 'Single Choice';
+    final String currentSubject =
+        currentData['subject']?.toString() ?? 'General';
+    final String currentType =
+        currentData['type']?.toString() ?? 'Single Choice';
 
     int limit = -1;
     if (limits['type'] == 'global') {
@@ -755,8 +803,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     int answeredCount = 0;
     for (int j = 0; j < global.quizData.length; j++) {
-      if ((global.quizData[j]['subject']?.toString() ?? 'General') == currentSubject &&
-          (global.quizData[j]['type']?.toString() ?? 'Single Choice') == currentType &&
+      if ((global.quizData[j]['subject']?.toString() ?? 'General') ==
+              currentSubject &&
+          (global.quizData[j]['type']?.toString() ?? 'Single Choice') ==
+              currentType &&
           _getSelection(global.quizResult[j]).isNotEmpty) {
         answeredCount++;
       }
@@ -765,14 +815,21 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: (answeredCount >= limit ? global.warningColor : global.infoColor).withOpacity(0.1),
+        color: (answeredCount >= limit ? global.warningColor : global.infoColor)
+            .withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: (answeredCount >= limit ? global.warningColor : global.infoColor).withOpacity(0.5)),
+        border: Border.all(
+          color:
+              (answeredCount >= limit ? global.warningColor : global.infoColor)
+                  .withValues(alpha: 0.5),
+        ),
       ),
       child: Text(
         "Limit: $answeredCount/$limit",
         style: GoogleFonts.poppins(
-          color: answeredCount >= limit ? global.warningColor : global.infoColor,
+          color: answeredCount >= limit
+              ? global.warningColor
+              : global.infoColor,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
@@ -783,8 +840,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Decoration _getQuestionDecoration(int index, {bool isCurrent = false}) {
     final List<dynamic> question = global.quizResult[index];
     final selection = _getSelection(question);
-    final bool isVisited = (question.length > 3) ? (question[3] as bool) : false;
-    final bool isMarkedForReview = (question.length > 4) ? (question[4] as bool) : false;
+    final bool isVisited = (question.length > 3)
+        ? (question[3] as bool)
+        : false;
+    final bool isMarkedForReview = (question.length > 4)
+        ? (question[4] as bool)
+        : false;
     final bool isAnswered = selection.isNotEmpty;
 
     // Correctness logic for Review Mode
@@ -797,11 +858,14 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
       if (qType == "Integer") {
         final String userVal = selection.first.trim();
-        final String correctVal = correct.isNotEmpty ? correct.first.trim() : "";
+        final String correctVal = correct.isNotEmpty
+            ? correct.first.trim()
+            : "";
         isCorrect = userVal == correctVal;
         isWrong = !isCorrect;
       } else {
-        isCorrect = selection.length == correct.length &&
+        isCorrect =
+            selection.length == correct.length &&
             selection.every((s) => correct.contains(s));
         isWrong = !isCorrect;
       }
@@ -995,14 +1059,18 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 global.isReviewMode
                     ? "REVIEW MODE"
                     : (global.time == 0
-                        ? "⏱ Unlimited Time"
-                        : (_timer?.isActive == true
-                            ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
-                            : "No active timer")),
+                          ? "⏱ Unlimited Time"
+                          : (_timer?.isActive == true
+                                ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
+                                : "No active timer")),
                 style: TextStyle(
-                  color: global.isReviewMode ? global.warningColor : global.valueColor,
+                  color: global.isReviewMode
+                      ? global.warningColor
+                      : global.valueColor,
                   fontSize: 14,
-                  fontWeight: global.isReviewMode ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: global.isReviewMode
+                      ? FontWeight.bold
+                      : FontWeight.normal,
                 ),
               ),
             ),
@@ -1014,7 +1082,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             children: [
               DrawerHeader(
                 decoration: const BoxDecoration(color: global.bgColor),
-                child: Center(
+                child: Align(
+                  alignment: Alignment.centerLeft,
                   child: Text(
                     'Questions',
                     style: GoogleFonts.poppins(
@@ -1032,9 +1101,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       ? Wrap(
                           spacing: 10,
                           runSpacing: 10,
+                          alignment: WrapAlignment.start,
                           children: menu_opt(),
                         )
                       : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: menu_opt(),
                         ),
                 ),
@@ -1062,8 +1133,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           int globalIndex = moduleIndices[index];
                           bool isCurrent = i == globalIndex;
-                          bool isLocked = global.perQuestionTime > 0 && globalIndex < i && !global.isReviewMode;
-                          
+                          bool isLocked =
+                              global.perQuestionTime > 0 &&
+                              globalIndex < i &&
+                              !global.isReviewMode;
+
                           return GestureDetector(
                             onTap: isLocked
                                 ? null
@@ -1082,7 +1156,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 child: Text(
                                   _getDisplayNumber(globalIndex),
                                   style: TextStyle(
-                                    color: isLocked ? global.valueColor.withOpacity(0.3) : global.valueColor,
+                                    color: isLocked
+                                        ? global.valueColor.withOpacity(0.3)
+                                        : global.valueColor,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -1108,21 +1184,24 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                     horizontal: 12,
                                   ),
                                   minimumSize: const Size(0, 36),
-                                  side: BorderSide(
-                                    color: global.borderColor,
-                                  ),
+                                  side: BorderSide(color: global.borderColor),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                                 onPressed:
-                                    (i > 0 && !(global.perQuestionTime > 0 && !global.isReviewMode))
-                                        ? () {
-                                          i--;
-                                          switchState();
-                                        }
-                                        : null,
-                                child: const Icon(Icons.arrow_back_ios, size: 14),
+                                    (i > 0 &&
+                                        !(global.perQuestionTime > 0 &&
+                                            !global.isReviewMode))
+                                    ? () {
+                                        i--;
+                                        switchState();
+                                      }
+                                    : null,
+                                child: const Icon(
+                                  Icons.arrow_back_ios,
+                                  size: 14,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               ElevatedButton(
@@ -1137,13 +1216,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                onPressed:
-                                    i < global.quizData.length - 1
-                                        ? () {
-                                          i++;
-                                          switchState();
-                                        }
-                                        : null,
+                                onPressed: i < global.quizData.length - 1
+                                    ? () {
+                                        i++;
+                                        switchState();
+                                      }
+                                    : null,
                                 child: Row(
                                   children: [
                                     const Text(
@@ -1153,7 +1231,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                       ),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_ios, size: 14),
+                                    const Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 14,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1249,8 +1330,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 ),
                               ),
                             ),
-                            if (!global.isReviewMode && global.attemptLimits['type'] != 'none')
-                               _buildLimitStatusIndicator(),
+                            if (!global.isReviewMode &&
+                                global.attemptLimits['type'] != 'none')
+                              _buildLimitStatusIndicator(),
                             Text(
                               "Question ${_getDisplayNumber(i)} of ${moduleIndices.length}",
                               style: GoogleFonts.poppins(
@@ -1291,21 +1373,30 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         width: double.infinity,
                         child: Column(children: buttons_Data(currentData)),
                       ),
-                      if (global.isReviewMode && global.solutions.containsKey(currentData['uid']?.toString() ?? ""))
+                      if (global.isReviewMode &&
+                          global.solutions.containsKey(
+                            currentData['uid']?.toString() ?? "",
+                          ))
                         Container(
                           margin: const EdgeInsets.all(20),
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: global.cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: global.primaryAccent.withOpacity(0.3)),
+                            border: Border.all(
+                              color: global.primaryAccent.withOpacity(0.3),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.lightbulb_outline, color: global.primaryAccent, size: 20),
+                                  const Icon(
+                                    Icons.lightbulb_outline,
+                                    color: global.primaryAccent,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     "SOLUTION",
@@ -1320,7 +1411,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                global.solutions[currentData['uid']?.toString()] ?? "",
+                                global.solutions[currentData['uid']
+                                        ?.toString()] ??
+                                    "",
                                 style: GoogleFonts.poppins(
                                   color: global.valueColor,
                                   fontSize: 14,
@@ -1342,8 +1435,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                   ),
                                   backgroundColor:
                                       global.quizResult[i][4] == true
-                                          ? global.reviewColor
-                                          : global.cardColor,
+                                      ? global.reviewColor
+                                      : global.cardColor,
                                   foregroundColor: Colors.white,
                                   side: BorderSide(
                                     color: global.quizResult[i][4] == true
@@ -1445,7 +1538,8 @@ class buttons_opt extends StatelessWidget {
     final selectionList = _getSelection();
     final bool isSelected = selectionList.contains(optUid);
     final String qUid = quizResultChunk[1].toString();
-    final bool isCorrect = global.correctAnswers[qUid]?.contains(optUid) ?? false;
+    final bool isCorrect =
+        global.correctAnswers[qUid]?.contains(optUid) ?? false;
     final bool isBlocked = isLimitReached && !isSelected;
 
     return Container(
@@ -1472,23 +1566,35 @@ class buttons_opt extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           backgroundColor: global.isReviewMode
               ? (isCorrect
-                  ? Colors.green.withOpacity(0.15)
-                  : (isSelected ? global.errorColor.withOpacity(0.1) : global.cardColor))
+                    ? Colors.green.withOpacity(0.15)
+                    : (isSelected
+                          ? global.errorColor.withOpacity(0.1)
+                          : global.cardColor))
               : (isSelected
-                  ? global.primaryAccent.withOpacity(0.2)
-                  : (isBlocked ? global.bgColor.withOpacity(0.5) : global.cardColor)),
+                    ? global.primaryAccent.withOpacity(0.2)
+                    : (isBlocked
+                          ? global.bgColor.withOpacity(0.5)
+                          : global.cardColor)),
           foregroundColor: global.isReviewMode
               ? (isCorrect
-                  ? Colors.greenAccent
-                  : (isSelected ? global.errorColor : global.valueColor))
-              : (isSelected ? global.primaryAccent : (isBlocked ? global.hintColor : global.valueColor)),
+                    ? Colors.greenAccent
+                    : (isSelected ? global.errorColor : global.valueColor))
+              : (isSelected
+                    ? global.primaryAccent
+                    : (isBlocked ? global.hintColor : global.valueColor)),
           side: BorderSide(
             color: global.isReviewMode
                 ? (isCorrect
-                    ? Colors.greenAccent
-                    : (isSelected ? global.errorColor : global.borderColor))
-                : (isSelected ? global.primaryAccent : (isBlocked ? global.bgColor : global.borderColor)),
-            width: (global.isReviewMode && (isCorrect || isSelected)) || (!global.isReviewMode && isSelected) ? 2.5 : 1,
+                      ? Colors.greenAccent
+                      : (isSelected ? global.errorColor : global.borderColor))
+                : (isSelected
+                      ? global.primaryAccent
+                      : (isBlocked ? global.bgColor : global.borderColor)),
+            width:
+                (global.isReviewMode && (isCorrect || isSelected)) ||
+                    (!global.isReviewMode && isSelected)
+                ? 2.5
+                : 1,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -1506,32 +1612,48 @@ class buttons_opt extends StatelessWidget {
                       optText,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
-                        fontWeight: (isCorrect || isSelected) ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: (isCorrect || isSelected)
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     if (global.isReviewMode) ...[
                       if (isCorrect && isSelected)
-                        const Text("Correct choice",
-                            style: TextStyle(
-                                color: Colors.greenAccent,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold))
+                        const Text(
+                          "Correct choice",
+                          style: TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
                       else if (isCorrect)
-                        const Text("Correct answer",
-                            style: TextStyle(
-                                color: Colors.greenAccent, fontSize: 10))
+                        const Text(
+                          "Correct answer",
+                          style: TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 10,
+                          ),
+                        )
                       else if (isSelected)
-                        Text("Your incorrect choice",
-                            style: TextStyle(
-                                color: global.errorColor, fontSize: 10)),
-                    ]
+                        Text(
+                          "Your incorrect choice",
+                          style: TextStyle(
+                            color: global.errorColor,
+                            fontSize: 10,
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               ),
               if (global.isReviewMode) ...[
                 if (isCorrect)
-                  const Icon(Icons.check_circle,
-                      color: Colors.greenAccent, size: 20)
+                  const Icon(
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
+                    size: 20,
+                  )
                 else if (isSelected)
                   Icon(Icons.cancel, color: global.errorColor, size: 20),
               ],

@@ -27,9 +27,15 @@
 | `visibility` | String | `public` or `private`. |
 | `time` | Number | Duration in seconds (0 means Unlimited). |
 | `perQuestionTime` | Number | Default duration in seconds for every question (0 if disabled). |
+| `activeAt` | Timestamp | Scheduled start time for the quiz. |
+| `isRestricted` | Boolean | If true, only allowed users can attempt. |
+| `allowedParticipants` | Array | List of User UIDs allowed to attempt. |
 | `markingScheme` | Map | Config: `{type: 'default'|'per_question'|'per_question_type', global: {}, perQuestion: {}, perQuestionType: {}}`. |
 | `attemptLimits` | Map | Config: `{type: 'none'|'global'|'per_module', global: {}, perModule: {}}`. |
 | `isDeleted` | Boolean | Soft delete flag. |
+| `deletedAt` | Timestamp | Time when the resource was soft deleted. |
+| `deletedBy` | String | UID of the user who deleted the resource. |
+| `deletedByType` | String | Role of the deleter (owner, manager, admin, user). |
 | `isLocked` | Boolean | Prevents new attempts. |
 | `modules` | Array | Ordered modules containing question metadata. |
 | `totalQuestions` | Number | Count of questions. |
@@ -49,6 +55,9 @@
 | `totalQuestions` | Number | Total questions in quiz. |
 | `answers` | Map | `{questionId: selection}`. |
 | `reviewItems` | List<String> | List of question IDs marked for review during the session. |
+| `isDeleted` | Boolean | Soft delete flag. |
+| `deletedByType` | String | Role of the deleter (owner, manager, admin, user). |
+| `deleteReason` | String | Reason for soft deletion. |
 | `status` | Number | Attempt status (e.g., 1 for completed). |
 | `timestamp` | Timestamp | Submission time. |
 

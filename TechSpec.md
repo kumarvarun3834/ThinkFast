@@ -39,9 +39,14 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
 | `visibility` | String | `public` or `private`. |
 | `time` | Number | Duration in seconds (0 means Unlimited). |
 | `perQuestionTime` | Number | Independent countdown timer for every question. |
+| `activeAt` | Timestamp | Scheduled start time for the quiz. |
+| `isRestricted` | Boolean | If true, only allowed users can attempt. |
+| `allowedParticipants` | Array | List of User UIDs allowed to attempt. |
 | `markingScheme` | Map | Configuration for scoring (e.g., `default`, `per_question`, `per_question_type`). |
 | `attemptLimits` | Map | Configuration for attempt constraints (e.g., `none`, `global`, `per_module`). |
 | `isDeleted` | Boolean | Soft delete flag. |
+| `deletedAt` | Timestamp | Time when the resource was soft deleted. |
+| `deletedByType` | String | Role of the deleter (owner, manager, admin, user). |
 | `isLocked` | Boolean | Prevents new attempts if true. |
 | `modules` | Array | Organized list of question modules. |
 | `totalQuestions`| Number | Total number of questions in the quiz. |
@@ -86,6 +91,9 @@ The quiz engine manages timing with the following precedence:
 
 Forward-only navigation is enforced when per-question timers are active to ensure exam integrity.
 
+**Scheduling & Restrictions:**
+Quizzes support scheduled activation via the `activeAt` timestamp. The system prevents participants from starting a quiz before this time. Additionally, `isRestricted` quizzes check the current user's UID against a comma-separated list of `allowedParticipants` during the start flow.
+
 ### 3.3 Enhanced Review Mode
 Post-quiz analysis is handled by re-using the `Quesations` module in `isReviewMode`.
 - **Navigator Colors:** Circle indicators use a gradient (Purple to Green/Red) if a question was both Marked for Review and answered.
@@ -107,12 +115,16 @@ The `AiService` tracks daily generations per user. Before invoking AI generation
 - **Private Data:** Sensitive user information is stored in sub-collections with restricted read access.
 - **Global Permission Guards:** Every database operation in `DatabaseService` is guarded by a feature flag check. If a feature (e.g., `enable_create_quiz`) is toggled off in `feature_flags`, only administrators can perform that action.
 
-### 4.4 Soft Delete Policy
+### 4.4 Soft Delete & Recovery Policy
 When a quiz is soft-deleted (`isDeleted: true`):
 - It is hidden from all public feeds and search results.
-- It is removed from the creator's "My Quizzes" dashboard.
-- Any attempt to access it via direct ID or deep link by a regular user or the owner results in a "Quiz not found" error.
-- App Administrators with `isAdminMode` enabled bypass these restrictions and can view the quiz and its responses.
+- It is moved to the creator's **Recycle Bin**.
+- **Internal Data Protection:** Quiz managers and owners can only see the name and metadata; actual questions and answers are locked.
+- **Admin Access:** App Administrators with `isAdminMode` enabled bypass these restrictions to audit moderated content.
+- **Recovery Window:** Owners can restore a quiz from the Recycle Bin within **7 days** of deletion. After this period, the `restoreDatabase` operation will fail.
+- **Bulk Actions:** Selection mode is triggered by long-pressing any item in moderation or history lists. This enables atomic batch operations for unbanning users, restoring responses, or soft-deleting data across multiple records.
+
+Response/Attempt deletion follows a similar soft-delete pattern, attributing the action to the specific role (Owner, Manager, Admin, or User) in the `deletedByType` field.
 
 ## 5. Deployment & CI/CD
 - **Firebase Hosting:** Web version (if applicable).

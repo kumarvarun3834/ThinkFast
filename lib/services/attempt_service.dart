@@ -1,10 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'admin_service.dart';
 
 class AttemptService {
-  final CollectionReference _responses = FirebaseFirestore.instance.collection('responses');
-  final CollectionReference _allAttempts = FirebaseFirestore.instance.collection('all_attempts');
-  final CollectionReference _quizAttempts = FirebaseFirestore.instance.collection('quiz_attempts');
+  final CollectionReference _responses = FirebaseFirestore.instance.collection(
+    'responses',
+  );
+  final CollectionReference _allAttempts = FirebaseFirestore.instance
+      .collection('all_attempts');
+  final CollectionReference _quizAttempts = FirebaseFirestore.instance
+      .collection('quiz_attempts');
   final AdminService _adminService = AdminService();
 
   /// ✅ Calculate score and submit attempt
@@ -30,7 +35,8 @@ class AttemptService {
         };
       } else if (schemeType == 'per_question_type') {
         final pqt = markingScheme['perQuestionType'] as Map? ?? {};
-        final config = pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
+        final config =
+            pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
         return {
           'correct': (config['correct'] ?? 4).toInt(),
           'wrong': (config['wrong'] ?? -1).toInt(),
@@ -48,20 +54,28 @@ class AttemptService {
 
     userAnswers.forEach((qUid, selections) {
       final correct = correctKey[qUid] ?? [];
-      final List selected = selections is List ? selections : [selections.toString()];
+      final List selected = selections is List
+          ? selections
+          : [selections.toString()];
 
       String? qType;
       try {
-        final qDoc = quizData.firstWhere((q) => (q['Q']?['id'] ?? q['uid']) == qUid);
+        final qDoc = quizData.firstWhere(
+          (q) => (q['Q']?['id'] ?? q['uid']) == qUid,
+        );
         qType = qDoc['type'];
       } catch (_) {}
 
       final marking = getMarking(qType, qUid);
 
       if (qType == "Integer") {
-        final String userVal = selected.isNotEmpty ? selected.first.toString().trim() : "";
-        final String correctVal = correct.isNotEmpty ? correct.first.toString().trim() : "";
-        
+        final String userVal = selected.isNotEmpty
+            ? selected.first.toString().trim()
+            : "";
+        final String correctVal = correct.isNotEmpty
+            ? correct.first.toString().trim()
+            : "";
+
         if (userVal.isNotEmpty && userVal == correctVal) {
           score += marking['correct']!;
         } else if (userVal.isNotEmpty) {
@@ -149,30 +163,50 @@ class AttemptService {
     return responseRef.id;
   }
 
-  /// ✅ Stream attempts for a specific user
-  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
+  /// ✅ Stream attempts for a specific user (filters out soft-deleted)
+  Stream<List<Map<String, dynamic>>> getUserAttempts(
+    String userId, {
+    bool includeDeleted = false,
+  }) {
     return _responses
         .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map((snapshot) {
+          final docs = snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList();
+
+          if (includeDeleted) return docs;
+
+          // Filter in Dart to include legacy docs without 'isDeleted' field
+          return docs.where((doc) => doc['isDeleted'] != true).toList();
+        });
   }
 
-  /// ✅ Stream attempts for a specific quiz
-  Stream<List<Map<String, dynamic>>> getQuizAttempts(String quizId) {
+  /// ✅ Stream attempts for a specific quiz (filters out soft-deleted by default)
+  Stream<List<Map<String, dynamic>>> getQuizAttempts(
+    String quizId, {
+    bool includeDeleted = false,
+  }) {
     return _quizAttempts
         .doc(quizId)
         .collection('attempts')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map((snapshot) {
+          final docs = snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList();
+
+          if (includeDeleted) return docs;
+
+          // Filter in Dart to include legacy docs without 'isDeleted' field
+          return docs.where((doc) => doc['isDeleted'] != true).toList();
+        });
   }
 }

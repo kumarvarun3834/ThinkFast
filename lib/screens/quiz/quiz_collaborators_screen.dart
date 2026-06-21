@@ -155,17 +155,56 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _borderColor),
                       ),
-                      child: ListTile(
-                        title: Text(m['userId'], style: TextStyle(color: _valueColor, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          "Perms: ${m['permissions']}",
-                          style: TextStyle(color: _labelColor, fontSize: 12),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-                          onPressed: () async {
-                            // Implementation of remove access
-                          },
+                      child: Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          title: Text(m['userId'], style: TextStyle(color: _valueColor, fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                            "Perms: ${m['permissions']}",
+                            style: TextStyle(color: _labelColor, fontSize: 12),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                            onPressed: () async {
+                              final bool? confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  backgroundColor: _cardColor,
+                                  title: const Text("Remove Collaborator?", style: TextStyle(color: Colors.white)),
+                                  content: Text("Are you sure you want to remove access for ${m['userId']}?", style: const TextStyle(color: Colors.white70)),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                                      onPressed: () => Navigator.pop(context, true),
+                                      child: const Text("Remove"),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true && _currentUserId != null) {
+                                try {
+                                  await _db.removeManagementAccess(
+                                    quizId: widget.quizId,
+                                    userId: m['userId'],
+                                    removedBy: _currentUserId!,
+                                  );
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Collaborator removed")),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("Error: $e")),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                          ),
                         ),
                       ),
                     );

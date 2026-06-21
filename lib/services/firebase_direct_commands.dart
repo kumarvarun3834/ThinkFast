@@ -112,15 +112,25 @@ class DatabaseService {
   Future<void> softDeleteResponse({
     required String responseId,
     required String quizId,
-    required String adminId,
+    required String actorId,
     required String reason,
   }) async {
-    await _ensureAdminLevel(adminId, 3); // Level 3+ for moderation
+    // Permission check is now inside adminService.softDeleteResponse
     return _adminService.softDeleteResponse(
       responseId: responseId,
       quizId: quizId,
-      adminId: adminId,
+      actorId: actorId,
       reason: reason,
+    );
+  }
+
+  Future<void> restoreResponse({
+    required String responseId,
+    required String quizId,
+  }) async {
+    return _adminService.restoreResponse(
+      responseId: responseId,
+      quizId: quizId,
     );
   }
 
@@ -170,6 +180,23 @@ class DatabaseService {
 
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
       _adminService.getQuizManagers(quizId);
+
+  Stream<List<Map<String, dynamic>>> getQuizBannedUsers(String quizId) =>
+      _adminService.getQuizBannedUsers(quizId);
+
+  Stream<List<Map<String, dynamic>>> getDeletedQuizzes() =>
+      _adminService.getDeletedQuizzes();
+
+  Future<void> unbanUser({
+    required String userId,
+    String? quizId,
+    required String adminId,
+  }) =>
+      _adminService.unbanUser(
+        userId: userId,
+        quizId: quizId,
+        adminId: adminId,
+      );
 
   Future<bool> isUserBanned(String userId, {String? quizId}) =>
       _adminService.isUserBanned(userId, quizId: quizId);
@@ -295,6 +322,9 @@ class DatabaseService {
     bool allowMultipleAttempts = true,
     bool completeRandomShuffle = false,
     int perQuestionTime = 0,
+    DateTime? activeAt,
+    bool isRestricted = false,
+    List<String>? allowedParticipants,
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
@@ -314,6 +344,9 @@ class DatabaseService {
       allowMultipleAttempts: allowMultipleAttempts,
       completeRandomShuffle: completeRandomShuffle,
       perQuestionTime: perQuestionTime,
+      activeAt: activeAt,
+      isRestricted: isRestricted,
+      allowedParticipants: allowedParticipants,
     );
   }
 
@@ -330,6 +363,9 @@ class DatabaseService {
     int? perQuestionTime,
     Map<String, dynamic>? markingScheme,
     Map<String, dynamic>? attemptLimits,
+    DateTime? activeAt,
+    bool? isRestricted,
+    List<String>? allowedParticipants,
   }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
     final Map<String, dynamic> updates = {};
@@ -346,6 +382,11 @@ class DatabaseService {
     if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
     if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
+    if (activeAt != null) updates['activeAt'] = Timestamp.fromDate(activeAt);
+    if (isRestricted != null) updates['isRestricted'] = isRestricted;
+    if (allowedParticipants != null) {
+      updates['allowedParticipants'] = allowedParticipants;
+    }
 
     if (data != null) {
       // Fetch current marking scheme to propagate to questions if not provided
@@ -378,14 +419,14 @@ class DatabaseService {
     required String currentUserId,
   }) async {
     await _ensurePermission('enable_delete_quiz', userId: currentUserId);
-    final quiz = await _quizService.getQuiz(docId);
-    final bool isAdmin = await _adminService.isAdmin(currentUserId);
+    await _quizService.deleteQuiz(docId, currentUserId);
+  }
 
-    if (quiz != null && (quiz['creatorId'] == currentUserId || isAdmin)) {
-      await _quizService.deleteQuiz(docId, currentUserId);
-    } else {
-      throw Exception("Unauthorized to delete this quiz");
-    }
+  Future<void> restoreDatabase({
+    required String docId,
+    required String currentUserId,
+  }) async {
+    await _quizService.restoreQuiz(docId, currentUserId);
   }
 
   Future<void> toggleQuizLock({
@@ -404,6 +445,7 @@ class DatabaseService {
   Stream<List<Map<String, dynamic>>> readAllDatabases({
     bool showMyQuizzes = false,
     bool showManagedQuizzes = false,
+    bool showTrash = false,
     String? creatorId,
     String? userId,
   }) {
@@ -414,7 +456,9 @@ class DatabaseService {
       return Stream.value([]);
     }
 
-    if (showMyQuizzes && creatorId != null) {
+    if (showTrash && creatorId != null) {
+      return _quizService.getMyDeletedQuizzes(creatorId);
+    } else if (showMyQuizzes && creatorId != null) {
       return _quizService.getMyQuizzes(creatorId);
     } else if (showManagedQuizzes && userId != null) {
       return _quizService.getManagedQuizzes(userId);
@@ -520,20 +564,20 @@ class DatabaseService {
     return {'answers': correctKey, 'solutions': solutions};
   }
 
-  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId) {
+  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId, {bool includeDeleted = false}) {
     if (global.featureFlags?['maintenance_mode'] == true &&
         global.isAdmin == false) {
       return Stream.value([]);
     }
-    return _attemptService.getUserAttempts(userId);
+    return _attemptService.getUserAttempts(userId, includeDeleted: includeDeleted);
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId) {
+  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId, {bool includeDeleted = false}) {
     if (global.featureFlags?['maintenance_mode'] == true &&
         global.isAdmin == false) {
       return Stream.value([]);
     }
-    return _attemptService.getQuizAttempts(quizId);
+    return _attemptService.getQuizAttempts(quizId, includeDeleted: includeDeleted);
   }
 
   Future<bool> hasUserAttemptedQuiz(String userId, String quizId) async {

@@ -279,6 +279,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
             ),
           if (widget.user != null)
             _drawerItem(
+              icon: Icons.delete_outline_rounded,
+              text: 'Recycle Bin',
+              onTap: () => _checkAndNavigate(context, "/Recycle Bin"),
+            ),
+          if (widget.user != null)
+            _drawerItem(
               icon: Icons.people_outline_rounded,
               text: 'Managed Quizzes',
               onTap: () => _checkAndNavigate(context, "/Managed Quizzes"),

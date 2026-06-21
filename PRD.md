@@ -20,8 +20,12 @@
 - **Quiz Editor:** A comprehensive form to define quiz title, description, visibility (public/private), time limits, and marking schemes.
 - **Attempt Limits (Select N out of M):** Creators can limit the number of questions a participant can attempt per section or question type, mimicking competitive exam environments.
 - **Flexible Timing:** Support for total quiz duration (0 for unlimited), generalized per-question timers, and specific individual question overrides.
+- **Quiz Scheduling:** Creators can set a specific date and time for a quiz to become active for responses.
+- **Restricted Quizzes:** Ability to restrict quiz attempts to a specific list of User UIDs.
 - **Managed Quizzes & Collaborators:** Owners can add managers to quizzes to help monitor responses and moderate participants.
 - **Question Types:** Support for Single Choice, Multiple Choice, and Integer questions with configurable options and solution descriptions.
+- **Recycle Bin (Soft Delete):** Quizzes and attempts are soft-deleted and can be recovered within a 7-day window. Owners can manage their trash via the Recycle Bin.
+- **Bulk Moderation:** Support for multiple selection via long-press to perform batch unblocking, response recovery, or soft-deletion.
 - **Idempotency & Rate Limiting:** Prevents duplicate quiz creation and limits how often a user can create new quizzes to prevent spam.
 - **Answer Keys:** Separate management of answer keys and solution explanations to ensure integrity during the quiz.
 - **My Quizzes:** A dedicated space for creators to manage their content, including editing and (soft) deleting.

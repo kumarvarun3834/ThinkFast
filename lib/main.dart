@@ -12,6 +12,7 @@ import 'package:thinkfast/screens/about_us.dart';
 import 'package:thinkfast/screens/quiz_responses_screen.dart';
 import 'package:thinkfast/screens/my_attempts_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
+import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
@@ -127,6 +128,13 @@ class MyApp extends StatelessWidget {
             );
             wrapInGradient = false;
             break;
+          case '/Recycle Bin':
+            page = Main_Screen(
+              showTrash: true,
+              creator: FirebaseAuth.instance.currentUser,
+            );
+            wrapInGradient = false;
+            break;
           case '/Create Quiz':
             page = QuizPage("");
             wrapInGradient = false;
@@ -173,6 +181,12 @@ class MyApp extends StatelessWidget {
             break;
           case '/Manage Collaborators':
             page = QuizCollaboratorsScreen(
+              quizId: settings.arguments as String,
+            );
+            wrapInGradient = false;
+            break;
+          case '/Blocked Users':
+            page = QuizModerationScreen(
               quizId: settings.arguments as String,
             );
             wrapInGradient = false;

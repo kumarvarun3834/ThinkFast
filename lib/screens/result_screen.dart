@@ -294,7 +294,7 @@ class _ResultScreenState extends State<ResultScreen> {
               global.correctAnswers = _correctAnswers;
               global.solutions = _solutions;
               // Ensure global quiz data is synced with what we have here
-              global.quizData = List<Map<String, Object>>.from(_displayQuizData);
+              global.quizData = _displayQuizData.map((e) => Map<String, Object>.from(e)).toList();
               
               // Map _calculatedResults back to global.quizResult format
               // [qText, qUid, selectionList, visitedBool, reviewBool]

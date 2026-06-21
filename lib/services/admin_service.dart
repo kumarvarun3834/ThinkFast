@@ -1,20 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+
 import 'settings_service.dart';
 
 class AdminService {
-  final CollectionReference _admins = FirebaseFirestore.instance.collection('admins');
-  final CollectionReference _reports = FirebaseFirestore.instance.collection('reports');
-  final CollectionReference _auditLogs = FirebaseFirestore.instance.collection('audit_logs');
-  final CollectionReference _quizAccess = FirebaseFirestore.instance.collection('quiz_access');
-  final CollectionReference _bannedUsers = FirebaseFirestore.instance.collection('banned_users');
-  final CollectionReference _responses = FirebaseFirestore.instance.collection('responses');
-  final CollectionReference _allAttempts = FirebaseFirestore.instance.collection('all_attempts');
-  final CollectionReference _quizAttempts = FirebaseFirestore.instance.collection('quiz_attempts');
+  final CollectionReference _admins = FirebaseFirestore.instance.collection(
+    'admins',
+  );
+  final CollectionReference _reports = FirebaseFirestore.instance.collection(
+    'reports',
+  );
+  final CollectionReference _auditLogs = FirebaseFirestore.instance.collection(
+    'audit_logs',
+  );
+  final CollectionReference _quizAccess = FirebaseFirestore.instance.collection(
+    'quiz_access',
+  );
+  final CollectionReference _bannedUsers = FirebaseFirestore.instance
+      .collection('banned_users');
+  final CollectionReference _responses = FirebaseFirestore.instance.collection(
+    'responses',
+  );
+  final CollectionReference _allAttempts = FirebaseFirestore.instance
+      .collection('all_attempts');
+  final CollectionReference _quizAttempts = FirebaseFirestore.instance
+      .collection('quiz_attempts');
 
   // Safely check if a user is a registered admin
   Future<bool> isRegisteredAdmin(String uid) async {
-    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return true; // Super Admin Override
+    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2')
+      return true; // Super Admin Override
     final doc = await _admins.doc(uid).get();
     return doc.exists;
   }
@@ -22,7 +38,8 @@ class AdminService {
   /// ✅ Check if user is admin AND has admin mode active
   /// Use this for UI visibility and secondary privilege checks
   Future<bool> isAdmin(String uid) async {
-    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return true; // Super Admin Override
+    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2')
+      return true; // Super Admin Override
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return false;
     final data = doc.data() as Map<String, dynamic>;
@@ -31,9 +48,13 @@ class AdminService {
   }
 
   /// ✅ Toggle Admin Mode (Switch between normal user and admin experience)
-  Future<void> toggleAdminMode({required String uid, required bool enable}) async {
+  Future<void> toggleAdminMode({
+    required String uid,
+    required bool enable,
+  }) async {
     final exists = await isRegisteredAdmin(uid);
-    if (!exists) throw Exception("Unauthorized: User is not a registered admin.");
+    if (!exists)
+      throw Exception("Unauthorized: User is not a registered admin.");
 
     await _admins.doc(uid).update({
       'isAdminModeEnabled': enable,
@@ -85,7 +106,9 @@ class AdminService {
         category: 'admin',
       );
     } else {
-      throw Exception('Unauthorized: Higher admin level required to perform this action.');
+      throw Exception(
+        'Unauthorized: Higher admin level required to perform this action.',
+      );
     }
   }
 
@@ -109,7 +132,9 @@ class AdminService {
         category: 'admin',
       );
     } else {
-      throw Exception('Unauthorized: Higher admin level required to remove this admin.');
+      throw Exception(
+        'Unauthorized: Higher admin level required to remove this admin.',
+      );
     }
   }
 
@@ -139,7 +164,8 @@ class AdminService {
     String category = 'general',
   }) async {
     // Check if logging is enabled
-    final flags = global.featureFlags ?? await SettingsService().getFeatureFlags();
+    final flags =
+        global.featureFlags ?? await SettingsService().getFeatureFlags();
     if (flags?['user_action_logging'] == false) return;
 
     await _auditLogs.add({
@@ -161,11 +187,17 @@ class AdminService {
   }) async {
     // Only App Admin or Quiz Owner can add managers
     final bool isAppAdmin = await isAdmin(addedBy);
-    final quizDoc = await FirebaseFirestore.instance.collection('quizzes').doc(quizId).get();
-    final bool isOwner = quizDoc.exists && quizDoc.data()?['creatorId'] == addedBy;
+    final quizDoc = await FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId)
+        .get();
+    final bool isOwner =
+        quizDoc.exists && quizDoc.data()?['creatorId'] == addedBy;
 
     if (!isAppAdmin && !isOwner) {
-      throw Exception("Unauthorized: Only the Quiz Owner or an App Admin can manage collaborators.");
+      throw Exception(
+        "Unauthorized: Only the Quiz Owner or an App Admin can manage collaborators.",
+      );
     }
 
     await _quizAccess.doc('${quizId}_$userId').set({
@@ -219,16 +251,22 @@ class AdminService {
     if (quizId == null) {
       // Global Ban: Requires App Admin
       if (!await isAdmin(adminId)) {
-        throw Exception("Unauthorized: Only App Admins can perform global bans.");
+        throw Exception(
+          "Unauthorized: Only App Admins can perform global bans.",
+        );
       }
     } else {
       // Quiz Ban: Requires App Admin OR Quiz Manager with 'canModerate'
       if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
-        throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+        throw Exception(
+          "Unauthorized: You do not have moderation rights for this quiz.",
+        );
       }
     }
 
-    final String banId = quizId != null ? '${quizId}_$userId' : 'global_$userId';
+    final String banId = quizId != null
+        ? '${quizId}_$userId'
+        : 'global_$userId';
     await _bannedUsers.doc(banId).set({
       'userId': userId,
       'quizId': quizId, // null means global
@@ -262,15 +300,21 @@ class AdminService {
   }) async {
     if (quizId == null) {
       if (!await isAdmin(adminId)) {
-        throw Exception("Unauthorized: Only App Admins can perform global unbans.");
+        throw Exception(
+          "Unauthorized: Only App Admins can perform global unbans.",
+        );
       }
     } else {
       if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
-        throw Exception("Unauthorized: You do not have moderation rights for this quiz.");
+        throw Exception(
+          "Unauthorized: You do not have moderation rights for this quiz.",
+        );
       }
     }
 
-    final String banId = quizId != null ? '${quizId}_$userId' : 'global_$userId';
+    final String banId = quizId != null
+        ? '${quizId}_$userId'
+        : 'global_$userId';
     await _bannedUsers.doc(banId).delete();
 
     await logAction(
@@ -296,24 +340,56 @@ class AdminService {
     return false;
   }
 
-  /// ✅ Soft delete a response (shows "Deleted by Admin" to user)
+  /// ✅ Soft delete a response (shows "Deleted" in UI)
   Future<void> softDeleteResponse({
     required String responseId,
     required String quizId,
-    required String adminId,
+    required String actorId,
     required String reason,
   }) async {
-    // Requires App Admin OR Quiz Manager with 'canModerate'
-    if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+    final responseDoc = await _responses.doc(responseId).get();
+    if (!responseDoc.exists) throw Exception("Response not found.");
+    final responseData = responseDoc.data() as Map<String, dynamic>;
+
+    bool canDelete = false;
+    String deletedByType = 'system';
+
+    // 1. Quiz Owner check (Prioritize Permission over Admin Mode label)
+    final quizDoc = await FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId)
+        .get();
+    if (quizDoc.exists && quizDoc.data()?['creatorId'] == actorId) {
+      canDelete = true;
+      deletedByType = 'owner';
+    }
+    // 2. Quiz Manager with 'canModerate' check
+    else if (await hasQuizPermission(quizId, actorId, 'canModerate')) {
+      canDelete = true;
+      deletedByType = 'manager';
+    }
+    // 3. App Admin check (If not owner/manager, but in Admin Mode)
+    else if (await isAdmin(actorId)) {
+      canDelete = true;
+      deletedByType = 'admin';
+    }
+    // 4. Candidate (User) check - deleting their own response
+    else if (responseData['userId'] == actorId) {
+      canDelete = true;
+      deletedByType = 'user';
+    }
+
+    if (!canDelete) {
       throw Exception(
-        "Unauthorized: You do not have moderation rights for this quiz.",
+        "Unauthorized: You do not have permission to delete this response.",
       );
     }
 
     final batch = FirebaseFirestore.instance.batch();
     final Map<String, dynamic> updates = {
       'isDeleted': true,
-      'deletedBy': adminId,
+      'deletedBy': actorId,
+      'deletedByType': deletedByType,
       'deleteReason': reason,
       'updatedAt': FieldValue.serverTimestamp(),
     };
@@ -329,24 +405,112 @@ class AdminService {
     await batch.commit();
 
     await logAction(
-      actorId: adminId,
+      actorId: actorId,
       action: 'soft_delete_response',
       targetId: responseId,
-      details: 'Quiz: $quizId, Reason: $reason',
+      details: 'Type: $deletedByType, Quiz: $quizId, Reason: $reason',
       category: 'moderation',
     );
   }
 
+  /// ✅ Restore a soft-deleted response
+  Future<void> restoreResponse({
+    required String responseId,
+    required String quizId,
+  }) async {
+    final batch = FirebaseFirestore.instance.batch();
+    final Map<String, dynamic> updates = {
+      'isDeleted': false,
+      'deletedBy': FieldValue.delete(),
+      'deletedByType': FieldValue.delete(),
+      'deleteReason': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    batch.update(_responses.doc(responseId), updates);
+    batch.update(_allAttempts.doc(responseId), updates);
+    batch.update(
+      _quizAttempts.doc(quizId).collection('attempts').doc(responseId),
+      updates,
+    );
+
+    await batch.commit();
+
+    await logAction(
+      actorId: FirebaseAuth.instance.currentUser!.uid,
+      action: 'restore_response',
+      targetId: responseId,
+      details: 'Quiz: $quizId',
+      category: 'moderation',
+    );
+  }
+
+  /// ✅ Stream all banned users for a specific quiz
+  Stream<List<Map<String, dynamic>>> getQuizBannedUsers(String quizId) {
+    return _bannedUsers.where('quizId', isEqualTo: quizId).snapshots().asyncMap((
+      snapshot,
+    ) async {
+      List<Map<String, dynamic>> results = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+
+        // Fetch user profile to show name/email
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(data['userId'])
+            .get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          data['userName'] = userData['name'];
+          data['userPhoto'] = userData['photoUrl'];
+        }
+
+        // Also fetch private email if available (Admin only usually, but let's see)
+        final privateDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(data['userId'])
+            .collection('private')
+            .doc('details')
+            .get();
+        if (privateDoc.exists) {
+          data['userEmail'] = privateDoc.data()?['email'];
+        }
+
+        results.add(data);
+      }
+      return results;
+    });
+  }
+
   /// ✅ Master control: Get all quizzes (Admin only)
   Stream<List<Map<String, dynamic>>> getAllQuizzesMaster() {
-    return FirebaseFirestore.instance.collection('quizzes')
+    return FirebaseFirestore.instance
+        .collection('quizzes')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
+
+  /// ✅ Master control: Get all soft-deleted quizzes (Admin only)
+  Stream<List<Map<String, dynamic>>> getDeletedQuizzes() {
+    return FirebaseFirestore.instance
+        .collection('quizzes')
+        .where('isDeleted', isEqualTo: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// ✅ Master control: Force delete or update any quiz (App Admin only)
@@ -356,10 +520,14 @@ class AdminService {
     required String adminId,
   }) async {
     final bool isAppAdmin = await isAdmin(adminId);
-    if (!isAppAdmin) throw Exception("Unauthorized: App Admin privileges required.");
+    if (!isAppAdmin)
+      throw Exception("Unauthorized: App Admin privileges required.");
 
-    await FirebaseFirestore.instance.collection('quizzes').doc(quizId).update(updates);
-    
+    await FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId)
+        .update(updates);
+
     await logAction(
       actorId: adminId,
       action: 'master_control_update',
@@ -371,12 +539,19 @@ class AdminService {
 
   /// ✅ Check if user has specific management permission for a quiz
   /// Returns true if user is the Quiz Owner, an App Admin, or a Manager with the right permission.
-  Future<bool> canManageQuiz(String quizId, String userId, {String? permission}) async {
+  Future<bool> canManageQuiz(
+    String quizId,
+    String userId, {
+    String? permission,
+  }) async {
     // 1. App Admin has global access
     if (await isAdmin(userId)) return true;
 
     // 2. Check if user is the owner
-    final quizDoc = await FirebaseFirestore.instance.collection('quizzes').doc(quizId).get();
+    final quizDoc = await FirebaseFirestore.instance
+        .collection('quizzes')
+        .doc(quizId)
+        .get();
     if (quizDoc.exists && quizDoc.data()?['creatorId'] == userId) return true;
 
     // 3. Check if user is a manager with specific permission
@@ -384,12 +559,30 @@ class AdminService {
     if (accessDoc.exists) {
       final data = accessDoc.data() as Map<String, dynamic>;
       if (data['role'] == 'manager') {
-        if (permission == null) return true; // Just checking for general manager role
+        if (permission == null)
+          return true; // Just checking for general manager role
         final perms = data['permissions'] as Map<String, dynamic>? ?? {};
         return perms[permission] == true;
       }
     }
 
+    return false;
+  }
+
+  /// ✅ Check if user has specific management permission for a quiz (Internal check)
+  Future<bool> hasQuizPermission(
+    String quizId,
+    String userId,
+    String permission,
+  ) async {
+    final accessDoc = await _quizAccess.doc('${quizId}_$userId').get();
+    if (accessDoc.exists) {
+      final data = accessDoc.data() as Map<String, dynamic>;
+      if (data['role'] == 'manager') {
+        final perms = data['permissions'] as Map<String, dynamic>? ?? {};
+        return perms[permission] == true;
+      }
+    }
     return false;
   }
 
@@ -401,7 +594,9 @@ class AdminService {
   }) async {
     // Only App Admin or Quiz Owner can remove managers
     if (!await canManageQuiz(quizId, removedBy)) {
-      throw Exception("Unauthorized: Insufficient permissions to remove collaborators.");
+      throw Exception(
+        "Unauthorized: Insufficient permissions to remove collaborators.",
+      );
     }
 
     await _quizAccess.doc('${quizId}_$userId').delete();
@@ -421,7 +616,11 @@ class AdminService {
         .where('quizId', isEqualTo: quizId)
         .where('role', isEqualTo: 'manager')
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList(),
+        );
   }
 
   /// ✅ Get all audit logs (Admin only)
@@ -430,6 +629,10 @@ class AdminService {
         .orderBy('timestamp', descending: true)
         .limit(100)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList(),
+        );
   }
 }

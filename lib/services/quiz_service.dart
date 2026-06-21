@@ -27,6 +27,9 @@ class QuizService {
     bool completeRandomShuffle = false,
     int perQuestionTime = 0,
     List<String>? tags,
+    DateTime? activeAt,
+    bool isRestricted = false,
+    List<String>? allowedParticipants,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -98,7 +101,9 @@ class QuizService {
       'attemptLimits': attemptLimits ?? {'type': 'none'},
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
-      'isRestricted': false,
+      'activeAt': activeAt != null ? Timestamp.fromDate(activeAt) : null,
+      'isRestricted': isRestricted,
+      'allowedParticipants': allowedParticipants ?? [],
       'isDeleted': false,
     });
 
@@ -164,8 +169,26 @@ class QuizService {
 
   /// ✅ Delete Quiz (Soft Delete)
   Future<void> deleteQuiz(String quizId, String userId) async {
+    final quizDoc = await _quizzes.doc(quizId).get();
+    if (!quizDoc.exists) throw Exception("Quiz not found");
+    
+    final data = quizDoc.data() as Map<String, dynamic>;
+    String deletedByType = 'system';
+    
+    // Attribution logic: Prioritize Quiz Permissions
+    if (data['creatorId'] == userId) {
+      deletedByType = 'owner';
+    } else if (await _adminService.isAdmin(userId)) {
+      deletedByType = 'admin';
+    } else if (await _adminService.canManageQuiz(quizId, userId)) {
+      deletedByType = 'manager';
+    }
+
     await _quizzes.doc(quizId).update({
       'isDeleted': true,
+      'deletedBy': userId,
+      'deletedByType': deletedByType,
+      'deletedAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
@@ -173,7 +196,41 @@ class QuizService {
       actorId: userId,
       action: 'delete_quiz',
       targetId: quizId,
-      details: 'Soft deleted quiz',
+      details: 'Soft deleted quiz by $deletedByType',
+      category: 'quiz',
+    );
+  }
+
+  /// ✅ Restore Quiz
+  Future<void> restoreQuiz(String quizId, String userId) async {
+    final quizDoc = await _quizzes.doc(quizId).get();
+    if (!quizDoc.exists) throw Exception("Quiz not found");
+    final data = quizDoc.data() as Map<String, dynamic>;
+
+    if (data['creatorId'] != userId) {
+      final isAdmin = await _adminService.isAdmin(userId);
+      if (!isAdmin) throw Exception("Unauthorized to restore this quiz");
+    }
+
+    final Timestamp? deletedAt = data['deletedAt'];
+    if (deletedAt != null) {
+      final expiry = deletedAt.toDate().add(const Duration(days: 7));
+      if (DateTime.now().isAfter(expiry)) {
+        throw Exception("Recovery window expired (7 days passed)");
+      }
+    }
+
+    await _quizzes.doc(quizId).update({
+      'isDeleted': false,
+      'deletedAt': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await _adminService.logAction(
+      actorId: userId,
+      action: 'restore_quiz',
+      targetId: quizId,
+      details: 'Restored quiz',
       category: 'quiz',
     );
   }
@@ -252,6 +309,20 @@ class QuizService {
           }
           return quizzes;
         });
+  }
+
+  /// ✅ Fetch My Soft-Deleted Quizzes (Trash)
+  Stream<List<Map<String, dynamic>>> getMyDeletedQuizzes(String creatorId) {
+    return _quizzes
+        .where('creatorId', isEqualTo: creatorId)
+        .where('isDeleted', isEqualTo: true)
+        .orderBy('deletedAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['id'] = doc.id;
+              return data;
+            }).toList());
   }
 
   /// ✅ Check if user has access to a quiz

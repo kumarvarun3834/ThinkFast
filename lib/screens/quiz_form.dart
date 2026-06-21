@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,16 +25,22 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAdmin = false;
   bool _isAi = false;
   bool _importEnabled = false;
+  bool _isLoading = false;
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _timeController;
   late final TextEditingController _perQuestionTimeController;
+  late final TextEditingController _allowedUsersController;
   final ScrollController _scrollController = ScrollController();
 
   String visibility = "private";
   bool allowMultipleAttempts = true;
   bool completeRandomShuffle = false;
+
+  // Scheduling & Restriction
+  DateTime? _scheduledTime;
+  bool _isRestricted = false;
 
   // Attempt Limits
   String attemptLimitType = "none";
@@ -88,6 +95,7 @@ class _QuizPageState extends State<QuizPage> {
     _descriptionController = TextEditingController();
     _timeController = TextEditingController();
     _perQuestionTimeController = TextEditingController(text: "0");
+    _allowedUsersController = TextEditingController();
 
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
@@ -103,6 +111,29 @@ class _QuizPageState extends State<QuizPage> {
     } else {
       questions.add({"subject": "General"});
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _timeController.dispose();
+    _perQuestionTimeController.dispose();
+    _allowedUsersController.dispose();
+    _moduleController.dispose();
+    _globalLimitControllers.forEach((_, c) => c.dispose());
+    _moduleLimitControllers.forEach(
+      (_, map) => map.forEach((_, c) => c.dispose()),
+    );
+    _globalCorrectController.dispose();
+    _globalWrongController.dispose();
+    _scCorrectController.dispose();
+    _scWrongController.dispose();
+    _mcCorrectController.dispose();
+    _mcWrongController.dispose();
+    _intCorrectController.dispose();
+    _intWrongController.dispose();
+    super.dispose();
   }
 
   void _updateModuleLimitControllers() {
@@ -264,6 +295,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _fetchQuiz(String docId) async {
+    setState(() => _isLoading = true);
     try {
       final db = DatabaseService();
       // Get current user ID for security check
@@ -284,6 +316,14 @@ class _QuizPageState extends State<QuizPage> {
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         completeRandomShuffle = data['completeRandomShuffle'] ?? false;
+        _isRestricted = data['isRestricted'] ?? false;
+        _allowedUsersController.text =
+            (data['allowedParticipants'] as List? ?? []).join(', ');
+
+        if (data['activeAt'] != null) {
+          _scheduledTime = (data['activeAt'] as Timestamp).toDate();
+        }
+
         _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0)
             .toString();
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
@@ -403,9 +443,11 @@ class _QuizPageState extends State<QuizPage> {
           ..addAll(transformed);
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Load error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Load error: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -588,10 +630,7 @@ class _QuizPageState extends State<QuizPage> {
         const SizedBox(height: 8),
         Text(
           "Limit how many questions of each type a user can answer.",
-          style: GoogleFonts.poppins(
-            color: global.labelColor,
-            fontSize: 12,
-          ),
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
         ),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
@@ -707,10 +746,7 @@ class _QuizPageState extends State<QuizPage> {
                   ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
                   : null,
               hintText: "No Limit",
-              hintStyle: const TextStyle(
-                color: global.hintColor,
-                fontSize: 12,
-              ),
+              hintStyle: const TextStyle(color: global.hintColor, fontSize: 12),
             ),
           ),
         ),
@@ -760,6 +796,148 @@ class _QuizPageState extends State<QuizPage> {
         curve: Curves.easeInOut,
       );
     }
+  }
+
+  Widget _buildSchedulingAndRestrictionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Scheduling & Restriction",
+          style: GoogleFonts.poppins(
+            color: global.valueColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: global.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: global.borderColor),
+          ),
+          child: Column(
+            children: [
+              // Scheduled Time
+              Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    color: global.primaryAccent,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Scheduled Start Time",
+                          style: TextStyle(
+                            color: global.valueColor,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          _scheduledTime == null
+                              ? "Immediate (Active Now)"
+                              : "${_scheduledTime!.day}/${_scheduledTime!.month}/${_scheduledTime!.year} ${_scheduledTime!.hour}:${_scheduledTime!.minute.toString().padLeft(2, '0')}",
+                          style: TextStyle(
+                            color: global.labelColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _pickDateTime,
+                    child: Text(_scheduledTime == null ? "SET TIME" : "CHANGE"),
+                  ),
+                  if (_scheduledTime != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.clear,
+                        color: global.errorColor,
+                        size: 18,
+                      ),
+                      onPressed: () => setState(() => _scheduledTime = null),
+                    ),
+                ],
+              ),
+              const Divider(color: global.borderColor, height: 32),
+              // Restriction Switch
+              Material(
+                color: Colors.transparent,
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    "Restricted Quiz",
+                    style: TextStyle(color: global.valueColor, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    "Only allow specific users to attempt",
+                    style: TextStyle(color: global.labelColor, fontSize: 11),
+                  ),
+                  value: _isRestricted,
+                  activeColor: global.primaryAccent,
+                  onChanged: (v) => setState(() => _isRestricted = v),
+                ),
+              ),
+              if (_isRestricted) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _allowedUsersController,
+                  maxLines: 2,
+                  style: const TextStyle(
+                    color: global.valueColor,
+                    fontSize: 13,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: "Allowed User UIDs",
+                    hintText: "Enter UIDs separated by commas...",
+                    hintStyle: TextStyle(fontSize: 12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Tip: Participants can find their UID in the Sidebar/Profile.",
+                  style: TextStyle(color: global.warningColor, fontSize: 10),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickDateTime() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _scheduledTime ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_scheduledTime ?? DateTime.now()),
+    );
+    if (time == null) return;
+
+    setState(() {
+      _scheduledTime = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+    });
   }
 
   Widget _buildModulesSection() {
@@ -856,22 +1034,25 @@ class _QuizPageState extends State<QuizPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: global.borderColor),
           ),
-          child: SwitchListTile(
-            title: const Text(
-              "Complete Random Shuffle",
-              style: TextStyle(color: global.valueColor, fontSize: 14),
+          child: Material(
+            color: Colors.transparent,
+            child: SwitchListTile(
+              title: const Text(
+                "Complete Random Shuffle",
+                style: TextStyle(color: global.valueColor, fontSize: 14),
+              ),
+              subtitle: const Text(
+                "Mix all questions across all modules",
+                style: TextStyle(color: global.labelColor, fontSize: 11),
+              ),
+              value: completeRandomShuffle,
+              activeColor: global.primaryAccent,
+              onChanged: (bool value) {
+                setState(() {
+                  completeRandomShuffle = value;
+                });
+              },
             ),
-            subtitle: const Text(
-              "Mix all questions across all modules",
-              style: TextStyle(color: global.labelColor, fontSize: 11),
-            ),
-            value: completeRandomShuffle,
-            activeColor: global.primaryAccent,
-            onChanged: (bool value) {
-              setState(() {
-                completeRandomShuffle = value;
-              });
-            },
           ),
         ),
       ],
@@ -880,26 +1061,32 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _saveQuiz() async {
     if (user == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login required")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Login required")));
+      }
       return;
     }
 
     if (_titleController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty ||
         _timeController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("All fields required")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("All fields required")));
+      }
       return;
     }
 
     final time = int.tryParse(_timeController.text.trim());
     if (time == null || time < 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid time")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Invalid time")));
+      }
       return;
     }
 
@@ -911,20 +1098,24 @@ class _QuizPageState extends State<QuizPage> {
       final List answers = questions[i]['answers'] as List? ?? [];
 
       if (qText.isEmpty) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
+        }
         return;
       }
 
       if (answers.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Question ${i + 1} needs at least one correct answer",
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "Question ${i + 1} needs at least one correct answer",
+              ),
             ),
-          ),
-        );
+          );
+        }
         return;
       }
     }
@@ -979,6 +1170,13 @@ class _QuizPageState extends State<QuizPage> {
 
     final db = DatabaseService();
 
+    // Prepare Allowed Users list
+    final List<String> allowedParticipants = _allowedUsersController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
     try {
       if (widget.docId.isEmpty) {
         final newId = await db.createDatabase(
@@ -994,6 +1192,9 @@ class _QuizPageState extends State<QuizPage> {
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
           perQuestionTime: perQuestionTime,
+          activeAt: _scheduledTime,
+          isRestricted: _isRestricted,
+          allowedParticipants: allowedParticipants,
         );
         setState(() {
           widget.docId = newId;
@@ -1013,6 +1214,9 @@ class _QuizPageState extends State<QuizPage> {
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
           perQuestionTime: perQuestionTime,
+          activeAt: _scheduledTime,
+          isRestricted: _isRestricted,
+          allowedParticipants: allowedParticipants,
         );
         global.ID = widget.docId;
       }
@@ -1114,8 +1318,10 @@ class _QuizPageState extends State<QuizPage> {
           ],
         ),
       ),
-      body: Theme(
-        data: Theme.of(context).copyWith(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: global.primaryAccent))
+          : Theme(
+              data: Theme.of(context).copyWith(
           inputDecorationTheme: InputDecorationTheme(
             labelStyle: const TextStyle(color: global.labelColor),
             enabledBorder: OutlineInputBorder(
@@ -1186,23 +1392,28 @@ class _QuizPageState extends State<QuizPage> {
                 decoration: const InputDecoration(labelText: "Visibility"),
               ),
               const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text(
-                  "Allow Multiple Attempts",
-                  style: TextStyle(color: global.valueColor),
+              Material(
+                color: Colors.transparent,
+                child: SwitchListTile(
+                  title: const Text(
+                    "Allow Multiple Attempts",
+                    style: TextStyle(color: global.valueColor),
+                  ),
+                  subtitle: const Text(
+                    "If disabled, users can only take this quiz once",
+                    style: TextStyle(color: global.labelColor, fontSize: 12),
+                  ),
+                  value: allowMultipleAttempts,
+                  activeThumbColor: global.primaryAccent,
+                  onChanged: (bool value) {
+                    setState(() {
+                      allowMultipleAttempts = value;
+                    });
+                  },
                 ),
-                subtitle: const Text(
-                  "If disabled, users can only take this quiz once",
-                  style: TextStyle(color: global.labelColor, fontSize: 12),
-                ),
-                value: allowMultipleAttempts,
-                activeThumbColor: global.primaryAccent,
-                onChanged: (bool value) {
-                  setState(() {
-                    allowMultipleAttempts = value;
-                  });
-                },
               ),
+              const SizedBox(height: 16),
+              _buildSchedulingAndRestrictionSection(),
               const SizedBox(height: 16),
               _buildModulesSection(),
               const SizedBox(height: 24),
@@ -1293,10 +1504,10 @@ class _QuizPageState extends State<QuizPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 );
-              }).toList(),
+              }),
               const SizedBox(height: 120),
             ],
           ),
