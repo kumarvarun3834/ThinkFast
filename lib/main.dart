@@ -8,6 +8,7 @@ import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
 import 'package:thinkfast/screens/Main_Screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
+import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
 import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
@@ -167,6 +168,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/Admin Panel':
             page = const AdminPanel();
+            wrapInGradient = false;
+            break;
+          case '/Manage Admins':
+            page = const ManageAdminsScreen();
             wrapInGradient = false;
             break;
           case '/Quiz Responses':

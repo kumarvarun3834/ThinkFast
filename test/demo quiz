@@ -1,0 +1,25 @@
+{
+  "title": "Interactive Demo Quiz",
+  "description": "A sample quiz to demonstrate ThinkFast features.",
+  "time": 5,
+  "markingScheme": {
+    "type": "default"
+  },
+  "questions": [
+    {
+      "question": "What is the capital of France?",
+      "choices": [
+        "Paris",
+        "London",
+        "Berlin",
+        "Madrid"
+      ],
+      "answers": [
+        "Paris"
+      ],
+      "type": "Single Choice",
+      "subject": "General",
+      "description": "Paris is the capital and most populous city of France."
+    }
+  ]
+}

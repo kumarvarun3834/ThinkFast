@@ -1,12 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
+
 import 'admin_service.dart';
 import 'settings_service.dart';
 
 class QuizService {
-  final CollectionReference _quizzes = FirebaseFirestore.instance.collection('quizzes');
-  final CollectionReference _questions = FirebaseFirestore.instance.collection('quiz_questions');
-  final CollectionReference _answerKeys = FirebaseFirestore.instance.collection('answer_keys');
-  final CollectionReference _users = FirebaseFirestore.instance.collection('users');
+  final CollectionReference _quizzes = FirebaseFirestore.instance.collection(
+    'quizzes',
+  );
+  final CollectionReference _questions = FirebaseFirestore.instance.collection(
+    'quiz_questions',
+  );
+  final CollectionReference _answerKeys = FirebaseFirestore.instance.collection(
+    'answer_keys',
+  );
+  final CollectionReference _users = FirebaseFirestore.instance.collection(
+    'users',
+  );
   final AdminService _adminService = AdminService();
   final SettingsService _settingsService = SettingsService();
 
@@ -32,6 +42,10 @@ class QuizService {
     List<String>? allowedParticipants,
     bool isPersonal = false,
     bool isAiGenerated = false,
+    int? totalQuestions,
+    int? moduleCount,
+    String? markingType,
+    String? attemptLimitType,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -48,18 +62,23 @@ class QuizService {
 
     // 2. Fetch Feature Flags and Admin Status
     final flags = await _settingsService.getFeatureFlags();
-    final bool isUserAdmin = await _adminService.isAdmin(creatorId) || 
-                             await _adminService.isRegisteredAdmin(creatorId);
-    
+    final bool isUserAdmin =
+        await _adminService.isAdmin(creatorId) ||
+        await _adminService.isRegisteredAdmin(creatorId);
+
     // Check if quiz creation is globally disabled
     if (flags != null && flags['enable_create_quiz'] == false) {
       if (!isUserAdmin) {
-        throw Exception("Quiz creation is currently disabled by the administrator.");
+        throw Exception(
+          "Quiz creation is currently disabled by the administrator.",
+        );
       }
     }
 
-    final bool rateLimitEnabled = flags?['enable_quiz_creation_rate_limit'] ?? true;
-    final int rateLimitMinutes = (flags?['quiz_creation_rate_limit_minutes'] ?? 5).toInt();
+    final bool rateLimitEnabled =
+        flags?['enable_quiz_creation_rate_limit'] ?? true;
+    final int rateLimitMinutes =
+        (flags?['quiz_creation_rate_limit_minutes'] ?? 5).toInt();
 
     // 3. Rate Limit Check (Only if enabled and user is not admin)
     if (rateLimitEnabled && !isUserAdmin) {
@@ -67,7 +86,7 @@ class QuizService {
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
         final Timestamp? lastCreated = userData['lastQuizCreatedAt'];
-        
+
         if (lastCreated != null) {
           final lastTime = lastCreated.toDate();
           final now = DateTime.now();
@@ -75,7 +94,9 @@ class QuizService {
 
           if (difference.inMinutes < rateLimitMinutes) {
             final waitTime = rateLimitMinutes - difference.inMinutes;
-            throw Exception("Rate limit exceeded. Please wait $waitTime minutes before creating another quiz.");
+            throw Exception(
+              "Rate limit exceeded. Please wait $waitTime minutes before creating another quiz.",
+            );
           }
         }
       }
@@ -108,6 +129,10 @@ class QuizService {
       'allowedParticipants': allowedParticipants ?? [],
       'isPersonal': isPersonal,
       'isAiGenerated': isAiGenerated,
+      'totalQuestions': totalQuestions ?? 0,
+      'moduleCount': moduleCount ?? 0,
+      'markingType': markingType ?? 'default',
+      'attemptLimitType': attemptLimitType ?? 'none',
       'isDeleted': false,
     });
 
@@ -175,10 +200,10 @@ class QuizService {
   Future<void> deleteQuiz(String quizId, String userId) async {
     final quizDoc = await _quizzes.doc(quizId).get();
     if (!quizDoc.exists) throw Exception("Quiz not found");
-    
+
     final data = quizDoc.data() as Map<String, dynamic>;
     String deletedByType = 'system';
-    
+
     // Attribution logic: Prioritize Quiz Permissions
     if (data['creatorId'] == userId) {
       deletedByType = 'owner';
@@ -271,11 +296,13 @@ class QuizService {
         .where('isDeleted', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// ✅ Fetch My Quizzes
@@ -285,33 +312,45 @@ class QuizService {
         .where('isDeleted', isEqualTo: false)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// ✅ Fetch Managed Quizzes (Where user is a collaborator)
   Stream<List<Map<String, dynamic>>> getManagedQuizzes(String userId) {
-    return FirebaseFirestore.instance.collection('quiz_access')
+    return FirebaseFirestore.instance
+        .collection('quiz_access')
         .where('userId', isEqualTo: userId)
         .where('role', isEqualTo: 'manager')
         .snapshots()
         .asyncMap((snapshot) async {
-          List<Map<String, dynamic>> quizzes = [];
-          for (var doc in snapshot.docs) {
-            final quizId = doc.data()['quizId'];
-            final quizDoc = await _quizzes.doc(quizId).get();
-            if (quizDoc.exists) {
-              final data = quizDoc.data() as Map<String, dynamic>;
-              data['id'] = quizDoc.id;
-              if (data['isDeleted'] == false) {
-                quizzes.add(data);
+          if (snapshot.docs.isEmpty) return [];
+
+          // Trigger all fetches in parallel to minimize sequential server hits
+          final results = await Future.wait(
+            snapshot.docs.map((doc) async {
+              final quizId = doc.data()['quizId'];
+              try {
+                final quizDoc = await _quizzes.doc(quizId).get();
+                if (quizDoc.exists) {
+                  final data = quizDoc.data() as Map<String, dynamic>;
+                  data['id'] = quizDoc.id;
+                  return (data['isDeleted'] == false) ? data : null;
+                }
+              } catch (e) {
+                debugPrint("Permission denied for quiz metadata: $quizId");
               }
-            }
-          }
-          return quizzes;
+              return null;
+            }),
+          );
+
+          // Filter out nulls and return valid managed quizzes
+          return results.whereType<Map<String, dynamic>>().toList();
         });
   }
 
@@ -322,11 +361,13 @@ class QuizService {
         .where('isDeleted', isEqualTo: true)
         .orderBy('deletedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// ✅ Check if user has access to a quiz
@@ -350,7 +391,10 @@ class QuizService {
 
     if (isAdmin) return true;
 
-    final access = await FirebaseFirestore.instance.collection('quiz_access').doc('${quizId}_$userId').get();
+    final access = await FirebaseFirestore.instance
+        .collection('quiz_access')
+        .doc('${quizId}_$userId')
+        .get();
     return access.exists;
   }
 

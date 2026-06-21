@@ -17,37 +17,51 @@ class AdminPanel extends StatefulWidget {
 class _AdminPanelState extends State<AdminPanel> {
   final SettingsService _settingsService = SettingsService();
   final AdminService _adminService = AdminService();
-  int _adminLevel = 0;
+  List<String> _permissions = [];
+
+  // Grouped Feature Flags
+  final Map<String, List<String>> _flagGroups = {
+    "System Control": [
+      "maintenance_mode",
+      "management_features",
+      "user_action_logging",
+      "enable_analytics",
+    ],
+    "User Access": [
+      "enable_login",
+      "enable_register",
+      "enable_profile_edit",
+    ],
+    "Quiz Operations": [
+      "enable_create_quiz",
+      "enable_edit_quiz",
+      "enable_delete_quiz",
+      "enable_take_quiz",
+      "enable_import",
+      "random_quiz_generator",
+    ],
+    "AI & Performance": [
+      "enable_ai",
+      "enable_quiz_creation_rate_limit",
+    ],
+  };
 
   @override
   void initState() {
     super.initState();
-    _fetchAdminLevel();
+    _fetchPermissions();
   }
 
-  Future<void> _fetchAdminLevel() async {
+  Future<void> _fetchPermissions() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
-      final level = await _adminService.getAdminLevel(uid);
-      if (mounted) setState(() => _adminLevel = level);
+      final perms = await _adminService.getAdminPermissions(uid);
+      if (mounted) setState(() => _permissions = perms);
     }
   }
 
   bool _canManageFlag(String key) {
-    if (_adminLevel >= 10) return true; // Super Admin
-
-    switch (key) {
-      case 'maintenance_mode':
-        return _adminLevel >= 8;
-      case 'enable_quiz_creation_rate_limit':
-      case 'quiz_creation_rate_limit_minutes':
-        return _adminLevel >= 5; // Platform Managers and above
-      case 'management_features':
-        return _adminLevel >= 8;
-      default:
-        // Most global toggles require System Admin (8)
-        return _adminLevel >= 8;
-    }
+    return _permissions.contains('manage_app_settings');
   }
 
   @override
@@ -71,33 +85,30 @@ class _AdminPanelState extends State<AdminPanel> {
             );
           }
 
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(
-              child: Text(
-                "Failed to load feature flags",
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          }
-
-          final flags = snapshot.data!;
-          // Remove timestamps and numbers from toggle list
-          final toggleKeys = flags.keys.where((k) => flags[k] is bool).toList();
-          toggleKeys.sort();
+          final flags = snapshot.data ?? {};
 
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              _buildSectionHeader("Feature Flags"),
-              const SizedBox(height: 16),
-              ...toggleKeys.map(
-                (key) => _buildFlagToggle(key, flags[key] as bool),
-              ),
+              ..._flagGroups.entries.map((group) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(group.key),
+                    const SizedBox(height: 12),
+                    ...group.value.map((key) {
+                      final bool value = flags[key] == true;
+                      return _buildFlagToggle(key, value);
+                    }),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              }),
 
-              const SizedBox(height: 32),
               _buildSectionHeader("Rate Limits"),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildRateLimitField(flags),
+              const SizedBox(height: 80),
             ],
           );
         },
@@ -107,12 +118,12 @@ class _AdminPanelState extends State<AdminPanel> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title,
+      title.toUpperCase(),
       style: GoogleFonts.poppins(
         color: global.primaryAccent,
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: FontWeight.bold,
-        letterSpacing: 1.2,
+        letterSpacing: 1.5,
       ),
     );
   }
@@ -120,6 +131,7 @@ class _AdminPanelState extends State<AdminPanel> {
   Widget _buildFlagToggle(String key, bool value) {
     // Convert snake_case to Title Case for display
     final displayTitle = key
+        .replaceFirst('enable_', '')
         .split('_')
         .map((word) {
           if (word.isEmpty) return "";
@@ -154,7 +166,7 @@ class _AdminPanelState extends State<AdminPanel> {
                 ),
                 subtitle: !canManage
                     ? const Text(
-                        "Insufficient Level",
+                        "Insufficient Permission",
                         style: TextStyle(color: global.errorColor, fontSize: 12),
                       )
                     : null,
@@ -227,10 +239,18 @@ class _AdminPanelState extends State<AdminPanel> {
                     onSubmitted: (val) async {
                       final newValue = int.tryParse(val);
                       if (newValue != null) {
-                        await _settingsService.updateFeatureFlag(
-                          'quiz_creation_rate_limit_minutes',
-                          newValue,
-                        );
+                        try {
+                          await _settingsService.updateFeatureFlag(
+                            'quiz_creation_rate_limit_minutes',
+                            newValue,
+                          );
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error updating limit: $e")),
+                            );
+                          }
+                        }
                       }
                     },
                   ),

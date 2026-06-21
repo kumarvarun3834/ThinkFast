@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -18,6 +19,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
   bool _canCreateQuiz = true;
   bool _isAdmin = false;
   bool _isRegisteredAdmin = false;
+  bool _canManageAdmins = false;
 
   @override
   void initState() {
@@ -26,6 +28,8 @@ class _SidebarMenuState extends State<SidebarMenu> {
       _isAdmin = global.isAdmin;
       _isRegisteredAdmin = global.isRegisteredAdmin;
       _canCreateQuiz = global.featureFlags?['enable_create_quiz'] ?? true;
+
+      _checkPermissions();
 
       final profile = global.currentUserProfile;
       if (profile != null) {
@@ -37,6 +41,19 @@ class _SidebarMenuState extends State<SidebarMenu> {
       if (_userName == null || _userPhotoUrl == null) {
         _fetchUserProfile();
       }
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    if (widget.user == null) return;
+    
+    final adminService = AdminService();
+    final canManage = await adminService.hasPermission(widget.user!.uid, 'manage_admins');
+    
+    if (mounted) {
+      setState(() {
+        _canManageAdmins = canManage;
+      });
     }
   }
 
@@ -300,6 +317,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
               icon: Icons.admin_panel_settings_outlined,
               text: 'Admin Panel',
               onTap: () => _checkAndNavigate(context, "/Admin Panel"),
+            ),
+          if (_isAdmin && _canManageAdmins)
+            _drawerItem(
+              icon: Icons.supervisor_account_outlined,
+              text: 'Manage App Admins',
+              onTap: () => _checkAndNavigate(context, "/Manage Admins"),
             ),
           if (_isRegisteredAdmin)
             Padding(

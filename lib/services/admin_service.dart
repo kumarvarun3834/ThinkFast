@@ -22,29 +22,32 @@ class AdminService {
   final CollectionReference _responses = FirebaseFirestore.instance.collection(
     'responses',
   );
-  final CollectionReference _allAttempts = FirebaseFirestore.instance
-      .collection('all_attempts');
   final CollectionReference _quizAttempts = FirebaseFirestore.instance
       .collection('quiz_attempts');
 
   // Safely check if a user is a registered admin
   Future<bool> isRegisteredAdmin(String uid) async {
-    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2')
-      return true; // Super Admin Override
-    final doc = await _admins.doc(uid).get();
-    return doc.exists;
+    try {
+      final doc = await _admins.doc(uid).get();
+      return doc.exists;
+    } catch (e) {
+      return false;
+    }
   }
 
   /// ✅ Check if user is admin AND has admin mode active
   /// Use this for UI visibility and secondary privilege checks
   Future<bool> isAdmin(String uid) async {
-    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2')
-      return true; // Super Admin Override
-    final doc = await _admins.doc(uid).get();
-    if (!doc.exists) return false;
-    final data = doc.data() as Map<String, dynamic>;
-    // MUST have toggle enabled AND be a registered admin
-    return data['isAdminModeEnabled'] == true;
+    try {
+      final doc = await _admins.doc(uid).get();
+      if (!doc.exists) return false;
+      final data = doc.data() as Map<String, dynamic>;
+      // MUST have toggle enabled AND be a registered admin
+      return data['isAdminModeEnabled'] == true;
+    } catch (e) {
+      // If we can't even check (e.g. permission denied), they are effectively not an admin
+      return false;
+    }
   }
 
   /// ✅ Toggle Admin Mode (Switch between normal user and admin experience)
@@ -70,72 +73,71 @@ class AdminService {
     );
   }
 
-  /// ✅ Get admin level
-  Future<int> getAdminLevel(String uid) async {
-    if (uid == 'y6IkZpvVBYZWvVzXwJTfcwC3EBu2') return 10; // Super Admin Level
+  /// ✅ Get admin permissions
+  Future<List<String>> getAdminPermissions(String uid) async {
     final doc = await _admins.doc(uid).get();
-    if (!doc.exists) return 0;
+    if (!doc.exists) return [];
     final data = doc.data() as Map<String, dynamic>;
-    return data['level'] ?? 1; // Default to level 1 if not specified
+    return List<String>.from(data['permissions'] ?? []);
   }
 
-  /// ✅ Add or Update Admin (Level system constraints)
-  /// Higher level can remove or update lower level
+  /// ✅ Check if admin has specific permission
+  Future<bool> hasPermission(String uid, String permission) async {
+    if (!await isAdmin(uid)) return false;
+    final permissions = await getAdminPermissions(uid);
+    return permissions.contains(permission);
+  }
+
+  /// ✅ Add or Update Admin with selectable permissions
   Future<void> addOrUpdateAdmin({
     required String targetUid,
-    required int level,
+    required List<String> permissions,
     required String actorUid,
   }) async {
-    final actorLevel = await getAdminLevel(actorUid);
-    final targetCurrentLevel = await getAdminLevel(targetUid);
-
-    // Constraint: Only higher level admins can add or update lower level admins
-    if (actorLevel > targetCurrentLevel && actorLevel > level) {
-      await _admins.doc(targetUid).set({
-        'level': level,
-        'addedBy': actorUid,
-        'isAdminModeEnabled': true, // Default to active for new admins
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      await logAction(
-        actorId: actorUid,
-        action: targetCurrentLevel == 0 ? 'add_admin' : 'update_admin_level',
-        targetId: targetUid,
-        details: 'Target: $targetUid, Level set to: $level',
-        category: 'admin',
-      );
-    } else {
+    // Only admins with 'manage_admins' permission can add/update admins
+    if (!await hasPermission(actorUid, 'manage_admins')) {
       throw Exception(
-        'Unauthorized: Higher admin level required to perform this action.',
+        'Unauthorized: Permission "manage_admins" required.',
       );
     }
+
+    await _admins.doc(targetUid).set({
+      'permissions': permissions,
+      'level': permissions.length, // Derived level
+      'addedBy': actorUid,
+      'isAdminModeEnabled': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await logAction(
+      actorId: actorUid,
+      action: 'update_admin_permissions',
+      targetId: targetUid,
+      details: 'Target: $targetUid, Permissions: $permissions',
+      category: 'admin',
+    );
   }
 
-  /// ✅ Remove Admin (Level system constraints)
+  /// ✅ Remove Admin
   Future<void> removeAdmin({
     required String targetUid,
     required String actorUid,
   }) async {
-    final actorLevel = await getAdminLevel(actorUid);
-    final targetLevel = await getAdminLevel(targetUid);
-
-    // Constraint: Only higher level admins can remove lower level admins
-    if (actorLevel > targetLevel) {
-      await _admins.doc(targetUid).delete();
-
-      await logAction(
-        actorId: actorUid,
-        action: 'remove_admin',
-        targetId: targetUid,
-        details: 'Removed admin: $targetUid (was level $targetLevel)',
-        category: 'admin',
-      );
-    } else {
+    if (!await hasPermission(actorUid, 'manage_admins')) {
       throw Exception(
-        'Unauthorized: Higher admin level required to remove this admin.',
+        'Unauthorized: Permission "manage_admins" required.',
       );
     }
+
+    await _admins.doc(targetUid).delete();
+
+    await logAction(
+      actorId: actorUid,
+      action: 'remove_admin',
+      targetId: targetUid,
+      details: 'Removed admin: $targetUid',
+      category: 'admin',
+    );
   }
 
   /// ✅ Submit a report
@@ -288,7 +290,10 @@ class AdminService {
   Future<bool> hasRequiredLevel(String uid, int requiredLevel) async {
     // Requires active admin mode to use elevated levels
     if (!await isAdmin(uid)) return false;
-    final level = await getAdminLevel(uid);
+    final doc = await _admins.doc(uid).get();
+    if (!doc.exists) return false;
+    final data = doc.data() as Map<String, dynamic>;
+    final level = data['level'] ?? 0;
     return level >= requiredLevel;
   }
 
@@ -394,9 +399,8 @@ class AdminService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    // Update all three locations where response data is stored
+    // Synchronize soft delete across 2-way storage
     batch.update(_responses.doc(responseId), updates);
-    batch.update(_allAttempts.doc(responseId), updates);
     batch.update(
       _quizAttempts.doc(quizId).collection('attempts').doc(responseId),
       updates,
@@ -427,8 +431,8 @@ class AdminService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
+    // Synchronize restoration across 2-way storage
     batch.update(_responses.doc(responseId), updates);
-    batch.update(_allAttempts.doc(responseId), updates);
     batch.update(
       _quizAttempts.doc(quizId).collection('attempts').doc(responseId),
       updates,
@@ -513,15 +517,15 @@ class AdminService {
         );
   }
 
-  /// ✅ Master control: Force delete or update any quiz (App Admin only)
+  /// ✅ Master control: Force delete or update any quiz
   Future<void> masterQuizControl({
     required String quizId,
     required Map<String, dynamic> updates,
     required String adminId,
   }) async {
-    final bool isAppAdmin = await isAdmin(adminId);
-    if (!isAppAdmin)
-      throw Exception("Unauthorized: App Admin privileges required.");
+    if (!await hasPermission(adminId, 'manage_all_quizzes')) {
+      throw Exception("Unauthorized: 'manage_all_quizzes' permission required.");
+    }
 
     await FirebaseFirestore.instance
         .collection('quizzes')
@@ -537,6 +541,16 @@ class AdminService {
     );
   }
 
+  /// ✅ Get all quiz access records for a specific user (for local caching)
+  Future<List<Map<String, dynamic>>> getUserAccessRecords(String userId) async {
+    try {
+      final snapshot = await _quizAccess.where('userId', isEqualTo: userId).get();
+      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// ✅ Check if user has specific management permission for a quiz
   /// Returns true if user is the Quiz Owner, an App Admin, or a Manager with the right permission.
   Future<bool> canManageQuiz(
@@ -545,25 +559,44 @@ class AdminService {
     String? permission,
   }) async {
     // 1. App Admin has global access
+    if (global.isAdmin && userId == FirebaseAuth.instance.currentUser?.uid) return true;
     if (await isAdmin(userId)) return true;
 
-    // 2. Check if user is the owner
-    final quizDoc = await FirebaseFirestore.instance
-        .collection('quizzes')
-        .doc(quizId)
-        .get();
-    if (quizDoc.exists && quizDoc.data()?['creatorId'] == userId) return true;
+    // 2. Check Local Cache (Fastest)
+    if (global.ownedQuizIds.contains(quizId)) return true;
+    if (global.managedQuizzes.containsKey(quizId)) {
+      if (permission == null) return true;
+      final perms = global.managedQuizzes[quizId]!;
+      if (perms[permission] == true) return true;
+    }
 
-    // 3. Check if user is a manager with specific permission
-    final accessDoc = await _quizAccess.doc('${quizId}_$userId').get();
-    if (accessDoc.exists) {
-      final data = accessDoc.data() as Map<String, dynamic>;
-      if (data['role'] == 'manager') {
-        if (permission == null)
-          return true; // Just checking for general manager role
-        final perms = data['permissions'] as Map<String, dynamic>? ?? {};
-        return perms[permission] == true;
+    try {
+      // 3. Fallback: Check if user is the owner via Firestore
+      final quizDoc = await FirebaseFirestore.instance
+          .collection('quizzes')
+          .doc(quizId)
+          .get();
+      if (quizDoc.exists && quizDoc.data()?['creatorId'] == userId) {
+        // Update cache
+        global.ownedQuizIds.add(quizId);
+        return true;
       }
+
+      // 4. Fallback: Check if user is a manager via Firestore
+      final accessDoc = await _quizAccess.doc('${quizId}_$userId').get();
+      if (accessDoc.exists) {
+        final data = accessDoc.data() as Map<String, dynamic>;
+        if (data['role'] == 'manager') {
+          // Update cache
+          global.managedQuizzes[quizId] = Map<String, dynamic>.from(data['permissions'] ?? {});
+          
+          if (permission == null) return true;
+          final perms = data['permissions'] as Map<String, dynamic>? ?? {};
+          return perms[permission] == true;
+        }
+      }
+    } catch (e) {
+      return false;
     }
 
     return false;
@@ -632,6 +665,19 @@ class AdminService {
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => doc.data() as Map<String, dynamic>)
+              .toList(),
+        );
+  }
+
+  /// ✅ Get all admins
+  Stream<List<Map<String, dynamic>>> getAllAdmins() {
+    return _admins.snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['uid'] = doc.id;
+                return data;
+              })
               .toList(),
         );
   }

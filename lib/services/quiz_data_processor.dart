@@ -7,6 +7,7 @@ class QuizImportResult {
   final int? time;
   final int? perQuestionTime;
   final String? markingType;
+  final int? markingPassThreshold;
   final Map<String, dynamic>? markingGlobal;
   final Map<String, dynamic>? markingPerType;
   final Map<String, dynamic>? markingPerQuestion;
@@ -21,6 +22,7 @@ class QuizImportResult {
     this.time,
     this.perQuestionTime,
     this.markingType,
+    this.markingPassThreshold,
     this.markingGlobal,
     this.markingPerType,
     this.markingPerQuestion,
@@ -60,6 +62,7 @@ class QuizDataProcessor {
         : null;
 
     String? markingType;
+    int? markingPassThreshold;
     Map<String, dynamic>? markingGlobal;
     Map<String, dynamic>? markingPerType;
     Map<String, dynamic>? markingPerQuestion;
@@ -67,6 +70,7 @@ class QuizDataProcessor {
     if (data['markingScheme'] != null) {
       final scheme = data['markingScheme'] as Map;
       markingType = scheme['type']?.toString() ?? 'default';
+      markingPassThreshold = int.tryParse(scheme['passThreshold']?.toString() ?? '40');
       
       if (scheme['global'] != null) {
         markingGlobal = Map<String, dynamic>.from(scheme['global'] as Map);
@@ -140,6 +144,7 @@ class QuizDataProcessor {
       time: time,
       perQuestionTime: perQuestionTime,
       markingType: markingType,
+      markingPassThreshold: markingPassThreshold,
       markingGlobal: markingGlobal,
       markingPerType: markingPerType,
       markingPerQuestion: markingPerQuestion,

@@ -262,12 +262,19 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                         ),
                     ],
                   ),
-                  title: Text(
-                    user['userName'] ?? "Unknown User",
-                    style: GoogleFonts.poppins(
-                      color: _valueColor,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          user['userName'] ?? "Unknown User",
+                          style: GoogleFonts.poppins(
+                            color: _valueColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -380,12 +387,15 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                             size: 18,
                           ),
                         ),
-                      Text(
-                        "User: ${r['userId']}",
-                        style: GoogleFonts.poppins(
-                          color: _valueColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                      Expanded(
+                        child: Text(
+                          "User: ${r['userId']}",
+                          style: GoogleFonts.poppins(
+                            color: _valueColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -456,12 +466,25 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               foregroundColor: Colors.black,
             ),
             onPressed: () async {
-              await DatabaseService().unbanUser(
-                userId: user['userId'],
-                quizId: widget.quizId,
-                adminId: FirebaseAuth.instance.currentUser!.uid,
-              );
-              Navigator.pop(context);
+              try {
+                await DatabaseService().unbanUser(
+                  userId: user['userId'],
+                  quizId: widget.quizId,
+                  adminId: FirebaseAuth.instance.currentUser!.uid,
+                );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("User unblocked successfully")),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Failed to unblock: $e")),
+                  );
+                }
+              }
             },
             child: const Text("Unblock"),
           ),

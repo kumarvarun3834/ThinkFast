@@ -1,7 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -48,7 +48,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedUser = FirebaseAuth.instance.currentUser;
 
       _uidController.text = updatedUser?.uid ?? '';
-      final profile = await _dbService.getUserProfile(updatedUser!.uid);
+      final profile = await _dbService.getUserProfile(
+        updatedUser!.uid,
+        actorId: updatedUser.uid,
+      );
 
       if (profile != null) {
         // Load from Firestore, fallback to Auth DisplayName if Firestore name is empty
@@ -100,13 +103,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       // Save Public Profile
       await _dbService.updateUserProfile(
-        uid: _user!.uid,
+        uid: _user.uid,
         name: _nameController.text.trim(),
       );
 
       // Save Protected AI Details
       await _dbService.updateProtectedDetails(
-        uid: _user!.uid,
+        uid: _user.uid,
         details: {
           'class': _classController.text.trim(),
           'age': _ageController.text.trim(),
@@ -225,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   color: global.primaryAccent,
                                 ),
                               ),
-                              if (_user != null && !_user!.emailVerified)
+                              if (_user != null && !_user.emailVerified)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -259,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ],
                                   ),
                                 )
-                              else if (_user != null && _user!.emailVerified)
+                              else if (_user != null && _user.emailVerified)
                                 Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
@@ -462,8 +465,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 1.2,
                                   ),
-                                  ),
                                 ),
+                              ),
                         const SizedBox(height: 100),
                       ],
                     ),

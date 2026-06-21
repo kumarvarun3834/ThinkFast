@@ -1,9 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+
 import 'admin_service.dart';
 
 class UserService {
-  final CollectionReference _users = FirebaseFirestore.instance.collection('users');
+  final CollectionReference _users = FirebaseFirestore.instance.collection(
+    'users',
+  );
   final AdminService _adminService = AdminService();
 
   /// ✅ Create a new user profile
@@ -46,15 +50,28 @@ class UserService {
       if (!doc.exists) return null;
 
       final data = doc.data() as Map<String, dynamic>;
+      final String? currentUid = FirebaseAuth.instance.currentUser?.uid;
 
-      final protectedDoc = await _users.doc(uid).collection('protected').doc('details').get();
-      if (protectedDoc.exists) {
-        data.addAll(protectedDoc.data() as Map<String, dynamic>);
-      }
+      // Only attempt to fetch protected/private data if reading own profile
+      // OR if we are an admin (though rules might still block this depending on settings)
+      if (uid == currentUid) {
+        final protectedDoc = await _users
+            .doc(uid)
+            .collection('protected')
+            .doc('details')
+            .get();
+        if (protectedDoc.exists) {
+          data.addAll(protectedDoc.data() as Map<String, dynamic>);
+        }
 
-      final privateDoc = await _users.doc(uid).collection('private').doc('details').get();
-      if (privateDoc.exists) {
-        data.addAll(privateDoc.data() as Map<String, dynamic>);
+        final privateDoc = await _users
+            .doc(uid)
+            .collection('private')
+            .doc('details')
+            .get();
+        if (privateDoc.exists) {
+          data.addAll(privateDoc.data() as Map<String, dynamic>);
+        }
       }
 
       return data;
@@ -96,8 +113,12 @@ class UserService {
   }) async {
     if (details == null) return;
     details['updatedAt'] = FieldValue.serverTimestamp();
-    await _users.doc(uid).collection('protected').doc('details').set(details, SetOptions(merge: true));
-    
+    await _users
+        .doc(uid)
+        .collection('protected')
+        .doc('details')
+        .set(details, SetOptions(merge: true));
+
     // Logging protected changes might be too verbose, but doing it anyway per requirements
     await _adminService.logAction(
       actorId: uid,
@@ -125,10 +146,15 @@ class UserService {
       updates['activeQuizExpiry'] = FieldValue.delete();
     } else {
       if (activeQuizId != null) updates['activeQuizId'] = activeQuizId;
-      if (activeQuizExpiry != null) updates['activeQuizExpiry'] = Timestamp.fromDate(activeQuizExpiry);
+      if (activeQuizExpiry != null)
+        updates['activeQuizExpiry'] = Timestamp.fromDate(activeQuizExpiry);
     }
 
-    await _users.doc(uid).collection('private').doc('details').set(updates, SetOptions(merge: true));
+    await _users
+        .doc(uid)
+        .collection('private')
+        .doc('details')
+        .set(updates, SetOptions(merge: true));
 
     await _adminService.logAction(
       actorId: uid,

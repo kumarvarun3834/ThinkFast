@@ -50,8 +50,8 @@ class AiService {
 
   /// ✅ Check if user has AI generation quota remaining
   Future<bool> hasAiQuota(String userId) async {
-    // Level 8+ bypasses AI rate limits
-    if (await _admin.hasRequiredLevel(userId, 8)) {
+    // Admins with 'bypass_ai_limits' permission can generate unlimited quizzes
+    if (await _admin.hasPermission(userId, 'bypass_ai_limits')) {
       return true;
     } else {
       return false;
@@ -93,8 +93,18 @@ class AiService {
   }) async {
     await _checkAiEnabled(userId);
 
-    // 1. Generate JSON
-    final jsonContent = await generateQuizJson(prompt);
+    // 1. Generate JSON with specific "System Prompt" instruction
+    final systemPrompt = """
+      Generate a professional quiz JSON for '$prompt'.
+      Rules:
+      - Include a mix of Single Choice, Multiple Choice, and Integer types.
+      - Add detailed 'description' (solutions) for each question.
+      - Group questions into relevant 'subject' modules.
+      - Set a 'markingScheme' with a 'passThreshold' (usually 40).
+      - Ensure all answer IDs and choice IDs match.
+    """;
+    
+    final jsonContent = await generateQuizJson(prompt + " " + systemPrompt);
     
     // 2. Process Result
     final result = await QuizDataProcessor.processImportData(jsonContent);
@@ -111,6 +121,7 @@ class AiService {
       time: (result.time ?? 600) ~/ 60,
       markingScheme: {
         'type': result.markingType ?? 'default',
+        'passThreshold': result.markingPassThreshold ?? 40,
         if (result.markingGlobal != null) 'global': result.markingGlobal,
         if (result.markingPerType != null) 'perQuestionType': result.markingPerType,
         if (result.markingPerQuestion != null) 'perQuestion': result.markingPerQuestion,
@@ -136,27 +147,48 @@ class AiService {
 
   /// ✅ Mock AI Generation (Should be replaced with actual API call)
   Future<String> generateQuizJson(String prompt) async {
-    // In a real app, this would call OpenAI/Gemini
+    // In a real app, this would call OpenAI/Gemini with the prompt
     await Future.delayed(const Duration(seconds: 2));
 
-    // Returning a basic template for testing
+    // Returning a more diverse template
     return jsonEncode({
-      "title": "AI Generated: $prompt",
-      "description": "Automatically generated based on your prompt.",
-      "time": 600,
+      "title": "ThinkFast AI: Topic Exploration",
+      "description": "Comprehensive quiz generated for your request.",
+      "time": 900,
       "markingScheme": {
-        "type": "default"
+        "type": "per_question_type",
+        "passThreshold": 50,
+        "perQuestionType": {
+          "Single Choice": {"correct": 4, "wrong": -1},
+          "Multiple Choice": {"correct": 6, "wrong": -2},
+          "Integer": {"correct": 10, "wrong": 0}
+        }
       },
       "questions": [
         {
-          "question": "Sample Question from AI?",
-          "choices": ["Option A", "Option B", "Option C", "Option D"],
-          "answers": ["Option A"],
-          "type": "Single Choice",
-          "subject": "General",
-          "correct": 4,
-          "wrong": -1,
+          "question": "Which of these are primary colors?",
+          "choices": ["Red", "Green", "Blue", "Yellow"],
+          "answers": ["Red", "Blue", "Yellow"],
+          "type": "Multiple Choice",
+          "subject": "Basics",
+          "description": "Primary colors are those that cannot be created by mixing other colors."
         },
+        {
+          "question": "What is 25 * 4?",
+          "choices": [],
+          "answers": ["100"],
+          "type": "Integer",
+          "subject": "Arithmetic",
+          "description": "25 times 4 equals exactly 100."
+        },
+        {
+          "question": "What is the capital of France?",
+          "choices": ["London", "Berlin", "Paris", "Madrid"],
+          "answers": ["Paris"],
+          "type": "Single Choice",
+          "subject": "Geography",
+          "description": "Paris is the capital and most populous city of France."
+        }
       ],
     });
   }

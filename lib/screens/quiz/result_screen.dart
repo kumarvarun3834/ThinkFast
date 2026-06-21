@@ -9,8 +9,15 @@ class ResultScreen extends StatefulWidget {
   final String? quizId;
   final Map<String, dynamic>? attemptAnswers;
   final List<dynamic>? attemptReviewItems;
+  final List<dynamic>? attemptQuestionOrder;
 
-  const ResultScreen({super.key, this.quizId, this.attemptAnswers, this.attemptReviewItems});
+  const ResultScreen({
+    super.key,
+    this.quizId,
+    this.attemptAnswers,
+    this.attemptReviewItems,
+    this.attemptQuestionOrder,
+  });
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -23,7 +30,7 @@ class _ResultScreenState extends State<ResultScreen> {
   int _wrongCount = 0;
   int _unattemptedCount = 0;
   bool _isLoading = true;
-  bool _showDetails = false;
+  // bool _showDetails = false;
   Map<String, List<String>> _correctAnswers = {};
   Map<String, String> _solutions = {};
   List<Map<String, dynamic>> _displayQuizData = [];
@@ -53,17 +60,41 @@ class _ResultScreenState extends State<ResultScreen> {
         final List<String> reviewUids = widget.attemptReviewItems != null
             ? List<String>.from(widget.attemptReviewItems!)
             : [];
+        final List<String> questionOrder = widget.attemptQuestionOrder != null
+            ? List<String>.from(widget.attemptQuestionOrder!)
+            : [];
         
         // Fetch quiz data (questions)
         final quiz = await db.readDatabase(_quizId, userId: user.uid);
         _displayQuizData = [];
         final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
+        final List<Map<String, dynamic>> allQuestions = [];
         for (var module in rawModules) {
           final List<dynamic> moduleData = module['data'] as List? ?? [];
           for (var q in moduleData) {
-            _displayQuizData.add(Map<String, dynamic>.from(q));
+            allQuestions.add(Map<String, dynamic>.from(q));
           }
         }
+
+        // REORDER based on questionOrder if available
+        if (questionOrder.isNotEmpty) {
+          for (var qUid in questionOrder) {
+            try {
+              final q = allQuestions.firstWhere(
+                (element) => (element['Q']?['id'] ?? element['uid']).toString() == qUid,
+              );
+              _displayQuizData.add(q);
+            } catch (_) {}
+          }
+          // Add any missing questions
+          for (var q in allQuestions) {
+            final id = (q['Q']?['id'] ?? q['uid']).toString();
+            if (!questionOrder.contains(id)) _displayQuizData.add(q);
+          }
+        } else {
+          _displayQuizData = allQuestions;
+        }
+
         _markingScheme = quiz['markingScheme'] ?? {"type": "default"};
         
         // Build displayQuizResult from quiz data and userAnswers
@@ -91,11 +122,13 @@ class _ResultScreenState extends State<ResultScreen> {
         _markingScheme = global.markingScheme;
 
         List<String> reviewItems = [];
+        List<String> questionOrder = [];
         for (var result in displayQuizResult) {
           final String qUid = result[1];
           final List<String> selections = (result[2] as List).cast<String>();
           final bool isReview = result.length > 4 ? result[4] : false;
           userAnswers[qUid] = selections;
+          questionOrder.add(qUid);
           if (isReview) reviewItems.add(qUid);
         }
 
@@ -106,6 +139,7 @@ class _ResultScreenState extends State<ResultScreen> {
           totalQuestions: displayQuizResult.length,
           userAnswers: userAnswers,
           reviewItems: reviewItems,
+          questionOrder: questionOrder,
         );
         _correctAnswers = response['answers'];
         _solutions = response['solutions'];
@@ -253,6 +287,10 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildSummaryView() {
+    final double percentage = _maxMarks > 0 ? (totalMarks / _maxMarks) * 100 : 0;
+    final int threshold = (_markingScheme['passThreshold'] ?? 40).toInt();
+    final bool isPassed = percentage >= threshold;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -261,11 +299,34 @@ class _ResultScreenState extends State<ResultScreen> {
             color: global.cardColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: global.borderColor),
+              side: BorderSide(
+                color: isPassed ? global.successColor : global.errorColor,
+                width: 2,
+              ),
             ),
-            child: MarksPanel(
-              totalCorrectAnswers: totalMarks,
-              totalQuestions: _maxMarks,
+            child: Column(
+              children: [
+                MarksPanel(
+                  totalCorrectAnswers: totalMarks,
+                  totalQuestions: _maxMarks,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: (isPassed ? global.successColor : global.errorColor).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isPassed ? "PASSED ($threshold% Req.)" : "FAILED ($threshold% Req.)",
+                    style: GoogleFonts.poppins(
+                      color: isPassed ? global.successColor : global.errorColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

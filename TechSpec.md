@@ -111,7 +111,7 @@ Using the `app_links` package, the app handles URLs like `thinkfast.app/quiz?id=
 The `AiService` tracks daily generations per user. Before invoking AI generation, the system checks `aiGenerationsToday` against a quota to manage costs and prevent abuse.
 
 ## 4. Security Rules
-- **Admin Overrides:** Users with the `admin` role in their profile (or `isAdminMode` enabled) bypass standard ownership and rate-limiting checks, as well as global feature flag restrictions.
+- **Admin Overrides:** Designated administrators with `isAdminMode` enabled bypass standard ownership and rate-limiting checks. The platform uses a granular permission system (e.g., `manage_admins`, `moderate_users`) to authorize specific administrative actions.
 - **Private Data:** Sensitive user information is stored in sub-collections with restricted read access.
 - **Global Permission Guards:** Every database operation in `DatabaseService` is guarded by a feature flag check. If a feature (e.g., `enable_create_quiz`) is toggled off in `feature_flags`, only administrators can perform that action.
 

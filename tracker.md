@@ -91,7 +91,7 @@
 
 ## 📈 Recent Updates
 
-- **v1.2.x Patches:** Implemented Recycle Bin, Scheduling, Moderation Panel, and Admin Bypass logic.
+- **v1.2.x Patches:** Implemented Recycle Bin, Scheduling, Moderation Panel, Admin Bypass, and **Interactive Help Demo**.
 - **v1.2.0:** Centralized theme tokens, refactored data processor, and enhanced timer hierarchy.
 - **v1.1.0:** Implemented "Attempt Limits" (N out of M) and Enhanced Review Mode with solutions.
 - **v1.0.7:** Added "Double Tap to Instant Submit" for unexpired active quizzes.

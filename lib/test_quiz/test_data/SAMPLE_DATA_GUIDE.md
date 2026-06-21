@@ -234,3 +234,28 @@ to instruct an AI to generate specific quiz types.
   ]
 }
 ```
+
+### Sample 6: The "Interactive Demo" (Reference)
+
+*A comprehensive demo used in the help system, located at `test/demo_quiz.json`.*
+
+```json
+{
+  "title": "Interactive Demo Quiz",
+  "description": "A sample quiz to demonstrate ThinkFast features.",
+  "time": 5,
+  "markingScheme": {
+    "type": "default"
+  },
+  "questions": [
+    {
+      "question": "What is the capital of France?",
+      "choices": ["Paris", "London", "Berlin", "Madrid"],
+      "answers": ["Paris"],
+      "type": "Single Choice",
+      "subject": "General",
+      "description": "Paris is the capital and most populous city of France."
+    }
+  ]
+}
+```

@@ -1,7 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class QuizCollaboratorsScreen extends StatefulWidget {
   final String quizId;
@@ -9,7 +9,8 @@ class QuizCollaboratorsScreen extends StatefulWidget {
   const QuizCollaboratorsScreen({super.key, required this.quizId});
 
   @override
-  State<QuizCollaboratorsScreen> createState() => _QuizCollaboratorsScreenState();
+  State<QuizCollaboratorsScreen> createState() =>
+      _QuizCollaboratorsScreenState();
 }
 
 class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
@@ -42,7 +43,7 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
           'canSeeResponses': _canSeeResponses,
           'canModerate': _canModerate,
         },
-        addedBy: _currentUserId!,
+        addedBy: _currentUserId,
       );
       _userIdController.clear();
       if (mounted) {
@@ -52,9 +53,9 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -68,7 +69,10 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
         elevation: 0,
         title: Text(
           "Collaborators",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: _valueColor),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _valueColor,
+          ),
         ),
         iconTheme: IconThemeData(color: _valueColor),
       ),
@@ -111,9 +115,21 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildPermissionSwitch("Update Quiz Data", _canUpdateData, (v) => setState(() => _canUpdateData = v)),
-                  _buildPermissionSwitch("See Responses", _canSeeResponses, (v) => setState(() => _canSeeResponses = v)),
-                  _buildPermissionSwitch("Moderate (Ban/Delete)", _canModerate, (v) => setState(() => _canModerate = v)),
+                  _buildPermissionSwitch(
+                    "Update Quiz Data",
+                    _canUpdateData,
+                    (v) => setState(() => _canUpdateData = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "See Responses",
+                    _canSeeResponses,
+                    (v) => setState(() => _canSeeResponses = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Moderate (Ban/Delete)",
+                    _canModerate,
+                    (v) => setState(() => _canModerate = v),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -122,9 +138,14 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                       onPressed: _addCollaborator,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _primaryAccent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text("GRANT ACCESS", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "GRANT ACCESS",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -141,7 +162,12 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                 }
                 final managers = snapshot.data ?? [];
                 if (managers.isEmpty) {
-                  return Center(child: Text("No collaborators yet", style: TextStyle(color: _labelColor)));
+                  return Center(
+                    child: Text(
+                      "No collaborators yet",
+                      style: TextStyle(color: _labelColor),
+                    ),
+                  );
                 }
 
                 return ListView.builder(
@@ -149,7 +175,10 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                   itemBuilder: (context, index) {
                     final m = managers[index];
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: _cardColor,
                         borderRadius: BorderRadius.circular(12),
@@ -158,25 +187,49 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                       child: Material(
                         color: Colors.transparent,
                         child: ListTile(
-                          title: Text(m['userId'], style: TextStyle(color: _valueColor, fontWeight: FontWeight.bold)),
+                          title: Text(
+                            m['userId'],
+                            style: TextStyle(
+                              color: _valueColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           subtitle: Text(
                             "Perms: ${m['permissions']}",
                             style: TextStyle(color: _labelColor, fontSize: 12),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              color: Colors.redAccent,
+                            ),
                             onPressed: () async {
                               final bool? confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   backgroundColor: _cardColor,
-                                  title: const Text("Remove Collaborator?", style: TextStyle(color: Colors.white)),
-                                  content: Text("Are you sure you want to remove access for ${m['userId']}?", style: const TextStyle(color: Colors.white70)),
+                                  title: const Text(
+                                    "Remove Collaborator?",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  content: Text(
+                                    "Are you sure you want to remove access for ${m['userId']}?",
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                    ),
+                                  ),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text("Cancel"),
+                                    ),
                                     ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                      onPressed: () => Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
                                       child: const Text("Remove"),
                                     ),
                                   ],
@@ -188,11 +241,13 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                                   await _db.removeManagementAccess(
                                     quizId: widget.quizId,
                                     userId: m['userId'],
-                                    removedBy: _currentUserId!,
+                                    removedBy: _currentUserId,
                                   );
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Collaborator removed")),
+                                      const SnackBar(
+                                        content: Text("Collaborator removed"),
+                                      ),
                                     );
                                   }
                                 } catch (e) {
@@ -218,7 +273,11 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
     );
   }
 
-  Widget _buildPermissionSwitch(String title, bool value, Function(bool) onChanged) {
+  Widget _buildPermissionSwitch(
+    String title,
+    bool value,
+    Function(bool) onChanged,
+  ) {
     return SwitchListTile(
       title: Text(title, style: TextStyle(color: _valueColor, fontSize: 14)),
       value: value,

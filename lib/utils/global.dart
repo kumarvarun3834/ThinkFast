@@ -18,6 +18,10 @@ Map<String, dynamic>? featureFlags;
 bool isAdmin = false;
 bool isRegisteredAdmin = false;
 
+// Local Session Cache for Permissions & Ownership
+Set<String> ownedQuizIds = {};
+Map<String, Map<String, dynamic>> managedQuizzes = {}; // quizId -> permissions map
+
 // 🎨 Theme Colors (ThinkFast Palette)
 const Color bgColor = Color(0xFF0F172A); // Deep Blue/Black Background
 const Color cardColor = Color(0xFF1E293B); // Slate Surface/Card Color

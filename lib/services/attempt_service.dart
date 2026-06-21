@@ -6,14 +6,12 @@ class AttemptService {
   final CollectionReference _responses = FirebaseFirestore.instance.collection(
     'responses',
   );
-  final CollectionReference _allAttempts = FirebaseFirestore.instance
-      .collection('all_attempts');
   final CollectionReference _quizAttempts = FirebaseFirestore.instance
       .collection('quiz_attempts');
   final AdminService _adminService = AdminService();
 
-  /// ✅ Calculate score and submit attempt
-  Future<String> submitScoredAttempt({
+  /// ✅ Unified submission (Scoring + 2-Way Storage + Metadata) in 1 stream
+  Future<String> submitAttempt({
     required String userId,
     required String quizId,
     required String quizTitle,
@@ -23,7 +21,9 @@ class AttemptService {
     required Map<String, dynamic> markingScheme,
     required List<dynamic> quizData,
     List<String>? reviewItems,
+    List<String>? questionOrder,
   }) async {
+    // 1. Calculate Score
     int score = 0;
 
     Map<String, int> getMarking(String? type, String qUid) {
@@ -54,9 +54,8 @@ class AttemptService {
 
     userAnswers.forEach((qUid, selections) {
       final correct = correctKey[qUid] ?? [];
-      final List selected = selections is List
-          ? selections
-          : [selections.toString()];
+      final List selected =
+          selections is List ? selections : [selections.toString()];
 
       String? qType;
       try {
@@ -69,12 +68,10 @@ class AttemptService {
       final marking = getMarking(qType, qUid);
 
       if (qType == "Integer") {
-        final String userVal = selected.isNotEmpty
-            ? selected.first.toString().trim()
-            : "";
-        final String correctVal = correct.isNotEmpty
-            ? correct.first.toString().trim()
-            : "";
+        final String userVal =
+            selected.isNotEmpty ? selected.first.toString().trim() : "";
+        final String correctVal =
+            correct.isNotEmpty ? correct.first.toString().trim() : "";
 
         if (userVal.isNotEmpty && userVal == correctVal) {
           score += marking['correct']!;
@@ -90,59 +87,45 @@ class AttemptService {
       }
     });
 
-    return await submitAttempt(
-      userId: userId,
-      quizId: quizId,
-      quizTitle: quizTitle,
-      score: score,
-      totalQuestions: totalQuestions,
-      answers: userAnswers,
-      reviewItems: reviewItems,
-    );
-  }
-
-  /// ✅ Submit a new quiz attempt
-  Future<String> submitAttempt({
-    required String userId,
-    required String quizId,
-    required String quizTitle,
-    required int score,
-    required int totalQuestions,
-    required Map<String, dynamic> answers,
-    List<String>? reviewItems,
-  }) async {
+    // 2. Prepare Data
     final attemptData = {
       'userId': userId,
       'quizId': quizId,
       'quizTitle': quizTitle,
       'score': score,
       'totalQuestions': totalQuestions,
-      'answers': answers,
+      'answers': userAnswers,
       'reviewItems': reviewItems ?? [],
+      'questionOrder': questionOrder ?? [],
       'status': 1,
       'timestamp': FieldValue.serverTimestamp(),
     };
 
+    // 3. Batch Write (Unified Stream)
     final batch = FirebaseFirestore.instance.batch();
 
+    // Store in global responses (Primary - for user history)
     final responseRef = _responses.doc();
     batch.set(responseRef, attemptData);
 
-    final allAttemptRef = _allAttempts.doc(responseRef.id);
-    batch.set(allAttemptRef, attemptData);
-
+    // Store in quiz-specific attempts (Secondary/Foreign Key - for moderators)
     final quizAttemptRef = _quizAttempts
         .doc(quizId)
         .collection('attempts')
         .doc(responseRef.id);
-    batch.set(quizAttemptRef, attemptData);
+    batch.set(quizAttemptRef, {
+      ...attemptData,
+      'responseId': responseRef.id, // Explicit Foreign Key reference
+    });
 
+    // User metadata updates
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
     batch.set(userRef, {
       'lastActive': FieldValue.serverTimestamp(),
       'attemptCount': FieldValue.increment(1),
     }, SetOptions(merge: true));
 
+    // Session cleanup
     final userPrivateRef = userRef.collection('private').doc('details');
     batch.set(userPrivateRef, {
       'activeQuizId': FieldValue.delete(),
@@ -152,6 +135,7 @@ class AttemptService {
 
     await batch.commit();
 
+    // Log the successful batch
     await _adminService.logAction(
       actorId: userId,
       action: 'submit_attempt',
@@ -163,7 +147,7 @@ class AttemptService {
     return responseRef.id;
   }
 
-  /// ✅ Stream attempts for a specific user (filters out soft-deleted)
+  /// ✅ Stream attempts for a specific user (Primary storage)
   Stream<List<Map<String, dynamic>>> getUserAttempts(
     String userId, {
     bool includeDeleted = false,
@@ -180,13 +164,11 @@ class AttemptService {
           }).toList();
 
           if (includeDeleted) return docs;
-
-          // Filter in Dart to include legacy docs without 'isDeleted' field
           return docs.where((doc) => doc['isDeleted'] != true).toList();
         });
   }
 
-  /// ✅ Stream attempts for a specific quiz (filters out soft-deleted by default)
+  /// ✅ Stream attempts for a specific quiz (Secondary/Moderator view)
   Stream<List<Map<String, dynamic>>> getQuizAttempts(
     String quizId, {
     bool includeDeleted = false,
@@ -198,14 +180,12 @@ class AttemptService {
         .snapshots()
         .map((snapshot) {
           final docs = snapshot.docs.map((doc) {
-            final data = doc.data();
+            final data = doc.data() as Map<String, dynamic>;
             data['id'] = doc.id;
             return data;
           }).toList();
 
           if (includeDeleted) return docs;
-
-          // Filter in Dart to include legacy docs without 'isDeleted' field
           return docs.where((doc) => doc['isDeleted'] != true).toList();
         });
   }

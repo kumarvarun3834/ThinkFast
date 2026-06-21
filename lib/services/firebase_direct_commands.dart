@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../utils/global.dart' as global;
 import 'admin_service.dart';
@@ -28,6 +29,23 @@ class DatabaseService {
 
       // 3. Fetch Feature Flags
       global.featureFlags = await _settingsService.getFeatureFlags();
+
+      // 4. Fetch Management & Access Records for Local Cache
+      final accessRecords = await _adminService.getUserAccessRecords(uid);
+      global.managedQuizzes = {
+        for (var rec in accessRecords)
+          if (rec['role'] == 'manager' && rec['quizId'] != null)
+            rec['quizId']: Map<String, dynamic>.from(rec['permissions'] ?? {}),
+      };
+
+      // 5. Fetch Owned Quizzes (Just IDs for quick check)
+      final myQuizzesSnapshot = await FirebaseFirestore.instance
+          .collection('quizzes')
+          .where('creatorId', isEqualTo: uid)
+          .where('isDeleted', isEqualTo: false)
+          .get();
+
+      global.ownedQuizIds = myQuizzesSnapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
       print("Error initializing app data: $e");
     }
@@ -73,6 +91,15 @@ class DatabaseService {
     }
   }
 
+  /// 🔐 Helper to check required admin permission for sensitive operations
+  Future<void> _ensureAdminPermission(String userId, String permission) async {
+    if (!await _adminService.hasPermission(userId, permission)) {
+      throw Exception(
+        "Access Denied: Administrative permission '$permission' required (and Admin Mode must be ON).",
+      );
+    }
+  }
+
   /// 🔐 Helper to check required admin level for sensitive operations
   Future<void> _ensureAdminLevel(String userId, int requiredLevel) async {
     if (!await _adminService.hasRequiredLevel(userId, requiredLevel)) {
@@ -100,7 +127,9 @@ class DatabaseService {
     required String reason,
     required String adminId,
   }) async {
-    await _ensureAdminLevel(adminId, 5); // Level 5+ for global bans
+    if (quizId == null) {
+      await _ensureAdminPermission(adminId, 'moderate_users');
+    }
     return _adminService.banUser(
       userId: userId,
       quizId: quizId,
@@ -199,13 +228,13 @@ class DatabaseService {
 
   Future<void> addOrUpdateAdmin({
     required String targetUid,
-    required int level,
+    required List<String> permissions,
     required String actorUid,
   }) async {
-    await _ensureAdminLevel(actorUid, 9); // Only level 9-10 can manage admins
+    await _ensureAdminPermission(actorUid, 'manage_admins');
     return _adminService.addOrUpdateAdmin(
       targetUid: targetUid,
-      level: level,
+      permissions: permissions,
       actorUid: actorUid,
     );
   }
@@ -214,7 +243,7 @@ class DatabaseService {
     required String targetUid,
     required String actorUid,
   }) async {
-    await _ensureAdminLevel(actorUid, 9);
+    await _ensureAdminPermission(actorUid, 'manage_admins');
     return _adminService.removeAdmin(targetUid: targetUid, actorUid: actorUid);
   }
 
@@ -235,8 +264,11 @@ class DatabaseService {
     );
   }
 
-  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
-    await _ensurePermission(null, userId: uid);
+  Future<Map<String, dynamic>?> getUserProfile(
+    String uid, {
+    String? actorId,
+  }) async {
+    await _ensurePermission(null, userId: actorId);
     return _userService.getUserProfile(uid);
   }
 
@@ -277,27 +309,45 @@ class DatabaseService {
 
   Future<void> handleExpiredQuiz(String uid, String quizId) async {
     try {
-      final quiz = await readDatabase(quizId, userId: uid);
+      Map<String, dynamic> quiz;
+      try {
+        quiz = await readDatabase(quizId, userId: uid);
+      } catch (e) {
+        // Fallback: If we can't read the quiz (deleted/private), use dummy metadata
+        // This allows the cleanup attempt to be recorded and the session cleared.
+        quiz = {
+          'id': quizId,
+          'title': 'Unknown/Deleted Quiz ($quizId)',
+          'modules': [],
+          'markingScheme': {'type': 'default'},
+        };
+      }
 
       // Calculate total questions from modules
       final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
-      int totalCount = 0;
-      for (var module in rawModules) {
-        final List<dynamic> questions = module['data'] as List? ?? [];
-        totalCount += questions.length;
+      int totalCount = quiz['totalQuestions'] ?? 0;
+      if (totalCount == 0) {
+        for (var module in rawModules) {
+          final List<dynamic> questions = module['data'] as List? ?? [];
+          totalCount += questions.length;
+        }
       }
 
-      // Submit a "Timed Out" blank attempt
+      // Submit a "Timed Out" blank attempt via AttemptService
+      // This will also clear the activeQuizId in the same batch.
       await _attemptService.submitAttempt(
         userId: uid,
         quizId: quizId,
         quizTitle: quiz['title'] ?? 'Timed Out Quiz',
-        score: 0,
         totalQuestions: totalCount,
-        answers: {}, // Blank
+        userAnswers: {},
+        // Blank submission
+        correctKey: {},
+        markingScheme: quiz['markingScheme'] ?? {'type': 'default'},
+        quizData: [],
       );
     } catch (e) {
-      // If quiz not found or other error, still clear the active quiz
+      // Final fallback: just clear the active quiz field directly if batch submission fails
       await updateActiveQuiz(uid: uid, clear: true);
     }
   }
@@ -327,6 +377,8 @@ class DatabaseService {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(data, scheme);
+    final List modules = transformed['modules'] as List? ?? [];
+
     return await _quizService.createQuiz(
       clientToken: clientToken,
       creatorId: creatorId,
@@ -347,6 +399,11 @@ class DatabaseService {
       allowedParticipants: allowedParticipants,
       isPersonal: isPersonal,
       isAiGenerated: isAiGenerated,
+      // Metadata for direct fetching
+      totalQuestions: data.length,
+      moduleCount: modules.length,
+      markingType: scheme['type'] ?? 'default',
+      attemptLimitType: attemptLimits?['type'] ?? 'none',
     );
   }
 
@@ -408,6 +465,14 @@ class DatabaseService {
 
       final transformed = _transformQuizData(data, scheme);
       updates['modules'] = transformed['modules'];
+
+      // Update Metadata
+      final List modules = transformed['modules'] as List? ?? [];
+      updates['totalQuestions'] = data.length;
+      updates['moduleCount'] = modules.length;
+      updates['markingType'] = scheme['type'] ?? 'default';
+      updates['attemptLimitType'] = attemptLimits?['type'] ?? 'none';
+
       await _quizService.updateAnswerKeys(
         quizId: docId,
         userId: currentUserId,
@@ -498,11 +563,73 @@ class DatabaseService {
       throw Exception("Quiz not found");
     }
 
+    // Visibility Check
+    final String visibility = quiz['visibility'] ?? 'private';
+    if (visibility != 'public' && !isAdminUser && quiz['creatorId'] != userId) {
+      // Check for explicit management/participant access
+      if (userId == null)
+        throw Exception("Access Denied: This quiz is private.");
+      final hasAccess = await _quizService.hasAccess(docId, userId);
+      if (!hasAccess) throw Exception("Access Denied: This quiz is private.");
+    }
+
     // Fetch questions from separate collection
-    final questions = await _quizService.getQuizQuestions(docId);
-    quiz['modules'] = questions;
+    try {
+      final questions = await _quizService.getQuizQuestions(docId);
+      quiz['modules'] = questions;
+    } catch (e) {
+      // If we can't read questions (e.g. quiz hasn't started or unauthenticated),
+      // we still return the metadata so the details screen can show.
+      quiz['modules'] = [];
+      quiz['questionsError'] = e.toString();
+    }
 
     return quiz;
+  }
+
+  /// 📦 Consolidated Fetcher: Gathers all data for Quiz Details in parallel
+  Future<Map<String, dynamic>> fetchAggregatedQuizDetails(
+    String quizId, {
+    String? userId,
+  }) async {
+    // 1. Fetch data in parallel
+    final results = await Future.wait([
+      readDatabase(quizId, userId: userId), // Quiz Metadata + Modules
+      if (userId != null)
+        hasUserAttemptedQuiz(userId, quizId)
+      else
+        Future.value(false),
+      if (userId != null) isAdmin(userId) else Future.value(false),
+      if (userId != null)
+        getUserProfile(userId, actorId: userId)
+      else
+        Future.value(null),
+    ], eagerError: false); // allow one call to fail without breaking everything
+
+    final Map<String, dynamic> quizData = results[0] as Map<String, dynamic>;
+    quizData['hasAttempted'] = results[1] as bool;
+    quizData['isAdmin'] = results[2] as bool;
+    quizData['userProfile'] = results[3];
+
+    // 2. Fetch Creator Profile if ID exists
+    if (quizData['creatorId'] != null) {
+      try {
+        quizData['creatorProfile'] = await getUserProfile(
+          quizData['creatorId'],
+          actorId: userId,
+        );
+      } catch (e) {
+        debugPrint("Silent fail: Could not fetch creator profile: $e");
+      }
+    }
+
+    // 3. Local Permission Calculation
+    quizData['canManage'] =
+        global.ownedQuizIds.contains(quizId) ||
+        global.managedQuizzes.containsKey(quizId) ||
+        (quizData['isAdmin'] == true);
+
+    return quizData;
   }
 
   // --- Attempts & Scoring ---
@@ -514,6 +641,7 @@ class DatabaseService {
     int? totalQuestions,
     Map<String, dynamic>? userAnswers,
     List<String>? reviewItems,
+    List<String>? questionOrder,
   }) async {
     await _ensurePermission('enable_take_quiz', userId: userId);
     final quiz = await _quizService.getQuiz(docId);
@@ -549,7 +677,7 @@ class DatabaseService {
         throw Exception("Only creator can access answers in editor");
       }
     } else if (userAnswers != null && totalQuestions != null) {
-      // Fetch questions for scoring
+      // Fetch questions for Scoring inside AttemptService
       final questions = await _quizService.getQuizQuestions(docId);
       final List<Map<String, dynamic>> flattenedQuestions = [];
       for (var module in questions) {
@@ -559,7 +687,8 @@ class DatabaseService {
         }
       }
 
-      await _attemptService.submitScoredAttempt(
+      // unified Scored Batch Write in 1 stream via AttemptService
+      await _attemptService.submitAttempt(
         userId: userId,
         quizId: docId,
         quizTitle: quiz['title'] ?? 'Untitled Quiz',
@@ -569,6 +698,7 @@ class DatabaseService {
         markingScheme: quiz['markingScheme'] ?? {'type': 'default'},
         quizData: flattenedQuestions,
         reviewItems: reviewItems,
+        questionOrder: questionOrder,
       );
     }
     return {'answers': correctKey, 'solutions': solutions};

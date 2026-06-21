@@ -61,8 +61,7 @@ These flags control access to specific UI features and API operations:
 
 ## 4. Hierarchy & Management Rules
 
-1. **Granting Access**: Only the **Quiz Owner** or an **App Admin** (Level 2+) can add a Manager to
-   a quiz.
+1. **Granting Access**: Only the **Quiz Owner** or an **App Admin** with the `manage_collaborators` permission can add a Manager to a quiz.
 2. **App Admin Override**: Users with the global **Admin Mode** enabled bypass these checks and can
    manage any quiz on the platform.
 3. **Conflict Resolution**: If a user is both a Manager and an App Admin, the global Admin
