@@ -1,10 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thinkfast/widgets/drawer_data.dart';
+import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
-import 'package:thinkfast/screens/result_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 class MyAttemptsScreen extends StatefulWidget {
@@ -72,7 +72,9 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: global.primaryAccent),
+                    child: CircularProgressIndicator(
+                      color: global.primaryAccent,
+                    ),
                   );
                 }
 
@@ -81,7 +83,11 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history_rounded, size: 64, color: _borderColor),
+                        Icon(
+                          Icons.history_rounded,
+                          size: 64,
+                          color: _borderColor,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           "No attempts found",
@@ -117,8 +123,10 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                             MaterialPageRoute(
                               builder: (context) => ResultScreen(
                                 quizId: attempt['quizId'],
-                                attemptAnswers: attempt['answers'] as Map<String, dynamic>,
-                                attemptReviewItems: attempt['reviewItems'] as List<dynamic>?,
+                                attemptAnswers:
+                                    attempt['answers'] as Map<String, dynamic>,
+                                attemptReviewItems:
+                                    attempt['reviewItems'] as List<dynamic>?,
                               ),
                             ),
                           );
@@ -130,7 +138,8 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Text(
@@ -146,19 +155,28 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                     const StatusBadge(
                                       text: "LOCKED",
                                       color: Colors.green,
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
                                     ),
                                 ],
                               ),
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  Icon(Icons.stars_rounded, color: _primaryAccent, size: 20),
+                                  Icon(
+                                    Icons.stars_rounded,
+                                    color: _primaryAccent,
+                                    size: 20,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     "Score: $score / $total",
                                     style: GoogleFonts.poppins(
-                                      color: score >= (total / 2) ? global.successColor : global.errorColor,
+                                      color: score >= (total / 2)
+                                          ? global.successColor
+                                          : global.errorColor,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -172,13 +190,19 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                   ),
                                 ],
                               ),
-                              const Divider(color: global.borderColor, height: 24),
+                              const Divider(
+                                color: global.borderColor,
+                                height: 24,
+                              ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   TextButton.icon(
                                     onPressed: () => _confirmDelete(attempt),
-                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                    ),
                                     label: const Text("Delete"),
                                     style: TextButton.styleFrom(
                                       foregroundColor: global.errorColor,
@@ -190,17 +214,29 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                         ? null
                                         : () {
                                             // Handle edit if allowed
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text("Editing is disabled for locked attempts")),
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  "Editing is disabled for locked attempts",
+                                                ),
+                                              ),
                                             );
                                           },
                                     icon: Icon(
-                                      status == 1 ? Icons.lock_outline : Icons.edit_outlined,
+                                      status == 1
+                                          ? Icons.lock_outline
+                                          : Icons.edit_outlined,
                                       size: 18,
                                     ),
-                                    label: Text(status == 1 ? "Locked" : "Edit Attempt"),
+                                    label: Text(
+                                      status == 1 ? "Locked" : "Edit Attempt",
+                                    ),
                                     style: TextButton.styleFrom(
-                                      foregroundColor: status == 1 ? _labelColor : _primaryAccent,
+                                      foregroundColor: status == 1
+                                          ? _labelColor
+                                          : _primaryAccent,
                                     ),
                                   ),
                                 ],
@@ -222,7 +258,10 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
-        title: const Text("Delete Attempt?", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Delete Attempt?",
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           "This attempt will be removed from your history. This action cannot be undone.",
           style: TextStyle(color: Colors.white70),
@@ -248,14 +287,16 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Attempt moved to trash (Soft Delete)")),
+                    const SnackBar(
+                      content: Text("Attempt moved to trash (Soft Delete)"),
+                    ),
                   );
                 }
               } catch (e) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Error: $e")),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Error: $e")));
               }
             },
             child: const Text("Delete"),

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/screens/result_screen.dart';
+import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 import '../../utils/global.dart' as global;
@@ -64,8 +64,10 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     if (_selectedIds.isEmpty) return;
 
     final bool isBannedTab = _tabController.index == 0;
-    final String title = isBannedTab ? "Unblock Selected?" : "Recover Selected?";
-    final String content = isBannedTab 
+    final String title = isBannedTab
+        ? "Unblock Selected?"
+        : "Recover Selected?";
+    final String content = isBannedTab
         ? "These users will be allowed to take the quiz again."
         : "These responses will be restored to active status.";
 
@@ -76,11 +78,19 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         title: Text(title, style: const TextStyle(color: Colors.white)),
         content: Text(content, style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: global.successColor),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.successColor,
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(isBannedTab ? "UNBLOCK" : "RECOVER", style: const TextStyle(color: Colors.black)),
+            child: Text(
+              isBannedTab ? "UNBLOCK" : "RECOVER",
+              style: const TextStyle(color: Colors.black),
+            ),
           ),
         ],
       ),
@@ -95,7 +105,11 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           for (String id in _selectedIds) {
             // In banned users tab, the ID is quizId_userId.
             final userId = id.split('_').last;
-            await db.unbanUser(userId: userId, quizId: widget.quizId, adminId: adminId);
+            await db.unbanUser(
+              userId: userId,
+              quizId: widget.quizId,
+              adminId: adminId,
+            );
           }
         } else {
           for (String id in _selectedIds) {
@@ -114,7 +128,9 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Error: $e")));
         }
       }
     }
@@ -127,30 +143,41 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: _isSelectionMode 
-          ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() {
-              _isSelectionMode = false;
-              _selectedIds.clear();
-            }))
-          : null,
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() {
+                  _isSelectionMode = false;
+                  _selectedIds.clear();
+                }),
+              )
+            : null,
         title: _isSelectionMode
-          ? Text("${_selectedIds.length} Selected", style: const TextStyle(color: Colors.white))
-          : Text(
-              "Moderation Panel",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: _valueColor,
+            ? Text(
+                "${_selectedIds.length} Selected",
+                style: const TextStyle(color: Colors.white),
+              )
+            : Text(
+                "Moderation Panel",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: _valueColor,
+                ),
               ),
-            ),
         iconTheme: IconThemeData(color: _valueColor),
-        actions: _isSelectionMode 
-          ? [
-              IconButton(
-                icon: Icon(_tabController.index == 0 ? Icons.person_add_rounded : Icons.restore_rounded, color: global.successColor),
-                onPressed: _handleBulkAction,
-              ),
-            ]
-          : [],
+        actions: _isSelectionMode
+            ? [
+                IconButton(
+                  icon: Icon(
+                    _tabController.index == 0
+                        ? Icons.person_add_rounded
+                        : Icons.restore_rounded,
+                    color: global.successColor,
+                  ),
+                  onPressed: _handleBulkAction,
+                ),
+              ]
+            : [],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: _primaryAccent,
@@ -192,9 +219,13 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected ? _primaryAccent.withOpacity(0.2) : _cardColor,
+                color: isSelected
+                    ? _primaryAccent.withOpacity(0.2)
+                    : _cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? _primaryAccent : _borderColor),
+                border: Border.all(
+                  color: isSelected ? _primaryAccent : _borderColor,
+                ),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -218,8 +249,15 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: const Icon(Icons.check_circle, color: global.primaryAccent, size: 14),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_circle,
+                              color: global.primaryAccent,
+                              size: 14,
+                            ),
                           ),
                         ),
                     ],
@@ -250,16 +288,16 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                       ),
                     ],
                   ),
-                  trailing: _isSelectionMode 
-                    ? null 
-                    : IconButton(
-                        icon: const Icon(
-                          Icons.person_add_rounded,
-                          color: global.successColor,
+                  trailing: _isSelectionMode
+                      ? null
+                      : IconButton(
+                          icon: const Icon(
+                            Icons.person_add_rounded,
+                            color: global.successColor,
+                          ),
+                          onPressed: () => _confirmUnban(user),
+                          tooltip: "Unblock User",
                         ),
-                        onPressed: () => _confirmUnban(user),
-                        tooltip: "Unblock User",
-                      ),
                 ),
               ),
             );
@@ -303,34 +341,44 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected ? _primaryAccent.withOpacity(0.2) : _cardColor,
+                color: isSelected
+                    ? _primaryAccent.withOpacity(0.2)
+                    : _cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: isSelected ? _primaryAccent : _borderColor),
+                border: Border.all(
+                  color: isSelected ? _primaryAccent : _borderColor,
+                ),
               ),
               child: Material(
                 color: Colors.transparent,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode 
-                    ? () => _toggleSelection(id) 
-                    : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ResultScreen(
-                              quizId: r['quizId'],
-                              attemptAnswers: r['answers'] as Map<String, dynamic>,
-                              attemptReviewItems: r['reviewItems'] as List<dynamic>?,
+                  onTap: _isSelectionMode
+                      ? () => _toggleSelection(id)
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ResultScreen(
+                                quizId: r['quizId'],
+                                attemptAnswers:
+                                    r['answers'] as Map<String, dynamic>,
+                                attemptReviewItems:
+                                    r['reviewItems'] as List<dynamic>?,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
                   title: Row(
                     children: [
-                      if (isSelected) 
+                      if (isSelected)
                         const Padding(
                           padding: EdgeInsets.only(right: 8.0),
-                          child: Icon(Icons.check_circle, color: Colors.white, size: 18),
+                          child: Icon(
+                            Icons.check_circle,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       Text(
                         "User: ${r['userId']}",
@@ -360,12 +408,12 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                       ),
                     ],
                   ),
-                  trailing: _isSelectionMode 
-                    ? null 
-                    : const Icon(
-                        Icons.chevron_right,
-                        color: global.errorColor,
-                      ),
+                  trailing: _isSelectionMode
+                      ? null
+                      : const Icon(
+                          Icons.chevron_right,
+                          color: global.errorColor,
+                        ),
                 ),
               ),
             );

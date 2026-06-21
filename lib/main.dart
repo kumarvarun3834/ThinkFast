@@ -1,27 +1,27 @@
+import 'package:app_links/app_links.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:thinkfast/screens/profile/profile_screen.dart';
-import 'package:thinkfast/screens/splash_screen.dart';
-import 'package:thinkfast/screens/quesations.dart';
-import 'package:thinkfast/screens/quiz_details_screen.dart';
-import 'package:thinkfast/screens/quiz_form.dart';
-import 'package:thinkfast/screens/start_screen.dart';
-import 'package:thinkfast/screens/result_screen.dart';
-import 'package:thinkfast/screens/about_us.dart';
-import 'package:thinkfast/screens/quiz_responses_screen.dart';
-import 'package:thinkfast/screens/my_attempts_screen.dart';
-import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
-import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
+import 'package:thinkfast/screens/Main_Screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
+import 'package:thinkfast/screens/drawer/about_us.dart';
+import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
-import 'package:thinkfast/utils/global.dart' as global;
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
+import 'package:thinkfast/screens/profile/profile_screen.dart';
+import 'package:thinkfast/screens/quiz/quesations.dart';
+import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
+import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
+import 'package:thinkfast/screens/quiz/quiz_form.dart';
+import 'package:thinkfast/screens/quiz/quiz_responses_screen.dart';
+import 'package:thinkfast/screens/quiz/result_screen.dart';
+import 'package:thinkfast/screens/splash_screen.dart';
 import 'package:thinkfast/services/firebase_options.dart';
-import 'package:app_links/app_links.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -123,9 +123,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/Managed Quizzes':
-            page = Main_Screen(
-              showManagedQuizzes: true,
-            );
+            page = Main_Screen(showManagedQuizzes: true);
             wrapInGradient = false;
             break;
           case '/Recycle Bin':
@@ -186,9 +184,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/Blocked Users':
-            page = QuizModerationScreen(
-              quizId: settings.arguments as String,
-            );
+            page = QuizModerationScreen(quizId: settings.arguments as String);
             wrapInGradient = false;
             break;
           case '/maintenance':

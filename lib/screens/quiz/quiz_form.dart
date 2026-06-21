@@ -9,7 +9,7 @@ import 'package:thinkfast/services/quiz_data_processor.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
-import '../utils/global.dart' as global;
+import '../../utils/global.dart' as global;
 
 class QuizPage extends StatefulWidget {
   String docId;
@@ -444,7 +444,9 @@ class _QuizPageState extends State<QuizPage> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Load error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Load error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -1319,200 +1321,228 @@ class _QuizPageState extends State<QuizPage> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: global.primaryAccent))
+          ? const Center(
+              child: CircularProgressIndicator(color: global.primaryAccent),
+            )
           : Theme(
               data: Theme.of(context).copyWith(
-          inputDecorationTheme: InputDecorationTheme(
-            labelStyle: const TextStyle(color: global.labelColor),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: global.borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: global.primaryAccent),
-            ),
-          ),
-        ),
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              TextField(
-                controller: _titleController,
-                style: const TextStyle(color: global.valueColor),
-                decoration: const InputDecoration(labelText: "Quiz Title"),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _descriptionController,
-                style: const TextStyle(color: global.valueColor),
-                decoration: const InputDecoration(labelText: "Description"),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _timeController,
-                style: const TextStyle(color: global.valueColor),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: "Timer (minutes)",
-                  hintText: "0 = Unlimited",
-                  suffixText: "min",
+                inputDecorationTheme: InputDecorationTheme(
+                  labelStyle: const TextStyle(color: global.labelColor),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: global.borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: global.primaryAccent),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _perQuestionTimeController,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      style: const TextStyle(color: global.valueColor),
+                      decoration: const InputDecoration(
+                        labelText: "Quiz Title",
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _descriptionController,
+                      style: const TextStyle(color: global.valueColor),
+                      decoration: const InputDecoration(
+                        labelText: "Description",
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _timeController,
                       style: const TextStyle(color: global.valueColor),
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       decoration: const InputDecoration(
-                        labelText: "Per Question (sec)",
-                        hintText: "0 = None",
+                        labelText: "Timer (minutes)",
+                        hintText: "0 = Unlimited",
+                        suffixText: "min",
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                dropdownColor: global.cardColor,
-                initialValue: visibility,
-                style: const TextStyle(color: global.valueColor),
-                items: const [
-                  DropdownMenuItem(value: "public", child: Text("Public")),
-                  DropdownMenuItem(value: "private", child: Text("Private")),
-                ],
-                onChanged: (v) => setState(() => visibility = v!),
-                decoration: const InputDecoration(labelText: "Visibility"),
-              ),
-              const SizedBox(height: 16),
-              Material(
-                color: Colors.transparent,
-                child: SwitchListTile(
-                  title: const Text(
-                    "Allow Multiple Attempts",
-                    style: TextStyle(color: global.valueColor),
-                  ),
-                  subtitle: const Text(
-                    "If disabled, users can only take this quiz once",
-                    style: TextStyle(color: global.labelColor, fontSize: 12),
-                  ),
-                  value: allowMultipleAttempts,
-                  activeThumbColor: global.primaryAccent,
-                  onChanged: (bool value) {
-                    setState(() {
-                      allowMultipleAttempts = value;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildSchedulingAndRestrictionSection(),
-              const SizedBox(height: 16),
-              _buildModulesSection(),
-              const SizedBox(height: 24),
-              _buildMarkingSchemeSection(),
-              const SizedBox(height: 24),
-              _buildAttemptLimitsSection(),
-              const SizedBox(height: 24),
-              ...modulesList.map((module) {
-                final moduleQuestions = questions
-                    .asMap()
-                    .entries
-                    .where((e) => e.value['subject'] == module)
-                    .toList();
-
-                if (moduleQuestions.isEmpty) return const SizedBox.shrink();
-
-                // Ensure a key exists for this module for scrolling
-                final key = _moduleKeys.putIfAbsent(module, () => GlobalKey());
-
-                return Column(
-                  key: key,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.folder_open_rounded,
-                            color: Color(0xFF3B82F6),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            module.toUpperCase(),
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF3B82F6),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.1,
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _perQuestionTimeController,
+                            style: const TextStyle(color: global.valueColor),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: "Per Question (sec)",
+                              hintText: "0 = None",
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Divider(
-                              color: const Color(0xFF3B82F6).withOpacity(0.3),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      dropdownColor: global.cardColor,
+                      initialValue: visibility,
+                      style: const TextStyle(color: global.valueColor),
+                      items: const [
+                        DropdownMenuItem(
+                          value: "public",
+                          child: Text("Public"),
+                        ),
+                        DropdownMenuItem(
+                          value: "private",
+                          child: Text("Private"),
+                        ),
+                      ],
+                      onChanged: (v) => setState(() => visibility = v!),
+                      decoration: const InputDecoration(
+                        labelText: "Visibility",
                       ),
                     ),
-                    ...moduleQuestions.map((entry) {
-                      final index = entry.key;
-                      final qKey = _questionKeys.putIfAbsent(
-                        index,
+                    const SizedBox(height: 16),
+                    Material(
+                      color: Colors.transparent,
+                      child: SwitchListTile(
+                        title: const Text(
+                          "Allow Multiple Attempts",
+                          style: TextStyle(color: global.valueColor),
+                        ),
+                        subtitle: const Text(
+                          "If disabled, users can only take this quiz once",
+                          style: TextStyle(
+                            color: global.labelColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                        value: allowMultipleAttempts,
+                        activeThumbColor: global.primaryAccent,
+                        onChanged: (bool value) {
+                          setState(() {
+                            allowMultipleAttempts = value;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSchedulingAndRestrictionSection(),
+                    const SizedBox(height: 16),
+                    _buildModulesSection(),
+                    const SizedBox(height: 24),
+                    _buildMarkingSchemeSection(),
+                    const SizedBox(height: 24),
+                    _buildAttemptLimitsSection(),
+                    const SizedBox(height: 24),
+                    ...modulesList.map((module) {
+                      final moduleQuestions = questions
+                          .asMap()
+                          .entries
+                          .where((e) => e.value['subject'] == module)
+                          .toList();
+
+                      if (moduleQuestions.isEmpty)
+                        return const SizedBox.shrink();
+
+                      // Ensure a key exists for this module for scrolling
+                      final key = _moduleKeys.putIfAbsent(
+                        module,
                         () => GlobalKey(),
                       );
 
-                      return Card(
-                        key: qKey,
-                        color: global.cardColor,
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: global.borderColor),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              QuizForm(
-                                form_data_part: questions[index],
-                                onChanged: (d) => _updateFormData(index, d),
-                                showIndividualMarking:
-                                    markingType == "per_question",
-                                moduleOptions: modulesList,
-                              ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: global.errorColor,
+                      return Column(
+                        key: key,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.folder_open_rounded,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  module.toUpperCase(),
+                                  style: GoogleFonts.poppins(
+                                    color: const Color(0xFF3B82F6),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.1,
                                   ),
-                                  onPressed: () => _removeForm(index),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Divider(
+                                    color: const Color(
+                                      0xFF3B82F6,
+                                    ).withOpacity(0.3),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...moduleQuestions.map((entry) {
+                            final index = entry.key;
+                            final qKey = _questionKeys.putIfAbsent(
+                              index,
+                              () => GlobalKey(),
+                            );
+
+                            return Card(
+                              key: qKey,
+                              color: global.cardColor,
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: const BorderSide(
+                                  color: global.borderColor,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  children: [
+                                    QuizForm(
+                                      form_data_part: questions[index],
+                                      onChanged: (d) =>
+                                          _updateFormData(index, d),
+                                      showIndividualMarking:
+                                          markingType == "per_question",
+                                      moduleOptions: modulesList,
+                                    ),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: global.errorColor,
+                                        ),
+                                        onPressed: () => _removeForm(index),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
                       );
                     }),
+                    const SizedBox(height: 120),
                   ],
-                );
-              }),
-              const SizedBox(height: 120),
-            ],
-          ),
-        ),
-      ),
+                ),
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: global.btnColor,
         foregroundColor: Colors.white,
