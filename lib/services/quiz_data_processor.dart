@@ -7,6 +7,9 @@ class QuizImportResult {
   final int? time;
   final int? perQuestionTime;
   final String? markingType;
+  final Map<String, dynamic>? markingGlobal;
+  final Map<String, dynamic>? markingPerType;
+  final Map<String, dynamic>? markingPerQuestion;
   final String? attemptLimitType;
   final Map<String, dynamic>? globalLimits;
   final Map<String, dynamic>? perModuleLimits;
@@ -18,6 +21,9 @@ class QuizImportResult {
     this.time,
     this.perQuestionTime,
     this.markingType,
+    this.markingGlobal,
+    this.markingPerType,
+    this.markingPerQuestion,
     this.attemptLimitType,
     this.globalLimits,
     this.perModuleLimits,
@@ -54,9 +60,23 @@ class QuizDataProcessor {
         : null;
 
     String? markingType;
+    Map<String, dynamic>? markingGlobal;
+    Map<String, dynamic>? markingPerType;
+    Map<String, dynamic>? markingPerQuestion;
+
     if (data['markingScheme'] != null) {
       final scheme = data['markingScheme'] as Map;
-      markingType = scheme['type'] ?? 'default';
+      markingType = scheme['type']?.toString() ?? 'default';
+      
+      if (scheme['global'] != null) {
+        markingGlobal = Map<String, dynamic>.from(scheme['global'] as Map);
+      }
+      if (scheme['perQuestionType'] != null) {
+        markingPerType = Map<String, dynamic>.from(scheme['perQuestionType'] as Map);
+      }
+      if (scheme['perQuestion'] != null) {
+        markingPerQuestion = Map<String, dynamic>.from(scheme['perQuestion'] as Map);
+      }
     }
 
     String? attemptLimitType;
@@ -120,6 +140,9 @@ class QuizDataProcessor {
       time: time,
       perQuestionTime: perQuestionTime,
       markingType: markingType,
+      markingGlobal: markingGlobal,
+      markingPerType: markingPerType,
+      markingPerQuestion: markingPerQuestion,
       attemptLimitType: attemptLimitType,
       globalLimits: globalLimits,
       perModuleLimits: perModuleLimits,

@@ -26,6 +26,7 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAi = false;
   bool _importEnabled = false;
   bool _isLoading = false;
+  bool _isAiGenerated = false;
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -215,6 +216,7 @@ class _QuizPageState extends State<QuizPage> {
       final result = await QuizDataProcessor.processImportData(input);
 
       setState(() {
+        _isAiGenerated = true;
         if (!append) {
           if (result.title != null) _titleController.text = result.title!;
           if (result.description != null) {
@@ -227,7 +229,29 @@ class _QuizPageState extends State<QuizPage> {
             _perQuestionTimeController.text = result.perQuestionTime.toString();
           }
 
-          if (result.markingType != null) markingType = result.markingType!;
+          if (result.markingType != null) {
+            markingType = result.markingType!;
+            if (markingType == 'entire_quiz' && result.markingGlobal != null) {
+              _globalCorrectController.text = (result.markingGlobal!['correct'] ?? 4).toString();
+              _globalWrongController.text = (result.markingGlobal!['wrong'] ?? -1).toString();
+            } else if (markingType == 'per_question_type' && result.markingPerType != null) {
+              final sc = result.markingPerType!['Single Choice'] as Map?;
+              if (sc != null) {
+                _scCorrectController.text = (sc['correct'] ?? 4).toString();
+                _scWrongController.text = (sc['wrong'] ?? -1).toString();
+              }
+              final mc = result.markingPerType!['Multiple Choice'] as Map?;
+              if (mc != null) {
+                _mcCorrectController.text = (mc['correct'] ?? 4).toString();
+                _mcWrongController.text = (mc['wrong'] ?? -1).toString();
+              }
+              final it = result.markingPerType!['Integer'] as Map?;
+              if (it != null) {
+                _intCorrectController.text = (it['correct'] ?? 4).toString();
+                _intWrongController.text = (it['wrong'] ?? -1).toString();
+              }
+            }
+          }
 
           if (result.attemptLimitType != null) {
             attemptLimitType = result.attemptLimitType!;
@@ -1197,6 +1221,7 @@ class _QuizPageState extends State<QuizPage> {
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
           allowedParticipants: allowedParticipants,
+          isAiGenerated: _isAiGenerated,
         );
         setState(() {
           widget.docId = newId;
@@ -1219,6 +1244,7 @@ class _QuizPageState extends State<QuizPage> {
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
           allowedParticipants: allowedParticipants,
+          isAiGenerated: _isAiGenerated,
         );
         global.ID = widget.docId;
       }
@@ -1249,6 +1275,22 @@ class _QuizPageState extends State<QuizPage> {
         ),
         actions: [
           if (global.isAdmin) const AdminBadge(),
+          if (_isAi)
+            IconButton(
+              icon: const Icon(
+                Icons.auto_awesome_rounded,
+                color: global.primaryAccent,
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AiGenerationDialog(
+                    onGenerated: (json) => _importQuizData(json, append: true),
+                  ),
+                );
+              },
+              tooltip: "AI Generate",
+            ),
           if (_importEnabled)
             IconButton(
               icon: const Icon(

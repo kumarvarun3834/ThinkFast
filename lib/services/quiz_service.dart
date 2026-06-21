@@ -30,6 +30,8 @@ class QuizService {
     DateTime? activeAt,
     bool isRestricted = false,
     List<String>? allowedParticipants,
+    bool isPersonal = false,
+    bool isAiGenerated = false,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -104,6 +106,8 @@ class QuizService {
       'activeAt': activeAt != null ? Timestamp.fromDate(activeAt) : null,
       'isRestricted': isRestricted,
       'allowedParticipants': allowedParticipants ?? [],
+      'isPersonal': isPersonal,
+      'isAiGenerated': isAiGenerated,
       'isDeleted': false,
     });
 
@@ -178,10 +182,10 @@ class QuizService {
     // Attribution logic: Prioritize Quiz Permissions
     if (data['creatorId'] == userId) {
       deletedByType = 'owner';
-    } else if (await _adminService.isAdmin(userId)) {
-      deletedByType = 'admin';
     } else if (await _adminService.canManageQuiz(quizId, userId)) {
       deletedByType = 'manager';
+    } else if (await _adminService.isAdmin(userId)) {
+      deletedByType = 'admin';
     }
 
     await _quizzes.doc(quizId).update({

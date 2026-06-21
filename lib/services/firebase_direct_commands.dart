@@ -192,11 +192,7 @@ class DatabaseService {
     String? quizId,
     required String adminId,
   }) =>
-      _adminService.unbanUser(
-        userId: userId,
-        quizId: quizId,
-        adminId: adminId,
-      );
+      _adminService.unbanUser(userId: userId, quizId: quizId, adminId: adminId);
 
   Future<bool> isUserBanned(String userId, {String? quizId}) =>
       _adminService.isUserBanned(userId, quizId: quizId);
@@ -325,6 +321,8 @@ class DatabaseService {
     DateTime? activeAt,
     bool isRestricted = false,
     List<String>? allowedParticipants,
+    bool isPersonal = false,
+    bool isAiGenerated = false,
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
@@ -347,6 +345,8 @@ class DatabaseService {
       activeAt: activeAt,
       isRestricted: isRestricted,
       allowedParticipants: allowedParticipants,
+      isPersonal: isPersonal,
+      isAiGenerated: isAiGenerated,
     );
   }
 
@@ -366,8 +366,18 @@ class DatabaseService {
     DateTime? activeAt,
     bool? isRestricted,
     List<String>? allowedParticipants,
+    required bool isAiGenerated,
   }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
+
+    final quiz = await _quizService.getQuiz(docId);
+    if (quiz != null && quiz['isPersonal'] == true) {
+      final isAdmin = await _adminService.isAdmin(currentUserId);
+      if (!isAdmin) {
+        throw Exception("Personal quizzes cannot be edited.");
+      }
+    }
+
     final Map<String, dynamic> updates = {};
     if (title != null) updates['title'] = title;
     if (description != null) updates['description'] = description;
@@ -564,20 +574,32 @@ class DatabaseService {
     return {'answers': correctKey, 'solutions': solutions};
   }
 
-  Stream<List<Map<String, dynamic>>> getUserAttempts(String userId, {bool includeDeleted = false}) {
+  Stream<List<Map<String, dynamic>>> getUserAttempts(
+    String userId, {
+    bool includeDeleted = false,
+  }) {
     if (global.featureFlags?['maintenance_mode'] == true &&
         global.isAdmin == false) {
       return Stream.value([]);
     }
-    return _attemptService.getUserAttempts(userId, includeDeleted: includeDeleted);
+    return _attemptService.getUserAttempts(
+      userId,
+      includeDeleted: includeDeleted,
+    );
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId, {bool includeDeleted = false}) {
+  Stream<List<Map<String, dynamic>>> getQuizResponses(
+    String quizId, {
+    bool includeDeleted = false,
+  }) {
     if (global.featureFlags?['maintenance_mode'] == true &&
         global.isAdmin == false) {
       return Stream.value([]);
     }
-    return _attemptService.getQuizAttempts(quizId, includeDeleted: includeDeleted);
+    return _attemptService.getQuizAttempts(
+      quizId,
+      includeDeleted: includeDeleted,
+    );
   }
 
   Future<bool> hasUserAttemptedQuiz(String userId, String quizId) async {

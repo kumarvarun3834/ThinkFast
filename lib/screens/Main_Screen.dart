@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
-import 'package:thinkfast/widgets/drawer_data.dart';
-import 'package:thinkfast/widgets/quiz_widgets.dart';
+import '../services/ai_service.dart';
+import '../services/firebase_direct_commands.dart';
+import '../widgets/drawer_data.dart';
+import '../widgets/quiz_widgets.dart';
 
+import '../services/quiz_data_processor.dart';
 import '../utils/global.dart' as global;
 
 class Main_Screen extends StatefulWidget {
@@ -67,8 +69,10 @@ class _Main_ScreenState extends State<Main_Screen> {
   Future<void> _handleBulkAction() async {
     if (_selectedQuizIds.isEmpty) return;
 
-    final String title = widget.showTrash ? "Restore Selected?" : "Delete Selected?";
-    final String content = widget.showTrash 
+    final String title = widget.showTrash
+        ? "Restore Selected?"
+        : "Delete Selected?";
+    final String content = widget.showTrash
         ? "These quizzes will be moved back to your active list."
         : "These quizzes will be moved to the Recycle Bin.";
 
@@ -79,11 +83,21 @@ class _Main_ScreenState extends State<Main_Screen> {
         title: Text(title, style: const TextStyle(color: Colors.white)),
         content: Text(content, style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: widget.showTrash ? global.successColor : global.errorColor),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.showTrash
+                  ? global.successColor
+                  : global.errorColor,
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(widget.showTrash ? "RESTORE" : "DELETE", style: const TextStyle(color: Colors.black)),
+            child: Text(
+              widget.showTrash ? "RESTORE" : "DELETE",
+              style: const TextStyle(color: Colors.black),
+            ),
           ),
         ],
       ),
@@ -101,7 +115,9 @@ class _Main_ScreenState extends State<Main_Screen> {
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${_selectedQuizIds.length} quizzes processed")),
+            SnackBar(
+              content: Text("${_selectedQuizIds.length} quizzes processed"),
+            ),
           );
           setState(() {
             _selectedQuizIds.clear();
@@ -110,7 +126,9 @@ class _Main_ScreenState extends State<Main_Screen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Bulk Error: $e")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Bulk Error: $e")));
         }
       }
     }
@@ -160,10 +178,15 @@ class _Main_ScreenState extends State<Main_Screen> {
       child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         elevation: 0,
-        color: isSelected ? global.primaryAccent.withOpacity(0.15) : global.cardColor,
+        color: isSelected
+            ? global.primaryAccent.withOpacity(0.15)
+            : global.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: isSelected ? global.primaryAccent : global.borderColor, width: isSelected ? 2 : 1),
+          side: BorderSide(
+            color: isSelected ? global.primaryAccent : global.borderColor,
+            width: isSelected ? 2 : 1,
+          ),
         ),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -173,8 +196,12 @@ class _Main_ScreenState extends State<Main_Screen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 12.0),
                   child: Icon(
-                    isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: isSelected ? global.primaryAccent : global.labelColor,
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? global.primaryAccent
+                        : global.labelColor,
                   ),
                 ),
               Expanded(
@@ -304,73 +331,89 @@ class _Main_ScreenState extends State<Main_Screen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: _isSelectionMode 
-          ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() {
-              _isSelectionMode = false;
-              _selectedQuizIds.clear();
-            }))
-          : null,
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() {
+                  _isSelectionMode = false;
+                  _selectedQuizIds.clear();
+                }),
+              )
+            : null,
         title: _isSelectionMode
-            ? Text("${_selectedQuizIds.length} Selected", style: const TextStyle(color: Colors.white))
+            ? Text(
+                "${_selectedQuizIds.length} Selected",
+                style: const TextStyle(color: Colors.white),
+              )
             : (_isSearching
-                ? TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    style: GoogleFonts.poppins(color: global.valueColor),
-                    decoration: InputDecoration(
-                      hintText: "Search quizzes...",
-                      hintStyle: GoogleFonts.poppins(color: global.labelColor),
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.toLowerCase();
-                      });
-                    },
-                  )
-                : Text(
-                    widget.showTrash
-                        ? "RECYCLE BIN"
-                        : (widget.showMyQuizzes
-                              ? "MY QUIZZES"
-                              : (widget.showManagedQuizzes
-                                    ? "MANAGED QUIZZES"
-                                    : "THINKFAST")),
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      color: global.valueColor,
-                      letterSpacing: 1.5,
-                    ),
-                  )),
+                  ? TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      style: GoogleFonts.poppins(color: global.valueColor),
+                      decoration: InputDecoration(
+                        hintText: "Search quizzes...",
+                        hintStyle: GoogleFonts.poppins(
+                          color: global.labelColor,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value.toLowerCase();
+                        });
+                      },
+                    )
+                  : Text(
+                      widget.showTrash
+                          ? "RECYCLE BIN"
+                          : (widget.showMyQuizzes
+                                ? "MY QUIZZES"
+                                : (widget.showManagedQuizzes
+                                      ? "MANAGED QUIZZES"
+                                      : "THINKFAST")),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        color: global.valueColor,
+                        letterSpacing: 1.5,
+                      ),
+                    )),
         iconTheme: const IconThemeData(color: global.valueColor),
         actions: _isSelectionMode
-          ? [
-              IconButton(
-                icon: Icon(widget.showTrash ? Icons.restore_rounded : Icons.delete_sweep_rounded, 
-                           color: widget.showTrash ? global.successColor : global.errorColor),
-                onPressed: _handleBulkAction,
-              ),
-            ]
-          : [
-              if (global.isAdmin) const AdminBadge(),
-              IconButton(
-                icon: Icon(_isSearching ? Icons.close : Icons.search),
-                onPressed: () {
-                  setState(() {
-                    _isSearching = !_isSearching;
-                    if (!_isSearching) {
-                      _searchQuery = "";
-                      _searchController.clear();
-                    }
-                  });
-                },
-              ),
-            ],
+            ? [
+                IconButton(
+                  icon: Icon(
+                    widget.showTrash
+                        ? Icons.restore_rounded
+                        : Icons.delete_sweep_rounded,
+                    color: widget.showTrash
+                        ? global.successColor
+                        : global.errorColor,
+                  ),
+                  onPressed: _handleBulkAction,
+                ),
+              ]
+            : [
+                if (global.isAdmin) const AdminBadge(),
+                IconButton(
+                  icon: Icon(_isSearching ? Icons.close : Icons.search),
+                  onPressed: () {
+                    setState(() {
+                      _isSearching = !_isSearching;
+                      if (!_isSearching) {
+                        _searchQuery = "";
+                        _searchController.clear();
+                      }
+                    });
+                  },
+                ),
+              ],
       ),
-      drawer: _isSelectionMode ? null : Drawer(
-        backgroundColor: global.cardColor,
-        child: SidebarMenu(user: _user),
-      ),
+      drawer: _isSelectionMode
+          ? null
+          : Drawer(
+              backgroundColor: global.cardColor,
+              child: SidebarMenu(user: _user),
+            ),
       body: Container(
         color: global.bgColor,
         child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -415,18 +458,71 @@ class _Main_ScreenState extends State<Main_Screen> {
         ),
       ),
       floatingActionButton:
-          global.featureFlags?['random_quiz_generator'] == true && !_isSelectionMode
+          global.featureFlags?['enable_ai'] == true && !_isSelectionMode
           ? FloatingActionButton.extended(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Random Quiz feature coming soon!"),
+                showDialog(
+                  context: context,
+                  builder: (context) => AiGenerationDialog(
+                    buttonText: "START NOW",
+                    onGenerated: (json) async {
+                      // Type 1: Personal Use
+                      final ai = AiService();
+                      final userId = FirebaseAuth.instance.currentUser!.uid;
+                      final userName = global.currentUserProfile?['name'] ?? "User";
+                      
+                      // We can just use the prompt from the dialog if we modify it to return it, 
+                      // or we parse the JSON to get the title.
+                      // For now, let's just use createAiQuiz which handles the pattern.
+                      // Wait, createAiQuiz handles JSON generation internally too.
+                      
+                      // If onGenerated gives us the JSON, we might want a slightly different method.
+                      // But the prompt says "write in the Quiz directly in same pattern quiz is created".
+                      
+                      // Actually, let's just use createAiQuiz and ignore the 'json' parameter 
+                      // from dialog if we want AiService to handle the full flow.
+                      // But the dialog already has a text field.
+                      
+                      // Let's assume onGenerated is called AFTER generation.
+                      // The current AiGenerationDialog generates mock JSON.
+                      
+                      // Let's refactor createAiQuiz to be more flexible or just use it.
+                      // Actually, createAiQuiz generates JSON internally.
+                      
+                      // Let's use the prompt from the dialog controller? 
+                      // Dialog is already closed when onGenerated is called.
+                      
+                      // I will just use the title from the generated JSON as a proxy for prompt 
+                      // or just pass result.title.
+                      
+                      final result = await QuizDataProcessor.processImportData(json);
+                      final db = DatabaseService();
+                      
+                      final quizId = await db.createDatabase(
+                        creatorId: userId,
+                        user: userName,
+                        title: result.title ?? "AI Quiz",
+                        description: result.description ?? "Personal AI Quiz",
+                        visibility: "private",
+                        data: result.questions,
+                        time: (result.time ?? 600) ~/ 60,
+                        markingScheme: {
+                          "type": result.markingType ?? "default",
+                        },
+                        isPersonal: true,
+                        isAiGenerated: true,
+                      );
+
+                      if (mounted) {
+                        Navigator.pushNamed(context, "/Quiz Details", arguments: quizId);
+                      }
+                    },
                   ),
                 );
               },
               backgroundColor: global.btnColor,
-              icon: const Icon(Icons.shuffle_rounded),
-              label: const Text("RANDOM"),
+              icon: const Icon(Icons.auto_awesome_rounded),
+              label: const Text("AI PERSONAL"),
             )
           : null,
     );

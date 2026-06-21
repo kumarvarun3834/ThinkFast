@@ -99,14 +99,138 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         title: Text(title, style: const TextStyle(color: Colors.white)),
         content: Text(content, style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: global.primaryAccent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.primaryAccent,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("BYPASS"),
           ),
         ],
       ),
+    );
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        title: Text(
+          "How it Works",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: global.valueColor,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildHelpSection(
+                "Navigation",
+                "• Swipe left/right or use the navigator circles at the top to jump between questions.\n"
+                "• The 'Review & Next' button marks a question for later thought.",
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "COLOR INDICATORS",
+                style: GoogleFonts.poppins(
+                  color: global.primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildColorGuideRow(global.infoColor, "Current or seen question."),
+              _buildColorGuideRow(global.successColor, "Answered question."),
+              _buildColorGuideRow(global.reviewColor, "Marked for review."),
+              _buildColorGuideRow(
+                global.reviewColor,
+                "Answered and marked for review.",
+                secondaryColor: global.successColor,
+              ),
+              const SizedBox(height: 20),
+              _buildHelpSection(
+                "Rules",
+                "• Once the timer ends, the quiz will auto-submit.\n"
+                "• Some quizzes have 'Per Question' timers; if they expire, you'll auto-advance and cannot return to that question.",
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("GOT IT"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColorGuideRow(Color primary, String text, {Color? secondaryColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: secondaryColor != null
+                  ? LinearGradient(
+                      colors: [primary, secondaryColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: secondaryColor == null ? primary : null,
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withOpacity(0.4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpSection(String title, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: GoogleFonts.poppins(
+            color: global.primaryAccent,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          content,
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12, height: 1.4),
+        ),
+      ],
     );
   }
 
@@ -121,6 +245,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         docId: _quizData!['id'],
         currentUserId: _user!.uid,
         visibility: newVisibility,
+        isAiGenerated: _quizData!['isAiGenerated'] ?? false,
       );
 
       setState(() {
@@ -175,10 +300,18 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final title = _quizData?['title'] ?? 'Loading Quiz...';
-    final description = _quizData?['description'] ?? 'Please wait while we fetch the details.';
-    final timeLimit = _quizData != null ? "${(_quizData!['time'] ?? 0) ~/ 60} Minutes" : "--";
-    final totalQuestions = _quizData != null ? _calculateTotalQuestions().toString() : "--";
-    final creator = _creatorProfile?['name'] ?? _creatorProfile?['email'] ?? (_isLoading ? "Loading..." : "Unknown");
+    final description =
+        _quizData?['description'] ?? 'Please wait while we fetch the details.';
+    final timeLimit = _quizData != null
+        ? "${(_quizData!['time'] ?? 0) ~/ 60} Minutes"
+        : "--";
+    final totalQuestions = _quizData != null
+        ? _calculateTotalQuestions().toString()
+        : "--";
+    final creator =
+        _creatorProfile?['name'] ??
+        _creatorProfile?['email'] ??
+        (_isLoading ? "Loading..." : "Unknown");
 
     return Scaffold(
       backgroundColor: global.bgColor,
@@ -214,17 +347,25 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: InkWell(
-                          onTap: _quizData == null ? null : () {
-                            final link =
-                                "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
-                            Clipboard.setData(ClipboardData(text: link)).then((_) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("Quiz link copied!")),
-                                );
-                              }
-                            });
-                          },
+                          onTap: _quizData == null
+                              ? null
+                              : () {
+                                  final link =
+                                      "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
+                                  Clipboard.setData(
+                                    ClipboardData(text: link),
+                                  ).then((_) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Quiz link copied!"),
+                                        ),
+                                      );
+                                    }
+                                  });
+                                },
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -247,7 +388,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    _quizData == null ? "thinkfast.app/quiz?id=..." : "thinkfast3834.web.app/quiz?id=${_quizData!['id']}",
+                                    _quizData == null
+                                        ? "thinkfast.app/quiz?id=..."
+                                        : "thinkfast3834.web.app/quiz?id=${_quizData!['id']}",
                                     style: GoogleFonts.poppins(
                                       color: global.labelColor,
                                       fontSize: 12,
@@ -307,10 +450,12 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                         if (_quizData != null && _quizData!['activeAt'] != null)
                           InfoRow(
                             label: "Scheduled For",
-                            value: "${(_quizData!['activeAt'] as Timestamp).toDate().day}/${(_quizData!['activeAt'] as Timestamp).toDate().month} ${(_quizData!['activeAt'] as Timestamp).toDate().hour}:${(_quizData!['activeAt'] as Timestamp).toDate().minute.toString().padLeft(2, '0')}",
+                            value:
+                                "${(_quizData!['activeAt'] as Timestamp).toDate().day}/${(_quizData!['activeAt'] as Timestamp).toDate().month} ${(_quizData!['activeAt'] as Timestamp).toDate().hour}:${(_quizData!['activeAt'] as Timestamp).toDate().minute.toString().padLeft(2, '0')}",
                             icon: Icons.calendar_today_outlined,
                           ),
-                        if (_quizData != null && _quizData!['isRestricted'] == true)
+                        if (_quizData != null &&
+                            _quizData!['isRestricted'] == true)
                           InfoRow(
                             label: "Access",
                             value: "Restricted (Allowed List Only)",
@@ -322,7 +467,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                             value: _quizData!['category'].toString(),
                             icon: Icons.category_outlined,
                           ),
-                        if (_quizData != null && _quizData!['difficulty'] != null)
+                        if (_quizData != null &&
+                            _quizData!['difficulty'] != null)
                           InfoRow(
                             label: "Difficulty",
                             value: _quizData!['difficulty'].toString(),
@@ -334,16 +480,102 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                             value: _quizData!['marks'].toString(),
                             icon: Icons.star_outline,
                           ),
+                        const Divider(color: global.borderColor, height: 32),
+                        _buildMarkingSchemeInfo(),
                       ],
                     ),
                   ),
                   const SizedBox(height: 32),
-                  if (!_isLoading || _quizData != null)
-                    _buildActionButtons(),
+                  if (!_isLoading || _quizData != null) _buildActionButtons(),
                   const SizedBox(height: 80),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildMarkingSchemeInfo() {
+    if (_quizData == null) return const SizedBox.shrink();
+    final scheme = _quizData!['markingScheme'] as Map? ?? {"type": "default"};
+    final type = scheme['type'] ?? 'default';
+
+    String label = "Marking Scheme";
+    List<Widget> rows = [];
+
+    if (type == 'default') {
+      rows.add(_schemeRow("Correct", "+4", global.successColor));
+      rows.add(_schemeRow("Incorrect", "-1", global.errorColor));
+    } else if (type == 'entire_quiz') {
+      final globalS = scheme['global'] as Map? ?? {};
+      rows.add(_schemeRow("Correct", "+${globalS['correct'] ?? 4}", global.successColor));
+      rows.add(_schemeRow("Incorrect", "${globalS['wrong'] ?? -1}", global.errorColor));
+    } else if (type == 'per_question_type') {
+      final pqt = scheme['perQuestionType'] as Map? ?? {};
+      pqt.forEach((qType, values) {
+        final v = values as Map? ?? {};
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              qType,
+              style: GoogleFonts.poppins(
+                color: global.primaryAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        );
+        rows.add(_schemeRow("Correct", "+${v['correct'] ?? 4}", global.successColor));
+        rows.add(_schemeRow("Incorrect", "${v['wrong'] ?? -1}", global.errorColor));
+      });
+    } else if (type == 'per_question') {
+      rows.add(
+        Text(
+          "Variable marks defined per individual question.",
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: GoogleFonts.poppins(
+            color: global.labelColor,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...rows,
+      ],
+    );
+  }
+
+  Widget _schemeRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(color: global.valueColor, fontSize: 13),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -359,32 +591,35 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   Widget _buildActionButtons() {
     final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
     final bool canManage = _canManage;
+    final bool isPersonal = _quizData!['isPersonal'] == true;
+    final bool isAdmin = _isAdmin;
 
     return Column(
       children: [
+        QuizActionButton(
+          text: "How it Works",
+          onPressed: _showHelpDialog,
+          icon: Icons.help_outline_rounded,
+        ),
+        const SizedBox(height: 16),
         QuizActionButton(
           text: "Start Quiz",
           onPressed: () async {
             final db = DatabaseService();
             final String? activeQuizId = _quizData!['activeQuizId'];
-            final Timestamp? activeQuizExpiry =
-                _quizData!['activeQuizExpiry'];
+            final Timestamp? activeQuizExpiry = _quizData!['activeQuizExpiry'];
 
             if (activeQuizId != null) {
               bool isExpired = false;
               if (activeQuizExpiry != null) {
-                isExpired = activeQuizExpiry.toDate().isBefore(
-                  DateTime.now(),
-                );
+                isExpired = activeQuizExpiry.toDate().isBefore(DateTime.now());
               }
 
               if (isExpired) {
                 // Auto-submit blank and clean up
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'Cleaning up previous expired session...',
-                    ),
+                    content: Text('Cleaning up previous expired session...'),
                   ),
                 );
                 await db.handleExpiredQuiz(_user!.uid, activeQuizId);
@@ -415,16 +650,23 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
             // Scheduling Check
             if (_quizData!['activeAt'] != null) {
-              final DateTime activeAt = (_quizData!['activeAt'] as Timestamp).toDate();
+              final DateTime activeAt = (_quizData!['activeAt'] as Timestamp)
+                  .toDate();
               if (DateTime.now().isBefore(activeAt)) {
                 if (global.isAdmin) {
-                  final bool? bypass = await _showBypassDialog("Early Access", "This quiz is scheduled for later. Bypass and start now?");
+                  final bool? bypass = await _showBypassDialog(
+                    "Early Access",
+                    "This quiz is scheduled for later. Bypass and start now?",
+                  );
                   if (bypass != true) return;
                 } else {
-                  final String formatted = "${activeAt.day}/${activeAt.month} ${activeAt.hour}:${activeAt.minute.toString().padLeft(2, '0')}";
+                  final String formatted =
+                      "${activeAt.day}/${activeAt.month} ${activeAt.hour}:${activeAt.minute.toString().padLeft(2, '0')}";
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('This quiz is scheduled to start at $formatted'),
+                      content: Text(
+                        'This quiz is scheduled to start at $formatted',
+                      ),
                       backgroundColor: Colors.orange,
                     ),
                   );
@@ -435,15 +677,21 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
             // Restriction Check
             if (_quizData!['isRestricted'] == true) {
-              final List<dynamic> allowed = _quizData!['allowedParticipants'] as List? ?? [];
+              final List<dynamic> allowed =
+                  _quizData!['allowedParticipants'] as List? ?? [];
               if (!allowed.contains(_user?.uid)) {
                 if (global.isAdmin) {
-                  final bool? bypass = await _showBypassDialog("Restricted Quiz", "You are not in the allowed list. Bypass restriction?");
+                  final bool? bypass = await _showBypassDialog(
+                    "Restricted Quiz",
+                    "You are not in the allowed list. Bypass restriction?",
+                  );
                   if (bypass != true) return;
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Access Denied: You are not in the allowed participants list for this quiz.'),
+                      content: Text(
+                        'Access Denied: You are not in the allowed participants list for this quiz.',
+                      ),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
@@ -481,16 +729,24 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             _user = _auth.currentUser;
 
             // Ban Check
-            final bool isBanned = await db.isUserBanned(_user!.uid, quizId: _quizData!['id']);
+            final bool isBanned = await db.isUserBanned(
+              _user!.uid,
+              quizId: _quizData!['id'],
+            );
             if (isBanned) {
               if (global.isAdmin) {
-                final bool? bypass = await _showBypassDialog("Banned from Quiz", "You are currently banned from this quiz. As an administrator in Admin Mode, would you like to bypass this restriction?");
+                final bool? bypass = await _showBypassDialog(
+                  "Banned from Quiz",
+                  "You are currently banned from this quiz. As an administrator in Admin Mode, would you like to bypass this restriction?",
+                );
                 if (bypass != true) return;
               } else {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Access Denied: You have been blocked from this quiz."),
+                      content: Text(
+                        "Access Denied: You have been blocked from this quiz.",
+                      ),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
@@ -502,9 +758,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             if (!_user!.emailVerified) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'Please verify your email to start the quiz',
-                  ),
+                  content: Text('Please verify your email to start the quiz'),
                   backgroundColor: Colors.orange,
                 ),
               );
@@ -519,8 +773,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
               for (var module in rawModules) {
                 final String subject = module['subject'].toString();
-                final List<dynamic> questions =
-                    module['data'] as List? ?? [];
+                final List<dynamic> questions = module['data'] as List? ?? [];
                 for (var q in questions) {
                   final qMap = Map<String, Object>.from(q);
                   qMap['subject'] =
@@ -597,9 +850,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           ),
           const SizedBox(height: 16),
           QuizActionButton(
-            text: _quizData!['isLocked'] == true
-                ? "Unlock Quiz"
-                : "Lock Quiz",
+            text: _quizData!['isLocked'] == true ? "Unlock Quiz" : "Lock Quiz",
             onPressed: _toggleLock,
             icon: _quizData!['isLocked'] == true
                 ? Icons.lock_open_rounded
@@ -632,62 +883,63 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             },
             icon: Icons.people_outline,
           ),
-          const SizedBox(height: 16),
-          QuizActionButton(
-            text: "Update Quiz",
-            onPressed: () {
-              final List<Map<String, Object>> flattenedQuestions = [];
-              final List<dynamic> rawModules =
-                  _quizData!['modules'] as List? ?? [];
+          if (!isPersonal || isAdmin) ...[
+            const SizedBox(height: 16),
+            QuizActionButton(
+              text: "Update Quiz",
+              onPressed: () {
+                final List<Map<String, Object>> flattenedQuestions = [];
+                final List<dynamic> rawModules =
+                    _quizData!['modules'] as List? ?? [];
 
-              for (var module in rawModules) {
-                final String subject = module['subject'].toString();
-                final List<dynamic> questions =
-                    module['data'] as List? ?? [];
-                for (var q in questions) {
-                  final qMap = Map<String, Object>.from(q);
-                  qMap['subject'] = subject;
-                  flattenedQuestions.add(qMap);
+                for (var module in rawModules) {
+                  final String subject = module['subject'].toString();
+                  final List<dynamic> questions = module['data'] as List? ?? [];
+                  for (var q in questions) {
+                    final qMap = Map<String, Object>.from(q);
+                    qMap['subject'] = subject;
+                    flattenedQuestions.add(qMap);
+                  }
                 }
-              }
 
-              global.quizData = flattenedQuestions;
+                global.quizData = flattenedQuestions;
 
-              global.ID = _quizData!['id'];
-              global.currentUserProfile = _userProfile;
-              global.creatorProfile = _creatorProfile;
+                global.ID = _quizData!['id'];
+                global.currentUserProfile = _userProfile;
+                global.creatorProfile = _creatorProfile;
 
-              Navigator.pushNamed(context, "/Update Quiz");
-            },
-            icon: Icons.edit_outlined,
-          ),
-          const SizedBox(height: 16),
-          QuizActionButton(
-            text: "Delete Quiz",
-            onPressed: () async {
-              try {
-                await DatabaseService().deleteDatabase(
-                  docId: _quizData!['id'],
-                  currentUserId: _user!.uid,
-                );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Quiz moved to trash (Soft Delete)")),
+                Navigator.pushNamed(context, "/Update Quiz");
+              },
+              icon: Icons.edit_outlined,
+            ),
+            const SizedBox(height: 16),
+            QuizActionButton(
+              text: "Delete Quiz",
+              onPressed: () async {
+                try {
+                  await DatabaseService().deleteDatabase(
+                    docId: _quizData!['id'],
+                    currentUserId: _user!.uid,
                   );
-                  Navigator.pop(context);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Quiz moved to trash (Soft Delete)"),
+                      ),
+                    );
+                    Navigator.pop(context);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Delete Error: $e")));
+                  }
                 }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Delete Error: $e"),
-                    ),
-                  );
-                }
-              }
-            },
-            icon: Icons.delete_outline,
-          ),
+              },
+              icon: Icons.delete_outline,
+            ),
+          ],
         ],
       ],
     );
