@@ -588,7 +588,6 @@ class _ResultScreenState extends State<ResultScreen> {
     final mark = res['mark'] as int;
     final selections = res['selections'] as List;
     final bool isReview = res['isReview'] ?? false;
-    final bool isVisited = res['isVisited'] ?? true;
     final bool isAnswered = selections.isNotEmpty;
 
     bool isCorrect = isAnswered && mark > 0;
@@ -600,8 +599,6 @@ class _ResultScreenState extends State<ResultScreen> {
         gradientColors = [global.reviewColor, Colors.green];
       } else if (isWrong) {
         gradientColors = [global.reviewColor, global.errorColor];
-      } else if (isVisited) {
-        gradientColors = [global.reviewColor, global.infoColor];
       }
 
       return Container(
@@ -627,8 +624,6 @@ class _ResultScreenState extends State<ResultScreen> {
       color = Colors.green;
     } else if (isWrong) {
       color = global.errorColor;
-    } else if (isVisited) {
-      color = global.infoColor;
     }
 
     return Container(
@@ -653,16 +648,8 @@ class _ResultScreenState extends State<ResultScreen> {
           children: [
             _legendItem(Colors.green, "Correct"),
             _legendItem(global.errorColor, "Incorrect"),
-            _legendItem(global.warningColor, "Skipped"),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _legendItem(global.infoColor, "Seen"),
             _legendItem(global.reviewColor, "Review"),
-            _legendItem(Colors.grey, "Unseen"),
+            _legendItem(Colors.grey, "Unattempted"),
           ],
         ),
       ],

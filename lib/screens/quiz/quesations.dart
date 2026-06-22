@@ -263,9 +263,6 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         currentData = global.quizData[i];
         _activeModule = currentData['subject']?.toString() ?? 'General';
         _timeLeft = Duration(seconds: timeSeconds.toInt());
-        if (global.quizResult.isNotEmpty) {
-          global.quizResult[i][3] = true; // Mark visited
-        }
         _isLoading = false;
       });
     }
@@ -474,8 +471,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildLegendItem(global.infoColor, "Seen"),
-                              _buildLegendItem(Colors.grey, "Unseen"),
+                              _buildLegendItem(Colors.grey, "Unattempted"),
                             ],
                           ),
                         ],
@@ -561,7 +557,6 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       final qInfo = currentData["Q"] as Map;
       global.quizResult[i][0] = qInfo['text'].toString();
       global.quizResult[i][1] = qInfo['id'].toString();
-      global.quizResult[i][3] = true; // visited
 
       if (!global.isReviewMode) {
         final int qTimer =
@@ -889,15 +884,19 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     if (isMarkedForReview) {
       List<Color> gradientColors = [global.reviewColor, Colors.grey];
       if (global.isReviewMode) {
-        if (isCorrect)
+        if (isCorrect) {
           gradientColors = [global.reviewColor, Colors.green];
-        else if (isWrong)
+        } else if (isWrong) {
           gradientColors = [global.reviewColor, global.errorColor];
-      } else {
-        if (isAnswered)
-          gradientColors = [global.reviewColor, Colors.green];
-        else
+        } else if (isVisited) {
           gradientColors = [global.reviewColor, global.infoColor];
+        }
+      } else {
+        if (isAnswered) {
+          gradientColors = [global.reviewColor, Colors.green];
+        } else if (isVisited) {
+          gradientColors = [global.reviewColor, global.infoColor];
+        }
       }
 
       return BoxDecoration(
@@ -915,17 +914,18 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     Color color = Colors.grey;
     if (global.isReviewMode) {
-      if (isCorrect)
+      // In Review Mode, if not marked for review, keep dots looking like the quiz
+      if (isAnswered) {
         color = Colors.green;
-      else if (isWrong)
-        color = global.errorColor;
-      else if (isVisited)
+      } else if (isVisited) {
         color = global.infoColor;
+      }
     } else {
-      if (isAnswered)
+      if (isAnswered) {
         color = Colors.green;
-      else if (isVisited)
+      } else if (isVisited) {
         color = global.infoColor;
+      }
     }
 
     return BoxDecoration(
@@ -946,9 +946,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     if (global.isReviewMode) {
       if (selection.isEmpty) {
-        return (question.length > 3 && question[3] == true)
-            ? global.infoColor
-            : Colors.grey;
+        // Skipped or Unseen - stay static (no tint) unless marked for review
+        if (isMarkedForReview) return global.reviewColor;
+        return Colors.transparent;
       }
       final marks = _getMarksForQuestion(index);
       return marks > 0 ? global.successColor : global.errorColor;
@@ -1247,11 +1247,14 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           backgroundColor: global.cardColor,
           child: StatefulBuilder(
             builder: (context, setDrawerState) {
-              _drawerActiveModule ??= (global.isReviewMode ? "All" : _activeModule);
+              _drawerActiveModule ??= (global.isReviewMode
+                  ? "All"
+                  : _activeModule);
               final List<String> drawerModules = ["All", ...modules];
 
               List<int> drawerModuleIndices = [];
-              if (_drawerActiveModule == "All" || global.completeRandomShuffle) {
+              if (_drawerActiveModule == "All" ||
+                  global.completeRandomShuffle) {
                 drawerModuleIndices = global.isReviewMode
                     ? _displaySequence
                     : List.generate(global.quizData.length, (index) => index);
@@ -1379,8 +1382,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           global.reviewColor,
                           "Marked for Review",
                         ),
-                        _buildLegendItem(global.infoColor, "Seen"),
-                        _buildLegendItem(Colors.grey, "Unseen"),
+                        _buildLegendItem(Colors.grey, "Unattempted"),
                       ],
                     ),
                   ),
@@ -1393,15 +1395,16 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         body: Column(
           children: [
             // Module Selector
-            if (!global.completeRandomShuffle &&
-                modules.length > 1)
+            if (!global.completeRandomShuffle && modules.length > 1)
               Container(
                 height: 50,
                 margin: const EdgeInsets.only(top: 10),
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: global.isReviewMode ? modules.length + 1 : modules.length,
+                  itemCount: global.isReviewMode
+                      ? modules.length + 1
+                      : modules.length,
                   itemBuilder: (context, index) {
                     if (global.isReviewMode && index == 0) {
                       final bool isSelected = _activeModule == "All";
@@ -1424,8 +1427,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         ),
                       );
                     }
-                    
-                    final m = global.isReviewMode ? modules[index - 1] : modules[index];
+
+                    final m = global.isReviewMode
+                        ? modules[index - 1]
+                        : modules[index];
                     final bool isSelected = _activeModule == m;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
@@ -1469,7 +1474,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                     ? _displaySequence.length
                     : moduleIndices.length,
                 itemBuilder: (context, index) {
-                  int globalIndex = (global.isReviewMode && _activeModule == "All")
+                  int globalIndex =
+                      (global.isReviewMode && _activeModule == "All")
                       ? _displaySequence[index]
                       : moduleIndices[index];
                   return GestureDetector(
@@ -1517,16 +1523,24 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Card(
-                  color: global.isReviewMode
+                  color:
+                      (global.isReviewMode &&
+                          _getQuestionColor(i) != Colors.transparent)
                       ? _getQuestionColor(i).withValues(alpha: 0.05)
                       : global.cardColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide(
-                      color: global.isReviewMode
+                      color:
+                          (global.isReviewMode &&
+                              _getQuestionColor(i) != Colors.transparent)
                           ? _getQuestionColor(i).withValues(alpha: 0.5)
                           : global.borderColor,
-                      width: global.isReviewMode ? 2 : 1,
+                      width:
+                          (global.isReviewMode &&
+                              _getQuestionColor(i) != Colors.transparent)
+                          ? 2
+                          : 1,
                     ),
                   ),
                   child: Padding(
@@ -1679,64 +1693,70 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(
-                                    color: global.quizResult[i][4] == true
+                        if (!global.isReviewMode) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(
+                                      color: global.quizResult[i][4] == true
+                                          ? global.reviewColor
+                                          : global.borderColor,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    foregroundColor:
+                                        global.quizResult[i][4] == true
                                         ? global.reviewColor
-                                        : global.borderColor,
+                                        : global.labelColor,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                  onPressed: () => setState(() {
+                                    global.quizResult[i][4] =
+                                        !(global.quizResult[i][4] as bool);
+                                  }),
+                                  icon: Icon(
+                                    global.quizResult[i][4] == true
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    size: 18,
                                   ),
-                                  foregroundColor:
-                                      global.quizResult[i][4] == true
-                                      ? global.reviewColor
-                                      : global.labelColor,
-                                ),
-                                onPressed: () => setState(() {
-                                  global.quizResult[i][4] =
-                                      !(global.quizResult[i][4] as bool);
-                                }),
-                                icon: Icon(
-                                  global.quizResult[i][4] == true
-                                      ? Icons.bookmark
-                                      : Icons.bookmark_border,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  "REVIEW",
-                                  style: TextStyle(fontSize: 12),
+                                  label: const Text(
+                                    "REVIEW",
+                                    style: TextStyle(fontSize: 12),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: global.errorColor,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: global.errorColor,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () => setState(() {
+                                    global.quizResult[i][2] = <String>[];
+                                    if (currentData["type"] == "Integer") {
+                                      _integerController.clear();
+                                    }
+                                  }),
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text(
+                                    "CLEAR",
+                                    style: TextStyle(fontSize: 12),
                                   ),
                                 ),
-                                onPressed: () => setState(() {
-                                  global.quizResult[i][2] = <String>[];
-                                  if (currentData["type"] == "Integer")
-                                    _integerController.clear();
-                                }),
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                label: const Text(
-                                  "CLEAR",
-                                  style: TextStyle(fontSize: 12),
-                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1893,10 +1913,11 @@ class ButtonsOpt extends StatelessWidget {
                   quizResultChunk[2] = [optUid];
                 } else {
                   final sel = _getSelection();
-                  if (sel.contains(optUid))
+                  if (sel.contains(optUid)) {
                     sel.remove(optUid);
-                  else
+                  } else {
                     sel.add(optUid);
+                  }
                   quizResultChunk[2] = sel;
                 }
                 onPressed();
