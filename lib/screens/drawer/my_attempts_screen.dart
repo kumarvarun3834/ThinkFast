@@ -8,7 +8,8 @@ import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 class MyAttemptsScreen extends StatefulWidget {
-  const MyAttemptsScreen({super.key});
+  final String? quizId;
+  const MyAttemptsScreen({super.key, this.quizId});
 
   @override
   State<MyAttemptsScreen> createState() => _MyAttemptsScreenState();
@@ -98,7 +99,30 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                   );
                 }
 
-                final attempts = snapshot.data!;
+                final allAttempts = snapshot.data!;
+                final attempts = widget.quizId == null 
+                    ? allAttempts 
+                    : allAttempts.where((a) => a['quizId'] == widget.quizId).toList();
+
+                if (attempts.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 64,
+                          color: _borderColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          widget.quizId == null ? "No attempts found" : "No attempts for this quiz found",
+                          style: GoogleFonts.poppins(color: _labelColor),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -127,6 +151,8 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                                     attempt['answers'] as Map<String, dynamic>,
                                 attemptReviewItems:
                                     attempt['reviewItems'] as List<dynamic>?,
+                                attemptQuestionOrder:
+                                    attempt['questionOrder'] as List<dynamic>?,
                               ),
                             ),
                           );
@@ -277,6 +303,8 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
               try {
                 await DatabaseService().softDeleteResponse(
                   responseId: attempt['id'],
@@ -284,19 +312,17 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                   actorId: _user!.uid,
                   reason: "User deleted own attempt",
                 );
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Attempt moved to trash (Soft Delete)"),
-                    ),
-                  );
-                }
+                navigator.pop();
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(
+                    content: Text("Attempt moved to trash (Soft Delete)"),
+                  ),
+                );
               } catch (e) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                navigator.pop();
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(content: Text("Error: $e")),
+                );
               }
             },
             child: const Text("Delete"),

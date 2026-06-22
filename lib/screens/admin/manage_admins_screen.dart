@@ -13,6 +13,8 @@ class ManageAdminsScreen extends StatefulWidget {
 
 class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
   final AdminService _adminService = AdminService();
+  List<String> _myPermissions = [];
+
   final Map<String, String> _availablePermissions = {
     'manage_admins': 'Manage App Admins',
     'moderate_users': 'Global User Moderation',
@@ -23,9 +25,24 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     'manage_collaborators': 'Manage Quiz Collaborators',
   };
 
-  void _showAdminDialog({String? uid, List<String>? currentPermissions}) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchMyPermissions();
+  }
+
+  Future<void> _fetchMyPermissions() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      final perms = await _adminService.getAdminPermissions(uid);
+      if (mounted) setState(() => _myPermissions = perms);
+    }
+  }
+
+  void _showAdminDialog({String? uid, List<String>? currentPermissions, int? level}) {
     final TextEditingController uidController = TextEditingController(text: uid);
     final List<String> selectedPermissions = List.from(currentPermissions ?? []);
+    bool isSuper = level == 0;
     bool isEditing = uid != null;
 
     showDialog(
@@ -51,28 +68,45 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
+                if (global.adminLevel == 0) ...[
+                  SwitchListTile(
+                    title: const Text("Super Admin", style: TextStyle(color: global.valueColor)),
+                    subtitle: const Text("Full system access", style: TextStyle(color: global.labelColor, fontSize: 12)),
+                    value: isSuper,
+                    activeColor: global.primaryAccent,
+                    onChanged: (val) => setDialogState(() => isSuper = val),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 const Text(
                   "Permissions",
                   style: TextStyle(color: global.primaryAccent, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 ..._availablePermissions.entries.map((entry) {
-                  return CheckboxListTile(
-                    title: Text(
-                      entry.value,
-                      style: const TextStyle(color: global.valueColor, fontSize: 14),
+                  final bool hasPermissionToGrant = global.adminLevel == 0 || _myPermissions.contains(entry.key);
+                  
+                  return Opacity(
+                    opacity: hasPermissionToGrant ? 1.0 : 0.4,
+                    child: CheckboxListTile(
+                      title: Text(
+                        entry.value,
+                        style: const TextStyle(color: global.valueColor, fontSize: 14),
+                      ),
+                      value: isSuper ? true : selectedPermissions.contains(entry.key),
+                      activeColor: global.primaryAccent,
+                      onChanged: (isSuper || !hasPermissionToGrant)
+                          ? null
+                          : (bool? value) {
+                              setDialogState(() {
+                                if (value == true) {
+                                  selectedPermissions.add(entry.key);
+                                } else {
+                                  selectedPermissions.remove(entry.key);
+                                }
+                              });
+                            },
                     ),
-                    value: selectedPermissions.contains(entry.key),
-                    activeColor: global.primaryAccent,
-                    onChanged: (bool? value) {
-                      setDialogState(() {
-                        if (value == true) {
-                          selectedPermissions.add(entry.key);
-                        } else {
-                          selectedPermissions.remove(entry.key);
-                        }
-                      });
-                    },
                   );
                 }),
               ],
@@ -91,8 +125,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 try {
                   await _adminService.addOrUpdateAdmin(
                     targetUid: targetUid,
-                    permissions: selectedPermissions,
+                    permissions: isSuper ? AdminService.allPermissions : selectedPermissions,
                     actorUid: FirebaseAuth.instance.currentUser!.uid,
+                    makeSuper: isSuper,
                   );
                   if (mounted) Navigator.pop(context);
                 } catch (e) {
@@ -183,6 +218,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
               final admin = admins[index];
               final uid = admin['uid'];
               final perms = List<String>.from(admin['permissions'] ?? []);
+              final level = admin['level'] ?? 1;
 
               return Card(
                 color: global.cardColor,
@@ -192,9 +228,23 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                   side: const BorderSide(color: global.borderColor),
                 ),
                 child: ListTile(
-                  title: Text(uid, style: const TextStyle(color: global.valueColor, fontSize: 14)),
+                  title: Row(
+                    children: [
+                      Expanded(child: Text(uid, style: const TextStyle(color: global.valueColor, fontSize: 14))),
+                      if (level == 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: global.primaryAccent.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: global.primaryAccent),
+                          ),
+                          child: const Text("SUPER", style: TextStyle(color: global.primaryAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
+                  ),
                   subtitle: Text(
-                    "Permissions: ${perms.isEmpty ? 'None' : perms.join(', ')}",
+                    level == 0 ? "Full Access (Super Admin)" : "Permissions: ${perms.isEmpty ? 'None' : perms.join(', ')}",
                     style: const TextStyle(color: global.labelColor, fontSize: 12),
                   ),
                   trailing: Row(
@@ -202,12 +252,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.edit, color: global.primaryAccent, size: 20),
-                        onPressed: () => _showAdminDialog(uid: uid, currentPermissions: perms),
+                        onPressed: () => _showAdminDialog(uid: uid, currentPermissions: perms, level: level),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: global.errorColor, size: 20),
-                        onPressed: () => _confirmRemove(uid),
-                      ),
+                      if (level != 0 || global.adminLevel == 0)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: global.errorColor, size: 20),
+                          onPressed: () => _confirmRemove(uid),
+                        ),
                     ],
                   ),
                 ),

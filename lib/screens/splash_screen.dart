@@ -19,14 +19,23 @@ class _MySplashState extends State<MySplash> {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () async {
       if (mounted) {
-        final db = DatabaseService();
         final user = FirebaseAuth.instance.currentUser;
+        try {
+          final db = DatabaseService();
 
-        if (user != null) {
-          await db.initAppData(user.uid);
-        } else {
-          // If not logged in, still fetch flags for maintenance check
-          global.featureFlags = await db.getFeatureFlags();
+          if (user != null) {
+            await db.initAppData(user.uid);
+          } else {
+            // If not logged in, still fetch flags for maintenance check
+            global.featureFlags = await db.getFeatureFlags();
+          }
+        } catch (e) {
+          debugPrint("Initialization error: $e");
+          // Ensure we have some default flags even on total failure
+          global.featureFlags ??= {
+            'maintenance_mode': false,
+            'enable_login': true,
+          };
         }
 
         if (!mounted) return;

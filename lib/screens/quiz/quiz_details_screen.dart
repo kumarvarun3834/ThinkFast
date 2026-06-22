@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
@@ -773,6 +774,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           icon: Icons.help_outline_rounded,
         ),
         const SizedBox(height: 16),
+        if (_user != null) ...[
+          QuizActionButton(
+            text: "View Your Attempts",
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                "/My Attempts",
+                arguments: _quizData!['id'],
+              );
+            },
+            icon: Icons.history_rounded,
+          ),
+          const SizedBox(height: 16),
+        ],
         QuizActionButton(
           text: "Start Quiz",
           onPressed: () async {

@@ -308,11 +308,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 },
                 style: GoogleFonts.poppins(color: _valueColor),
                 decoration: InputDecoration(
-                  hintText: "Filter by User ID",
-                  hintStyle: GoogleFonts.poppins(color: _labelColor),
-                  prefixIcon: Icon(Icons.search, color: _labelColor),
+                  hintText: "Filter by User, ID, or Marks...",
+                  hintStyle: GoogleFonts.poppins(color: _labelColor, fontSize: 13),
+                  prefixIcon: Icon(Icons.search, color: _labelColor, size: 20),
                   filled: true,
                   fillColor: _cardColor,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: _borderColor),
@@ -346,17 +347,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
 
                 var responses = snapshot.data!;
 
-                if (_searchUserId.isNotEmpty) {
-                  responses = responses
-                      .where(
-                        (r) => (r['userId'] ?? '')
-                            .toString()
-                            .toLowerCase()
-                            .contains(_searchUserId.toLowerCase()),
-                      )
-                      .toList();
-                }
-
+                // 1. Sort by time ASC to calculate attempt numbers correctly
                 responses.sort((a, b) {
                   final tA =
                       (a['timestamp'] as dynamic)?.toDate() ??
@@ -367,6 +358,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                   return tA.compareTo(tB);
                 });
 
+                // 2. Group by user and assign attempt numbers
                 Map<String, List<Map<String, dynamic>>> groupedResponses = {};
                 for (var r in responses) {
                   final uid = r['userId'] ?? 'Unknown';
@@ -381,14 +373,31 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                   }
                 });
 
+                // 3. Filter based on multi-match: Name > UserID > Marks
+                if (_searchUserId.isNotEmpty) {
+                  final filter = _searchUserId.toLowerCase();
+                  flatResponses = flatResponses.where((r) {
+                    final name = (r['userName'] ?? '').toString().toLowerCase();
+                    final uid = (r['userId'] ?? '').toString().toLowerCase();
+                    final id = (r['id'] ?? '').toString().toLowerCase();
+                    final score = (r['score'] ?? '').toString();
+                    
+                    return name.contains(filter) || 
+                           uid.contains(filter) ||
+                           id.contains(filter) || 
+                           score.contains(filter);
+                  }).toList();
+                }
+
+                // 4. Sort by time DESC for display (Newest first)
                 flatResponses.sort((a, b) {
-                  int cmp = a['attemptNumber'].compareTo(b['attemptNumber']);
-                  if (cmp == 0) {
-                    int scoreA = a['score'] ?? 0;
-                    int scoreB = b['score'] ?? 0;
-                    return scoreB.compareTo(scoreA);
-                  }
-                  return cmp;
+                  final tA =
+                      (a['timestamp'] as dynamic)?.toDate() ??
+                      DateTime.fromMillisecondsSinceEpoch(0);
+                  final tB =
+                      (b['timestamp'] as dynamic)?.toDate() ??
+                      DateTime.fromMillisecondsSinceEpoch(0);
+                  return tB.compareTo(tA);
                 });
 
                 return ListView.builder(
@@ -432,6 +441,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                                 as Map<String, dynamic>,
                                         attemptReviewItems:
                                             r['reviewItems'] as List<dynamic>?,
+                                        attemptQuestionOrder: r['questionOrder'] as List<dynamic>?,
                                       ),
                                     ),
                                   );
@@ -453,7 +463,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                 ),
                               Expanded(
                                 child: Text(
-                                  "User ID: ${r['userId']}",
+                                  r['userName'] ?? "User: ${r['userId']}",
                                   style: GoogleFonts.poppins(
                                     color: _valueColor,
                                     fontWeight: FontWeight.bold,
@@ -486,35 +496,46 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
+                              Text("User ID: ${r['userId']}", style: TextStyle(color: _labelColor, fontSize: 10)),
+                              Text("ID: $id", style: TextStyle(color: _labelColor, fontSize: 10, fontFamily: 'monospace')),
+                              const SizedBox(height: 8),
                               Row(
                                 children: [
                                   StatusBadge(
                                     text: "Attempt #${r['attemptNumber']}",
                                     color: _primaryAccent,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
                                       vertical: 2,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
-                                  Text(
-                                    "Score: $score / $total",
-                                    style: GoogleFonts.poppins(
-                                      color: score >= (total / 2)
-                                          ? global.successColor
-                                          : global.errorColor,
-                                      fontWeight: FontWeight.w600,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: (score >= total / 2 ? global.successColor : global.errorColor).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      "Marks: $score / $total",
+                                      style: GoogleFonts.poppins(
+                                        color: score >= (total / 2)
+                                            ? global.successColor
+                                            : global.errorColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 8),
                               Text(
                                 "Date: ${_formatDate(r['timestamp'])}",
                                 style: GoogleFonts.poppins(
                                   color: _labelColor,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],

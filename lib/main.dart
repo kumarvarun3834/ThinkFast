@@ -155,7 +155,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/My Attempts':
-            page = const MyAttemptsScreen();
+            page = MyAttemptsScreen(quizId: settings.arguments as String?);
             wrapInGradient = false;
             break;
           case '/About Us':

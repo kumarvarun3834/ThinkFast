@@ -18,6 +18,7 @@ class _AdminPanelState extends State<AdminPanel> {
   final SettingsService _settingsService = SettingsService();
   final AdminService _adminService = AdminService();
   List<String> _permissions = [];
+  bool _isMaster = false;
 
   // Grouped Feature Flags
   final Map<String, List<String>> _flagGroups = {
@@ -49,18 +50,24 @@ class _AdminPanelState extends State<AdminPanel> {
   @override
   void initState() {
     super.initState();
-    _fetchPermissions();
+    _fetchAdminStatus();
   }
 
-  Future<void> _fetchPermissions() async {
+  Future<void> _fetchAdminStatus() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       final perms = await _adminService.getAdminPermissions(uid);
-      if (mounted) setState(() => _permissions = perms);
+      if (mounted) {
+        setState(() {
+          _permissions = perms;
+          _isMaster = global.adminLevel == 0;
+        });
+      }
     }
   }
 
   bool _canManageFlag(String key) {
+    if (_isMaster) return true;
     return _permissions.contains('manage_app_settings');
   }
 
@@ -71,9 +78,24 @@ class _AdminPanelState extends State<AdminPanel> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
-          "Admin Panel",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Admin Panel",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            ),
+            if (_isMaster)
+              const Text(
+                "MASTER CONTROL ENABLED",
+                style: TextStyle(
+                  color: global.primaryAccent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+          ],
         ),
       ),
       body: StreamBuilder<Map<String, dynamic>?>(
@@ -87,16 +109,28 @@ class _AdminPanelState extends State<AdminPanel> {
 
           final flags = snapshot.data ?? {};
 
+          // Collect all flags that are already grouped
+          final groupedKeys = _flagGroups.values.expand((e) => e).toSet();
+          groupedKeys.add('quiz_creation_rate_limit_minutes');
+
+          // Find any flags in Firestore that are NOT in our groups
+          final otherKeys = flags.keys
+              .where((k) => !groupedKeys.contains(k) && k != 'updatedAt')
+              .toList();
+
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
               ..._flagGroups.entries.map((group) {
+                final groupFlags = group.value.where((k) => flags.containsKey(k)).toList();
+                if (groupFlags.isEmpty) return const SizedBox.shrink();
+                
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionHeader(group.key),
                     const SizedBox(height: 12),
-                    ...group.value.map((key) {
+                    ...groupFlags.map((key) {
                       final bool value = flags[key] == true;
                       return _buildFlagToggle(key, value);
                     }),
@@ -105,6 +139,20 @@ class _AdminPanelState extends State<AdminPanel> {
                 );
               }),
 
+              if (otherKeys.isNotEmpty) ...[
+                _buildSectionHeader("Other Settings"),
+                const SizedBox(height: 12),
+                ...otherKeys.map((key) {
+                  final value = flags[key];
+                  if (value is bool) {
+                    return _buildFlagToggle(key, value);
+                  } else {
+                    return _buildGenericField(key, value, flags);
+                  }
+                }),
+                const SizedBox(height: 24),
+              ],
+
               _buildSectionHeader("Rate Limits"),
               const SizedBox(height: 12),
               _buildRateLimitField(flags),
@@ -112,6 +160,61 @@ class _AdminPanelState extends State<AdminPanel> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildGenericField(String key, dynamic value, Map<String, dynamic> flags) {
+    final bool canManage = _canManageFlag(key);
+    final String displayTitle = key.replaceAll('_', ' ').toUpperCase();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: global.borderColor),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(
+            sigmaX: canManage ? 0 : 3,
+            sigmaY: canManage ? 0 : 3,
+          ),
+          child: AbsorbPointer(
+            absorbing: !canManage,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayTitle,
+                    style: const TextStyle(color: global.valueColor, fontSize: 14),
+                  ),
+                ),
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: TextEditingController(text: value.toString()),
+                    style: const TextStyle(color: global.valueColor),
+                    textAlign: TextAlign.center,
+                    decoration: const InputDecoration(isDense: true),
+                    onSubmitted: (newVal) async {
+                      dynamic typedVal = newVal;
+                      if (value is int) typedVal = int.tryParse(newVal);
+                      if (value is double) typedVal = double.tryParse(newVal);
+                      
+                      if (typedVal != null) {
+                        await _settingsService.updateFeatureFlag(key, typedVal);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

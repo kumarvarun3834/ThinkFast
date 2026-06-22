@@ -169,7 +169,7 @@ class DatabaseService {
     required Map<String, bool> permissions,
     required String addedBy,
   }) async {
-    await _ensureAdminLevel(addedBy, 2); // Level 2+ for collabs
+    await _ensureAdminPermission(addedBy, 'manage_collaborators');
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.grantQuizManagementAccess(
       quizId: quizId,
@@ -184,7 +184,7 @@ class DatabaseService {
     required String userId,
     required String addedBy,
   }) async {
-    await _ensureAdminLevel(addedBy, 2);
+    await _ensureAdminPermission(addedBy, 'manage_collaborators');
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.addParticipant(
       quizId: quizId,
@@ -198,7 +198,7 @@ class DatabaseService {
     required String userId,
     required String removedBy,
   }) async {
-    await _ensureAdminLevel(removedBy, 2);
+    await _ensureAdminPermission(removedBy, 'manage_collaborators');
     await _ensurePermission('management_features', userId: removedBy);
     return _adminService.removeQuizManagementAccess(
       quizId: quizId,
@@ -230,12 +230,14 @@ class DatabaseService {
     required String targetUid,
     required List<String> permissions,
     required String actorUid,
+    bool makeSuper = false,
   }) async {
     await _ensureAdminPermission(actorUid, 'manage_admins');
     return _adminService.addOrUpdateAdmin(
       targetUid: targetUid,
       permissions: permissions,
       actorUid: actorUid,
+      makeSuper: makeSuper,
     );
   }
 

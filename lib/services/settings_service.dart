@@ -18,8 +18,6 @@ class SettingsService {
 
   /// ✅ Fetch Feature Flags (Cached for session)
   Future<Map<String, dynamic>?> getFeatureFlags() async {
-    final doc = await _featureFlags.doc('production').get();
-    
     final defaultFlags = {
       'enable_ai': true,
       'enable_import': true,
@@ -38,6 +36,14 @@ class SettingsService {
       'enable_quiz_creation_rate_limit': true,
       'quiz_creation_rate_limit_minutes': 5,
     };
+
+    DocumentSnapshot doc;
+    try {
+      doc = await _featureFlags.doc('production').get().timeout(const Duration(seconds: 10));
+    } catch (e) {
+      debugPrint("Warning: Could not fetch feature flags ($e). Using defaults.");
+      return defaultFlags;
+    }
 
     if (!doc.exists) {
       try {
@@ -97,17 +103,22 @@ class SettingsService {
   /// ✅ Fetch Admin Settings (Template)
   /// Allow everyone to create the settings template if it doesn't exist, but doesn't add members
   Future<Map<String, dynamic>?> getAdminSettings() async {
-    final doc = await _settings.doc('admin').get();
-    if (!doc.exists) {
-      final defaultAdminSettings = {
-        'min_level_to_manage_admins': 5,
-        'super_admin_level': 10,
-        'default_new_admin_level': 1,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-      await _settings.doc('admin').set(defaultAdminSettings);
-      return defaultAdminSettings;
+    try {
+      final doc = await _settings.doc('admin').get().timeout(const Duration(seconds: 5));
+      if (!doc.exists) {
+        final defaultAdminSettings = {
+          'min_level_to_manage_admins': 5,
+          'super_admin_level': 10,
+          'default_new_admin_level': 1,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        await _settings.doc('admin').set(defaultAdminSettings);
+        return defaultAdminSettings;
+      }
+      return doc.data() as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint("Warning: Could not fetch admin settings ($e)");
+      return null;
     }
-    return doc.data() as Map<String, dynamic>?;
   }
 }

@@ -25,6 +25,16 @@ class AdminService {
   final CollectionReference _quizAttempts = FirebaseFirestore.instance
       .collection('quiz_attempts');
 
+  static const List<String> allPermissions = [
+    'manage_admins',
+    'moderate_users',
+    'manage_all_quizzes',
+    'view_audit_logs',
+    'manage_app_settings',
+    'bypass_ai_limits',
+    'manage_collaborators',
+  ];
+
   // Safely check if a user is a registered admin
   Future<bool> isRegisteredAdmin(String uid) async {
     try {
@@ -42,6 +52,10 @@ class AdminService {
       final doc = await _admins.doc(uid).get();
       if (!doc.exists) return false;
       final data = doc.data() as Map<String, dynamic>;
+
+      // Cache admin level
+      global.adminLevel = data['level'] ?? 1;
+
       // MUST have toggle enabled AND be a registered admin
       return data['isAdminModeEnabled'] == true;
     } catch (e) {
@@ -78,13 +92,27 @@ class AdminService {
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return [];
     final data = doc.data() as Map<String, dynamic>;
+
+    // Super User (Level 0) gets all roles
+    if (data['level'] == 0) {
+      return allPermissions;
+    }
+
     return List<String>.from(data['permissions'] ?? []);
   }
 
   /// ✅ Check if admin has specific permission
   Future<bool> hasPermission(String uid, String permission) async {
     if (!await isAdmin(uid)) return false;
-    final permissions = await getAdminPermissions(uid);
+
+    final doc = await _admins.doc(uid).get();
+    if (!doc.exists) return false;
+    final data = doc.data() as Map<String, dynamic>;
+
+    // Level 0 is Super User: bypass all permission checks
+    if (data['level'] == 0) return true;
+
+    final permissions = List<String>.from(data['permissions'] ?? []);
     return permissions.contains(permission);
   }
 
@@ -93,6 +121,7 @@ class AdminService {
     required String targetUid,
     required List<String> permissions,
     required String actorUid,
+    bool makeSuper = false,
   }) async {
     // Only admins with 'manage_admins' permission can add/update admins
     if (!await hasPermission(actorUid, 'manage_admins')) {
@@ -101,19 +130,38 @@ class AdminService {
       );
     }
 
-    await _admins.doc(targetUid).set({
+    final Map<String, dynamic> data = {
       'permissions': permissions,
-      'level': permissions.length, // Derived level
       'addedBy': actorUid,
       'isAdminModeEnabled': true,
       'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+
+    // Integrity Check: Only the Super Admin (Level 0) can grant Level 0 or manage another Level 0
+    final targetDoc = await _admins.doc(targetUid).get();
+    final bool isTargetSuper = targetDoc.exists && (targetDoc.data() as Map)['level'] == 0;
+    
+    if (global.adminLevel != 0) {
+      if (makeSuper || isTargetSuper) {
+        throw Exception("Unauthorized: Only a Super Admin can manage Super Admin privileges.");
+      }
+    }
+
+    // Only add 'level' field if it is 0 (Super Admin)
+    if (makeSuper) {
+      data['level'] = 0;
+    } else if (!isTargetSuper) {
+      // If updating a standard admin, ensure 'level' field is removed/not present
+      data['level'] = FieldValue.delete();
+    }
+
+    await _admins.doc(targetUid).set(data, SetOptions(merge: true));
 
     await logAction(
       actorId: actorUid,
       action: 'update_admin_permissions',
       targetId: targetUid,
-      details: 'Target: $targetUid, Permissions: $permissions',
+      details: 'Target: $targetUid, Permissions: $permissions, Super: $makeSuper',
       category: 'admin',
     );
   }
@@ -127,6 +175,12 @@ class AdminService {
       throw Exception(
         'Unauthorized: Permission "manage_admins" required.',
       );
+    }
+
+    // Integrity Check: Cannot remove Super Admin unless actor is Super Admin
+    final targetDoc = await _admins.doc(targetUid).get();
+    if (targetDoc.exists && (targetDoc.data() as Map)['level'] == 0 && global.adminLevel != 0) {
+      throw Exception("Unauthorized: Only a Super Admin can remove another Super Admin.");
     }
 
     await _admins.doc(targetUid).delete();
@@ -293,8 +347,15 @@ class AdminService {
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return false;
     final data = doc.data() as Map<String, dynamic>;
-    final level = data['level'] ?? 0;
-    return level >= requiredLevel;
+    
+    // Level 0 is Super User (hardcoded field)
+    if (data['level'] == 0) return true;
+
+    // Standard admins don't have a level field, they operate on permissions
+    // If a specific level (like 1 or 2) is required for sub-admin features, 
+    // we treat standard admins as level 1.
+    const standardLevel = 1;
+    return standardLevel >= requiredLevel;
   }
 
   /// ✅ Unban user

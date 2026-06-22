@@ -178,15 +178,29 @@ class AttemptService {
         .collection('attempts')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) {
-          final docs = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList();
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> results = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
 
-          if (includeDeleted) return docs;
-          return docs.where((doc) => doc['isDeleted'] != true).toList();
-        });
+        if (!includeDeleted && data['isDeleted'] == true) continue;
+
+        // Fetch user profile to show name
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(data['userId'])
+            .get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          data['userName'] = userData['name'] ?? 'Unknown User';
+        } else {
+          data['userName'] = 'Unknown User';
+        }
+
+        results.add(data);
+      }
+      return results;
+    });
   }
 }

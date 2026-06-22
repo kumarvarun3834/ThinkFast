@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 class SidebarMenu extends StatefulWidget {
   final User? user;
@@ -46,10 +47,13 @@ class _SidebarMenuState extends State<SidebarMenu> {
 
   Future<void> _checkPermissions() async {
     if (widget.user == null) return;
-    
+
     final adminService = AdminService();
-    final canManage = await adminService.hasPermission(widget.user!.uid, 'manage_admins');
-    
+    final canManage = await adminService.hasPermission(
+      widget.user!.uid,
+      'manage_admins',
+    );
+
     if (mounted) {
       setState(() {
         _canManageAdmins = canManage;
@@ -188,7 +192,11 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   ? NetworkImage(_userPhotoUrl!)
                   : null,
               child: _userPhotoUrl == null
-                  ? const Icon(Icons.person, size: 40, color: global.primaryAccent)
+                  ? const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: global.primaryAccent,
+                    )
                   : null,
             ),
             accountName: Row(
@@ -204,6 +212,11 @@ class _SidebarMenuState extends State<SidebarMenu> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (_isAdmin)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8.0),
+                    child: AdminBadge(),
+                  ),
                 if (widget.user != null && !widget.user!.emailVerified)
                   Container(
                     padding: const EdgeInsets.symmetric(

@@ -1,9 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:thinkfast/widgets/TextContainer.dart';
-import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/widgets/TextContainer.dart';
 
 class ResultScreen extends StatefulWidget {
   final String? quizId;
@@ -30,6 +30,8 @@ class _ResultScreenState extends State<ResultScreen> {
   int _wrongCount = 0;
   int _unattemptedCount = 0;
   bool _isLoading = true;
+  String _loadingMessage = "Processing...";
+
   // bool _showDetails = false;
   Map<String, List<String>> _correctAnswers = {};
   Map<String, String> _solutions = {};
@@ -37,6 +39,7 @@ class _ResultScreenState extends State<ResultScreen> {
   List<Map<String, dynamic>> _calculatedResults = [];
   Map<String, dynamic> _markingScheme = {"type": "default"};
   String _quizId = "";
+  String? _activeResultModule;
 
   @override
   void initState() {
@@ -52,9 +55,10 @@ class _ResultScreenState extends State<ResultScreen> {
 
       Map<String, dynamic> userAnswers = {};
       List<List<dynamic>> displayQuizResult = [];
-      
+
       if (widget.quizId != null && widget.attemptAnswers != null) {
         // VIEWING PAST ATTEMPT
+        setState(() => _loadingMessage = "Fetching result...");
         _quizId = widget.quizId!;
         userAnswers = widget.attemptAnswers!;
         final List<String> reviewUids = widget.attemptReviewItems != null
@@ -63,7 +67,7 @@ class _ResultScreenState extends State<ResultScreen> {
         final List<String> questionOrder = widget.attemptQuestionOrder != null
             ? List<String>.from(widget.attemptQuestionOrder!)
             : [];
-        
+
         // Fetch quiz data (questions)
         final quiz = await db.readDatabase(_quizId, userId: user.uid);
         _displayQuizData = [];
@@ -81,7 +85,8 @@ class _ResultScreenState extends State<ResultScreen> {
           for (var qUid in questionOrder) {
             try {
               final q = allQuestions.firstWhere(
-                (element) => (element['Q']?['id'] ?? element['uid']).toString() == qUid,
+                (element) =>
+                    (element['Q']?['id'] ?? element['uid']).toString() == qUid,
               );
               _displayQuizData.add(q);
             } catch (_) {}
@@ -96,26 +101,35 @@ class _ResultScreenState extends State<ResultScreen> {
         }
 
         _markingScheme = quiz['markingScheme'] ?? {"type": "default"};
-        
+
         // Build displayQuizResult from quiz data and userAnswers
         for (var q in _displayQuizData) {
           final qMap = q['Q'] as Map;
           final qId = qMap['id'].toString();
           final qText = qMap['text'].toString();
-          final selections = userAnswers[qId] is List 
+          final selections = userAnswers[qId] is List
               ? List<String>.from(userAnswers[qId])
-              : (userAnswers[qId] != null ? [userAnswers[qId].toString()] : <String>[]);
-          
+              : (userAnswers[qId] != null
+                    ? [userAnswers[qId].toString()]
+                    : <String>[]);
+
           final bool isReview = reviewUids.contains(qId);
-          displayQuizResult.add([qText, qId, selections, true, isReview]); // text, id, selections, visited, review
+          displayQuizResult.add([
+            qText,
+            qId,
+            selections,
+            true,
+            isReview,
+          ]); // text, id, selections, visited, review
         }
-        
+
         // Fetch correct answers
         final response = await db.getQuizAnswers(_quizId, user.uid);
         _correctAnswers = response['answers'];
         _solutions = response['solutions'];
       } else {
         // JUST FINISHED QUIZ (Using Global)
+        setState(() => _loadingMessage = "Submitting attempt...");
         _quizId = global.ID;
         _displayQuizData = List<Map<String, dynamic>>.from(global.quizData);
         displayQuizResult = List<List<dynamic>>.from(global.quizResult);
@@ -151,7 +165,7 @@ class _ResultScreenState extends State<ResultScreen> {
       int wrong = 0;
       int unattempted = 0;
       _calculatedResults = [];
-      
+
       // Helper to get marking for a question
       Map<String, int> getMarking(String? type, String qUid) {
         final schemeType = _markingScheme['type'] ?? 'default';
@@ -162,7 +176,8 @@ class _ResultScreenState extends State<ResultScreen> {
           };
         } else if (schemeType == 'per_question_type') {
           final pqt = _markingScheme['perQuestionType'] as Map? ?? {};
-          final config = pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
+          final config =
+              pqt[type] ?? pqt['Single Choice'] ?? {'correct': 4, 'wrong': -1};
           return {
             'correct': (config['correct'] ?? 4).toInt(),
             'wrong': (config['wrong'] ?? -1).toInt(),
@@ -182,17 +197,24 @@ class _ResultScreenState extends State<ResultScreen> {
         final List<dynamic> resultDataset = displayQuizResult[i];
         final String qText = resultDataset[0];
         final String qUid = resultDataset[1];
-        final List<String> selections = (resultDataset[2] as List).cast<String>();
-        final bool isReview = resultDataset.length > 4 ? resultDataset[4] : false;
+        final List<String> selections = (resultDataset[2] as List)
+            .cast<String>();
+        final bool isReview = resultDataset.length > 4
+            ? resultDataset[4]
+            : false;
 
         // Find correct option UIDs
         final List<String> answers = _correctAnswers[qUid] ?? [];
 
         // Find question type
         String? qType;
+        String? qSubject;
         try {
-          final qDoc = _displayQuizData.firstWhere((q) => (q['Q']?['id'] ?? q['uid']) == qUid);
+          final qDoc = _displayQuizData.firstWhere(
+            (q) => (q['Q']?['id'] ?? q['uid']) == qUid,
+          );
           qType = qDoc['type'];
+          qSubject = qDoc['subject']?.toString();
         } catch (_) {}
 
         final marking = getMarking(qType, qUid);
@@ -206,7 +228,9 @@ class _ResultScreenState extends State<ResultScreen> {
         } else {
           if (qType == "Integer") {
             final String userVal = selections.first.trim();
-            final String correctVal = answers.isNotEmpty ? answers.first.trim() : "";
+            final String correctVal = answers.isNotEmpty
+                ? answers.first.trim()
+                : "";
             if (userVal == correctVal) {
               questionMark = marking['correct']!;
               isCorrect = true;
@@ -220,16 +244,16 @@ class _ResultScreenState extends State<ResultScreen> {
           } else {
             questionMark = marking['wrong']!;
           }
-          
+
           if (isCorrect) {
             correct++;
           } else {
             wrong++;
           }
         }
-        
+
         total += questionMark;
-        
+
         _calculatedResults.add({
           'text': qText,
           'uid': qUid,
@@ -237,6 +261,7 @@ class _ResultScreenState extends State<ResultScreen> {
           'answers': answers,
           'mark': questionMark,
           'type': qType,
+          'subject': qSubject ?? 'General',
           'isReview': isReview,
           'solution': _solutions[qUid] ?? '',
         });
@@ -249,12 +274,15 @@ class _ResultScreenState extends State<ResultScreen> {
         _wrongCount = wrong;
         _unattemptedCount = unattempted;
         _isLoading = false;
+        if (_calculatedResults.isNotEmpty) {
+          _activeResultModule = _calculatedResults.first['subject'];
+        }
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error fetching answers: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error fetching answers: $e")));
         setState(() => _isLoading = false);
       }
     }
@@ -262,32 +290,64 @@ class _ResultScreenState extends State<ResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
+    return PopScope(
+      canPop: !_isLoading,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Please wait while your result is being processed...",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: global.primaryAccent,
+          ),
+        );
+      },
+      child: Scaffold(
         backgroundColor: global.bgColor,
-        body: const Center(
-          child: CircularProgressIndicator(color: global.primaryAccent),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            "Quiz Result",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+              color: global.valueColor,
+            ),
+          ),
+          centerTitle: true,
+          automaticallyImplyLeading: !_isLoading,
         ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: global.bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          "Quiz Result",
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: global.valueColor),
-        ),
-        centerTitle: true,
+        body: _isLoading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(
+                      color: global.primaryAccent,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _loadingMessage,
+                      style: GoogleFonts.poppins(
+                        color: global.valueColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : _buildSummaryView(),
       ),
-      body: _buildSummaryView(),
     );
   }
 
   Widget _buildSummaryView() {
-    final double percentage = _maxMarks > 0 ? (totalMarks / _maxMarks) * 100 : 0;
+    final double percentage = _maxMarks > 0
+        ? (totalMarks / _maxMarks) * 100
+        : 0;
     final int threshold = (_markingScheme['passThreshold'] ?? 40).toInt();
     final bool isPassed = percentage >= threshold;
 
@@ -311,14 +371,20 @@ class _ResultScreenState extends State<ResultScreen> {
                   totalQuestions: _maxMarks,
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: (isPassed ? global.successColor : global.errorColor).withValues(alpha: 0.1),
+                    color: (isPassed ? global.successColor : global.errorColor)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    isPassed ? "PASSED ($threshold% Req.)" : "FAILED ($threshold% Req.)",
+                    isPassed
+                        ? "PASSED ($threshold% Req.)"
+                        : "FAILED ($threshold% Req.)",
                     style: GoogleFonts.poppins(
                       color: isPassed ? global.successColor : global.errorColor,
                       fontWeight: FontWeight.bold,
@@ -341,13 +407,23 @@ class _ResultScreenState extends State<ResultScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildSummaryStat("Correct", _correctCount, global.successColor),
+                  _buildSummaryStat(
+                    "Correct",
+                    _correctCount,
+                    global.successColor,
+                  ),
                   _buildSummaryStat("Wrong", _wrongCount, global.errorColor),
-                  _buildSummaryStat("Skipped", _unattemptedCount, global.warningColor),
+                  _buildSummaryStat(
+                    "Skipped",
+                    _unattemptedCount,
+                    global.warningColor,
+                  ),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          _buildModularBreakdown(),
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () {
@@ -355,8 +431,10 @@ class _ResultScreenState extends State<ResultScreen> {
               global.correctAnswers = _correctAnswers;
               global.solutions = _solutions;
               // Ensure global quiz data is synced with what we have here
-              global.quizData = _displayQuizData.map((e) => Map<String, Object>.from(e)).toList();
-              
+              global.quizData = _displayQuizData
+                  .map((e) => Map<String, Object>.from(e))
+                  .toList();
+
               // Map _calculatedResults back to global.quizResult format
               // [qText, qUid, selectionList, visitedBool, reviewBool]
               global.quizResult = _calculatedResults.map((res) {
@@ -387,7 +465,11 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(context, "/home", (r) => false),
+            onPressed: () => Navigator.pushNamedAndRemoveUntil(
+              context,
+              "/home",
+              (r) => false,
+            ),
             style: OutlinedButton.styleFrom(
               foregroundColor: global.valueColor,
               minimumSize: const Size(double.infinity, 56),
@@ -405,6 +487,170 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
+  Widget _buildModularBreakdown() {
+    final Map<String, List<Map<String, dynamic>>> moduleGroups = {};
+    for (var res in _calculatedResults) {
+      final subject = res['subject'] ?? 'General';
+      moduleGroups.putIfAbsent(subject, () => []).add(res);
+    }
+
+    final modules = moduleGroups.keys.toList();
+    if (modules.isEmpty) return const SizedBox.shrink();
+    if (_activeResultModule == null) _activeResultModule = modules.first;
+
+    final activeGroup = moduleGroups[_activeResultModule] ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "PERFORMANCE BY MODULE",
+          style: GoogleFonts.poppins(
+            color: global.primaryAccent,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (modules.length > 1)
+          Container(
+            height: 40,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: modules.length,
+              itemBuilder: (context, index) {
+                final m = modules[index];
+                final isSelected = _activeResultModule == m;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(
+                      m.toUpperCase(),
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    selected: isSelected,
+                    selectedColor: global.primaryAccent,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() => _activeResultModule = m);
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: global.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: global.borderColor),
+          ),
+          child: Column(
+            children: [
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: List.generate(activeGroup.length, (idx) {
+                  final res = activeGroup[idx];
+                  final mark = res['mark'] as int;
+                  final selections = res['selections'] as List;
+
+                  Color color = Colors.grey;
+                  if (selections.isNotEmpty) {
+                    color = mark > 0 ? global.successColor : global.errorColor;
+                  }
+
+                  return Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: color.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        (idx + 1).toString(),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              _buildModuleSummaryStats(activeGroup),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModuleSummaryStats(List<Map<String, dynamic>> group) {
+    int correct = 0;
+    int wrong = 0;
+    int skipped = 0;
+    int totalMarks = 0;
+    int maxMarks = 0;
+
+    for (var res in group) {
+      final mark = res['mark'] as int;
+      final selections = res['selections'] as List;
+
+      if (selections.isEmpty) {
+        skipped++;
+      } else if (mark > 0) {
+        correct++;
+      } else {
+        wrong++;
+      }
+      totalMarks += mark;
+
+      // Estimate max marks for this question (defaulting to 4 if unknown)
+      // In a real app we'd get this from the marking scheme used during calculation
+      maxMarks += 4;
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildSmallStat("Score", "$totalMarks", global.primaryAccent),
+        _buildSmallStat("Correct", "$correct", global.successColor),
+        _buildSmallStat("Wrong", "$wrong", global.errorColor),
+        _buildSmallStat("Skipped", "$skipped", global.warningColor),
+      ],
+    );
+  }
+
+  Widget _buildSmallStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: color,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 10),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSummaryStat(String label, int value, Color color) {
     return Column(
       children: [
@@ -418,10 +664,7 @@ class _ResultScreenState extends State<ResultScreen> {
         ),
         Text(
           label,
-          style: GoogleFonts.poppins(
-            color: global.labelColor,
-            fontSize: 12,
-          ),
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
         ),
       ],
     );

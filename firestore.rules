@@ -49,13 +49,16 @@ service cloud.firestore {
 
     // --- Collection Rules ---
 
+    // User profiles: Publicly readable, owner/admin writable
     match /users/{userId} {
       allow read: if true;
       allow write: if isOwner(userId) || isGlobalAdmin();
+      // Sensitive user sub-collections
       match /protected/details { allow read, write: if isOwner(userId) || isGlobalAdmin(); }
       match /private/details { allow read, write: if isOwner(userId) || isGlobalAdmin(); }
     }
 
+    // Quiz metadata and configuration
     match /quizzes/{quizId} {
       allow read: if (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
                    isGlobalAdmin() ||
@@ -69,6 +72,7 @@ service cloud.firestore {
       allow delete: if isGlobalAdmin() || (isAuthenticated() && resource.data.get('creatorId', '') == request.auth.uid);
     }
 
+    // Quiz questions: Accessible to authorized participants or editors
     match /quiz_questions/{quizId} {
       allow read: if (exists(/databases/$(database)/documents/quizzes/$(quizId)) &&
                       get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('visibility', 'private') == 'public' &&
@@ -79,6 +83,7 @@ service cloud.firestore {
       allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'canUpdateData');
     }
 
+    // Answer keys: Used for grading, restricted to participants or editors
     match /answer_keys/{quizId} {
       allow read: if (exists(/databases/$(database)/documents/quizzes/$(quizId)) &&
                       get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('visibility', 'private') == 'public' &&
@@ -89,14 +94,17 @@ service cloud.firestore {
       allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'canUpdateData');
     }
 
+    // Individual quiz responses submitted by users
     match /responses/{responseId} {
       allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(resource.data.get('quizId', ''), 'canSeeResponses'));
       allow create: if isAuthenticated() && isAllowedToAttempt(request.resource.data.get('quizId', ''));
       allow update: if isGlobalAdmin() || (isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || hasQuizPermission(resource.data.get('quizId', ''), 'canModerate')));
     }
 
+    // Top-level tracking for quiz attempts
     match /quiz_attempts/{quizId} {
       allow read: if isGlobalAdmin() || hasQuizPermission(quizId, 'canSeeResponses');
+      // Detailed attempt data
       match /attempts/{attemptId} {
         allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(quizId, 'canSeeResponses'));
         allow create: if isAuthenticated() && isAllowedToAttempt(quizId);
@@ -107,12 +115,19 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // System-wide configuration
     match /settings/{docId} { allow read: if true; allow write: if isGlobalAdmin(); }
+    // Dynamic feature toggles
     match /feature_flags/{docId} { allow read: if true; allow create, update, delete: if isGlobalAdmin(); }
+    // Admin list and active status
     match /admins/{userId} { allow read: if isAuthenticated(); allow update: if isOwner(userId); allow write: if isGlobalAdmin(); }
+    // Granular access control for quizzes
     match /quiz_access/{accessId} { allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin()); allow write: if isGlobalAdmin(); }
+    // Global and quiz-specific bans
     match /banned_users/{banId} { allow read: if isAuthenticated() && (banId == ("global_" + request.auth.uid) || banId.matches(".*_" + request.auth.uid) || isGlobalAdmin()); allow write: if isGlobalAdmin(); }
+    // Security and activity audit logs
     match /audit_logs/{logId} { allow create: if isAuthenticated(); allow read: if isGlobalAdmin(); }
+    // User-specific notifications
     match /notifications/{notifId} {
       allow read, update: if isAuthenticated() && resource.data.get('userId', '') == request.auth.uid;
       allow create, delete: if isGlobalAdmin();
