@@ -73,10 +73,15 @@ class _ResultScreenState extends State<ResultScreen> {
         _displayQuizData = [];
         final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
         final List<Map<String, dynamic>> allQuestions = [];
+        global.originalQuestionOrder = [];
+
         for (var module in rawModules) {
           final List<dynamic> moduleData = module['data'] as List? ?? [];
           for (var q in moduleData) {
-            allQuestions.add(Map<String, dynamic>.from(q));
+            final qMap = Map<String, dynamic>.from(q);
+            allQuestions.add(qMap);
+            final qId = (qMap['Q']?['id'] ?? qMap['uid']).toString();
+            global.originalQuestionOrder.add(qId);
           }
         }
 
@@ -263,6 +268,7 @@ class _ResultScreenState extends State<ResultScreen> {
           'type': qType,
           'subject': qSubject ?? 'General',
           'isReview': isReview,
+          'isVisited': resultDataset.length > 3 ? resultDataset[3] == true : true,
           'solution': _solutions[qUid] ?? '',
         });
       }
@@ -274,9 +280,7 @@ class _ResultScreenState extends State<ResultScreen> {
         _wrongCount = wrong;
         _unattemptedCount = unattempted;
         _isLoading = false;
-        if (_calculatedResults.isNotEmpty) {
-          _activeResultModule = _calculatedResults.first['subject'];
-        }
+        _activeResultModule = "All";
       });
     } catch (e) {
       if (mounted) {
@@ -442,7 +446,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   res['text'],
                   res['uid'],
                   res['selections'],
-                  true, // visited
+                  res['isVisited'] ?? true, // visited
                   res['isReview'] ?? false, // review
                 ];
               }).toList();
@@ -496,15 +500,19 @@ class _ResultScreenState extends State<ResultScreen> {
 
     final modules = moduleGroups.keys.toList();
     if (modules.isEmpty) return const SizedBox.shrink();
-    if (_activeResultModule == null) _activeResultModule = modules.first;
 
-    final activeGroup = moduleGroups[_activeResultModule] ?? [];
+    final List<String> displayModules = ["All", ...modules];
+    if (_activeResultModule == null) _activeResultModule = "All";
+
+    final activeGroup = _activeResultModule == "All"
+        ? _calculatedResults
+        : (moduleGroups[_activeResultModule] ?? []);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "PERFORMANCE BY MODULE",
+          "QUIZ PERFORMANCE OVERVIEW",
           style: GoogleFonts.poppins(
             color: global.primaryAccent,
             fontSize: 12,
@@ -513,15 +521,15 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        if (modules.length > 1)
+        if (displayModules.length > 1)
           Container(
             height: 40,
             margin: const EdgeInsets.only(bottom: 16),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: modules.length,
+              itemCount: displayModules.length,
               itemBuilder: (context, index) {
-                final m = modules[index];
+                final m = displayModules[index];
                 final isSelected = _activeResultModule == m;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
@@ -551,46 +559,131 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           child: Column(
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: List.generate(activeGroup.length, (idx) {
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: activeGroup.length,
+                itemBuilder: (context, idx) {
                   final res = activeGroup[idx];
-                  final mark = res['mark'] as int;
-                  final selections = res['selections'] as List;
-
-                  Color color = Colors.grey;
-                  if (selections.isNotEmpty) {
-                    color = mark > 0 ? global.successColor : global.errorColor;
-                  }
-
-                  return Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: color.withOpacity(0.5),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        (idx + 1).toString(),
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                  return _buildQuestionStatusDot(res, idx + 1);
+                },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
+              _buildLegend(),
+              const Divider(color: global.borderColor, height: 32),
               _buildModuleSummaryStats(activeGroup),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestionStatusDot(Map<String, dynamic> res, int displayIndex) {
+    final mark = res['mark'] as int;
+    final selections = res['selections'] as List;
+    final bool isReview = res['isReview'] ?? false;
+    final bool isVisited = res['isVisited'] ?? true;
+    final bool isAnswered = selections.isNotEmpty;
+
+    bool isCorrect = isAnswered && mark > 0;
+    bool isWrong = isAnswered && mark <= 0;
+
+    if (isReview) {
+      List<Color> gradientColors = [global.reviewColor, Colors.grey];
+      if (isCorrect) {
+        gradientColors = [global.reviewColor, Colors.green];
+      } else if (isWrong) {
+        gradientColors = [global.reviewColor, global.errorColor];
+      } else if (isVisited) {
+        gradientColors = [global.reviewColor, global.infoColor];
+      }
+
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Text(
+            displayIndex.toString(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        ),
+      );
+    }
+
+    Color color = Colors.grey;
+    if (isCorrect) {
+      color = Colors.green;
+    } else if (isWrong) {
+      color = global.errorColor;
+    } else if (isVisited) {
+      color = global.infoColor;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          displayIndex.toString(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegend() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _legendItem(Colors.green, "Correct"),
+            _legendItem(global.errorColor, "Incorrect"),
+            _legendItem(global.warningColor, "Skipped"),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _legendItem(global.infoColor, "Seen"),
+            _legendItem(global.reviewColor, "Review"),
+            _legendItem(Colors.grey, "Unseen"),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _legendItem(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 11),
         ),
       ],
     );

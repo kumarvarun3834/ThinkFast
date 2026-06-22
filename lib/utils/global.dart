@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 List<Map<String, Object>> quizData = [];
 List<dynamic> quizResult = [];
+List<String> originalQuestionOrder = []; // UIDs in the database/original format
 Map<String, dynamic> markingScheme = {"type": "default"};
 Map<String, dynamic> attemptLimits = {"type": "none"};
 int time = 10; // in seconds, 0 means unlimited

@@ -16,7 +16,8 @@ class Quesations extends StatefulWidget {
 class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   int i = 0;
   String? _activeModule;
-  bool _isDefaultOrder = true; // Toggle for sorting
+  String? _drawerActiveModule;
+  bool _isDefaultOrder = false; // Start with History/Attempt order (false)
   Map<String, Object> currentData = {};
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
   Timer? _timer;
@@ -25,6 +26,43 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   String _loadingMessage = "Initializing Quiz...";
   late final TextEditingController _integerController;
   int _backPressCount = 0;
+
+  // List of indices in global.quizData in the order we want to display them
+  List<int> _displaySequence = [];
+
+  void _updateDisplaySequence() {
+    List<int> indices = List.generate(global.quizData.length, (index) => index);
+
+    if (global.isReviewMode && _isDefaultOrder) {
+      // "Quiz Actual Format" - Sort by original question order if available
+      if (global.originalQuestionOrder.isNotEmpty) {
+        indices.sort((a, b) {
+          final idA = (global.quizData[a]['Q'] as Map)['id'].toString();
+          final idB = (global.quizData[b]['Q'] as Map)['id'].toString();
+          final posA = global.originalQuestionOrder.indexOf(idA);
+          final posB = global.originalQuestionOrder.indexOf(idB);
+
+          if (posA != -1 && posB != -1) return posA.compareTo(posB);
+          return idA.compareTo(idB); // Fallback to ID
+        });
+      } else {
+        // Fallback: sort by subject then ID
+        indices.sort((a, b) {
+          String subA = global.quizData[a]['subject']?.toString() ?? 'General';
+          String subB = global.quizData[b]['subject']?.toString() ?? 'General';
+          if (subA != subB) return subA.compareTo(subB);
+          return (global.quizData[a]['Q'] as Map)['id'].toString().compareTo(
+            (global.quizData[b]['Q'] as Map)['id'].toString(),
+          );
+        });
+      }
+    }
+    // Else: "User Shuffled Persistent" - use indices as they are (shuffled at start)
+
+    setState(() {
+      _displaySequence = indices;
+    });
+  }
 
   /// 🔀 Shuffle questions & choices
   void _shuffleQuestionsAndOptions() {
@@ -170,7 +208,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.inactive) &&
-        !_isSubmitted) {
+        !_isSubmitted &&
+        !global.isReviewMode) {
       _submitAndFinish();
     }
   }
@@ -178,11 +217,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
   Future<void> _loadQuizWithTime() async {
     setState(() {
       _isLoading = true;
-      _loadingMessage = "Checking Environment...";
+      _loadingMessage = global.isReviewMode
+          ? "Loading Attempt Details..."
+          : "Checking Environment...";
     });
 
-    // Artificial delay for "Checking Environment" as requested
-    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!global.isReviewMode) {
+      // Artificial delay for "Checking Environment" as requested
+      await Future.delayed(const Duration(milliseconds: 1500));
+    }
 
     if (global.quizData.isEmpty) {
       setState(() {
@@ -193,9 +236,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
       return;
     }
 
-    setState(() {
-      _loadingMessage = "Shuffling Questions...";
-    });
+    if (!global.isReviewMode) {
+      setState(() {
+        _loadingMessage = "Shuffling Questions...";
+      });
+    }
 
     int timeSeconds = global.time;
     final firstQ = global.quizData.isNotEmpty ? global.quizData[0] : null;
@@ -213,6 +258,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
 
     if (mounted) {
       setState(() {
+        _updateDisplaySequence();
+        i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
         currentData = global.quizData[i];
         _activeModule = currentData['subject']?.toString() ?? 'General';
         _timeLeft = Duration(seconds: timeSeconds.toInt());
@@ -295,7 +342,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            global.isReviewMode ? "Review Navigator" : "Submit Quiz?",
+                            global.isReviewMode
+                                ? "Review Navigator"
+                                : "Submit Quiz?",
                             style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontSize: 22,
@@ -311,13 +360,28 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                     ),
                     if (global.isReviewMode)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildSmallStat("Score", "${_calculateCurrentTotalScore()}", global.primaryAccent),
-                            _buildSmallStat("Answered", "${_calculateAnsweredCount()}", Colors.green),
-                            _buildSmallStat("Review", "${_calculateReviewCount()}", global.reviewColor),
+                            _buildSmallStat(
+                              "Score",
+                              "${_calculateCurrentTotalScore()}",
+                              global.primaryAccent,
+                            ),
+                            _buildSmallStat(
+                              "Answered",
+                              "${_calculateAnsweredCount()}",
+                              Colors.green,
+                            ),
+                            _buildSmallStat(
+                              "Review",
+                              "${_calculateReviewCount()}",
+                              global.reviewColor,
+                            ),
                           ],
                         ),
                       ),
@@ -441,7 +505,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                                 ),
                               ),
                               child: Text(
-                                global.isReviewMode ? "BACK TO SUMMARY" : "SUBMIT QUIZ",
+                                global.isReviewMode
+                                    ? "BACK TO SUMMARY"
+                                    : "SUBMIT QUIZ",
                                 style: const TextStyle(
                                   color: global.valueColor,
                                   fontWeight: FontWeight.bold,
@@ -853,6 +919,8 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         color = Colors.green;
       else if (isWrong)
         color = global.errorColor;
+      else if (isVisited)
+        color = global.infoColor;
     } else {
       if (isAnswered)
         color = Colors.green;
@@ -877,7 +945,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         : false;
 
     if (global.isReviewMode) {
-      if (selection.isEmpty) return Colors.grey;
+      if (selection.isEmpty) {
+        return (question.length > 3 && question[3] == true)
+            ? global.infoColor
+            : Colors.grey;
+      }
       final marks = _getMarksForQuestion(index);
       return marks > 0 ? global.successColor : global.errorColor;
     }
@@ -969,10 +1041,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         ),
         Text(
           label,
-          style: GoogleFonts.poppins(
-            color: global.labelColor,
-            fontSize: 10,
-          ),
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 10),
         ),
       ],
     );
@@ -1084,12 +1153,19 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           actions: [
             if (global.isReviewMode && !global.completeRandomShuffle)
               IconButton(
+                tooltip: _isDefaultOrder
+                    ? "Switch to Attempt Order"
+                    : "Switch to Default Format",
                 icon: Icon(
                   _isDefaultOrder ? Icons.sort_rounded : Icons.history_rounded,
                   color: global.valueColor,
                 ),
-                onPressed: () =>
-                    setState(() => _isDefaultOrder = !_isDefaultOrder),
+                onPressed: () {
+                  setState(() {
+                    _isDefaultOrder = !_isDefaultOrder;
+                    _updateDisplaySequence();
+                  });
+                },
               ),
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
@@ -1098,11 +1174,23 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       children: [
                         TextButton.icon(
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.analytics_outlined, color: global.valueColor),
-                          label: const Text("SUMMARY", style: TextStyle(color: global.valueColor, fontWeight: FontWeight.bold)),
+                          icon: const Icon(
+                            Icons.analytics_outlined,
+                            color: global.valueColor,
+                          ),
+                          label: const Text(
+                            "SUMMARY",
+                            style: TextStyle(
+                              color: global.valueColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, color: global.valueColor),
+                          icon: const Icon(
+                            Icons.close,
+                            color: global.valueColor,
+                          ),
                           onPressed: () {
                             global.isReviewMode = false;
                             Navigator.pop(context);
@@ -1159,21 +1247,27 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           backgroundColor: global.cardColor,
           child: StatefulBuilder(
             builder: (context, setDrawerState) {
-              String? drawerActiveModule = _activeModule;
+              _drawerActiveModule ??= (global.isReviewMode ? "All" : _activeModule);
+              final List<String> drawerModules = ["All", ...modules];
 
-              final List<int> drawerModuleIndices =
-                  (global.completeRandomShuffle)
-                  ? List.generate(global.quizData.length, (index) => index)
-                  : global.quizData
-                        .asMap()
-                        .entries
-                        .where(
-                          (e) =>
-                              (e.value['subject']?.toString() ?? 'General') ==
-                              drawerActiveModule,
-                        )
-                        .map((e) => e.key)
-                        .toList();
+              List<int> drawerModuleIndices = [];
+              if (_drawerActiveModule == "All" || global.completeRandomShuffle) {
+                drawerModuleIndices = global.isReviewMode
+                    ? _displaySequence
+                    : List.generate(global.quizData.length, (index) => index);
+              } else {
+                final sourceIndices = global.isReviewMode
+                    ? _displaySequence
+                    : List.generate(global.quizData.length, (index) => index);
+                drawerModuleIndices = sourceIndices
+                    .where(
+                      (idx) =>
+                          (global.quizData[idx]['subject']?.toString() ??
+                              'General') ==
+                          _drawerActiveModule,
+                    )
+                    .toList();
+              }
 
               return Column(
                 children: [
@@ -1198,10 +1292,10 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: modules.length,
+                        itemCount: drawerModules.length,
                         itemBuilder: (context, index) {
-                          final m = modules[index];
-                          final bool isSelected = drawerActiveModule == m;
+                          final m = drawerModules[index];
+                          final bool isSelected = _drawerActiveModule == m;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8.0),
                             child: ChoiceChip(
@@ -1214,7 +1308,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               onSelected: (selected) {
                                 if (selected) {
                                   setDrawerState(() {
-                                    drawerActiveModule = m;
+                                    _drawerActiveModule = m;
                                   });
                                 }
                               },
@@ -1244,7 +1338,9 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                               : () {
                                   Navigator.pop(context);
                                   setState(() {
-                                    _activeModule = drawerActiveModule;
+                                    _activeModule = global
+                                        .quizData[globalIndex]['subject']
+                                        ?.toString();
                                     i = globalIndex;
                                     switchState();
                                   });
@@ -1297,16 +1393,39 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
         body: Column(
           children: [
             // Module Selector
-            if (!global.completeRandomShuffle && modules.length > 1)
+            if (!global.completeRandomShuffle &&
+                modules.length > 1)
               Container(
                 height: 50,
                 margin: const EdgeInsets.only(top: 10),
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: modules.length,
+                  itemCount: global.isReviewMode ? modules.length + 1 : modules.length,
                   itemBuilder: (context, index) {
-                    final m = modules[index];
+                    if (global.isReviewMode && index == 0) {
+                      final bool isSelected = _activeModule == "All";
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: const Text(
+                            "ALL",
+                            style: TextStyle(fontSize: 10),
+                          ),
+                          selected: isSelected,
+                          selectedColor: global.primaryAccent,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _activeModule = "All";
+                              });
+                            }
+                          },
+                        ),
+                      );
+                    }
+                    
+                    final m = global.isReviewMode ? modules[index - 1] : modules[index];
                     final bool isSelected = _activeModule == m;
                     return Padding(
                       padding: const EdgeInsets.only(right: 8.0),
@@ -1321,13 +1440,15 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                           if (selected) {
                             setState(() {
                               _activeModule = m;
-                              // Jump to first question of this module
-                              i = global.quizData.indexWhere(
-                                (q) =>
-                                    (q['subject']?.toString() ?? 'General') ==
-                                    m,
-                              );
-                              switchState();
+                              if (!global.isReviewMode) {
+                                // Jump to first question of this module during quiz
+                                i = global.quizData.indexWhere(
+                                  (q) =>
+                                      (q['subject']?.toString() ?? 'General') ==
+                                      m,
+                                );
+                                switchState();
+                              }
                             });
                           }
                         },
@@ -1337,16 +1458,20 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 ),
               ),
 
-            // Horizontal Navigation dots (Filtered by module)
+            // Horizontal Navigation dots (Filtered by module or sequence)
             Container(
               height: 60,
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: moduleIndices.length,
+                itemCount: (global.isReviewMode && _activeModule == "All")
+                    ? _displaySequence.length
+                    : moduleIndices.length,
                 itemBuilder: (context, index) {
-                  int globalIndex = moduleIndices[index];
+                  int globalIndex = (global.isReviewMode && _activeModule == "All")
+                      ? _displaySequence[index]
+                      : moduleIndices[index];
                   return GestureDetector(
                     onTap:
                         (global.perQuestionTime > 0 &&
@@ -1630,11 +1755,19 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                onPressed: isFirst
+                onPressed:
+                    (global.isReviewMode
+                        ? (_displaySequence.indexOf(i) <= 0)
+                        : isFirst)
                     ? null
                     : () {
                         setState(() {
-                          i--;
+                          if (global.isReviewMode) {
+                            int currentPos = _displaySequence.indexOf(i);
+                            i = _displaySequence[currentPos - 1];
+                          } else {
+                            i--;
+                          }
                           _activeModule =
                               global.quizData[i]['subject']?.toString() ??
                               'General';
@@ -1646,7 +1779,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                 disabledColor: global.labelColor.withValues(alpha: 0.3),
               ),
               Text(
-                "Question ${i + 1} of ${global.quizData.length}",
+                "Question ${(global.isReviewMode ? _displaySequence.indexOf(i) : i) + 1} of ${global.quizData.length}",
                 style: GoogleFonts.poppins(
                   color: global.labelColor,
                   fontSize: 14,
@@ -1654,7 +1787,11 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isLast
+                  backgroundColor:
+                      (global.isReviewMode
+                          ? (_displaySequence.indexOf(i) ==
+                                _displaySequence.length - 1)
+                          : isLast)
                       ? global.btnColor
                       : global.primaryAccent,
                   shape: RoundedRectangleBorder(
@@ -1666,7 +1803,20 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                   ),
                 ),
                 onPressed: () {
-                  if (isLast) {
+                  if (global.isReviewMode) {
+                    int currentPos = _displaySequence.indexOf(i);
+                    if (currentPos == _displaySequence.length - 1) {
+                      _showSubmitConfirmation();
+                    } else {
+                      setState(() {
+                        i = _displaySequence[currentPos + 1];
+                        _activeModule =
+                            global.quizData[i]['subject']?.toString() ??
+                            'General';
+                        switchState();
+                      });
+                    }
+                  } else if (isLast) {
                     _showSubmitConfirmation();
                   } else {
                     setState(() {
@@ -1679,7 +1829,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                   }
                 },
                 child: Text(
-                  isLast ? (global.isReviewMode ? "FINISH" : "SUBMIT") : "NEXT",
+                  (global.isReviewMode
+                          ? (_displaySequence.indexOf(i) ==
+                                _displaySequence.length - 1)
+                          : isLast)
+                      ? (global.isReviewMode ? "FINISH" : "SUBMIT")
+                      : "NEXT",
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
