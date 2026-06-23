@@ -42,11 +42,13 @@ class TextContainer extends StatelessWidget {
 class MarksPanel extends StatelessWidget {
   final int totalCorrectAnswers; // You will provide this calculated value
   final int totalQuestions;     // You will provide this calculated value
+  final String title;
 
   const MarksPanel({
     super.key,
     required this.totalCorrectAnswers,
     required this.totalQuestions,
+    this.title = "Quiz Completed!",
   });
 
   @override
@@ -60,7 +62,7 @@ class MarksPanel extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            "Quiz Completed!",
+            title,
             style: GoogleFonts.poppins(
               color: const Color(0xFFE2E8F0),
               fontSize: 28,

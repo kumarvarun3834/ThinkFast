@@ -22,6 +22,7 @@ class AttemptService {
     required List<dynamic> quizData,
     List<String>? reviewItems,
     List<String>? questionOrder,
+    List<String>? visitedItems,
   }) async {
     // 1. Calculate Score
     int score = 0;
@@ -97,6 +98,7 @@ class AttemptService {
       'answers': userAnswers,
       'reviewItems': reviewItems ?? [],
       'questionOrder': questionOrder ?? [],
+      'visitedItems': visitedItems ?? [],
       'status': 1,
       'timestamp': FieldValue.serverTimestamp(),
     };

@@ -259,10 +259,17 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _updateDisplaySequence();
-        i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
+        if (global.isReviewMode && global.reviewInitialIndex < _displaySequence.length) {
+          i = _displaySequence[global.reviewInitialIndex];
+        } else {
+          i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
+        }
         currentData = global.quizData[i];
         _activeModule = currentData['subject']?.toString() ?? 'General';
         _timeLeft = Duration(seconds: timeSeconds.toInt());
+        if (!global.isReviewMode && global.quizResult.isNotEmpty) {
+          global.quizResult[i][3] = true; // Mark first question visited
+        }
         _isLoading = false;
       });
     }
@@ -554,11 +561,13 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
     setState(() {
       _backPressCount = 0; // Reset back count on navigation
       currentData = global.quizData[i];
+      _activeModule = currentData['subject']?.toString() ?? 'General';
       final qInfo = currentData["Q"] as Map;
       global.quizResult[i][0] = qInfo['text'].toString();
       global.quizResult[i][1] = qInfo['id'].toString();
 
       if (!global.isReviewMode) {
+        global.quizResult[i][3] = true; // Mark visited while attempting
         final int qTimer =
             int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
         if (qTimer > 0) {

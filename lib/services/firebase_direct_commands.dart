@@ -644,6 +644,7 @@ class DatabaseService {
     Map<String, dynamic>? userAnswers,
     List<String>? reviewItems,
     List<String>? questionOrder,
+    List<String>? visitedItems,
   }) async {
     await _ensurePermission('enable_take_quiz', userId: userId);
     final quiz = await _quizService.getQuiz(docId);
@@ -701,6 +702,7 @@ class DatabaseService {
         quizData: flattenedQuestions,
         reviewItems: reviewItems,
         questionOrder: questionOrder,
+        visitedItems: visitedItems,
       );
     }
     return {'answers': correctKey, 'solutions': solutions};

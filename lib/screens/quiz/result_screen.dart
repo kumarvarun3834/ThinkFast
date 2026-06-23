@@ -10,6 +10,7 @@ class ResultScreen extends StatefulWidget {
   final Map<String, dynamic>? attemptAnswers;
   final List<dynamic>? attemptReviewItems;
   final List<dynamic>? attemptQuestionOrder;
+  final List<dynamic>? attemptVisitedItems;
 
   const ResultScreen({
     super.key,
@@ -17,6 +18,7 @@ class ResultScreen extends StatefulWidget {
     this.attemptAnswers,
     this.attemptReviewItems,
     this.attemptQuestionOrder,
+    this.attemptVisitedItems,
   });
 
   @override
@@ -67,6 +69,9 @@ class _ResultScreenState extends State<ResultScreen> {
         final List<String> questionOrder = widget.attemptQuestionOrder != null
             ? List<String>.from(widget.attemptQuestionOrder!)
             : [];
+        final List<String> visitedUids = widget.attemptVisitedItems != null
+            ? List<String>.from(widget.attemptVisitedItems!)
+            : [];
 
         // Fetch quiz data (questions)
         final quiz = await db.readDatabase(_quizId, userId: user.uid);
@@ -76,9 +81,11 @@ class _ResultScreenState extends State<ResultScreen> {
         global.originalQuestionOrder = [];
 
         for (var module in rawModules) {
+          final String subject = module['subject']?.toString() ?? 'General';
           final List<dynamic> moduleData = module['data'] as List? ?? [];
           for (var q in moduleData) {
             final qMap = Map<String, dynamic>.from(q);
+            qMap['subject'] = subject; // Inject subject into question
             allQuestions.add(qMap);
             final qId = (qMap['Q']?['id'] ?? qMap['uid']).toString();
             global.originalQuestionOrder.add(qId);
@@ -119,11 +126,12 @@ class _ResultScreenState extends State<ResultScreen> {
                     : <String>[]);
 
           final bool isReview = reviewUids.contains(qId);
+          final bool isVisited = visitedUids.contains(qId);
           displayQuizResult.add([
             qText,
             qId,
             selections,
-            true,
+            isVisited,
             isReview,
           ]); // text, id, selections, visited, review
         }
@@ -142,13 +150,16 @@ class _ResultScreenState extends State<ResultScreen> {
 
         List<String> reviewItems = [];
         List<String> questionOrder = [];
+        List<String> visitedItems = [];
         for (var result in displayQuizResult) {
           final String qUid = result[1];
           final List<String> selections = (result[2] as List).cast<String>();
+          final bool isVisited = result.length > 3 ? result[3] : false;
           final bool isReview = result.length > 4 ? result[4] : false;
           userAnswers[qUid] = selections;
           questionOrder.add(qUid);
           if (isReview) reviewItems.add(qUid);
+          if (isVisited) visitedItems.add(qUid);
         }
 
         // Fetch answers and SUBMIT attempt in one call
@@ -159,6 +170,7 @@ class _ResultScreenState extends State<ResultScreen> {
           userAnswers: userAnswers,
           reviewItems: reviewItems,
           questionOrder: questionOrder,
+          visitedItems: visitedItems,
         );
         _correctAnswers = response['answers'];
         _solutions = response['solutions'];
@@ -292,6 +304,31 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  void _startReview({int index = 0}) {
+    global.isReviewMode = true;
+    global.reviewInitialIndex = index;
+    global.correctAnswers = _correctAnswers;
+    global.solutions = _solutions;
+    // Ensure global quiz data is synced with what we have here
+    global.quizData = _displayQuizData
+        .map((e) => Map<String, Object>.from(e))
+        .toList();
+
+    // Map _calculatedResults back to global.quizResult format
+    // [qText, qUid, selectionList, visitedBool, reviewBool]
+    global.quizResult = _calculatedResults.map((res) {
+      return [
+        res['text'],
+        res['uid'],
+        res['selections'],
+        res['isVisited'] ?? true, // visited
+        res['isReview'] ?? false, // review
+      ];
+    }).toList();
+
+    Navigator.pushNamed(context, "/Quiz");
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -396,6 +433,24 @@ class _ResultScreenState extends State<ResultScreen> {
                     ),
                   ),
                 ),
+                if (global.featureFlags?['enable_export'] == true)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        // Implement Export logic here
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Exporting results...")),
+                        );
+                      },
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: const Text("EXPORT ATTEMPT"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: global.primaryAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -430,29 +485,7 @@ class _ResultScreenState extends State<ResultScreen> {
           _buildModularBreakdown(),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: () {
-              global.isReviewMode = true;
-              global.correctAnswers = _correctAnswers;
-              global.solutions = _solutions;
-              // Ensure global quiz data is synced with what we have here
-              global.quizData = _displayQuizData
-                  .map((e) => Map<String, Object>.from(e))
-                  .toList();
-
-              // Map _calculatedResults back to global.quizResult format
-              // [qText, qUid, selectionList, visitedBool, reviewBool]
-              global.quizResult = _calculatedResults.map((res) {
-                return [
-                  res['text'],
-                  res['uid'],
-                  res['selections'],
-                  res['isVisited'] ?? true, // visited
-                  res['isReview'] ?? false, // review
-                ];
-              }).toList();
-
-              Navigator.pushNamed(context, "/Quiz");
-            },
+            onPressed: () => _startReview(index: 0),
             style: ElevatedButton.styleFrom(
               backgroundColor: global.btnColor,
               foregroundColor: Colors.white,
@@ -551,7 +584,7 @@ class _ResultScreenState extends State<ResultScreen> {
             ),
           ),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           decoration: BoxDecoration(
             color: global.cardColor,
             borderRadius: BorderRadius.circular(16),
@@ -559,24 +592,36 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
           child: Column(
             children: [
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
+              SizedBox(
+                height: 60,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: activeGroup.length,
+                  itemBuilder: (context, idx) {
+                    final res = activeGroup[idx];
+                    return GestureDetector(
+                      onTap: () => _startReview(index: idx),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        child: _buildQuestionStatusDot(res, idx + 1),
+                      ),
+                    );
+                  },
                 ),
-                itemCount: activeGroup.length,
-                itemBuilder: (context, idx) {
-                  final res = activeGroup[idx];
-                  return _buildQuestionStatusDot(res, idx + 1);
-                },
               ),
               const SizedBox(height: 24),
-              _buildLegend(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: _buildLegend(),
+              ),
               const Divider(color: global.borderColor, height: 32),
-              _buildModuleSummaryStats(activeGroup),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: _buildModuleSummaryStats(activeGroup),
+              ),
             ],
           ),
         ),
@@ -589,6 +634,7 @@ class _ResultScreenState extends State<ResultScreen> {
     final selections = res['selections'] as List;
     final bool isReview = res['isReview'] ?? false;
     final bool isAnswered = selections.isNotEmpty;
+    final bool isVisited = res['isVisited'] ?? true;
 
     bool isCorrect = isAnswered && mark > 0;
     bool isWrong = isAnswered && mark <= 0;
@@ -599,6 +645,8 @@ class _ResultScreenState extends State<ResultScreen> {
         gradientColors = [global.reviewColor, Colors.green];
       } else if (isWrong) {
         gradientColors = [global.reviewColor, global.errorColor];
+      } else if (isVisited) {
+        gradientColors = [global.reviewColor, global.infoColor];
       }
 
       return Container(
@@ -613,7 +661,11 @@ class _ResultScreenState extends State<ResultScreen> {
         child: Center(
           child: Text(
             displayIndex.toString(),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ),
       );
@@ -624,6 +676,8 @@ class _ResultScreenState extends State<ResultScreen> {
       color = Colors.green;
     } else if (isWrong) {
       color = global.errorColor;
+    } else if (isVisited) {
+      color = global.infoColor;
     }
 
     return Container(
@@ -634,7 +688,11 @@ class _ResultScreenState extends State<ResultScreen> {
       child: Center(
         child: Text(
           displayIndex.toString(),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
         ),
       ),
     );

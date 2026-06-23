@@ -29,6 +29,7 @@ class SettingsService {
       'enable_take_quiz': true,
       'enable_profile_edit': true,
       'enable_analytics': true,
+      'enable_export': true,
       'maintenance_mode': false,
       'random_quiz_generator': true,
       'user_action_logging': true,

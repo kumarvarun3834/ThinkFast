@@ -45,13 +45,18 @@ Quiz administration data is stored in the `quiz_access` collection.
 
 These flags control access to specific UI features and API operations:
 
-| Flag Name          | Purpose                                                   |
-|:-------------------|:----------------------------------------------------------|
-| `can_update`       | Edit quiz metadata, questions, and marking schemes.       |
-| `can_delete`       | Perform a soft-delete of the quiz.                        |
-| `can_view_results` | View participant responses and answer keys.               |
-| `canModerate`      | Soft-delete responses and ban/unban users from this quiz. |
-| `can_ban_users`    | Specifically manage the ban list for this quiz.           |
+| Flag Name                  | Purpose                                              |
+|:---------------------------|:-----------------------------------------------------|
+| `can_update`               | Edit quiz metadata, questions, and marking schemes.  |
+| `can_delete`               | Perform a soft-delete of the quiz.                   |
+| `can_publish`              | Change quiz visibility (Public, Private, Protected). |
+| `can_view_results`         | View participant responses.                          |
+| `can_view_answer_key`      | View the correct answers and solutions.              |
+| `can_view_analytics`       | Access performance charts and detailed statistics.   |
+| `can_export_data`          | Download attempt results in CSV/JSON formats.        |
+| `canModerate`              | Soft-delete responses and ban users from this quiz.  |
+| `can_manage_collaborators` | Add or remove other collaborators for this quiz.     |
+| `can_ban_users`            | Specifically manage the ban list for this quiz.      |
 
 > **Note on Naming:** There is currently a mix of snake_case (`can_update`) used in Firestore Rules
 > and camelCase (`canModerate`) used in the Dart services. Both must be respected based on the context

@@ -19,9 +19,16 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   // Permissions for the new manager
-  bool _canUpdateData = true;
-  bool _canSeeResponses = true;
+  bool _canUpdate = true;
+  bool _canDelete = false;
+  bool _canPublish = false;
+  bool _canViewResults = true;
+  bool _canViewAnswerKey = false;
+  bool _canViewAnalytics = false;
+  bool _canExportData = false;
   bool _canModerate = false;
+  bool _canManageCollaborators = false;
+  bool _canBanUsers = false;
 
   final Color _bgColor = const Color(0xFF0F172A);
   final Color _cardColor = const Color(0xFF1E293B);
@@ -39,9 +46,16 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
         quizId: widget.quizId,
         userId: targetId,
         permissions: {
-          'canUpdateData': _canUpdateData,
-          'canSeeResponses': _canSeeResponses,
-          'canModerate': _canModerate,
+          'can_update': _canUpdate,
+          'can_delete': _canDelete,
+          'can_publish': _canPublish,
+          'can_view_results': _canViewResults,
+          'can_view_answer_key': _canViewAnswerKey,
+          'can_view_analytics': _canViewAnalytics,
+          'can_export_data': _canExportData,
+          'canModerate': _canModerate, // Maintain camelCase for existing Dart logic
+          'can_manage_collaborators': _canManageCollaborators,
+          'can_ban_users': _canBanUsers,
         },
         addedBy: _currentUserId,
       );
@@ -115,20 +129,69 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildPermissionSwitch(
-                    "Update Quiz Data",
-                    _canUpdateData,
-                    (v) => setState(() => _canUpdateData = v),
+                  Text(
+                    "CONTENT MANAGEMENT",
+                    style: TextStyle(color: _labelColor, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                   _buildPermissionSwitch(
-                    "See Responses",
-                    _canSeeResponses,
-                    (v) => setState(() => _canSeeResponses = v),
+                    "Edit Questions & Scheme",
+                    _canUpdate,
+                    (v) => setState(() => _canUpdate = v),
                   ),
                   _buildPermissionSwitch(
-                    "Moderate (Ban/Delete)",
+                    "Delete Quiz",
+                    _canDelete,
+                    (v) => setState(() => _canDelete = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Change Visibility (Publish)",
+                    _canPublish,
+                    (v) => setState(() => _canPublish = v),
+                  ),
+                  const Divider(color: Color(0xFF334155), height: 24),
+                  Text(
+                    "DATA & ANALYTICS",
+                    style: TextStyle(color: _labelColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                  _buildPermissionSwitch(
+                    "View Participant Responses",
+                    _canViewResults,
+                    (v) => setState(() => _canViewResults = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "View Answer Key & Solutions",
+                    _canViewAnswerKey,
+                    (v) => setState(() => _canViewAnswerKey = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Access Advanced Analytics",
+                    _canViewAnalytics,
+                    (v) => setState(() => _canViewAnalytics = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Export Data (CSV/JSON)",
+                    _canExportData,
+                    (v) => setState(() => _canExportData = v),
+                  ),
+                  const Divider(color: Color(0xFF334155), height: 24),
+                  Text(
+                    "MODERATION & TEAM",
+                    style: TextStyle(color: _labelColor, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                  _buildPermissionSwitch(
+                    "Moderate Responses (Soft-Delete)",
                     _canModerate,
                     (v) => setState(() => _canModerate = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Ban/Unban Users",
+                    _canBanUsers,
+                    (v) => setState(() => _canBanUsers = v),
+                  ),
+                  _buildPermissionSwitch(
+                    "Manage Other Collaborators",
+                    _canManageCollaborators,
+                    (v) => setState(() => _canManageCollaborators = v),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
@@ -194,9 +257,25 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          subtitle: Text(
-                            "Perms: ${m['permissions']}",
-                            style: TextStyle(color: _labelColor, fontSize: 12),
+                          subtitle: Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: (m['permissions'] as Map<String, dynamic>)
+                                .entries
+                                .where((e) => e.value == true)
+                                .map((e) => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: _primaryAccent.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: _primaryAccent.withOpacity(0.3)),
+                                      ),
+                                      child: Text(
+                                        e.key.replaceAll('can_', '').replaceAll('can', '').toUpperCase(),
+                                        style: TextStyle(color: _primaryAccent, fontSize: 8, fontWeight: FontWeight.bold),
+                                      ),
+                                    ))
+                                .toList(),
                           ),
                           trailing: IconButton(
                             icon: const Icon(

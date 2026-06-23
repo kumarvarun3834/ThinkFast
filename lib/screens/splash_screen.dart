@@ -35,6 +35,11 @@ class _MySplashState extends State<MySplash> {
           global.featureFlags ??= {
             'maintenance_mode': false,
             'enable_login': true,
+            'enable_signup': true,
+            'enable_ai': true,
+            'enable_import': false,
+            'enable_create_quiz': true,
+            'enable_export': true,
           };
         }
 

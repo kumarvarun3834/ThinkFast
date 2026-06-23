@@ -9,6 +9,7 @@ int time = 10; // in seconds, 0 means unlimited
 int perQuestionTime = 0; // in seconds, 0 means use global quiz timer
 bool completeRandomShuffle = false;
 bool isReviewMode = false;
+int reviewInitialIndex = 0;
 Map<String, List<String>> correctAnswers = {};
 Map<String, String> solutions = {};
 String ID = "";
