@@ -158,6 +158,5 @@ Most users will abandon a setup flow if they have to answer 15+ questions every 
 
 That usually gives the best balance between personalization and completion rate.
 
-@my_attempts_screen.dart  need update similar to after quiz completion
-replicate same template as  @quesations.dart  navigation in review mode
-enable quiz export under feature flag
+ @quesations.dart  minor bug in options >> correct answers are unually bigger in size than wrong answers
+while attempting quiz dont fetch answers of Q

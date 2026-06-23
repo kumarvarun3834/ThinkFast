@@ -1975,7 +1975,7 @@ class ButtonsOpt extends StatelessWidget {
                     optText,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      fontWeight: (isCorrect || isSelected)
+                      fontWeight: ((global.isReviewMode && isCorrect) || isSelected)
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),

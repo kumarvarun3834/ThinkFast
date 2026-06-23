@@ -1001,6 +1001,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.currentUserProfile = _userProfile;
                 global.creatorProfile = _creatorProfile;
 
+                // Reset Quiz Session State
+                global.isReviewMode = false;
+                global.correctAnswers = {};
+                global.solutions = {};
+
                 // Mark as active quiz with expiry (Duration + 5 mins buffer)
                 final int quizDurationSeconds = _quizData!['time'] as int;
                 final DateTime expiry = DateTime.now().add(

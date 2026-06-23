@@ -578,6 +578,19 @@ class DatabaseService {
     // Fetch questions from separate collection
     try {
       final questions = await _quizService.getQuizQuestions(docId);
+
+      // Security: Strip any accidentally stored answers from the questions list
+      for (var module in questions) {
+        final List<dynamic> qList = module['data'] as List? ?? [];
+        for (var q in qList) {
+          if (q is Map) {
+            q.remove('answers');
+            q.remove('correct_answer');
+            q.remove('answer');
+          }
+        }
+      }
+
       quiz['modules'] = questions;
     } catch (e) {
       // If we can't read questions (e.g. quiz hasn't started or unauthenticated),
