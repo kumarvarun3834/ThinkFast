@@ -8,6 +8,9 @@
 
 ## 2. Security & Data Privacy
 - **The "No-Answers-in-Questions" Rule:** Never store answer keys or correct values within the `quiz_questions` collection. Correct answers must reside in the `answer_keys` collection to prevent client-side inspection.
+- **Service-Side Sanitization:** `DatabaseService` must explicitly strip any answer-related fields from questions fetched via `readDatabase`.
+- **Global Cache Hygiene:** Every new quiz start must reset global answer-related state (`global.correctAnswers`, `global.solutions`) to prevent leakage from previous Review Mode sessions.
+- **UI Neutrality:** Widgets must never apply "Correct" styling (bold, green borders, check icons) during an active quiz attempt. Such styling is reserved exclusively for `isReviewMode`.
 - **Integer Question Logic:** For integer-type questions, always use `.trim()` on both user input and the correct answer before comparison to avoid whitespace issues.
 - **Verification Guard:** Core write features (Creating quizzes, submitting attempts) must be protected by an email verification check.
 - **Private Data:** Sensitive user data (emails, active sessions) must be stored in the `private` or `protected` sub-collections of a user's document, never in the root user document.

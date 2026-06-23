@@ -41,7 +41,7 @@ Stores the modular question content for a quiz. Document ID matches `{quizId}` f
 | Field       | Type         | Description                                     |
 |:------------|:-------------|:------------------------------------------------|
 | `quizId`     | `String`     | Foreign key to the parent quiz.                 |
-| `modules`   | `array<map>` | A list of subject-based modules.                |
+| `modules`   | `array<map>` | A list of subject-based modules. (Note: Service layer strips any `answers` keys for security). |
 | `updatedAt` | `timestamp`  | Last modification time.                         |
 
 ### Module Structure (`modules` field)

@@ -46,6 +46,7 @@ Quizzes are stored in a normalized way to optimize for quiz-taking performance a
 - **Metadata** is stored in the `quizzes` collection.
 - **Questions** (without answers) are stored in `quiz_questions`.
 - **Answers** are stored separately in `answer_keys` to prevent cheating via client-side inspection of the questions document.
+- **Service-Level Enforcement:** `DatabaseService` proactively strips any answer data from question documents before they reach the UI layer. This acts as a second layer of defense.
 - The `_transformQuizData` method in `DatabaseService` handles converting the editor's flat list into this multi-collection structure.
 
 ### 4.2 Scoring Engine

@@ -79,6 +79,13 @@ The `AttemptService` calculates scores based on a flexible `markingScheme`:
 
 For **Integer** questions, the system performs a trimmed, case-insensitive string comparison between the user's input and the stored answer.
 
+**Data Isolation & Anti-Cheating:**
+The system enforces strict data isolation to prevent cheating:
+1.  **Service-Level Stripping:** `DatabaseService.readDatabase` automatically strips any fields named `answers` or `correct_answer` from question modules before returning them to the UI.
+2.  **No-Fetch Start:** The "Start Quiz" flow does not fetch the `answer_keys` document.
+3.  **Global State Cleanup:** Starting a quiz resets all global answer caches (`global.correctAnswers`, `global.solutions`) to prevent leakage from previous review sessions.
+4.  **UI Styling:** During quiz participation, the UI (e.g., `ButtonsOpt`) specifically avoids applying bold or highlight styles to correct answers, only showing them when `isReviewMode` is explicitly active.
+
 **Attempt Limits (Select N out of M):**
 The platform enforces attempt quotas per section or type. The `Quesations` screen tracks active selections and disables further input once the limit is reached for a specific module or question type, mimicking competitive exam logic.
 

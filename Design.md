@@ -54,8 +54,8 @@ All colors are centralized in `lib/utils/global.dart` for cross-platform consist
     *   **Purple:** Marked for Review.
     *   **Purple/Green Gradient:** Marked for Review + Correct/Answered.
 *   **Option Selection:** 
-    *   **Quiz Mode:** Active border highlights with `primaryAccent`.
-    *   **Review Mode:** Correct options highlighted with green background; incorrect selections with red borders. Includes status tags (e.g., "Correct choice").
+    *   **Quiz Mode:** Active selection highlighted with a `primaryAccent` border. **Note:** Correct answers are NOT distinguished (no bolding or color change) to maintain exam integrity.
+    *   **Review Mode:** Correct options highlighted with a green background and bold text; incorrect selections with red borders. Includes status tags (e.g., "Correct choice").
 
 ### 4.5 Post-Quiz Experience
 *   **Summary View:** Minimalist card with total score and categorized counts (Correct/Wrong/Skipped).
