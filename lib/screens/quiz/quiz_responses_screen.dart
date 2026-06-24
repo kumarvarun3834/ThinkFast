@@ -401,6 +401,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 });
 
                 return ListView.builder(
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    0,
+                    0,
+                    MediaQuery.of(context).padding.bottom + 40,
+                  ),
                   itemCount: flatResponses.length,
                   itemBuilder: (context, index) {
                     final r = flatResponses[index];

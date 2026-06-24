@@ -209,7 +209,12 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.of(context).padding.bottom + 40,
+          ),
           itemCount: bannedUsers.length,
           itemBuilder: (context, index) {
             final user = bannedUsers[index];
@@ -337,7 +342,12 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            MediaQuery.of(context).padding.bottom + 40,
+          ),
           itemCount: responses.length,
           itemBuilder: (context, index) {
             final r = responses[index];

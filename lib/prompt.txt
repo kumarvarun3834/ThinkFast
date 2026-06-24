@@ -158,5 +158,5 @@ Most users will abandon a setup flow if they have to answer 15+ questions every 
 
 That usually gives the best balance between personalization and completion rate.
 
- @quesations.dart  minor bug in options >> correct answers are unually bigger in size than wrong answers
-while attempting quiz dont fetch answers of Q
+create AI_quizgenerator screen for this text based chatbot with options to select textbox and dropdown type > for items related to profile show it to user add toogle to update data over firebase or just use it only
+create new moduled/tags > stores all the tags added to a quiz mainly used by AI under

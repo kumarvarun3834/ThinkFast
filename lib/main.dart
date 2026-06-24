@@ -15,6 +15,7 @@ import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
 import 'package:thinkfast/screens/quiz/quesations.dart';
+import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
 import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_form.dart';
@@ -140,6 +141,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/Update Quiz':
             page = QuizPage(global.ID);
+            wrapInGradient = false;
+            break;
+          case '/AI Quiz Generator':
+            page = const AiQuizGenerator();
             wrapInGradient = false;
             break;
           case '/Quiz':

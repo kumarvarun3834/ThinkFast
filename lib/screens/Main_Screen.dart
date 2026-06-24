@@ -449,6 +449,12 @@ class _Main_ScreenState extends State<Main_Screen> {
             }
 
             return ListView.builder(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 100,
+              ),
               itemCount: filteredQuizzes.length,
               itemBuilder: (context, index) {
                 return buildQuizCard(filteredQuizzes[index]);
@@ -460,69 +466,10 @@ class _Main_ScreenState extends State<Main_Screen> {
       floatingActionButton:
           global.featureFlags?['enable_ai'] == true && !_isSelectionMode
           ? FloatingActionButton.extended(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AiGenerationDialog(
-                    buttonText: "START NOW",
-                    onGenerated: (json) async {
-                      // Type 1: Personal Use
-                      final ai = AiService();
-                      final userId = FirebaseAuth.instance.currentUser!.uid;
-                      final userName = global.currentUserProfile?['name'] ?? "User";
-                      
-                      // We can just use the prompt from the dialog if we modify it to return it, 
-                      // or we parse the JSON to get the title.
-                      // For now, let's just use createAiQuiz which handles the pattern.
-                      // Wait, createAiQuiz handles JSON generation internally too.
-                      
-                      // If onGenerated gives us the JSON, we might want a slightly different method.
-                      // But the prompt says "write in the Quiz directly in same pattern quiz is created".
-                      
-                      // Actually, let's just use createAiQuiz and ignore the 'json' parameter 
-                      // from dialog if we want AiService to handle the full flow.
-                      // But the dialog already has a text field.
-                      
-                      // Let's assume onGenerated is called AFTER generation.
-                      // The current AiGenerationDialog generates mock JSON.
-                      
-                      // Let's refactor createAiQuiz to be more flexible or just use it.
-                      // Actually, createAiQuiz generates JSON internally.
-                      
-                      // Let's use the prompt from the dialog controller? 
-                      // Dialog is already closed when onGenerated is called.
-                      
-                      // I will just use the title from the generated JSON as a proxy for prompt 
-                      // or just pass result.title.
-                      
-                      final result = await QuizDataProcessor.processImportData(json);
-                      final db = DatabaseService();
-                      
-                      final quizId = await db.createDatabase(
-                        creatorId: userId,
-                        user: userName,
-                        title: result.title ?? "AI Quiz",
-                        description: result.description ?? "Personal AI Quiz",
-                        visibility: "private",
-                        data: result.questions,
-                        time: (result.time ?? 600) ~/ 60,
-                        markingScheme: {
-                          "type": result.markingType ?? "default",
-                        },
-                        isPersonal: true,
-                        isAiGenerated: true,
-                      );
-
-                      if (mounted) {
-                        Navigator.pushNamed(context, "/Quiz Details", arguments: quizId);
-                      }
-                    },
-                  ),
-                );
-              },
+              onPressed: () => Navigator.pushNamed(context, '/AI Quiz Generator'),
               backgroundColor: global.btnColor,
               icon: const Icon(Icons.auto_awesome_rounded),
-              label: const Text("AI PERSONAL"),
+              label: const Text("AI WIZARD"),
             )
           : null,
     );

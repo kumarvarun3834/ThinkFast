@@ -1395,7 +1395,7 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                 ],
               );
             },
@@ -1775,7 +1775,12 @@ class _Quesations extends State<Quesations> with WidgetsBindingObserver {
           ],
         ),
         bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            MediaQuery.of(context).padding.bottom + 10,
+          ),
           decoration: const BoxDecoration(
             color: global.cardColor,
             border: Border(top: BorderSide(color: global.borderColor)),

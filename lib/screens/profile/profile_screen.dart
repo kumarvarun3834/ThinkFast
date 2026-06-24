@@ -28,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       TextEditingController();
   final TextEditingController _languageController = TextEditingController();
   final TextEditingController _studyHoursController = TextEditingController();
+  final TextEditingController _targetExamController = TextEditingController();
+  final TextEditingController _learningStyleController = TextEditingController();
   String _preferredDifficulty = 'medium';
 
   bool _isLoading = true;
@@ -72,6 +74,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _studyHoursController.text = (profile['studyHoursPerWeek'] != null)
             ? profile['studyHoursPerWeek'].toString()
             : '';
+        _targetExamController.text = profile['targetExam'] ?? '';
+        _learningStyleController.text = profile['learningStyle'] ?? '';
         _preferredDifficulty = profile['preferredDifficulty'] ?? 'medium';
       } else {
         // New user fallback
@@ -127,6 +131,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'preferredDifficulty': _preferredDifficulty,
           'preferredLanguage': _languageController.text.trim(),
           'studyHoursPerWeek': int.tryParse(_studyHoursController.text) ?? 0,
+          'targetExam': _targetExamController.text.trim(),
+          'learningStyle': _learningStyleController.text.trim(),
         },
       );
 
@@ -428,6 +434,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 8),
                         _buildDropdownField(),
 
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Target Exam"),
+                                  const SizedBox(height: 8),
+                                  _buildTextField(
+                                    _targetExamController,
+                                    "NEET, JEE, UPSC",
+                                    Icons.school_outlined,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Learning Style"),
+                                  const SizedBox(height: 8),
+                                  _buildTextField(
+                                    _learningStyleController,
+                                    "Visual, Auditory, etc.",
+                                    Icons.psychology_outlined,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
                         const SizedBox(height: 32),
                         _buildSectionHeader("Private Information"),
                         const SizedBox(height: 16),
@@ -467,7 +508,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ),
                               ),
-                        const SizedBox(height: 100),
+                        SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
                       ],
                     ),
                   ),

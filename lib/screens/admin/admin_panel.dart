@@ -156,7 +156,7 @@ class _AdminPanelState extends State<AdminPanel> {
               _buildSectionHeader("Rate Limits"),
               const SizedBox(height: 12),
               _buildRateLimitField(flags),
-              const SizedBox(height: 80),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
             ],
           );
         },

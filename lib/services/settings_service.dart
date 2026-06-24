@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class SettingsService {
-  final CollectionReference _settings = FirebaseFirestore.instance.collection('settings');
-  final CollectionReference _featureFlags = FirebaseFirestore.instance.collection('feature_flags');
+  final CollectionReference _settings = FirebaseFirestore.instance.collection(
+    'settings',
+  );
+  final CollectionReference _featureFlags = FirebaseFirestore.instance
+      .collection('feature_flags');
 
   /// ✅ Fetch App Settings
   Future<Map<String, dynamic>?> getAppSettings() async {
@@ -13,7 +16,10 @@ class SettingsService {
 
   /// ✅ Stream App Settings
   Stream<Map<String, dynamic>?> streamAppSettings() {
-    return _settings.doc('app').snapshots().map((doc) => doc.data() as Map<String, dynamic>?);
+    return _settings
+        .doc('app')
+        .snapshots()
+        .map((doc) => doc.data() as Map<String, dynamic>?);
   }
 
   /// ✅ Fetch Feature Flags (Cached for session)
@@ -40,9 +46,14 @@ class SettingsService {
 
     DocumentSnapshot doc;
     try {
-      doc = await _featureFlags.doc('production').get().timeout(const Duration(seconds: 10));
+      doc = await _featureFlags
+          .doc('production')
+          .get()
+          .timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint("Warning: Could not fetch feature flags ($e). Using defaults.");
+      debugPrint(
+        "Warning: Could not fetch feature flags ($e). Using defaults.",
+      );
       return defaultFlags;
     }
 
@@ -53,7 +64,9 @@ class SettingsService {
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
-        debugPrint("Silent fail: Could not initialize feature flags document (Permission Denied)");
+        debugPrint(
+          "Silent fail: Could not initialize feature flags document (Permission Denied)",
+        );
       }
       return defaultFlags;
     }
@@ -73,7 +86,9 @@ class SettingsService {
       try {
         await _featureFlags.doc('production').update(data);
       } catch (e) {
-        debugPrint("Silent fail: Could not update missing feature flags (Permission Denied)");
+        debugPrint(
+          "Silent fail: Could not update missing feature flags (Permission Denied)",
+        );
       }
     }
 
@@ -82,7 +97,10 @@ class SettingsService {
 
   /// ✅ Stream Feature Flags for live updates
   Stream<Map<String, dynamic>?> streamFeatureFlags() {
-    return _featureFlags.doc('production').snapshots().map((doc) => doc.data() as Map<String, dynamic>?);
+    return _featureFlags
+        .doc('production')
+        .snapshots()
+        .map((doc) => doc.data() as Map<String, dynamic>?);
   }
 
   /// ✅ Update a specific feature flag (Admin only)
@@ -101,11 +119,29 @@ class SettingsService {
     }, SetOptions(merge: true));
   }
 
+  /// ✅ Fetch Competitive Exam Configs (Highly dynamic)
+  /// Returns a Map where keys are exam names and values are their specific settings
+  Future<Map<String, dynamic>> getExamConfigs() async {
+    final doc = await _settings.doc('exam_configs').get();
+    if (!doc.exists) {
+      // Default fallback if not in Firestore
+      return {
+        'JEE Main': {'count': 90, 'time_limit': '180 min'},
+        'NEET': {'count': 180, 'time_limit': '200 min'},
+        'UPSC': {'count': 100, 'time_limit': '120 min'},
+      };
+    }
+    return doc.data() as Map<String, dynamic>;
+  }
+
   /// ✅ Fetch Admin Settings (Template)
   /// Allow everyone to create the settings template if it doesn't exist, but doesn't add members
   Future<Map<String, dynamic>?> getAdminSettings() async {
     try {
-      final doc = await _settings.doc('admin').get().timeout(const Duration(seconds: 5));
+      final doc = await _settings
+          .doc('admin')
+          .get()
+          .timeout(const Duration(seconds: 5));
       if (!doc.exists) {
         final defaultAdminSettings = {
           'min_level_to_manage_admins': 5,

@@ -17,6 +17,9 @@ class QuizService {
   final CollectionReference _users = FirebaseFirestore.instance.collection(
     'users',
   );
+  final CollectionReference _tags = FirebaseFirestore.instance.collection(
+    'tags',
+  );
   final AdminService _adminService = AdminService();
   final SettingsService _settingsService = SettingsService();
 
@@ -148,6 +151,17 @@ class QuizService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    // 5. Sync Tags to global tags collection
+    if (tags != null && tags.isNotEmpty) {
+      for (var tag in tags) {
+        batch.set(_tags.doc(tag.toLowerCase().trim()), {
+          'name': tag.trim(),
+          'lastUsed': FieldValue.serverTimestamp(),
+          'count': FieldValue.increment(1),
+        }, SetOptions(merge: true));
+      }
+    }
+
     batch.update(_users.doc(creatorId), {
       'lastQuizCreatedAt': FieldValue.serverTimestamp(),
       'quizCount': FieldValue.increment(1),
@@ -183,6 +197,16 @@ class QuizService {
     }
 
     if (updates.isNotEmpty) {
+      if (updates.containsKey('tags')) {
+        final List<String> tags = List<String>.from(updates['tags'] ?? []);
+        for (var tag in tags) {
+          await _tags.doc(tag.toLowerCase().trim()).set({
+            'name': tag.trim(),
+            'lastUsed': FieldValue.serverTimestamp(),
+            'count': FieldValue.increment(1),
+          }, SetOptions(merge: true));
+        }
+      }
       updates['updatedAt'] = FieldValue.serverTimestamp();
       await _quizzes.doc(quizId).update(updates);
     }

@@ -1580,7 +1580,7 @@ class _QuizPageState extends State<QuizPage> {
                         ],
                       );
                     }),
-                    const SizedBox(height: 120),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
                   ],
                 ),
               ),

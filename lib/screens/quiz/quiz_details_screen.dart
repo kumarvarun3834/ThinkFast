@@ -562,7 +562,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       ),
                       const SizedBox(height: 32),
                       if (!_isLoading || _quizData != null) _buildActionButtons(),
-                      const SizedBox(height: 80),
+                      SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
                     ],
                   ),
                 ),

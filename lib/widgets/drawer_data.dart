@@ -301,6 +301,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'Create New Quiz',
               onTap: () => _checkAndNavigate(context, "/Create Quiz"),
             ),
+          if (widget.user != null && (_canCreateQuiz || _isAdmin))
+            _drawerItem(
+              icon: Icons.auto_awesome_outlined,
+              text: 'AI Quiz Wizard',
+              onTap: () => _checkAndNavigate(context, "/AI Quiz Generator"),
+            ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.library_books_outlined,

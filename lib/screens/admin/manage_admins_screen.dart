@@ -212,7 +212,12 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
           final admins = snapshot.data!;
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              MediaQuery.of(context).padding.bottom + 80,
+            ),
             itemCount: admins.length,
             itemBuilder: (context, index) {
               final admin = admins[index];

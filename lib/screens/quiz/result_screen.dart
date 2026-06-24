@@ -518,7 +518,7 @@ class _ResultScreenState extends State<ResultScreen> {
             icon: const Icon(Icons.home_outlined),
             label: const Text("BACK TO HOME"),
           ),
-          const SizedBox(height: 80),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
         ],
       ),
     );

@@ -235,7 +235,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
             ],
           ),
         ),

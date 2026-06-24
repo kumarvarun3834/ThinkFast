@@ -234,6 +234,12 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                 }
 
                 return ListView.builder(
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    0,
+                    0,
+                    MediaQuery.of(context).padding.bottom + 40,
+                  ),
                   itemCount: managers.length,
                   itemBuilder: (context, index) {
                     final m = managers[index];
