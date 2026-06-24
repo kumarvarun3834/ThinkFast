@@ -1,10 +1,10 @@
+import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/screens/quiz/result_screen.dart';
-import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
@@ -58,7 +58,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             ? "Access Denied: This quiz is private."
             : "Error: $e";
 
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
         Navigator.pop(context);
       }
     }
@@ -142,19 +144,32 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 color: getDemoDotColor(),
                                 gradient: (demoReview && demoAnswered)
                                     ? const LinearGradient(
-                                        colors: [global.reviewColor, global.successColor],
+                                        colors: [
+                                          global.reviewColor,
+                                          global.successColor,
+                                        ],
                                       )
                                     : null,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text("Q1 Status", style: GoogleFonts.poppins(color: global.labelColor, fontSize: 11)),
+                            Text(
+                              "Q1 Status",
+                              style: GoogleFonts.poppins(
+                                color: global.labelColor,
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Text(
                           "What is the capital of France?",
-                          style: GoogleFonts.poppins(color: global.valueColor, fontSize: 13, fontWeight: FontWeight.w500),
+                          style: GoogleFonts.poppins(
+                            color: global.valueColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         ...["Paris", "London"].map((opt) {
@@ -170,15 +185,30 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               },
                               child: Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 12,
+                                ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: isSelected ? global.primaryAccent : global.borderColor,
+                                    color: isSelected
+                                        ? global.primaryAccent
+                                        : global.borderColor,
                                   ),
-                                  color: isSelected ? global.primaryAccent.withOpacity(0.1) : Colors.transparent,
+                                  color: isSelected
+                                      ? global.primaryAccent.withOpacity(0.1)
+                                      : Colors.transparent,
                                 ),
-                                child: Text(opt, style: GoogleFonts.poppins(color: isSelected ? global.primaryAccent : global.labelColor, fontSize: 12)),
+                                child: Text(
+                                  opt,
+                                  style: GoogleFonts.poppins(
+                                    color: isSelected
+                                        ? global.primaryAccent
+                                        : global.labelColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
                             ),
                           );
@@ -187,7 +217,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text("Review", style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12)),
+                            Text(
+                              "Review",
+                              style: GoogleFonts.poppins(
+                                color: global.labelColor,
+                                fontSize: 12,
+                              ),
+                            ),
                             Switch(
                               value: demoReview,
                               activeColor: global.reviewColor,
@@ -196,7 +232,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               },
                             ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -210,8 +246,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _buildColorGuideRow(global.infoColor, "Current or seen question."),
-                  _buildColorGuideRow(global.successColor, "Answered question."),
+                  _buildColorGuideRow(
+                    global.infoColor,
+                    "Current or seen question.",
+                  ),
+                  _buildColorGuideRow(
+                    global.successColor,
+                    "Answered question.",
+                  ),
                   _buildColorGuideRow(global.reviewColor, "Marked for review."),
                   _buildColorGuideRow(
                     global.reviewColor,
@@ -222,13 +264,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   _buildHelpSection(
                     "Navigation",
                     "• Swipe left/right or use the dots to move.\n"
-                    "• The 'Review & Next' button marks for later thought.",
+                        "• The 'Review & Next' button marks for later thought.",
                   ),
                   const SizedBox(height: 16),
                   _buildHelpSection(
                     "Rules",
                     "• Timer auto-submits your answers.\n"
-                    "• Per Question timers disable backward navigation.",
+                        "• Per Question timers disable backward navigation.",
                   ),
                 ],
               ),
@@ -240,12 +282,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
 
-  Widget _buildColorGuideRow(Color primary, String text, {Color? secondaryColor}) {
+  Widget _buildColorGuideRow(
+    Color primary,
+    String text, {
+    Color? secondaryColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -276,7 +322,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
+              style: GoogleFonts.poppins(
+                color: global.labelColor,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -299,7 +348,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         const SizedBox(height: 6),
         Text(
           content,
-          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12, height: 1.4),
+          style: GoogleFonts.poppins(
+            color: global.labelColor,
+            fontSize: 12,
+            height: 1.4,
+          ),
         ),
       ],
     );
@@ -407,7 +460,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   child: CircularProgressIndicator(color: global.primaryAccent),
                 )
               : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -433,7 +489,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                             context,
                                           ).showSnackBar(
                                             const SnackBar(
-                                              content: Text("Quiz link copied!"),
+                                              content: Text(
+                                                "Quiz link copied!",
+                                              ),
                                             ),
                                           );
                                         }
@@ -504,7 +562,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             InfoRow(label: "Description", value: description),
-                            const Divider(color: global.borderColor, height: 32),
+                            const Divider(
+                              color: global.borderColor,
+                              height: 32,
+                            ),
                             InfoRow(
                               label: "Duration",
                               value: timeLimit,
@@ -520,7 +581,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               value: creator,
                               icon: Icons.person_outline,
                             ),
-                            if (_quizData != null && _quizData!['activeAt'] != null)
+                            if (_quizData != null &&
+                                _quizData!['activeAt'] != null)
                               InfoRow(
                                 label: "Scheduled For",
                                 value:
@@ -534,7 +596,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 value: "Restricted (Allowed List Only)",
                                 icon: Icons.lock_person_outlined,
                               ),
-                            if (_quizData != null && _quizData!['category'] != null)
+                            if (_quizData != null &&
+                                _quizData!['category'] != null)
                               InfoRow(
                                 label: "Category",
                                 value: _quizData!['category'].toString(),
@@ -547,49 +610,62 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 value: _quizData!['difficulty'].toString(),
                                 icon: Icons.speed,
                               ),
-                            if (_quizData != null && _quizData!['marks'] != null)
+                            if (_quizData != null &&
+                                _quizData!['marks'] != null)
                               InfoRow(
                                 label: "Marks",
                                 value: _quizData!['marks'].toString(),
                                 icon: Icons.star_outline,
                               ),
-                            const Divider(color: global.borderColor, height: 32),
+                            const Divider(
+                              color: global.borderColor,
+                              height: 32,
+                            ),
                             _buildQuizTypeSection(),
-                            const Divider(color: global.borderColor, height: 32),
+                            const Divider(
+                              color: global.borderColor,
+                              height: 32,
+                            ),
                             _buildMarkingSchemeInfo(),
                           ],
                         ),
                       ),
                       const SizedBox(height: 32),
-                      if (!_isLoading || _quizData != null) _buildActionButtons(),
-                      SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                      if (!_isLoading || _quizData != null)
+                        _buildActionButtons(),
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom + 40,
+                      ),
                     ],
                   ),
                 ),
         ),
         if (_isStartingQuiz)
           Positioned.fill(
-            child: Container(
-              color: Colors.black54,
+            child: Material(
+              color: global.bgColor,
               child: Center(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircularProgressIndicator(color: global.primaryAccent),
-                    const SizedBox(height: 20),
+                    const CircularProgressIndicator(
+                      color: global.primaryAccent,
+                    ),
+                    const SizedBox(height: 24),
                     Text(
                       "PREPARING QUIZ...",
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
+                        color: global.valueColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       "Validating Session & Environment",
                       style: GoogleFonts.poppins(
-                        color: Colors.white70,
+                        color: global.labelColor,
                         fontSize: 12,
                       ),
                     ),
@@ -641,22 +717,31 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: types.map((t) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: global.primaryAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: global.primaryAccent.withOpacity(0.3)),
-            ),
-            child: Text(
-              t,
-              style: GoogleFonts.poppins(
-                color: global.primaryAccent,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )).toList(),
+          children: types
+              .map(
+                (t) => Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: global.primaryAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: global.primaryAccent.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    t,
+                    style: GoogleFonts.poppins(
+                      color: global.primaryAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ],
     );
@@ -675,8 +760,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       rows.add(_schemeRow("Incorrect", "-1", global.errorColor));
     } else if (type == 'entire_quiz') {
       final globalS = scheme['global'] as Map? ?? {};
-      rows.add(_schemeRow("Correct", "+${globalS['correct'] ?? 4}", global.successColor));
-      rows.add(_schemeRow("Incorrect", "${globalS['wrong'] ?? -1}", global.errorColor));
+      rows.add(
+        _schemeRow(
+          "Correct",
+          "+${globalS['correct'] ?? 4}",
+          global.successColor,
+        ),
+      );
+      rows.add(
+        _schemeRow("Incorrect", "${globalS['wrong'] ?? -1}", global.errorColor),
+      );
     } else if (type == 'per_question_type') {
       final pqt = scheme['perQuestionType'] as Map? ?? {};
       pqt.forEach((qType, values) {
@@ -694,8 +787,12 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             ),
           ),
         );
-        rows.add(_schemeRow("Correct", "+${v['correct'] ?? 4}", global.successColor));
-        rows.add(_schemeRow("Incorrect", "${v['wrong'] ?? -1}", global.errorColor));
+        rows.add(
+          _schemeRow("Correct", "+${v['correct'] ?? 4}", global.successColor),
+        );
+        rows.add(
+          _schemeRow("Incorrect", "${v['wrong'] ?? -1}", global.errorColor),
+        );
       });
     } else if (type == 'per_question') {
       rows.add(
@@ -760,11 +857,37 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     });
   }
 
+  Widget _buildRestrictedQuizAction({
+    required String text,
+    required VoidCallback onPressed,
+    required IconData icon,
+    required bool enabled,
+    VoidCallback? onDoubleTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: QuizActionButton(
+        text: text,
+        onPressed: onPressed,
+        icon: icon,
+        onDoubleTap: onDoubleTap,
+        enabled: enabled,
+      ),
+    );
+  }
+
   Widget _buildActionButtons() {
     final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
     final bool canManage = _canManage;
     final bool isPersonal = _quizData!['isPersonal'] == true;
     final bool isAdmin = _isAdmin;
+    final String quizId = _quizData!['id'];
+
+    bool hasPerm(String perm) {
+      if (isAdmin || isOwner) return true;
+      final perms = global.managedQuizzes[quizId];
+      return perms?[perm] == true;
+    }
 
     return Column(
       children: [
@@ -795,12 +918,15 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             try {
               final db = DatabaseService();
               final String? activeQuizId = _quizData!['activeQuizId'];
-              final Timestamp? activeQuizExpiry = _quizData!['activeQuizExpiry'];
+              final Timestamp? activeQuizExpiry =
+                  _quizData!['activeQuizExpiry'];
 
               if (activeQuizId != null) {
                 bool isExpired = false;
                 if (activeQuizExpiry != null) {
-                  isExpired = activeQuizExpiry.toDate().isBefore(DateTime.now());
+                  isExpired = activeQuizExpiry.toDate().isBefore(
+                    DateTime.now(),
+                  );
                 }
 
                 if (isExpired) {
@@ -1031,9 +1157,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             } catch (e) {
               if (mounted) {
                 setState(() => _isStartingQuiz = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Quiz Start Error: $e")),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Quiz Start Error: $e")));
               }
             }
           },
@@ -1061,25 +1187,25 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         ),
         if (canManage) ...[
           const SizedBox(height: 16),
-          QuizActionButton(
+          _buildRestrictedQuizAction(
             text: _quizData!['visibility'] == 'public'
                 ? "Make Private"
                 : "Make Public",
             onPressed: _toggleVisibility,
+            enabled: hasPerm('can_publish'),
             icon: _quizData!['visibility'] == 'public'
                 ? Icons.lock_outline
                 : Icons.public_outlined,
           ),
-          const SizedBox(height: 16),
-          QuizActionButton(
+          _buildRestrictedQuizAction(
             text: _quizData!['isLocked'] == true ? "Unlock Quiz" : "Lock Quiz",
             onPressed: _toggleLock,
+            enabled: hasPerm('can_update'),
             icon: _quizData!['isLocked'] == true
                 ? Icons.lock_open_rounded
                 : Icons.lock_person_rounded,
           ),
-          const SizedBox(height: 16),
-          QuizActionButton(
+          _buildRestrictedQuizAction(
             text: "View Responses",
             onPressed: () {
               Navigator.pushNamed(
@@ -1091,10 +1217,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 },
               );
             },
+            enabled: hasPerm('can_view_results'),
             icon: Icons.analytics_outlined,
           ),
-          const SizedBox(height: 16),
-          QuizActionButton(
+          _buildRestrictedQuizAction(
             text: "Manage Collaborators",
             onPressed: () {
               Navigator.pushNamed(
@@ -1103,23 +1229,26 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 arguments: _quizData!['id'],
               );
             },
+            enabled: hasPerm('can_manage_collaborators'),
             icon: Icons.people_outline,
           ),
           if (!isPersonal || isAdmin) ...[
-            const SizedBox(height: 16),
-            QuizActionButton(
+            _buildRestrictedQuizAction(
               text: "Update Quiz",
               onPressed: () {
                 final List<Map<String, Object>> flattenedQuestions = [];
                 final List<dynamic> rawModules =
                     _quizData!['modules'] as List? ?? [];
 
+                int incrementalIndex = 0;
                 for (var module in rawModules) {
                   final String subject = module['subject'].toString();
                   final List<dynamic> questions = module['data'] as List? ?? [];
                   for (var q in questions) {
+                    incrementalIndex++;
                     final qMap = Map<String, Object>.from(q);
                     qMap['subject'] = subject;
+                    qMap['incrementalIndex'] = incrementalIndex;
                     flattenedQuestions.add(qMap);
                   }
                 }
@@ -1132,10 +1261,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                 Navigator.pushNamed(context, "/Update Quiz");
               },
+              enabled: hasPerm('can_update'),
               icon: Icons.edit_outlined,
             ),
-            const SizedBox(height: 16),
-            QuizActionButton(
+            _buildRestrictedQuizAction(
               text: "Delete Quiz",
               onPressed: () async {
                 try {
@@ -1159,6 +1288,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   }
                 }
               },
+              enabled: hasPerm('can_delete'),
               icon: Icons.delete_outline,
             ),
           ],

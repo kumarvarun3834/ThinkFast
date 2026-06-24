@@ -122,6 +122,7 @@ class QuizActionButton extends StatelessWidget {
   final bool isPrimary;
   final IconData? icon;
   final VoidCallback? onDoubleTap;
+  final bool enabled;
 
   const QuizActionButton({
     super.key,
@@ -130,25 +131,35 @@ class QuizActionButton extends StatelessWidget {
     this.isPrimary = false,
     this.icon,
     this.onDoubleTap,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bool effectiveEnabled = enabled;
+
     return GestureDetector(
-      onDoubleTap: onDoubleTap,
+      onDoubleTap: effectiveEnabled ? onDoubleTap : null,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: effectiveEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: isPrimary
-              ? global.btnColor
-              : Colors.white.withOpacity(0.05),
-          foregroundColor: Colors.white,
+              ? (effectiveEnabled ? global.btnColor : global.hintColor)
+              : Colors.white.withOpacity(effectiveEnabled ? 0.05 : 0.02),
+          foregroundColor: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: isPrimary ? BorderSide.none : const BorderSide(color: global.borderColor),
+            side: isPrimary
+                ? BorderSide.none
+                : BorderSide(
+                    color: effectiveEnabled
+                        ? global.borderColor
+                        : global.borderColor.withOpacity(0.3)),
           ),
-          elevation: isPrimary ? 4 : 0,
+          elevation: isPrimary && effectiveEnabled ? 4 : 0,
+          disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withOpacity(0.02),
+          disabledForegroundColor: Colors.white.withOpacity(0.4),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -161,7 +172,14 @@ class QuizActionButton extends StatelessWidget {
                 letterSpacing: 1.1,
               ),
             ),
-            if (icon != null) ...[const SizedBox(width: 8), Icon(icon, size: 20)],
+            if (icon != null) ...[
+              const SizedBox(width: 8),
+              Icon(
+                icon,
+                size: 20,
+                color: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
+              )
+            ],
           ],
         ),
       ),

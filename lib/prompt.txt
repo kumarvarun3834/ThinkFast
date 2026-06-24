@@ -160,3 +160,53 @@ That usually gives the best balance between personalization and completion rate.
 
 create AI_quizgenerator screen for this text based chatbot with options to select textbox and dropdown type > for items related to profile show it to user add toogle to update data over firebase or just use it only
 create new moduled/tags > stores all the tags added to a quiz mainly used by AI under
+
+The following is the Quality Test Report for the app ThinkFast, developed by Varun Kumar.
+The report is being delivered by KhannaSparsh0001
+
+Major features of the quiz app have been found to be working correctly except a few minor bugs and app enhancements.
+
+UI BUG:
+#1 SCROLL DOWN ERROR
+Image Image
+Unable to scroll below for various options such as DELETE QUIZ option
+
+Image
+This quiz had a question with 7 different options, i wasnt able to scroll down to get access to full options.
+
+UX IMPROVEMENTS
+#1FINAL QUE SUBMISSION & QUES OVERVIEW PANEL
+Image
+This is the last question of the quiz, the submit button is present on the top. Everything is working fine but it would really add to the user experience if the NEXT button changes itself to SUBMIT and before submitting a window asks for confirmation, more like a dialog box.
+
+#2 PROFILE CUSTOMISATION
+Image
+The profile picture cant be added. Adding this customisation will boost user experince.
+
+ENHACEMENTS
+#1 ARBITRARY SCORING SYSTEM
+The scoring system should be more explicit and should be customisable by the quiz setter himself. What i have obsereved a correct question get u 4 whereas a wrong one gets you -1
+
+#2 SUBJECTIVE QUESTIONS
+Image
+Right now the app only manages MCQ based question where for any testing platform to be successful, it shoudl also allow subjective questions
+
+#3 QUESTION OVERVIEW MENU
+As the user submits it should load a question overview window [QUESTION NAVIGATION PANEL] , where the questions he attempted, didnt attempted, skipped shall allow be displayed. The final SUBMIT button should be here in this menu only.
+
+Image
+This is also in aligment with #1 UX
+
+CONDEMNABLE FEATURES
+PROCTORING MEASURES
+While testing the app i found it automatically submits the moment i hit back, or take a screenshot. This is the fundamental of any testing app and is well executed.
+
+Overall UI is clean and quiz sharing feature is very robust.
+
+
+check progress and generate report of all done
+> profile picture is linked with google direclty so skip it for time being > report2.md
+
+W/Firestore( 4204): (26.4.0) [Firestore]: Listen for QueryWrapper(query=Query(target=Query(quiz_access where quizId==I2mMmxc29dz1s37hU4Fo and role==manager order by __name__);limitType=LIMIT_TO_FIRST)) failed: Status{code=PERMISSION_DENIED, description=Missing or insufficient permissions., cause=null}
+
+quiz owner cant add Qadmins

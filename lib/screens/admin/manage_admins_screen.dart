@@ -225,6 +225,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
               final perms = List<String>.from(admin['permissions'] ?? []);
               final level = admin['level'] ?? 1;
 
+              final String? name = admin['name'];
+              final String? photoUrl = admin['photoUrl'];
+
               return Card(
                 color: global.cardColor,
                 margin: const EdgeInsets.only(bottom: 12),
@@ -233,9 +236,24 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                   side: const BorderSide(color: global.borderColor),
                 ),
                 child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: global.bgColor,
+                    backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
+                    child: photoUrl == null ? const Icon(Icons.admin_panel_settings, color: global.labelColor) : null,
+                  ),
                   title: Row(
                     children: [
-                      Expanded(child: Text(uid, style: const TextStyle(color: global.valueColor, fontSize: 14))),
+                      Expanded(
+                        child: Text(
+                          name ?? uid,
+                          style: const TextStyle(
+                            color: global.valueColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if (level == 0)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -244,13 +262,29 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(color: global.primaryAccent),
                           ),
-                          child: const Text("SUPER", style: TextStyle(color: global.primaryAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          child: const Text("SUPER",
+                              style: TextStyle(
+                                  color: global.primaryAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold)),
                         ),
                     ],
                   ),
-                  subtitle: Text(
-                    level == 0 ? "Full Access (Super Admin)" : "Permissions: ${perms.isEmpty ? 'None' : perms.join(', ')}",
-                    style: const TextStyle(color: global.labelColor, fontSize: 12),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (name != null)
+                        Text(
+                          uid,
+                          style: const TextStyle(color: global.labelColor, fontSize: 10),
+                        ),
+                      Text(
+                        level == 0
+                            ? "Full Access (Super Admin)"
+                            : "Permissions: ${perms.isEmpty ? 'None' : perms.join(', ')}",
+                        style: const TextStyle(color: global.labelColor, fontSize: 12),
+                      ),
+                    ],
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

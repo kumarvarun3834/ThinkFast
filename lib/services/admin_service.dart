@@ -241,18 +241,10 @@ class AdminService {
     required Map<String, bool> permissions,
     required String addedBy,
   }) async {
-    // Only App Admin or Quiz Owner can add managers
-    final bool isAppAdmin = await isAdmin(addedBy);
-    final quizDoc = await FirebaseFirestore.instance
-        .collection('quizzes')
-        .doc(quizId)
-        .get();
-    final bool isOwner =
-        quizDoc.exists && quizDoc.data()?['creatorId'] == addedBy;
-
-    if (!isAppAdmin && !isOwner) {
+    // Only App Admin, Quiz Owner or manager with permission can add managers
+    if (!await canManageQuiz(quizId, addedBy, permission: 'can_manage_collaborators')) {
       throw Exception(
-        "Unauthorized: Only the Quiz Owner or an App Admin can manage collaborators.",
+        "Unauthorized: Only the Quiz Owner, an App Admin, or an authorized Collaborator can manage collaborators.",
       );
     }
 
@@ -686,8 +678,8 @@ class AdminService {
     required String userId,
     required String removedBy,
   }) async {
-    // Only App Admin or Quiz Owner can remove managers
-    if (!await canManageQuiz(quizId, removedBy)) {
+    // Only App Admin, Quiz Owner or manager with permission can remove managers
+    if (!await canManageQuiz(quizId, removedBy, permission: 'can_manage_collaborators')) {
       throw Exception(
         "Unauthorized: Insufficient permissions to remove collaborators.",
       );
@@ -730,16 +722,114 @@ class AdminService {
         );
   }
 
-  /// ✅ Get all admins
-  Stream<List<Map<String, dynamic>>> getAllAdmins() {
-    return _admins.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                data['uid'] = doc.id;
-                return data;
-              })
-              .toList(),
+  /// ✅ Fetch full user profile including private details (Admin only)
+  Future<Map<String, dynamic>?> getFullUserProfile(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (!doc.exists) return null;
+
+      final data = doc.data() as Map<String, dynamic>;
+
+      final privateDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('private')
+          .doc('details')
+          .get();
+      if (privateDoc.exists) {
+        data.addAll(privateDoc.data() as Map<String, dynamic>);
+      }
+      
+      data['uid'] = uid;
+      return data;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// ✅ Master control: Get all users (Admin only)
+  Stream<List<Map<String, dynamic>>> getAllUsers() {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['uid'] = doc.id;
+            return data;
+          }).toList(),
         );
+  }
+
+  /// ✅ Master control: Delete User Firestore Data
+  Future<void> deleteUserAccount({
+    required String targetUid,
+    required String adminId,
+  }) async {
+    if (!await hasPermission(adminId, 'moderate_users')) {
+      throw Exception("Unauthorized: 'moderate_users' permission required.");
+    }
+
+    // Integrity Check: Cannot delete a Super Admin or even another admin without manage_admins
+    final targetDoc = await _admins.doc(targetUid).get();
+    if (targetDoc.exists) {
+       if (!await hasPermission(adminId, 'manage_admins')) {
+         throw Exception("Unauthorized: 'manage_admins' permission required to delete another admin.");
+       }
+       final bool isTargetSuper = (targetDoc.data() as Map)['level'] == 0;
+       if (isTargetSuper && global.adminLevel != 0) {
+         throw Exception("Unauthorized: Only a Super Admin can delete another Super Admin.");
+       }
+    }
+
+    final batch = FirebaseFirestore.instance.batch();
+    
+    // 1. Delete user doc
+    batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid));
+    
+    // 2. Delete private/protected details
+    batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid).collection('private').doc('details'));
+    batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid).collection('protected').doc('details'));
+    
+    // 3. Remove from admin list if present
+    batch.delete(_admins.doc(targetUid));
+    
+    // 4. Remove all global bans
+    batch.delete(_bannedUsers.doc('global_$targetUid'));
+
+    await batch.commit();
+
+    await logAction(
+      actorId: adminId,
+      action: 'delete_user_account',
+      targetId: targetUid,
+      details: 'Permanently removed user Firestore data and admin status.',
+      category: 'admin_master',
+    );
+  }
+
+  /// ✅ Get all admins with profile data
+  Stream<List<Map<String, dynamic>>> getAllAdmins() {
+    return _admins.snapshots().asyncMap((snapshot) async {
+      List<Map<String, dynamic>> admins = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['uid'] = doc.id;
+
+        // Fetch user profile to show name/photo
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(doc.id)
+            .get();
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          data['name'] = userData['name'];
+          data['photoUrl'] = userData['photoUrl'];
+        }
+        admins.add(data);
+      }
+      return admins;
+    });
   }
 }

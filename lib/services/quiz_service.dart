@@ -394,6 +394,21 @@ class QuizService {
         );
   }
 
+  /// ✅ Master control: Get all quizzes for a user (Admin only)
+  Stream<List<Map<String, dynamic>>> getUserQuizzesMaster(String userId) {
+    return _quizzes
+        .where('creatorId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
+
   /// ✅ Check if user has access to a quiz
   Future<bool> hasAccess(String quizId, String userId) async {
     // 0. Check if user is banned

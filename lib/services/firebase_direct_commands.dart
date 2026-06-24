@@ -169,7 +169,15 @@ class DatabaseService {
     required Map<String, bool> permissions,
     required String addedBy,
   }) async {
-    await _ensureAdminPermission(addedBy, 'manage_collaborators');
+    // Owner or authorized manager can bypass global admin permission check
+    final bool hasLocalPermission = await _adminService.canManageQuiz(
+      quizId,
+      addedBy,
+      permission: 'can_manage_collaborators',
+    );
+    if (!hasLocalPermission) {
+      await _ensureAdminPermission(addedBy, 'manage_collaborators');
+    }
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.grantQuizManagementAccess(
       quizId: quizId,
@@ -184,7 +192,14 @@ class DatabaseService {
     required String userId,
     required String addedBy,
   }) async {
-    await _ensureAdminPermission(addedBy, 'manage_collaborators');
+    final bool hasLocalPermission = await _adminService.canManageQuiz(
+      quizId,
+      addedBy,
+      permission: 'can_manage_collaborators',
+    );
+    if (!hasLocalPermission) {
+      await _ensureAdminPermission(addedBy, 'manage_collaborators');
+    }
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.addParticipant(
       quizId: quizId,
@@ -198,7 +213,14 @@ class DatabaseService {
     required String userId,
     required String removedBy,
   }) async {
-    await _ensureAdminPermission(removedBy, 'manage_collaborators');
+    final bool hasLocalPermission = await _adminService.canManageQuiz(
+      quizId,
+      removedBy,
+      permission: 'can_manage_collaborators',
+    );
+    if (!hasLocalPermission) {
+      await _ensureAdminPermission(removedBy, 'manage_collaborators');
+    }
     await _ensurePermission('management_features', userId: removedBy);
     return _adminService.removeQuizManagementAccess(
       quizId: quizId,
@@ -247,6 +269,33 @@ class DatabaseService {
   }) async {
     await _ensureAdminPermission(actorUid, 'manage_admins');
     return _adminService.removeAdmin(targetUid: targetUid, actorUid: actorUid);
+  }
+
+  // --- User Management (Master) ---
+
+  Stream<List<Map<String, dynamic>>> getAllUsers(String adminId) {
+    // Permission check for stream is handled by Firestore rules, but we can log access here if needed
+    return _adminService.getAllUsers();
+  }
+
+  Future<Map<String, dynamic>?> getFullUserProfile(String uid, String adminId) async {
+    await _ensureAdminPermission(adminId, 'moderate_users');
+    return _adminService.getFullUserProfile(uid);
+  }
+
+  Future<void> deleteUserAccount({
+    required String targetUid,
+    required String adminId,
+  }) async {
+    await _ensureAdminPermission(adminId, 'moderate_users');
+    return _adminService.deleteUserAccount(
+      targetUid: targetUid,
+      adminId: adminId,
+    );
+  }
+
+  Stream<List<Map<String, dynamic>>> getUserQuizzesMaster(String userId, String adminId) {
+    return _quizService.getUserQuizzesMaster(userId);
   }
 
   // --- User Profiles ---

@@ -1,11 +1,13 @@
-import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+
+// import 'user_details_screen.dart';
+import 'all_users_screen.dart';
+import 'manage_admins_screen.dart';
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -28,11 +30,7 @@ class _AdminPanelState extends State<AdminPanel> {
       "user_action_logging",
       "enable_analytics",
     ],
-    "User Access": [
-      "enable_login",
-      "enable_register",
-      "enable_profile_edit",
-    ],
+    "User Access": ["enable_login", "enable_register", "enable_profile_edit"],
     "Quiz Operations": [
       "enable_create_quiz",
       "enable_edit_quiz",
@@ -41,10 +39,7 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_import",
       "random_quiz_generator",
     ],
-    "AI & Performance": [
-      "enable_ai",
-      "enable_quiz_creation_rate_limit",
-    ],
+    "AI & Performance": ["enable_ai", "enable_quiz_creation_rate_limit"],
   };
 
   @override
@@ -121,10 +116,40 @@ class _AdminPanelState extends State<AdminPanel> {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+            _buildSectionHeader("Platform Management"),
+            const SizedBox(height: 12),
+            _buildManagementTile(
+              icon: Icons.people_alt_outlined,
+              title: "User Management",
+              subtitle: "View users, ban accounts, delete data",
+              enabled: _isMaster || _permissions.contains('moderate_users'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AllUsersScreen(),
+                ),
+              ),
+            ),
+            _buildManagementTile(
+              icon: Icons.admin_panel_settings_outlined,
+              title: "Admin Management",
+              subtitle: "Manage platform-wide administrators",
+              enabled: _isMaster || _permissions.contains('manage_admins'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ManageAdminsScreen(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
               ..._flagGroups.entries.map((group) {
-                final groupFlags = group.value.where((k) => flags.containsKey(k)).toList();
+                final groupFlags = group.value
+                    .where((k) => flags.containsKey(k))
+                    .toList();
                 if (groupFlags.isEmpty) return const SizedBox.shrink();
-                
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -164,7 +189,57 @@ class _AdminPanelState extends State<AdminPanel> {
     );
   }
 
-  Widget _buildGenericField(String key, dynamic value, Map<String, dynamic> flags) {
+  Widget _buildManagementTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: enabled ? global.borderColor : global.borderColor.withOpacity(0.3),
+        ),
+      ),
+      child: ListTile(
+        onTap: enabled ? onTap : null,
+        enabled: enabled,
+        leading: Icon(
+          icon,
+          color: enabled ? global.primaryAccent : global.primaryAccent.withOpacity(0.4),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: enabled ? global.valueColor : global.valueColor.withOpacity(0.4),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          enabled ? subtitle : "Insufficient Permission",
+          style: TextStyle(
+            color: enabled ? global.labelColor : global.errorColor.withOpacity(0.6),
+            fontSize: 12,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 14,
+          color: enabled ? global.labelColor : global.labelColor.withOpacity(0.2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGenericField(
+    String key,
+    dynamic value,
+    Map<String, dynamic> flags,
+  ) {
     final bool canManage = _canManageFlag(key);
     final String displayTitle = key.replaceAll('_', ' ').toUpperCase();
 
@@ -174,47 +249,43 @@ class _AdminPanelState extends State<AdminPanel> {
       decoration: BoxDecoration(
         color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: global.borderColor),
+        border: Border.all(
+          color: canManage ? global.borderColor : global.borderColor.withOpacity(0.3),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(
-            sigmaX: canManage ? 0 : 3,
-            sigmaY: canManage ? 0 : 3,
-          ),
-          child: AbsorbPointer(
-            absorbing: !canManage,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    displayTitle,
-                    style: const TextStyle(color: global.valueColor, fontSize: 14),
-                  ),
-                ),
-                SizedBox(
-                  width: 80,
-                  child: TextField(
-                    controller: TextEditingController(text: value.toString()),
-                    style: const TextStyle(color: global.valueColor),
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(isDense: true),
-                    onSubmitted: (newVal) async {
-                      dynamic typedVal = newVal;
-                      if (value is int) typedVal = int.tryParse(newVal);
-                      if (value is double) typedVal = double.tryParse(newVal);
-                      
-                      if (typedVal != null) {
-                        await _settingsService.updateFeatureFlag(key, typedVal);
-                      }
-                    },
-                  ),
-                ),
-              ],
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              displayTitle,
+              style: TextStyle(
+                color: canManage ? global.valueColor : global.valueColor.withOpacity(0.4),
+                fontSize: 14,
+              ),
             ),
           ),
-        ),
+          SizedBox(
+            width: 80,
+            child: TextField(
+              enabled: canManage,
+              controller: TextEditingController(text: value.toString()),
+              style: TextStyle(
+                color: canManage ? global.valueColor : global.valueColor.withOpacity(0.4),
+              ),
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(isDense: true),
+              onSubmitted: (newVal) async {
+                dynamic typedVal = newVal;
+                if (value is int) typedVal = int.tryParse(newVal);
+                if (value is double) typedVal = double.tryParse(newVal);
+
+                if (typedVal != null) {
+                  await _settingsService.updateFeatureFlag(key, typedVal);
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -249,46 +320,43 @@ class _AdminPanelState extends State<AdminPanel> {
       decoration: BoxDecoration(
         color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: global.borderColor),
+        border: Border.all(
+          color: canManage ? global.borderColor : global.borderColor.withOpacity(0.3),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(
-            sigmaX: canManage ? 0 : 3,
-            sigmaY: canManage ? 0 : 3,
-          ),
-          child: AbsorbPointer(
-            absorbing: !canManage,
-            child: Material(
-              color: Colors.transparent,
-              child: SwitchListTile(
-                title: Text(
-                  displayTitle,
-                  style: const TextStyle(color: global.valueColor, fontSize: 16),
-                ),
-                subtitle: !canManage
-                    ? const Text(
-                        "Insufficient Permission",
-                        style: TextStyle(color: global.errorColor, fontSize: 12),
-                      )
-                    : null,
-                value: value,
-                activeColor: global.primaryAccent,
-                onChanged: (newValue) async {
-                  try {
-                    await _settingsService.updateFeatureFlag(key, newValue);
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Error updating $key: $e")),
-                      );
-                    }
-                  }
-                },
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: SwitchListTile(
+          title: Text(
+            displayTitle,
+            style: TextStyle(
+              color: canManage ? global.valueColor : global.valueColor.withOpacity(0.4),
+              fontSize: 16,
             ),
           ),
+          subtitle: !canManage
+              ? const Text(
+                  "Insufficient Permission",
+                  style: TextStyle(
+                    color: global.errorColor,
+                    fontSize: 12,
+                  ),
+                )
+              : null,
+          value: value,
+          activeTrackColor: global.primaryAccent.withOpacity(0.5),
+          activeThumbColor: global.primaryAccent,
+          onChanged: canManage ? (newValue) async {
+            try {
+              await _settingsService.updateFeatureFlag(key, newValue);
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error updating $key: $e")),
+                );
+              }
+            }
+          } : null,
         ),
       ),
     );
@@ -304,64 +372,62 @@ class _AdminPanelState extends State<AdminPanel> {
       decoration: BoxDecoration(
         color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: global.borderColor),
+        border: Border.all(
+          color: canManage ? global.borderColor : global.borderColor.withOpacity(0.3),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: ImageFiltered(
-          imageFilter: ImageFilter.blur(
-            sigmaX: canManage ? 0 : 3,
-            sigmaY: canManage ? 0 : 3,
-          ),
-          child: AbsorbPointer(
-            absorbing: !canManage,
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    "Creation Rate Limit (Minutes)",
-                    style: TextStyle(color: global.valueColor, fontSize: 16),
-                  ),
-                ),
-                SizedBox(
-                  width: 80,
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: global.valueColor),
-                    textAlign: TextAlign.center,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: global.borderColor),
-                      ),
-                    ),
-                    controller: TextEditingController(
-                      text: currentVal.toString(),
-                    ),
-                    onSubmitted: (val) async {
-                      final newValue = int.tryParse(val);
-                      if (newValue != null) {
-                        try {
-                          await _settingsService.updateFeatureFlag(
-                            'quiz_creation_rate_limit_minutes',
-                            newValue,
-                          );
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error updating limit: $e")),
-                            );
-                          }
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ],
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              "Creation Rate Limit (Minutes)",
+              style: TextStyle(
+                color: canManage ? global.valueColor : global.valueColor.withOpacity(0.4),
+                fontSize: 16,
+              ),
             ),
           ),
-        ),
+          SizedBox(
+            width: 80,
+            child: TextField(
+              enabled: canManage,
+              keyboardType: TextInputType.number,
+              style: TextStyle(
+                color: canManage ? global.valueColor : global.valueColor.withOpacity(0.4),
+              ),
+              textAlign: TextAlign.center,
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: global.borderColor),
+                ),
+              ),
+              controller: TextEditingController(
+                text: currentVal.toString(),
+              ),
+              onSubmitted: (val) async {
+                final newValue = int.tryParse(val);
+                if (newValue != null) {
+                  try {
+                    await _settingsService.updateFeatureFlag(
+                      'quiz_creation_rate_limit_minutes',
+                      newValue,
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Error updating limit: $e"),
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
