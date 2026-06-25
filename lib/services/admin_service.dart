@@ -33,6 +33,7 @@ class AdminService {
     'view_audit_logs',
     'manage_app_settings',
     'bypass_ai_limits',
+    'bypass_rate_limits',
     'manage_collaborators',
   ];
 
@@ -54,8 +55,9 @@ class AdminService {
       if (!doc.exists) return false;
       final data = doc.data() as Map<String, dynamic>;
 
-      // Cache admin level
+      // Cache admin level and permissions
       global.adminLevel = data['level'] ?? 1;
+      global.adminPermissions = List<String>.from(data['permissions'] ?? []);
 
       // MUST have toggle enabled AND be a registered admin
       return data['isAdminModeEnabled'] == true;
@@ -191,6 +193,77 @@ class AdminService {
       action: 'remove_admin',
       targetId: targetUid,
       details: 'Removed admin: $targetUid',
+      category: 'admin',
+    );
+  }
+
+  /// ✅ Bulk update admin permissions
+  Future<void> bulkUpdateAdminPermissions({
+    required List<String> targetUids,
+    required String actorUid,
+    List<String>? grantPermissions,
+    List<String>? revokePermissions,
+    List<String>? setPermissions,
+    bool? makeSuper,
+  }) async {
+    if (!await hasPermission(actorUid, 'manage_admins')) {
+      throw Exception('Unauthorized: Permission "manage_admins" required.');
+    }
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (var targetUid in targetUids) {
+      final docRef = _admins.doc(targetUid);
+      final doc = await docRef.get();
+
+      Map<String, dynamic> updates = {
+        'updatedAt': FieldValue.serverTimestamp(),
+        'addedBy': actorUid,
+        'isAdminModeEnabled': true,
+      };
+
+      if (setPermissions != null) {
+        updates['permissions'] = setPermissions;
+      } else if (grantPermissions != null || revokePermissions != null) {
+        List<String> currentPerms = [];
+        if (doc.exists) {
+          currentPerms = List<String>.from((doc.data() as Map)['permissions'] ?? []);
+        }
+
+        if (grantPermissions != null) {
+          for (var p in grantPermissions) {
+            if (!currentPerms.contains(p)) currentPerms.add(p);
+          }
+        }
+
+        if (revokePermissions != null) {
+          currentPerms.removeWhere((p) => revokePermissions.contains(p));
+        }
+        updates['permissions'] = currentPerms;
+      }
+
+      if (makeSuper != null) {
+        if (global.adminLevel != 0) {
+          throw Exception("Unauthorized: Only a Super Admin can manage Super Admin privileges.");
+        }
+        if (makeSuper) {
+          updates['level'] = 0;
+          updates['permissions'] = allPermissions;
+        } else {
+          updates['level'] = FieldValue.delete();
+        }
+      }
+
+      batch.set(docRef, updates, SetOptions(merge: true));
+    }
+
+    await batch.commit();
+
+    await logAction(
+      actorId: actorUid,
+      action: 'bulk_update_admins',
+      targetId: 'multiple',
+      details: 'Updated ${targetUids.length} admins. Action: grant=${grantPermissions}, revoke=${revokePermissions}, set=${setPermissions}',
       category: 'admin',
     );
   }
@@ -846,7 +919,7 @@ class AdminService {
     );
   }
 
-  /// ✅ Get all admins with profile data
+  /// ✅ Get all admins with profile data (Stream)
   Stream<List<Map<String, dynamic>>> getAllAdmins() {
     return _admins.snapshots().asyncMap((snapshot) async {
       List<Map<String, dynamic>> admins = [];
@@ -868,5 +941,41 @@ class AdminService {
       }
       return admins;
     });
+  }
+
+  /// ✅ Fetch all admins once (Future)
+  Future<List<Map<String, dynamic>>> fetchAllAdmins() async {
+    final snapshot = await _admins.get();
+    List<Map<String, dynamic>> admins = [];
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      data['uid'] = doc.id;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(doc.id)
+          .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        data['name'] = userData['name'];
+        data['photoUrl'] = userData['photoUrl'];
+      }
+      admins.add(data);
+    }
+    return admins;
+  }
+
+  /// ✅ Fetch all users once (Future)
+  Future<List<Map<String, dynamic>>> fetchAllUsers() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('createdAt', descending: true)
+        .get();
+    
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['uid'] = doc.id;
+      return data;
+    }).toList();
   }
 }

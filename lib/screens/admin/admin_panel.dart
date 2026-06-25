@@ -6,6 +6,8 @@ import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 // import 'user_details_screen.dart';
+import 'add_app_admin_screen.dart';
+import 'admin_permissions_screen.dart';
 import 'all_users_screen.dart';
 import 'manage_admins_screen.dart';
 
@@ -39,7 +41,7 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_import",
       "random_quiz_generator",
     ],
-    "AI & Performance": ["enable_ai", "enable_quiz_creation_rate_limit"],
+    "AI & Performance": ["enable_ai", "enable_quiz_creation_rate_limit", "admin_refresh_rate_limit_seconds"],
   };
 
   @override
@@ -49,15 +51,11 @@ class _AdminPanelState extends State<AdminPanel> {
   }
 
   Future<void> _fetchAdminStatus() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      final perms = await _adminService.getAdminPermissions(uid);
-      if (mounted) {
-        setState(() {
-          _permissions = perms;
-          _isMaster = global.adminLevel == 0;
-        });
-      }
+    if (mounted) {
+      setState(() {
+        _permissions = global.adminPermissions;
+        _isMaster = global.adminLevel == 0;
+      });
     }
   }
 
@@ -139,6 +137,18 @@ class _AdminPanelState extends State<AdminPanel> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ManageAdminsScreen(),
+                ),
+              ),
+            ),
+            _buildManagementTile(
+              icon: Icons.person_add_alt_1_outlined,
+              title: "Promote New Admin",
+              subtitle: "Add and configure new app administrators",
+              enabled: _isMaster || _permissions.contains('manage_admins'),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddAppAdminScreen(),
                 ),
               ),
             ),

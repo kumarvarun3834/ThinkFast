@@ -20,6 +20,7 @@ Map<String, dynamic>? featureFlags;
 bool isAdmin = false;
 bool isRegisteredAdmin = false;
 int adminLevel = 1; // 0 = Super User, 1+ = Sub-admin
+List<String> adminPermissions = []; // Platform-wide permissions
 
 // Local Session Cache for Permissions & Ownership
 Set<String> ownedQuizIds = {};

@@ -206,7 +206,3 @@ Overall UI is clean and quiz sharing feature is very robust.
 
 check progress and generate report of all done
 > profile picture is linked with google direclty so skip it for time being > report2.md
-
-W/Firestore( 4204): (26.4.0) [Firestore]: Listen for QueryWrapper(query=Query(target=Query(quiz_access where quizId==I2mMmxc29dz1s37hU4Fo and role==manager order by __name__);limitType=LIMIT_TO_FIRST)) failed: Status{code=PERMISSION_DENIED, description=Missing or insufficient permissions., cause=null}
-
-quiz owner cant add Qadmins

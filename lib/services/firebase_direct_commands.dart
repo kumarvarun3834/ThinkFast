@@ -808,6 +808,15 @@ class DatabaseService {
     return attempts.docs.isNotEmpty;
   }
 
+  /// ✅ Check if user has explicit participant access (for restricted quizzes)
+  Future<bool> hasParticipantAccess(String quizId, String userId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('quiz_access')
+        .doc('${quizId}_$userId')
+        .get();
+    return doc.exists;
+  }
+
   Map<String, dynamic> _transformQuizData(
     List<Map<String, Object>> inputData,
     Map<String, dynamic> markingScheme,

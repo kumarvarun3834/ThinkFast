@@ -26,6 +26,13 @@ class _TeamListPanelState extends State<TeamListPanel> {
   final Set<String> _selectedUids = {};
   bool _isSelectionMode = false;
   bool _isProcessing = false;
+  late Stream<List<Map<String, dynamic>>> _managersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _managersStream = _db.getQuizManagers(widget.quizId);
+  }
 
   void _toggleSelection(String uid) {
     if (uid == widget.currentUserId) return; // Cannot select self
@@ -92,10 +99,85 @@ class _TeamListPanelState extends State<TeamListPanel> {
     }
   }
 
+  void _showEditPermissionsDialog(Map<String, dynamic> collaborator) {
+    final String uid = collaborator['userId'];
+    final String name = collaborator['userName'] ?? "User";
+    final Map<String, dynamic> currentPerms = collaborator['permissions'] as Map<String, dynamic>? ?? {};
+    final Map<String, bool> selectedPermissions = {
+      for (var entry in currentPerms.entries) entry.key: entry.value == true,
+    };
+
+    final Map<String, String> availablePermissions = {
+      'can_update': 'Edit Questions',
+      'can_delete': 'Delete Quiz',
+      'can_publish': 'Publish/Visibility',
+      'can_lock_quiz': 'Lock/Unlock Session',
+      'can_view_results': 'View Responses',
+      'can_view_answer_key': 'View Answer Key',
+      'can_view_analytics': 'Advanced Analytics',
+      'can_export_data': 'Export Data',
+      'can_moderate': 'Moderate Responses',
+      'can_ban_users': 'Ban Users',
+      'can_manage_collaborators': 'Manage Team',
+    };
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: global.cardColor,
+          title: Text("Edit Permissions", style: const TextStyle(color: global.valueColor)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name, style: const TextStyle(color: global.primaryAccent, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                ...availablePermissions.entries.map((entry) => CheckboxListTile(
+                      title: Text(entry.value, style: const TextStyle(color: global.valueColor, fontSize: 14)),
+                      value: selectedPermissions[entry.key] ?? false,
+                      activeColor: global.primaryAccent,
+                      onChanged: (val) {
+                        setDialogState(() {
+                          selectedPermissions[entry.key] = val ?? false;
+                        });
+                      },
+                    )),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(color: global.labelColor))),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await _db.grantManagementAccess(
+                    quizId: widget.quizId,
+                    userId: uid,
+                    permissions: selectedPermissions,
+                    addedBy: widget.currentUserId!,
+                  );
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Permissions updated")));
+                  }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: global.primaryAccent),
+              child: const Text("UPDATE"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _db.getQuizManagers(widget.quizId),
+      stream: _managersStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -159,7 +241,7 @@ class _TeamListPanelState extends State<TeamListPanel> {
                 isSelected: isSelected,
                 isSelectionMode: _isSelectionMode,
                 onLongPress: () => _toggleSelection(uid),
-                onTap: _isSelectionMode ? () => _toggleSelection(uid) : null,
+                onTap: _isSelectionMode ? () => _toggleSelection(uid) : () => _showEditPermissionsDialog(m),
                 onRemove: (uid, name) async {
                   // Standard single remove
                   final bool? confirm = await showDialog<bool>(

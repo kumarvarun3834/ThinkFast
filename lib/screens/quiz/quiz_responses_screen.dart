@@ -29,6 +29,8 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   final Set<String> _selectedResponseIds = {};
   bool _isSelectionMode = false;
 
+  late Stream<List<Map<String, dynamic>>> _responsesStream;
+
   // Colors
   final Color _bgColor = global.bgColor;
   final Color _cardColor = global.cardColor;
@@ -36,6 +38,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   final Color _valueColor = global.valueColor;
   final Color _labelColor = global.labelColor;
   final Color _borderColor = global.borderColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _responsesStream = DatabaseService().getQuizResponses(widget.quizId, includeDeleted: false);
+  }
 
   void _toggleSelection(String id) {
     setState(() {
@@ -52,9 +60,49 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   Future<void> _handleBulkAction(String action) async {
     if (_selectedResponseIds.isEmpty) return;
 
-    final String title = action == 'delete'
-        ? "Delete Selected?"
-        : "Ban Selected?";
+    final db = DatabaseService();
+    final actorId = FirebaseAuth.instance.currentUser!.uid;
+
+    if (action == 'allow') {
+      final List<String> uids = [];
+      final responses = await db
+          .getQuizResponses(widget.quizId, includeDeleted: true)
+          .first;
+      for (var id in _selectedResponseIds) {
+        final r = responses.firstWhere((element) => element['id'] == id);
+        if (!uids.contains(r['userId'])) uids.add(r['userId']);
+      }
+
+      int count = 0;
+      for (var uid in uids) {
+        try {
+          await db.addParticipant(
+            quizId: widget.quizId,
+            userId: uid,
+            addedBy: actorId,
+          );
+          count++;
+        } catch (e) {
+          debugPrint("Error adding participant $uid: $e");
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Successfully allowed $count users to attempt"),
+          ),
+        );
+        setState(() {
+          _selectedResponseIds.clear();
+          _isSelectionMode = false;
+        });
+      }
+      return;
+    }
+
+    final String title =
+        action == 'delete' ? "Delete Selected?" : "Ban Selected?";
     final String content = action == 'delete'
         ? "These responses will be moved to the trash."
         : "These users will be blocked from this quiz.";
@@ -88,7 +136,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
 
       try {
         // Need to fetch current list to get UserIDs if banning
-        final responses = await db.getQuizResponses(widget.quizId).first;
+        final responses = await db.getQuizResponses(widget.quizId, includeDeleted: true).first;
 
         for (String id in _selectedResponseIds) {
           if (action == 'delete') {
@@ -213,10 +261,82 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
           ElevatedButton(
             onPressed: () async {
               await action();
-              Navigator.pop(context);
+              if (context.mounted) Navigator.pop(context);
               setState(() {});
             },
             child: const Text("Confirm"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAllowUserDialog() {
+    final TextEditingController userIdsController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        title: const Text("Allow Users to Attempt", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Enter User IDs separated by commas. These users will be granted participant access to this quiz.",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: userIdsController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "user_id_1, user_id_2...",
+                hintStyle: TextStyle(color: _labelColor),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: _borderColor)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _primaryAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final input = userIdsController.text.trim();
+              if (input.isEmpty) return;
+
+              final ids = input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              Navigator.pop(context);
+
+              final db = DatabaseService();
+              final adminId = FirebaseAuth.instance.currentUser!.uid;
+              int count = 0;
+
+              for (String uid in ids) {
+                try {
+                  await db.addParticipant(
+                    quizId: widget.quizId,
+                    userId: uid,
+                    addedBy: adminId,
+                  );
+                  count++;
+                } catch (e) {
+                  debugPrint("Error adding participant $uid: $e");
+                }
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Successfully allowed $count users")),
+                );
+              }
+            },
+            child: const Text("ALLOW"),
           ),
         ],
       ),
@@ -260,6 +380,15 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
         iconTheme: IconThemeData(color: _valueColor),
         actions: _isSelectionMode
             ? [
+                TextButton.icon(
+                  onPressed: () => _handleBulkAction('allow'),
+                  icon: const Icon(Icons.person_add_alt_1_outlined,
+                      color: global.successColor),
+                  label: const Text("ALLOW",
+                      style: TextStyle(
+                          color: global.successColor,
+                          fontWeight: FontWeight.bold)),
+                ),
                 IconButton(
                   icon: const Icon(
                     Icons.delete_sweep_rounded,
@@ -278,6 +407,14 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 ),
               ]
             : [
+                IconButton(
+                  icon: const Icon(
+                    Icons.person_add_alt_1_outlined,
+                    color: global.primaryAccent,
+                  ),
+                  onPressed: _showAllowUserDialog,
+                  tooltip: "Allow Users to Attempt",
+                ),
                 IconButton(
                   icon: const Icon(
                     Icons.person_off_outlined,
@@ -323,7 +460,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             ),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: DatabaseService().getQuizResponses(widget.quizId),
+              stream: _responsesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -416,6 +553,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                     final total = (r['totalQuestions'] ?? 0) * 4;
 
                     return Container(
+                      key: ValueKey(id),
                       margin: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 8,
@@ -482,15 +620,6 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                 const StatusBadge(
                                   text: "OWNER",
                                   color: global.primaryAccent,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                ),
-                              if (r['isDeleted'] == true)
-                                const StatusBadge(
-                                  text: "DELETED",
-                                  color: global.errorColor,
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 6,
                                     vertical: 2,

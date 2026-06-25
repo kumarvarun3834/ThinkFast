@@ -42,6 +42,7 @@ class SettingsService {
       'management_features': true,
       'enable_quiz_creation_rate_limit': true,
       'quiz_creation_rate_limit_minutes': 5,
+      'admin_refresh_rate_limit_seconds': 30,
     };
 
     DocumentSnapshot doc;

@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
@@ -29,8 +28,9 @@ class _SidebarMenuState extends State<SidebarMenu> {
       _isAdmin = global.isAdmin;
       _isRegisteredAdmin = global.isRegisteredAdmin;
       _canCreateQuiz = global.featureFlags?['enable_create_quiz'] ?? true;
-
-      _checkPermissions();
+      _canManageAdmins =
+          global.adminLevel == 0 ||
+          global.adminPermissions.contains('manage_admins');
 
       final profile = global.currentUserProfile;
       if (profile != null) {
@@ -42,22 +42,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
       if (_userName == null || _userPhotoUrl == null) {
         _fetchUserProfile();
       }
-    }
-  }
-
-  Future<void> _checkPermissions() async {
-    if (widget.user == null) return;
-
-    final adminService = AdminService();
-    final canManage = await adminService.hasPermission(
-      widget.user!.uid,
-      'manage_admins',
-    );
-
-    if (mounted) {
-      setState(() {
-        _canManageAdmins = canManage;
-      });
     }
   }
 

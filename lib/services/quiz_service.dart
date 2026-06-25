@@ -66,8 +66,10 @@ class QuizService {
     // 2. Fetch Feature Flags and Admin Status
     final flags = await _settingsService.getFeatureFlags();
     final bool isUserAdmin =
-        await _adminService.isAdmin(creatorId) ||
-        await _adminService.isRegisteredAdmin(creatorId);
+        await _adminService.isAdmin(creatorId);
+    
+    final bool canBypassLimits = isUserAdmin && 
+        await _adminService.hasPermission(creatorId, 'bypass_rate_limits');
 
     // Check if quiz creation is globally disabled
     if (flags != null && flags['enable_create_quiz'] == false) {
@@ -83,8 +85,8 @@ class QuizService {
     final int rateLimitMinutes =
         (flags?['quiz_creation_rate_limit_minutes'] ?? 5).toInt();
 
-    // 3. Rate Limit Check (Only if enabled and user is not admin)
-    if (rateLimitEnabled && !isUserAdmin) {
+    // 3. Rate Limit Check (Only if enabled and user is not admin with bypass permission)
+    if (rateLimitEnabled && !canBypassLimits) {
       final userDoc = await _users.doc(creatorId).get();
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;

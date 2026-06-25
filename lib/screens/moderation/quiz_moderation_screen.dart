@@ -31,6 +31,9 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
   final Color _labelColor = global.labelColor;
   final Color _borderColor = global.borderColor;
 
+  late Stream<List<Map<String, dynamic>>> _bannedUsersStream;
+  late Stream<List<Map<String, dynamic>>> _responsesStream;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +47,8 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       }
     });
     _loadPermissions();
+    _bannedUsersStream = DatabaseService().getQuizBannedUsers(widget.quizId);
+    _responsesStream = DatabaseService().getQuizResponses(widget.quizId, includeDeleted: true);
   }
 
   Future<void> _loadPermissions() async {
@@ -72,7 +77,6 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     final perms = global.managedQuizzes[widget.quizId];
     if (perms == null) return false;
     
-    // Support both snake_case and camelCase for moderation permissions
     if (perm == 'canModerate') {
       return perms['canModerate'] == true || perms['can_moderate'] == true;
     }
@@ -103,7 +107,6 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     final bool isBannedTab = _tabController.index == 0;
     final String requiredPerm = isBannedTab ? 'can_ban_users' : 'canModerate';
 
-    // 1. Feature Flag Check
     if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -114,7 +117,6 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       return;
     }
 
-    // 2. Permission Check
     if (!_hasPerm(requiredPerm)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -125,9 +127,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       return;
     }
 
-    final String title = isBannedTab
-        ? "Unblock Selected?"
-        : "Recover Selected?";
+    final String title = isBannedTab ? "Unblock Selected?" : "Recover Selected?";
     final String content = isBannedTab
         ? "These users will be allowed to take the quiz again."
         : "These responses will be restored to active status.";
@@ -139,19 +139,11 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         title: Text(title, style: const TextStyle(color: Colors.white)),
         content: Text(content, style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("CANCEL"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: global.successColor,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: global.successColor),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              isBannedTab ? "UNBLOCK" : "RECOVER",
-              style: const TextStyle(color: Colors.black),
-            ),
+            child: Text(isBannedTab ? "UNBLOCK" : "RECOVER", style: const TextStyle(color: Colors.black)),
           ),
         ],
       ),
@@ -164,13 +156,8 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       try {
         if (isBannedTab) {
           for (String id in _selectedIds) {
-            // In banned users tab, the ID is quizId_userId.
             final userId = id.split('_').last;
-            await db.unbanUser(
-              userId: userId,
-              quizId: widget.quizId,
-              adminId: adminId,
-            );
+            await db.unbanUser(userId: userId, quizId: widget.quizId, adminId: adminId);
           }
         } else {
           for (String id in _selectedIds) {
@@ -179,22 +166,88 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${_selectedIds.length} items processed")),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${_selectedIds.length} items processed")));
           setState(() {
             _selectedIds.clear();
             _isSelectionMode = false;
           });
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error: $e")));
-        }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
+  }
+
+  void _showAllowUserDialog() {
+    final TextEditingController userIdsController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        title: const Text("Allow Users to Attempt", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Enter User IDs separated by commas. These users will be granted participant access to this quiz.",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: userIdsController,
+              autofocus: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "user_id_1, user_id_2...",
+                hintStyle: TextStyle(color: _labelColor),
+                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: _borderColor)),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _primaryAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final input = userIdsController.text.trim();
+              if (input.isEmpty) return;
+
+              final ids = input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              Navigator.pop(context);
+
+              final db = DatabaseService();
+              final adminId = FirebaseAuth.instance.currentUser!.uid;
+              int count = 0;
+
+              for (String uid in ids) {
+                try {
+                  await db.addParticipant(
+                    quizId: widget.quizId,
+                    userId: uid,
+                    addedBy: adminId,
+                  );
+                  count++;
+                } catch (e) {
+                  debugPrint("Error adding participant $uid: $e");
+                }
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Successfully allowed $count users")),
+                );
+              }
+            },
+            child: const Text("ALLOW"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -214,31 +267,31 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               )
             : null,
         title: _isSelectionMode
-            ? Text(
-                "${_selectedIds.length} Selected",
-                style: const TextStyle(color: Colors.white),
-              )
-            : Text(
-                "Moderation Panel",
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: _valueColor,
-                ),
-              ),
+            ? Text("${_selectedIds.length} Selected", style: const TextStyle(color: Colors.white))
+            : Text("Moderation Panel", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: _valueColor)),
         iconTheme: IconThemeData(color: _valueColor),
         actions: _isSelectionMode
             ? [
-                IconButton(
-                  icon: Icon(
-                    _tabController.index == 0
-                        ? Icons.person_add_rounded
-                        : Icons.restore_rounded,
-                    color: global.successColor,
-                  ),
+                TextButton.icon(
                   onPressed: _handleBulkAction,
+                  icon: Icon(
+                      _tabController.index == 0
+                          ? Icons.person_add_rounded
+                          : Icons.restore_rounded,
+                      color: global.successColor),
+                  label: Text(_tabController.index == 0 ? "UNBLOCK" : "RECOVER",
+                      style: const TextStyle(
+                          color: global.successColor,
+                          fontWeight: FontWeight.bold)),
                 ),
               ]
-            : [],
+            : [
+                IconButton(
+                  icon: const Icon(Icons.person_add_alt_1_outlined, color: global.primaryAccent),
+                  onPressed: _showAllowUserDialog,
+                  tooltip: "Allow Users to Attempt",
+                ),
+              ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: _primaryAccent,
@@ -259,23 +312,14 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
 
   Widget _buildBannedUsersTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: DatabaseService().getQuizBannedUsers(widget.quizId),
+      stream: _bannedUsersStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final bannedUsers = snapshot.data ?? [];
-        if (bannedUsers.isEmpty) {
-          return _buildEmptyState(Icons.block_rounded, "No blocked users");
-        }
+        if (bannedUsers.isEmpty) return _buildEmptyState(Icons.block_rounded, "No blocked users");
 
         return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).padding.bottom + 40,
-          ),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 40),
           itemCount: bannedUsers.length,
           itemBuilder: (context, index) {
             final user = bannedUsers[index];
@@ -283,15 +327,12 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
             final bool isSelected = _selectedIds.contains(id);
 
             return Container(
+              key: ValueKey(id),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _primaryAccent.withOpacity(0.2)
-                    : _cardColor,
+                color: isSelected ? _primaryAccent.withOpacity(0.2) : _cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? _primaryAccent : _borderColor,
-                ),
+                border: Border.all(color: isSelected ? _primaryAccent : _borderColor),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -302,12 +343,8 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                     children: [
                       CircleAvatar(
                         backgroundColor: _borderColor,
-                        backgroundImage: user['userPhoto'] != null
-                            ? NetworkImage(user['userPhoto'])
-                            : null,
-                        child: user['userPhoto'] == null
-                            ? Icon(Icons.person, color: _labelColor)
-                            : null,
+                        backgroundImage: user['userPhoto'] != null ? NetworkImage(user['userPhoto']) : null,
+                        child: user['userPhoto'] == null ? Icon(Icons.person, color: _labelColor) : null,
                       ),
                       if (isSelected)
                         Positioned(
@@ -315,50 +352,18 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                           bottom: 0,
                           child: Container(
                             padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_circle,
-                              color: global.primaryAccent,
-                              size: 14,
-                            ),
+                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_circle, color: global.primaryAccent, size: 14),
                           ),
                         ),
                     ],
                   ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          user['userName'] ?? "Unknown User",
-                          style: GoogleFonts.poppins(
-                            color: _valueColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                  title: Text(user['userName'] ?? "Unknown User", style: GoogleFonts.poppins(color: _valueColor, fontWeight: FontWeight.bold)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "UID: ${user['userId']}",
-                        style: GoogleFonts.poppins(
-                          color: _labelColor,
-                          fontSize: 10,
-                        ),
-                      ),
-                      Text(
-                        "Reason: ${user['reason'] ?? 'No reason'}",
-                        style: GoogleFonts.poppins(
-                          color: global.errorColor,
-                          fontSize: 12,
-                        ),
-                      ),
+                      Text("UID: ${user['userId']}", style: GoogleFonts.poppins(color: _labelColor, fontSize: 10)),
+                      Text("Reason: ${user['reason'] ?? 'No reason'}", style: GoogleFonts.poppins(color: global.errorColor, fontSize: 12)),
                     ],
                   ),
                   trailing: _isSelectionMode
@@ -366,31 +371,17 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                       : IconButton(
                           icon: Icon(
                             Icons.person_add_rounded,
-                            color: (_hasPerm('can_ban_users') || _hasPerm('canModerate')) &&
-                                   (_isAdmin || (global.featureFlags?['management_features'] ?? true))
+                            color: (_hasPerm('can_ban_users') || _hasPerm('canModerate')) && (_isAdmin || (global.featureFlags?['management_features'] ?? true))
                                 ? global.successColor
                                 : global.labelColor.withOpacity(0.3),
                           ),
                           onPressed: () {
                             if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Access Denied: Moderation features are disabled."),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Access Denied: Moderation features are disabled."), backgroundColor: global.errorColor));
                               return;
                             }
-                            if (_hasPerm('can_ban_users') || _hasPerm('canModerate')) {
-                              _confirmUnban(user);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Access Denied: Caller does not have permission to perform this action."),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
-                            }
+                            if (_hasPerm('can_ban_users') || _hasPerm('canModerate')) _confirmUnban(user);
+                            else ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Access Denied: Caller does not have permission to perform this action."), backgroundColor: global.errorColor));
                           },
                           tooltip: "Unblock User",
                         ),
@@ -405,33 +396,14 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
 
   Widget _buildDeletedResponsesTab() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: DatabaseService().getQuizResponses(
-        widget.quizId,
-        includeDeleted: true,
-      ),
+      stream: _responsesStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final responses = (snapshot.data ?? [])
-            .where((r) => r['isDeleted'] == true)
-            .toList();
-
-        if (responses.isEmpty) {
-          return _buildEmptyState(
-            Icons.auto_delete_rounded,
-            "No deleted responses found",
-          );
-        }
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        final responses = (snapshot.data ?? []).where((r) => r['isDeleted'] == true).toList();
+        if (responses.isEmpty) return _buildEmptyState(Icons.auto_delete_rounded, "No deleted responses found");
 
         return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).padding.bottom + 40,
-          ),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 40),
           itemCount: responses.length,
           itemBuilder: (context, index) {
             final r = responses[index];
@@ -440,118 +412,38 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
             final actor = r['deletedByType'] ?? 'Admin';
 
             return Container(
+              key: ValueKey(id),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _primaryAccent.withOpacity(0.2)
-                    : _cardColor,
+                color: isSelected ? _primaryAccent.withOpacity(0.2) : _cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? _primaryAccent : _borderColor,
-                ),
+                border: Border.all(color: isSelected ? _primaryAccent : _borderColor),
               ),
               child: Material(
                 color: Colors.transparent,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode
-                      ? () => _toggleSelection(id)
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ResultScreen(
-                                quizId: r['quizId'],
-                                attemptAnswers:
-                                    r['answers'] as Map<String, dynamic>,
-                                attemptReviewItems:
-                                    r['reviewItems'] as List<dynamic>?,
-                              ),
-                            ),
-                          );
-                        },
-                  title: Row(
-                    children: [
-                      if (isSelected)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8.0),
-                          child: Icon(
-                            Icons.check_circle,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                      Expanded(
-                        child: Text(
-                          "User: ${r['userId']}",
-                          style: GoogleFonts.poppins(
-                            color: _valueColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
+                  onTap: _isSelectionMode ? () => _toggleSelection(id) : () => Navigator.push(context, MaterialPageRoute(builder: (context) => ResultScreen(quizId: r['quizId'], attemptAnswers: r['answers'] as Map<String, dynamic>, attemptReviewItems: r['reviewItems'] as List<dynamic>?))),
+                  title: Text("User: ${r['userId']}", style: GoogleFonts.poppins(color: _valueColor, fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text(
-                        "Deleted By: ${actor.toString().toUpperCase()}",
-                        style: const TextStyle(
-                          color: global.errorColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "Reason: ${r['deleteReason'] ?? 'N/A'}",
-                        style: TextStyle(color: _labelColor, fontSize: 12),
-                      ),
+                      Text("Deleted By: ${actor.toString().toUpperCase()}", style: const TextStyle(color: global.errorColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text("Reason: ${r['deleteReason'] ?? 'N/A'}", style: TextStyle(color: _labelColor, fontSize: 12)),
                     ],
                   ),
                   trailing: _isSelectionMode
                       ? null
                       : IconButton(
-                          icon: Icon(
-                            Icons.chevron_right,
-                            color: _hasPerm('canModerate') && (_isAdmin || (global.featureFlags?['management_features'] ?? true))
-                                ? global.errorColor
-                                : global.labelColor.withOpacity(0.3),
-                          ),
+                          icon: Icon(Icons.chevron_right, color: _hasPerm('canModerate') && (_isAdmin || (global.featureFlags?['management_features'] ?? true)) ? global.errorColor : global.labelColor.withOpacity(0.3)),
                           onPressed: () {
                             if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Access Denied: Moderation features are disabled."),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Access Denied: Moderation features are disabled."), backgroundColor: global.errorColor));
                               return;
                             }
-                            if (_hasPerm('canModerate')) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ResultScreen(
-                                    quizId: r['quizId'],
-                                    attemptAnswers:
-                                        r['answers'] as Map<String, dynamic>,
-                                    attemptReviewItems:
-                                        r['reviewItems'] as List<dynamic>?,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Access Denied: Caller does not have permission to perform this action."),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
-                            }
+                            if (_hasPerm('canModerate')) Navigator.push(context, MaterialPageRoute(builder: (context) => ResultScreen(quizId: r['quizId'], attemptAnswers: r['answers'] as Map<String, dynamic>, attemptReviewItems: r['reviewItems'] as List<dynamic>?)));
+                            else ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Access Denied: Caller does not have permission to perform this action."), backgroundColor: global.errorColor));
                           },
                         ),
                 ),
@@ -564,16 +456,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
   }
 
   Widget _buildEmptyState(IconData icon, String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64, color: _borderColor),
-          const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.poppins(color: _labelColor)),
-        ],
-      ),
-    );
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 64, color: _borderColor), const SizedBox(height: 16), Text(message, style: GoogleFonts.poppins(color: _labelColor))]));
   }
 
   void _confirmUnban(Map<String, dynamic> user) {
@@ -581,43 +464,15 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
-        title: Text(
-          "Unblock ${user['userName'] ?? 'User'}?",
-          style: const TextStyle(color: Colors.white),
-        ),
+        title: Text("Unblock ${user['userName'] ?? 'User'}?", style: const TextStyle(color: Colors.white)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: global.successColor,
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () async {
-              try {
-                await DatabaseService().unbanUser(
-                  userId: user['userId'],
-                  quizId: widget.quizId,
-                  adminId: FirebaseAuth.instance.currentUser!.uid,
-                );
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("User unblocked successfully")),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Failed to unblock: $e")),
-                  );
-                }
-              }
-            },
-            child: const Text("Unblock"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: global.successColor, foregroundColor: Colors.black), onPressed: () async {
+            try {
+              await DatabaseService().unbanUser(userId: user['userId'], quizId: widget.quizId, adminId: FirebaseAuth.instance.currentUser!.uid);
+              if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User unblocked successfully"))); }
+            } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to unblock: $e"))); }
+          }, child: const Text("Unblock")),
         ],
       ),
     );

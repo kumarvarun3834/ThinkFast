@@ -1074,7 +1074,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               if (_quizData!['isRestricted'] == true) {
                 final List<dynamic> allowed =
                     _quizData!['allowedParticipants'] as List? ?? [];
-                if (!allowed.contains(_user?.uid)) {
+                
+                bool hasAccess = allowed.contains(_user?.uid);
+                if (!hasAccess && _user != null) {
+                  hasAccess = await db.hasParticipantAccess(widget.quizId, _user!.uid);
+                }
+
+                if (!hasAccess) {
                   if (global.isAdmin) {
                     final bool? bypass = await _showBypassDialog(
                       "Restricted Quiz",
