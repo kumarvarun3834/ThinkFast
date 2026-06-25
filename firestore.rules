@@ -74,8 +74,12 @@ service cloud.firestore {
                    ));
       allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
       allow update: if isGlobalAdmin() ||
-                    (isAuthenticated() && (resource.data.get('creatorId', '') == request.auth.uid || hasQuizPermission(quizId, 'canUpdateData')));
-      allow delete: if isGlobalAdmin() || (isAuthenticated() && resource.data.get('creatorId', '') == request.auth.uid);
+                    (isAuthenticated() && (
+                      resource.data.get('creatorId', '') == request.auth.uid ||
+                      hasQuizPermission(quizId, 'can_update') ||
+                      hasQuizPermission(quizId, 'can_publish')
+                    ));
+      allow delete: if isGlobalAdmin() || (isAuthenticated() && resource.data.get('creatorId', '') == request.auth.uid || hasQuizPermission(quizId, 'can_delete'));
     }
 
     // Quiz questions: Accessible to authorized participants or editors
@@ -85,8 +89,8 @@ service cloud.firestore {
                       get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('isDeleted', false) == false) ||
                    isAllowedToAttempt(quizId) ||
                    isGlobalAdmin() ||
-                   hasQuizPermission(quizId, 'canSeeResponses');
-      allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'canUpdateData');
+                   hasQuizPermission(quizId, 'can_view_results');
+      allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'can_update');
     }
 
     // Answer keys: Used for grading, restricted to participants or editors
@@ -96,23 +100,23 @@ service cloud.firestore {
                       get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('isDeleted', false) == false) ||
                    isAllowedToAttempt(quizId) ||
                    isGlobalAdmin() ||
-                   hasQuizPermission(quizId, 'canSeeResponses');
-      allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'canUpdateData');
+                   hasQuizPermission(quizId, 'can_view_results');
+      allow write: if isGlobalAdmin() || hasQuizPermission(quizId, 'can_update');
     }
 
     // Individual quiz responses submitted by users
     match /responses/{responseId} {
-      allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(resource.data.get('quizId', ''), 'canSeeResponses'));
+      allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(resource.data.get('quizId', ''), 'can_view_results'));
       allow create: if isAuthenticated() && isAllowedToAttempt(request.resource.data.get('quizId', ''));
       allow update: if isGlobalAdmin() || (isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || hasQuizPermission(resource.data.get('quizId', ''), 'canModerate')));
     }
 
     // Top-level tracking for quiz attempts
     match /quiz_attempts/{quizId} {
-      allow read: if isGlobalAdmin() || hasQuizPermission(quizId, 'canSeeResponses');
+      allow read: if isGlobalAdmin() || hasQuizPermission(quizId, 'can_view_results');
       // Detailed attempt data
       match /attempts/{attemptId} {
-        allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(quizId, 'canSeeResponses'));
+        allow read: if isAuthenticated() && (resource.data.get('userId', '') == request.auth.uid || isGlobalAdmin() || hasQuizPermission(quizId, 'can_view_results'));
         allow create: if isAuthenticated() && isAllowedToAttempt(quizId);
       }
     }
@@ -132,8 +136,12 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         isGlobalAdmin() ||
-        (resource.data.quizId != null && isQuizOwner(resource.data.quizId)) ||
-        (resource.data.quizId != null && hasQuizPermission(resource.data.quizId, 'can_manage_collaborators'))
+        (resource.data.quizId != null && (
+          isQuizOwner(resource.data.quizId) ||
+          hasQuizPermission(resource.data.quizId, 'can_manage_collaborators') ||
+          // Allow any manager of this quiz to see who else is on the team
+          exists(/databases/$(database)/documents/quiz_access/$(resource.data.quizId + "_" + request.auth.uid))
+        ))
       );
       allow create, update: if isGlobalAdmin() ||
                             (request.resource.data.quizId != null && (
@@ -153,18 +161,25 @@ service cloud.firestore {
         banId == ("global_" + request.auth.uid) ||
         banId.matches(".*_" + request.auth.uid) ||
         isGlobalAdmin() ||
-        (resource != null && (isQuizOwner(resource.data.get('quizId', '')) || hasQuizPermission(resource.data.get('quizId', ''), 'canModerate')))
+        (resource != null && (
+          isQuizOwner(resource.data.get('quizId', '')) ||
+          hasQuizPermission(resource.data.get('quizId', ''), 'can_moderate') ||
+          hasQuizPermission(resource.data.get('quizId', ''), 'canModerate') ||
+          hasQuizPermission(resource.data.get('quizId', ''), 'can_ban_users')
+        ))
       );
       allow create, update: if isGlobalAdmin() || (
         request.resource.data.get('quizId', null) != null && (
           isQuizOwner(request.resource.data.quizId) ||
-          hasQuizPermission(request.resource.data.quizId, 'canModerate')
+          hasQuizPermission(request.resource.data.quizId, 'canModerate') ||
+          hasQuizPermission(request.resource.data.quizId, 'can_ban_users')
         )
       );
       allow delete: if isGlobalAdmin() || (
         resource.data.get('quizId', null) != null && (
           isQuizOwner(resource.data.quizId) ||
-          hasQuizPermission(resource.data.quizId, 'canModerate')
+          hasQuizPermission(resource.data.quizId, 'canModerate') ||
+          hasQuizPermission(request.resource.data.quizId, 'can_ban_users')
         )
       );
     }

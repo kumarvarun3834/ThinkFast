@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
+
 import '../../utils/global.dart' as global;
 
 class QuizBannedUsersScreen extends StatefulWidget {
@@ -16,6 +17,9 @@ class QuizBannedUsersScreen extends StatefulWidget {
 class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
   final Set<String> _selectedUserIds = {};
   bool _isSelectionMode = false;
+  bool _isAdmin = false;
+  bool _isOwner = false;
+  Map<String, dynamic>? _quizMetadata;
 
   final Color _bgColor = global.bgColor;
   final Color _cardColor = global.cardColor;
@@ -23,6 +27,48 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
   final Color _valueColor = global.valueColor;
   final Color _labelColor = global.labelColor;
   final Color _borderColor = global.borderColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final db = DatabaseService();
+    try {
+      final metadata = await db.readDatabase(widget.quizId, userId: uid);
+      final isAdmin = await db.isAdmin(uid);
+
+      if (mounted) {
+        setState(() {
+          _quizMetadata = metadata;
+          _isAdmin = isAdmin;
+          _isOwner = metadata['creatorId'] == uid;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading ban management permissions: $e");
+    }
+  }
+
+  bool _hasPerm(String perm) {
+    if (_isAdmin || _isOwner) return true;
+    final perms = global.managedQuizzes[widget.quizId];
+    if (perms == null) return false;
+
+    // Support both snake_case and camelCase
+    if (perm == 'canModerate' || perm == 'can_moderate') {
+      return perms['canModerate'] == true || perms['can_moderate'] == true;
+    }
+    if (perm == 'can_update' || perm == 'canUpdateData') {
+      return perms['can_update'] == true || perms['canUpdateData'] == true;
+    }
+    return perms[perm] == true;
+  }
 
   void _toggleSelection(String id) {
     setState(() {
@@ -39,16 +85,51 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
   Future<void> _handleBulkUnban() async {
     if (_selectedUserIds.isEmpty) return;
 
+    // 1. Feature Flag Check
+    if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Access Denied: Moderation features are disabled."),
+          backgroundColor: global.errorColor,
+        ),
+      );
+      return;
+    }
+
+    // 2. Permission Check
+    if (!_hasPerm('can_ban_users') && !_hasPerm('canModerate')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Access Denied: Caller does not have permission to perform this action.",
+          ),
+          backgroundColor: global.errorColor,
+        ),
+      );
+      return;
+    }
+
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
-        title: const Text("Unblock Selected Users?", style: TextStyle(color: Colors.white)),
-        content: const Text("These users will be allowed to take the quiz again.", style: TextStyle(color: Colors.white70)),
+        title: const Text(
+          "Unblock Selected Users?",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          "These users will be allowed to take the quiz again.",
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: global.successColor),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.successColor,
+            ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("UNBLOCK", style: TextStyle(color: Colors.black)),
           ),
@@ -63,11 +144,17 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
       try {
         for (String id in _selectedUserIds) {
           final userId = id.split('_').last;
-          await db.unbanUser(userId: userId, quizId: widget.quizId, adminId: adminId);
+          await db.unbanUser(
+            userId: userId,
+            quizId: widget.quizId,
+            adminId: adminId,
+          );
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("${_selectedUserIds.length} users unblocked")),
+            SnackBar(
+              content: Text("${_selectedUserIds.length} users unblocked"),
+            ),
           );
           setState(() {
             _selectedUserIds.clear();
@@ -76,7 +163,9 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Error: $e")));
         }
       }
     }
@@ -89,30 +178,39 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: _isSelectionMode 
-          ? IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() {
-              _isSelectionMode = false;
-              _selectedUserIds.clear();
-            }))
-          : null,
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() {
+                  _isSelectionMode = false;
+                  _selectedUserIds.clear();
+                }),
+              )
+            : null,
         title: _isSelectionMode
-          ? Text("${_selectedUserIds.length} Selected", style: const TextStyle(color: Colors.white))
-          : Text(
-              "Blocked Users",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: _valueColor,
+            ? Text(
+                "${_selectedUserIds.length} Selected",
+                style: const TextStyle(color: Colors.white),
+              )
+            : Text(
+                "Blocked Users",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: _valueColor,
+                ),
               ),
-            ),
         iconTheme: IconThemeData(color: _valueColor),
         actions: _isSelectionMode
-          ? [
-              IconButton(
-                icon: const Icon(Icons.person_add_rounded, color: global.successColor),
-                onPressed: _handleBulkUnban,
-              ),
-            ]
-          : [],
+            ? [
+                IconButton(
+                  icon: const Icon(
+                    Icons.person_add_rounded,
+                    color: global.successColor,
+                  ),
+                  onPressed: _handleBulkUnban,
+                ),
+              ]
+            : [],
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: DatabaseService().getQuizBannedUsers(widget.quizId),
@@ -121,7 +219,12 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+            return Center(
+              child: Text(
+                "Error: ${snapshot.error}",
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
@@ -148,13 +251,23 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
               final user = bannedUsers[index];
               final String id = user['id'];
               final bool isSelected = _selectedUserIds.contains(id);
+              final bool hasPerm =
+                  _hasPerm('can_ban_users') || _hasPerm('canModerate');
+              final bool flagEnabled =
+                  _isAdmin ||
+                  (global.featureFlags?['management_features'] ?? true);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? _primaryAccent.withOpacity(0.15) : _cardColor,
+                  color: isSelected
+                      ? _primaryAccent.withOpacity(0.15)
+                      : _cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isSelected ? _primaryAccent : _borderColor, width: isSelected ? 2 : 1),
+                  border: Border.all(
+                    color: isSelected ? _primaryAccent : _borderColor,
+                    width: isSelected ? 2 : 1,
+                  ),
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -163,20 +276,32 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
                     onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
                     leading: CircleAvatar(
                       backgroundColor: _borderColor,
-                      backgroundImage: user['userPhoto'] != null ? NetworkImage(user['userPhoto']) : null,
-                      child: user['userPhoto'] == null ? Icon(Icons.person, color: _labelColor) : null,
+                      backgroundImage: user['userPhoto'] != null
+                          ? NetworkImage(user['userPhoto'])
+                          : null,
+                      child: user['userPhoto'] == null
+                          ? Icon(Icons.person, color: _labelColor)
+                          : null,
                     ),
                     title: Row(
                       children: [
                         if (_isSelectionMode)
                           Padding(
                             padding: const EdgeInsets.only(right: 8.0),
-                            child: Icon(isSelected ? Icons.check_circle : Icons.radio_button_unchecked, 
-                                        color: isSelected ? _primaryAccent : _labelColor, size: 20),
+                            child: Icon(
+                              isSelected
+                                  ? Icons.check_circle
+                                  : Icons.radio_button_unchecked,
+                              color: isSelected ? _primaryAccent : _labelColor,
+                              size: 20,
+                            ),
                           ),
                         Text(
                           user['userName'] ?? "Unknown User",
-                          style: GoogleFonts.poppins(color: _valueColor, fontWeight: FontWeight.bold),
+                          style: GoogleFonts.poppins(
+                            color: _valueColor,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -184,17 +309,58 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (user['userEmail'] != null)
-                          Text(user['userEmail'], style: GoogleFonts.poppins(color: _labelColor, fontSize: 12)),
-                        Text("Reason: ${user['reason'] ?? 'No reason provided'}", style: GoogleFonts.poppins(color: global.errorColor, fontSize: 12)),
+                          Text(
+                            user['userEmail'],
+                            style: GoogleFonts.poppins(
+                              color: _labelColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        Text(
+                          "Reason: ${user['reason'] ?? 'No reason provided'}",
+                          style: GoogleFonts.poppins(
+                            color: global.errorColor,
+                            fontSize: 12,
+                          ),
+                        ),
                       ],
                     ),
-                    trailing: _isSelectionMode 
-                      ? null 
-                      : IconButton(
-                          icon: const Icon(Icons.person_add_rounded, color: global.successColor),
-                          onPressed: () => _confirmUnban(user),
-                          tooltip: "Unblock User",
-                        ),
+                    trailing: _isSelectionMode
+                        ? null
+                        : IconButton(
+                            icon: Icon(
+                              Icons.person_add_rounded,
+                              color: hasPerm && flagEnabled
+                                  ? global.successColor
+                                  : global.labelColor.withOpacity(0.3),
+                            ),
+                            onPressed: () {
+                              if (!flagEnabled) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Access Denied: Moderation features are disabled.",
+                                    ),
+                                    backgroundColor: global.errorColor,
+                                  ),
+                                );
+                                return;
+                              }
+                              if (hasPerm) {
+                                _confirmUnban(user);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      "Access Denied: Caller does not have permission to perform this action.",
+                                    ),
+                                    backgroundColor: global.errorColor,
+                                  ),
+                                );
+                              }
+                            },
+                            tooltip: "Unblock User",
+                          ),
                   ),
                 ),
               );
@@ -210,15 +376,24 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
-        title: Text("Unblock ${user['userName'] ?? 'User'}?", style: const TextStyle(color: Colors.white)),
-        content: const Text("This user will be able to take the quiz again.", style: TextStyle(color: Colors.white70)),
+        title: Text(
+          "Unblock ${user['userName'] ?? 'User'}?",
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          "This user will be able to take the quiz again.",
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: global.successColor, foregroundColor: Colors.black),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.successColor,
+              foregroundColor: Colors.black,
+            ),
             onPressed: () async {
               try {
                 await DatabaseService().unbanUser(
@@ -227,10 +402,14 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
                   adminId: FirebaseAuth.instance.currentUser!.uid,
                 );
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User unblocked successfully")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("User unblocked successfully")),
+                );
               } catch (e) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Error: $e")));
               }
             },
             child: const Text("Unblock"),
@@ -239,4 +418,40 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
       ),
     );
   }
+
+  //   void _confirmUnban(Map<String, dynamic> user) {
+  //     showDialog(
+  //       context: context,
+  //       builder: (context) => AlertDialog(
+  //         backgroundColor: _cardColor,
+  //         title: Text("Unblock ${user['userName'] ?? 'User'}?", style: const TextStyle(color: Colors.white)),
+  //         content: const Text("This user will be able to take the quiz again.", style: TextStyle(color: Colors.white70)),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.pop(context),
+  //             child: const Text("Cancel"),
+  //           ),
+  //           ElevatedButton(
+  //             style: ElevatedButton.styleFrom(backgroundColor: global.successColor, foregroundColor: Colors.black),
+  //             onPressed: () async {
+  //               try {
+  //                 await DatabaseService().unbanUser(
+  //                   userId: user['userId'],
+  //                   quizId: widget.quizId,
+  //                   adminId: FirebaseAuth.instance.currentUser!.uid,
+  //                 );
+  //                 Navigator.pop(context);
+  //                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User unblocked successfully")));
+  //               } catch (e) {
+  //                 Navigator.pop(context);
+  //                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+  //               }
+  //             },
+  //             child: const Text("Unblock"),
+  //           ),
+  //         ],
+  //       ),
+  //     );
+  //   }
+  // }
 }

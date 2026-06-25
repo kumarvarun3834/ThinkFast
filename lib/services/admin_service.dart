@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import 'settings_service.dart';
@@ -304,10 +305,12 @@ class AdminService {
         );
       }
     } else {
-      // Quiz Ban: Requires App Admin OR Quiz Manager with 'canModerate'
-      if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+      // Quiz Ban: Requires App Admin OR Quiz Manager with 'canModerate' or 'can_ban_users'
+      final bool hasPerm = await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
+                           await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
+      if (!hasPerm) {
         throw Exception(
-          "Unauthorized: You do not have moderation rights for this quiz.",
+          "Unauthorized: You do not have moderation or ban rights for this quiz.",
         );
       }
     }
@@ -363,9 +366,11 @@ class AdminService {
         );
       }
     } else {
-      if (!await canManageQuiz(quizId, adminId, permission: 'canModerate')) {
+      final bool hasPerm = await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
+                           await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
+      if (!hasPerm) {
         throw Exception(
-          "Unauthorized: You do not have moderation rights for this quiz.",
+          "Unauthorized: You do not have moderation or ban rights for this quiz.",
         );
       }
     }
@@ -621,6 +626,12 @@ class AdminService {
       if (permission == null) return true;
       final perms = global.managedQuizzes[quizId]!;
       if (perms[permission] == true) return true;
+      
+      // Permission Aliases
+      if (permission == 'canModerate' && (perms['can_moderate'] == true || perms['canModerate'] == true)) return true;
+      if (permission == 'can_update' && (perms['canUpdateData'] == true || perms['can_update'] == true)) return true;
+      if (permission == 'can_ban_users' && perms['can_ban_users'] == true) return true;
+      if (permission == 'can_manage_collaborators' && perms['can_manage_collaborators'] == true) return true;
     }
 
     try {
@@ -645,7 +656,15 @@ class AdminService {
           
           if (permission == null) return true;
           final perms = data['permissions'] as Map<String, dynamic>? ?? {};
-          return perms[permission] == true;
+          if (perms[permission] == true) return true;
+
+          // Permission Aliases
+          if (permission == 'canModerate' && (perms['can_moderate'] == true || perms['canModerate'] == true)) return true;
+          if (permission == 'can_update' && (perms['canUpdateData'] == true || perms['can_update'] == true)) return true;
+          if (permission == 'can_ban_users' && perms['can_ban_users'] == true) return true;
+          if (permission == 'can_manage_collaborators' && perms['can_manage_collaborators'] == true) return true;
+          
+          return false;
         }
       }
     } catch (e) {
@@ -696,17 +715,35 @@ class AdminService {
     );
   }
 
-  /// ✅ Get all managers for a quiz
+  /// ✅ Get all managers for a quiz with profile data
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) {
     return _quizAccess
         .where('quizId', isEqualTo: quizId)
         .where('role', isEqualTo: 'manager')
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => doc.data() as Map<String, dynamic>)
-              .toList(),
-        );
+        .asyncMap((snapshot) async {
+      final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((doc) async {
+        final data = doc.data() as Map<String, dynamic>;
+
+        try {
+          // Fetch user profile
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(data['userId'])
+              .get();
+          if (userDoc.exists) {
+            final userData = userDoc.data() as Map<String, dynamic>;
+            data['userName'] = userData['name'];
+            data['userPhoto'] = userData['photoUrl'];
+          }
+        } catch (e) {
+          debugPrint("Error fetching profile for manager ${data['userId']}: $e");
+        }
+        return data;
+      }).toList();
+
+      return await Future.wait(futures);
+    });
   }
 
   /// ✅ Get all audit logs (Admin only)

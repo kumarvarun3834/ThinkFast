@@ -20,6 +20,9 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
   late TabController _tabController;
   final Set<String> _selectedIds = {};
   bool _isSelectionMode = false;
+  bool _isAdmin = false;
+  bool _isOwner = false;
+  Map<String, dynamic>? _quizMetadata;
 
   final Color _bgColor = global.bgColor;
   final Color _cardColor = global.cardColor;
@@ -40,6 +43,40 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         });
       }
     });
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final db = DatabaseService();
+    try {
+      final metadata = await db.readDatabase(widget.quizId, userId: uid);
+      final isAdmin = await db.isAdmin(uid);
+      
+      if (mounted) {
+        setState(() {
+          _quizMetadata = metadata;
+          _isAdmin = isAdmin;
+          _isOwner = metadata['creatorId'] == uid;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading moderation permissions: $e");
+    }
+  }
+
+  bool _hasPerm(String perm) {
+    if (_isAdmin || _isOwner) return true;
+    final perms = global.managedQuizzes[widget.quizId];
+    if (perms == null) return false;
+    
+    // Support both snake_case and camelCase for moderation permissions
+    if (perm == 'canModerate') {
+      return perms['canModerate'] == true || perms['can_moderate'] == true;
+    }
+    return perms[perm] == true;
   }
 
   @override
@@ -64,6 +101,30 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     if (_selectedIds.isEmpty) return;
 
     final bool isBannedTab = _tabController.index == 0;
+    final String requiredPerm = isBannedTab ? 'can_ban_users' : 'canModerate';
+
+    // 1. Feature Flag Check
+    if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Access Denied: Moderation features are currently disabled platform-wide."),
+          backgroundColor: global.errorColor,
+        ),
+      );
+      return;
+    }
+
+    // 2. Permission Check
+    if (!_hasPerm(requiredPerm)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Access Denied: Caller does not have permission to perform this action."),
+          backgroundColor: global.errorColor,
+        ),
+      );
+      return;
+    }
+
     final String title = isBannedTab
         ? "Unblock Selected?"
         : "Recover Selected?";
@@ -303,11 +364,34 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                   trailing: _isSelectionMode
                       ? null
                       : IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.person_add_rounded,
-                            color: global.successColor,
+                            color: (_hasPerm('can_ban_users') || _hasPerm('canModerate')) &&
+                                   (_isAdmin || (global.featureFlags?['management_features'] ?? true))
+                                ? global.successColor
+                                : global.labelColor.withOpacity(0.3),
                           ),
-                          onPressed: () => _confirmUnban(user),
+                          onPressed: () {
+                            if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Access Denied: Moderation features are disabled."),
+                                  backgroundColor: global.errorColor,
+                                ),
+                              );
+                              return;
+                            }
+                            if (_hasPerm('can_ban_users') || _hasPerm('canModerate')) {
+                              _confirmUnban(user);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Access Denied: Caller does not have permission to perform this action."),
+                                  backgroundColor: global.errorColor,
+                                ),
+                              );
+                            }
+                          },
                           tooltip: "Unblock User",
                         ),
                 ),
@@ -430,9 +514,45 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                   ),
                   trailing: _isSelectionMode
                       ? null
-                      : const Icon(
-                          Icons.chevron_right,
-                          color: global.errorColor,
+                      : IconButton(
+                          icon: Icon(
+                            Icons.chevron_right,
+                            color: _hasPerm('canModerate') && (_isAdmin || (global.featureFlags?['management_features'] ?? true))
+                                ? global.errorColor
+                                : global.labelColor.withOpacity(0.3),
+                          ),
+                          onPressed: () {
+                            if (!(_isAdmin || (global.featureFlags?['management_features'] ?? true))) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Access Denied: Moderation features are disabled."),
+                                  backgroundColor: global.errorColor,
+                                ),
+                              );
+                              return;
+                            }
+                            if (_hasPerm('canModerate')) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ResultScreen(
+                                    quizId: r['quizId'],
+                                    attemptAnswers:
+                                        r['answers'] as Map<String, dynamic>,
+                                    attemptReviewItems:
+                                        r['reviewItems'] as List<dynamic>?,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Access Denied: Caller does not have permission to perform this action."),
+                                  backgroundColor: global.errorColor,
+                                ),
+                              );
+                            }
+                          },
                         ),
                 ),
               ),

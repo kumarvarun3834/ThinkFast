@@ -123,6 +123,7 @@ class QuizActionButton extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onDoubleTap;
   final bool enabled;
+  final String? disabledMessage;
 
   const QuizActionButton({
     super.key,
@@ -132,6 +133,7 @@ class QuizActionButton extends StatelessWidget {
     this.icon,
     this.onDoubleTap,
     this.enabled = true,
+    this.disabledMessage,
   });
 
   @override
@@ -140,47 +142,62 @@ class QuizActionButton extends StatelessWidget {
 
     return GestureDetector(
       onDoubleTap: effectiveEnabled ? onDoubleTap : null,
-      child: ElevatedButton(
-        onPressed: effectiveEnabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isPrimary
-              ? (effectiveEnabled ? global.btnColor : global.hintColor)
-              : Colors.white.withOpacity(effectiveEnabled ? 0.05 : 0.02),
-          foregroundColor: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: isPrimary
-                ? BorderSide.none
-                : BorderSide(
-                    color: effectiveEnabled
-                        ? global.borderColor
-                        : global.borderColor.withOpacity(0.3)),
-          ),
-          elevation: isPrimary && effectiveEnabled ? 4 : 0,
-          disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withOpacity(0.02),
-          disabledForegroundColor: Colors.white.withOpacity(0.4),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              text.toUpperCase(),
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
-              ),
+      onTap: !effectiveEnabled && disabledMessage != null
+          ? () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(disabledMessage!),
+                  backgroundColor: global.errorColor,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          : null,
+      child: AbsorbPointer(
+        absorbing: !effectiveEnabled,
+        child: ElevatedButton(
+          onPressed: effectiveEnabled ? onPressed : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isPrimary
+                ? (effectiveEnabled ? global.btnColor : global.hintColor)
+                : Colors.white.withOpacity(effectiveEnabled ? 0.05 : 0.02),
+            foregroundColor: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
+            minimumSize: const Size(double.infinity, 56),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: isPrimary
+                  ? BorderSide.none
+                  : BorderSide(
+                      color: effectiveEnabled
+                          ? global.borderColor
+                          : global.borderColor.withOpacity(0.3)),
             ),
-            if (icon != null) ...[
-              const SizedBox(width: 8),
-              Icon(
-                icon,
-                size: 20,
-                color: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
-              )
+            elevation: isPrimary && effectiveEnabled ? 4 : 0,
+            disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withOpacity(0.02),
+            disabledForegroundColor: Colors.white.withOpacity(0.4),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                text.toUpperCase(),
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+              ),
+              if (icon != null) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  icon,
+                  size: 20,
+                  color: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
+                )
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
