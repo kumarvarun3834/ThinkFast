@@ -1,10 +1,10 @@
-import 'dart:ui';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/screens/quiz/colab/manage_quiz_button.dart';
+import 'package:thinkfast/screens/quiz/colab/management_bottom_sheet.dart';
 import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
@@ -857,46 +857,112 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     });
   }
 
-  Widget _buildRestrictedQuizAction({
-    required String text,
-    required VoidCallback onPressed,
-    required IconData icon,
-    required bool enabled,
-    String? globalFlag,
-    VoidCallback? onDoubleTap,
-  }) {
-    // 1. Hide if global feature flag is disabled (for non-admins)
-    if (globalFlag != null && !_isAdmin) {
-      final bool globalEnabled = global.featureFlags?[globalFlag] ?? true;
-      if (!globalEnabled) return const SizedBox.shrink();
-    }
+  void _showManageBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: global.cardColor,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => ManagementBottomSheet(
+        quizData: _quizData!,
+        isAdmin: _isAdmin,
+        onToggleVisibility: () {
+          Navigator.pop(context);
+          _toggleVisibility();
+        },
+        onToggleLock: () {
+          Navigator.pop(context);
+          _toggleLock();
+        },
+        onUpdate: () {
+          Navigator.pop(context);
+          final List<Map<String, Object>> flattenedQuestions = [];
+          final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
 
-    // 2. Disable with snackbar if user lacks Qadmin permission
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: QuizActionButton(
-        text: text,
-        onPressed: onPressed,
-        icon: icon,
-        onDoubleTap: onDoubleTap,
-        enabled: enabled,
-        disabledMessage: "Access Denied: Caller does not have permission to perform this action.",
+          int incrementalIndex = 0;
+          for (var module in rawModules) {
+            final String subject = module['subject'].toString();
+            final List<dynamic> questions = module['data'] as List? ?? [];
+            for (var q in questions) {
+              incrementalIndex++;
+              final qMap = Map<String, Object>.from(q);
+              qMap['subject'] = subject;
+              qMap['incrementalIndex'] = incrementalIndex;
+              flattenedQuestions.add(qMap);
+            }
+          }
+
+          global.quizData = flattenedQuestions;
+          global.ID = _quizData!['id'];
+          global.currentUserProfile = _userProfile;
+          global.creatorProfile = _creatorProfile;
+
+          Navigator.pushNamed(context, "/Update Quiz");
+        },
+        onDelete: () async {
+          final bool? confirm = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: global.cardColor,
+              title: const Text(
+                "Delete Quiz?",
+                style: TextStyle(color: Colors.white),
+              ),
+              content: const Text(
+                "Are you sure you want to move this quiz to trash?",
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text("CANCEL"),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: global.errorColor,
+                  ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text(
+                    "DELETE",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          if (confirm == true) {
+            if (context.mounted) Navigator.pop(context); // Close bottom sheet
+            try {
+              await DatabaseService().deleteDatabase(
+                docId: _quizData!['id'],
+                currentUserId: _user!.uid,
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Quiz moved to trash (Soft Delete)"),
+                  ),
+                );
+                Navigator.pop(context); // Go back from Details screen
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Delete Error: $e")));
+              }
+            }
+          }
+        },
       ),
     );
   }
 
   Widget _buildActionButtons() {
-    final bool isOwner = _user != null && _quizData!['creatorId'] == _user!.uid;
-    final bool canManage = _canManage;
-    final bool isPersonal = _quizData!['isPersonal'] == true;
     final bool isAdmin = _isAdmin;
-    final String quizId = _quizData!['id'];
-
-    bool hasPerm(String perm) {
-      if (isAdmin || isOwner) return true;
-      final perms = global.managedQuizzes[quizId];
-      return perms?[perm] == true;
-    }
 
     return Column(
       children: [
@@ -923,86 +989,287 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         QuizActionButton(
           text: "Start Quiz",
           onPressed: () async {
-            // ... (Start Quiz logic)
-          }, // This is a truncated view
+            setState(() => _isStartingQuiz = true);
+            try {
+              final db = DatabaseService();
+              final String? activeQuizId = _quizData!['activeQuizId'];
+              final Timestamp? activeQuizExpiry =
+                  _quizData!['activeQuizExpiry'];
+
+              if (activeQuizId != null) {
+                bool isExpired = false;
+                if (activeQuizExpiry != null) {
+                  isExpired = activeQuizExpiry.toDate().isBefore(
+                    DateTime.now(),
+                  );
+                }
+
+                if (isExpired) {
+                  // Auto-submit blank and clean up
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cleaning up previous expired session...'),
+                    ),
+                  );
+                  await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'You are already taking another quiz ($activeQuizId). Finish it first! (Double tap to instant submit previous)',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  setState(() => _isStartingQuiz = false);
+                  return;
+                }
+              }
+
+              if (_quizData!['isLocked'] == true) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'This quiz is locked and not accepting new responses',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                setState(() => _isStartingQuiz = false);
+                return;
+              }
+
+              // Scheduling Check
+              if (_quizData!['activeAt'] != null) {
+                final DateTime activeAt = (_quizData!['activeAt'] as Timestamp)
+                    .toDate();
+                if (DateTime.now().isBefore(activeAt)) {
+                  if (global.isAdmin) {
+                    final bool? bypass = await _showBypassDialog(
+                      "Early Access",
+                      "This quiz is scheduled for later. Bypass and start now?",
+                    );
+                    if (bypass != true) {
+                      setState(() => _isStartingQuiz = false);
+                      return;
+                    }
+                  } else {
+                    final String formatted =
+                        "${activeAt.day}/${activeAt.month} ${activeAt.hour}:${activeAt.minute.toString().padLeft(2, '0')}";
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'This quiz is scheduled to start at $formatted',
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    setState(() => _isStartingQuiz = false);
+                    return;
+                  }
+                }
+              }
+
+              // Restriction Check
+              if (_quizData!['isRestricted'] == true) {
+                final List<dynamic> allowed =
+                    _quizData!['allowedParticipants'] as List? ?? [];
+                if (!allowed.contains(_user?.uid)) {
+                  if (global.isAdmin) {
+                    final bool? bypass = await _showBypassDialog(
+                      "Restricted Quiz",
+                      "You are not in the allowed list. Bypass restriction?",
+                    );
+                    if (bypass != true) {
+                      setState(() => _isStartingQuiz = false);
+                      return;
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Access Denied: You are not in the allowed participants list for this quiz.',
+                        ),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                    setState(() => _isStartingQuiz = false);
+                    return;
+                  }
+                }
+              }
+
+              final bool allowMultiple =
+                  _quizData!['allowMultipleAttempts'] ?? true;
+              final bool hasAttempted = _quizData!['hasAttempted'] ?? false;
+
+              final bool isOwner =
+                  _user != null && _quizData!['creatorId'] == _user!.uid;
+
+              if (!allowMultiple && hasAttempted && !isOwner) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'You have already attempted this quiz. Multiple attempts are disabled.',
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                setState(() => _isStartingQuiz = false);
+                return;
+              }
+
+              if (_user == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please Login to Continue')),
+                );
+                Navigator.pushNamed(context, '/login');
+                setState(() => _isStartingQuiz = false);
+                return;
+              }
+
+              // Refresh user state to check verification
+              await _user!.reload();
+              _user = _auth.currentUser;
+
+              // Ban Check
+              final bool isBanned = await db.isUserBanned(
+                _user!.uid,
+                quizId: _quizData!['id'],
+              );
+              if (isBanned) {
+                if (global.isAdmin) {
+                  final bool? bypass = await _showBypassDialog(
+                    "Banned from Quiz",
+                    "You are currently banned from this quiz. As an administrator in Admin Mode, would you like to bypass this restriction?",
+                  );
+                  if (bypass != true) {
+                    setState(() => _isStartingQuiz = false);
+                    return;
+                  }
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Access Denied: You have been blocked from this quiz.",
+                        ),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                  setState(() => _isStartingQuiz = false);
+                  return;
+                }
+              }
+
+              if (!_user!.emailVerified) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please verify your email to start the quiz'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+                Navigator.pushNamed(context, '/verify');
+                setState(() => _isStartingQuiz = false);
+                return;
+              }
+
+              if (_quizData!['visibility'] == 'public' || _canManage) {
+                final List<Map<String, Object>> flattenedQuestions = [];
+                final List<dynamic> rawModules =
+                    _quizData!['modules'] as List? ?? [];
+
+                for (var module in rawModules) {
+                  final String subject = module['subject'].toString();
+                  final List<dynamic> questions = module['data'] as List? ?? [];
+                  for (var q in questions) {
+                    final qMap = Map<String, Object>.from(q);
+                    qMap['subject'] =
+                        subject; // Re-inject for flat processing in Questions screen
+                    flattenedQuestions.add(qMap);
+                  }
+                }
+
+                global.quizData = flattenedQuestions;
+
+                global.ID = _quizData!['id'];
+                global.time = _quizData!['time'] as int;
+                global.perQuestionTime = _quizData!['perQuestionTime'] ?? 0;
+                global.completeRandomShuffle =
+                    _quizData!['completeRandomShuffle'] ?? false;
+                global.markingScheme =
+                    _quizData!['markingScheme'] ?? {"type": "default"};
+                global.attemptLimits =
+                    _quizData!['attemptLimits'] ?? {"type": "none"};
+                global.currentUserProfile = _userProfile;
+                global.creatorProfile = _creatorProfile;
+
+                // Reset Quiz Session State
+                global.isReviewMode = false;
+                global.correctAnswers = {};
+                global.solutions = {};
+
+                // Mark as active quiz with expiry (Duration + 5 mins buffer)
+                final int quizDurationSeconds = _quizData!['time'] as int;
+                final DateTime expiry = DateTime.now().add(
+                  Duration(seconds: quizDurationSeconds + 300),
+                );
+
+                await db.updateActiveQuiz(
+                  uid: _user!.uid,
+                  quizId: _quizData!['id'],
+                  expiry: expiry,
+                );
+
+                if (mounted) {
+                  setState(() => _isStartingQuiz = false);
+                  Navigator.pushNamed(context, "/Quiz");
+                }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("This quiz is private")),
+                );
+                setState(() => _isStartingQuiz = false);
+              }
+            } catch (e) {
+              if (mounted) {
+                setState(() => _isStartingQuiz = false);
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text("Quiz Start Error: $e")));
+              }
+            }
+          },
           isPrimary: true,
           icon: Icons.play_arrow_rounded,
-          enabled: isAdmin || (global.featureFlags?['enable_take_quiz'] ?? true),
-          disabledMessage: "Access Denied: Quiz taking is currently disabled platform-wide.",
+          enabled:
+              isAdmin || (global.featureFlags?['enable_take_quiz'] ?? true),
+          disabledMessage:
+              "Access Denied: Quiz taking is currently disabled platform-wide.",
           onDoubleTap: () async {
-            // ... (Double tap logic)
+            final db = DatabaseService();
+            final String? activeQuizId = _quizData!['activeQuizId'];
+
+            if (activeQuizId != null && _user != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Instant submitting previous session...'),
+                ),
+              );
+              await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+
+              // Update UI state to reflect cleared active quiz
+              setState(() {
+                _quizData!['activeQuizId'] = null;
+                _quizData!['activeQuizExpiry'] = null;
+              });
+            }
           },
         ),
-        if (canManage) ...[
+        if (_canManage) ...[
           const SizedBox(height: 16),
-          _buildRestrictedQuizAction(
-            text: _quizData!['visibility'] == 'public'
-                ? "Make Private"
-                : "Make Public",
-            onPressed: _toggleVisibility,
-            enabled: hasPerm('can_publish'),
-            globalFlag: 'enable_edit_quiz',
-            icon: _quizData!['visibility'] == 'public'
-                ? Icons.lock_outline
-                : Icons.public_outlined,
-          ),
-          _buildRestrictedQuizAction(
-            text: _quizData!['isLocked'] == true ? "Unlock Quiz" : "Lock Quiz",
-            onPressed: _toggleLock,
-            enabled: hasPerm('can_lock_quiz') || hasPerm('can_update'),
-            globalFlag: 'management_features',
-            icon: _quizData!['isLocked'] == true
-                ? Icons.lock_open_rounded
-                : Icons.lock_person_rounded,
-          ),
-          _buildRestrictedQuizAction(
-            text: "View Responses",
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                "/Quiz Responses",
-                arguments: {
-                  'quizId': _quizData!['id'],
-                  'quizTitle': _quizData!['title'] ?? 'Quiz',
-                },
-              );
-            },
-            enabled: hasPerm('can_view_results'),
-            icon: Icons.analytics_outlined,
-          ),
-          _buildRestrictedQuizAction(
-            text: "Manage Collaborators",
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                "/Manage Collaborators",
-                arguments: _quizData!['id'],
-              );
-            },
-            enabled: hasPerm('can_manage_collaborators'),
-            globalFlag: 'management_features',
-            icon: Icons.people_outline,
-          ),
-          if (!isPersonal || isAdmin) ...[
-            _buildRestrictedQuizAction(
-              text: "Update Quiz",
-              onPressed: () {
-                // ... (Update Quiz navigation)
-              },
-              enabled: hasPerm('can_update'),
-              globalFlag: 'enable_edit_quiz',
-              icon: Icons.edit_outlined,
-            ),
-            _buildRestrictedQuizAction(
-              text: "Delete Quiz",
-              onPressed: () async {
-                // ... (Delete Quiz logic)
-              },
-              enabled: hasPerm('can_delete'),
-              globalFlag: 'enable_delete_quiz',
-              icon: Icons.delete_outline,
-            ),
-          ],
+          ManageQuizButton(onPressed: _showManageBottomSheet),
         ],
       ],
     );

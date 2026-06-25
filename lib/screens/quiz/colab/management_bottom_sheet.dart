@@ -1,0 +1,112 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/utils/global.dart' as global;
+import 'visibility_action.dart';
+import 'lock_action.dart';
+import 'responses_action.dart';
+import 'team_action.dart';
+import 'update_action.dart';
+import 'delete_action.dart';
+
+class ManagementBottomSheet extends StatelessWidget {
+  final Map<String, dynamic> quizData;
+  final bool isAdmin;
+  final VoidCallback onToggleVisibility;
+  final VoidCallback onToggleLock;
+  final VoidCallback onUpdate;
+  final VoidCallback onDelete;
+
+  const ManagementBottomSheet({
+    super.key,
+    required this.quizData,
+    required this.isAdmin,
+    required this.onToggleVisibility,
+    required this.onToggleLock,
+    required this.onUpdate,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isOwner = FirebaseAuth.instance.currentUser != null &&
+        quizData['creatorId'] == FirebaseAuth.instance.currentUser!.uid;
+    final String quizId = quizData['id'];
+
+    bool hasPerm(String perm) {
+      if (isAdmin || isOwner) return true;
+      final perms = global.managedQuizzes[quizId];
+      return perms?[perm] == true;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: global.borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "MANAGE QUIZ",
+            style: GoogleFonts.poppins(
+              color: global.primaryAccent,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  VisibilityAction(
+                    quizData: quizData,
+                    isAdmin: isAdmin,
+                    hasPerm: hasPerm('can_publish'),
+                    onTap: onToggleVisibility,
+                  ),
+                  LockAction(
+                    quizData: quizData,
+                    isAdmin: isAdmin,
+                    hasPerm: hasPerm('can_lock_quiz') || hasPerm('can_update'),
+                    onTap: onToggleLock,
+                  ),
+                  ResponsesAction(
+                    quizData: quizData,
+                    isAdmin: isAdmin,
+                    hasPerm: hasPerm('can_view_results'),
+                  ),
+                  TeamAction(
+                    quizData: quizData,
+                    isAdmin: isAdmin,
+                    hasPerm: hasPerm('can_manage_collaborators'),
+                  ),
+                  if (!(quizData['isPersonal'] == true) || isAdmin) ...[
+                    UpdateAction(
+                      isAdmin: isAdmin,
+                      hasPerm: hasPerm('can_update'),
+                      onTap: onUpdate,
+                    ),
+                    DeleteAction(
+                      isAdmin: isAdmin,
+                      hasPerm: hasPerm('can_delete'),
+                      onTap: onDelete,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
