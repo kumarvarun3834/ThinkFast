@@ -296,7 +296,7 @@ class AdminService {
     // Check if logging is enabled
     final flags =
         global.featureFlags ?? await SettingsService().getFeatureFlags();
-    if (flags?['user_action_logging'] == false) return;
+    if (flags?['log'] == false) return;
 
     await _auditLogs.add({
       'actorId': actorId,
@@ -819,7 +819,7 @@ class AdminService {
     });
   }
 
-  /// ✅ Get all audit logs (Admin only)
+  /// ✅ Get all audit logs (Admin only) (Stream)
   Stream<List<Map<String, dynamic>>> getAuditLogs() {
     return _auditLogs
         .orderBy('timestamp', descending: true)
@@ -832,8 +832,42 @@ class AdminService {
         );
   }
 
+  /// ✅ Fetch all audit logs once (Future)
+  Future<List<Map<String, dynamic>>> fetchAllAuditLogs() async {
+    final snapshot = await _auditLogs
+        .orderBy('timestamp', descending: true)
+        .limit(200)
+        .get();
+    
+    return snapshot.docs.map((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id;
+      return data;
+    }).toList();
+  }
+
+  /// ✅ Clear all audit logs (Master Admin)
+  Future<void> clearAuditLogs() async {
+    final snapshot = await _auditLogs.get();
+    final batch = FirebaseFirestore.instance.batch();
+    for (var doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   /// ✅ Fetch full user profile including private and protected details (Admin only)
   Future<Map<String, dynamic>?> getFullUserProfile(String uid) async {
+    final String? adminId = FirebaseAuth.instance.currentUser?.uid;
+    if (adminId != null) {
+      await logAction(
+        actorId: adminId,
+        action: 'see_user_private',
+        targetId: uid,
+        details: 'Admin viewed full user profile including private data',
+        category: 'moderation',
+      );
+    }
     try {
       final doc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -863,31 +897,35 @@ class AdminService {
         data.addAll(privateDoc.data() as Map<String, dynamic>);
       }
 
-      // 3. Real-time sync for stats (if counters are missing or 0)
-      if ((data['quizCount'] ?? 0) == 0) {
-        final quizzes = await FirebaseFirestore.instance
-            .collection('quizzes')
-            .where('creatorId', isEqualTo: uid)
-            .where('isDeleted', isEqualTo: false)
-            .get();
-        data['quizCount'] = quizzes.docs.length;
-      }
+      // 3. Real-time sync for stats
+      final quizzes = await FirebaseFirestore.instance
+          .collection('quizzes')
+          .where('creatorId', isEqualTo: uid)
+          .where('isDeleted', isEqualTo: false)
+          .get();
+      final currentQuizCount = quizzes.docs.length;
 
-      if ((data['attemptCount'] ?? 0) == 0) {
-        final attempts = await FirebaseFirestore.instance
-            .collection('responses')
-            .where('userId', isEqualTo: uid)
-            .get();
-        data['attemptCount'] = attempts.docs.where((doc) => doc.data()['isDeleted'] != true).length;
-        data['deletedAttemptCount'] = attempts.docs.where((doc) => doc.data()['isDeleted'] == true).length;
-      } else {
-        // Even if attemptCount is not 0, we might want to fetch deleted count
-        final deletedAttempts = await FirebaseFirestore.instance
-            .collection('responses')
-            .where('userId', isEqualTo: uid)
-            .where('isDeleted', isEqualTo: true)
-            .get();
-        data['deletedAttemptCount'] = deletedAttempts.docs.length;
+      final attempts = await FirebaseFirestore.instance
+          .collection('responses')
+          .where('userId', isEqualTo: uid)
+          .get();
+      final currentAttemptCount = attempts.docs.where((doc) => doc.data()['isDeleted'] != true).length;
+      final currentDeletedCount = attempts.docs.where((doc) => doc.data()['isDeleted'] == true).length;
+
+      // Update document if stats have changed
+      if (data['quizCount'] != currentQuizCount || 
+          data['attemptCount'] != currentAttemptCount ||
+          data['deletedAttemptCount'] != currentDeletedCount) {
+        
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'quizCount': currentQuizCount,
+          'attemptCount': currentAttemptCount,
+          'deletedAttemptCount': currentDeletedCount,
+        });
+        
+        data['quizCount'] = currentQuizCount;
+        data['attemptCount'] = currentAttemptCount;
+        data['deletedAttemptCount'] = currentDeletedCount;
       }
 
       data['uid'] = uid;
@@ -1012,10 +1050,30 @@ class AdminService {
         .orderBy('createdAt', descending: true)
         .get();
     
-    return snapshot.docs.map((doc) {
+    final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((doc) async {
       final data = doc.data();
       data['uid'] = doc.id;
+      
+      // Proactive sync for list view
+      if (!data.containsKey('quizCount') || data['quizCount'] == 0) {
+        final quizzes = await FirebaseFirestore.instance
+            .collection('quizzes')
+            .where('creatorId', isEqualTo: doc.id)
+            .where('isDeleted', isEqualTo: false)
+            .get();
+        data['quizCount'] = quizzes.docs.length;
+        
+        // Background update to Firestore to fix the record
+        if (data['quizCount'] > 0) {
+          FirebaseFirestore.instance.collection('users').doc(doc.id).update({
+            'quizCount': data['quizCount'],
+          });
+        }
+      }
+      
       return data;
     }).toList();
+
+    return await Future.wait(futures);
   }
 }

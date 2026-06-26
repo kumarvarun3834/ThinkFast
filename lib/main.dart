@@ -14,15 +14,15 @@ import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
-import 'package:thinkfast/screens/quiz/quesations.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
+import 'package:thinkfast/screens/quiz/quesations.dart';
 import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_form.dart';
 import 'package:thinkfast/screens/quiz/quiz_responses_screen.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/screens/splash_screen.dart';
-import 'package:thinkfast/services/firebase_options.dart';
+import 'package:thinkfast/services/firebase/firebase_options.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

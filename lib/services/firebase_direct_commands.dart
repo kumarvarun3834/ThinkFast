@@ -238,6 +238,11 @@ class DatabaseService {
   Stream<List<Map<String, dynamic>>> getDeletedQuizzes() =>
       _adminService.getDeletedQuizzes();
 
+  Future<List<Map<String, dynamic>>> fetchAllAuditLogs(String adminId) async {
+    await _ensureAdminPermission(adminId, 'view_audit_logs');
+    return _adminService.fetchAllAuditLogs();
+  }
+
   Future<void> unbanUser({
     required String userId,
     String? quizId,
@@ -296,6 +301,10 @@ class DatabaseService {
 
   Stream<List<Map<String, dynamic>>> getUserQuizzesMaster(String userId, String adminId) {
     return _quizService.getUserQuizzesMaster(userId);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchAllUsers() {
+    return _adminService.fetchAllUsers();
   }
 
   // --- User Profiles ---
@@ -612,6 +621,17 @@ class DatabaseService {
 
     if (isDeleted && !isAdminUser) {
       throw Exception("Quiz not found");
+    }
+
+    // Log admin view if logging is enabled
+    if (isAdminUser && quiz['creatorId'] != userId) {
+      _adminService.logAction(
+        actorId: userId!,
+        action: 'see_quiz',
+        targetId: docId,
+        details: "Admin viewed quiz details: ${quiz['title']}",
+        category: 'quiz',
+      );
     }
 
     // Visibility Check

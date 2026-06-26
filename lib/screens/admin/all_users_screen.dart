@@ -17,12 +17,9 @@ class AllUsersScreen extends StatefulWidget {
 
 class _AllUsersScreenState extends State<AllUsersScreen> {
   final DatabaseService _db = DatabaseService();
-  final AdminService _adminService = AdminService();
   final String? _adminId = FirebaseAuth.instance.currentUser?.uid;
   String _searchQuery = "";
-  List<Map<String, dynamic>> _users = [];
-  bool _isLoading = true;
-  DateTime? _lastRefresh;
+  late Stream<List<Map<String, dynamic>>> _usersStream;
 
   final Set<String> _selectedUids = {};
   bool _isSelectionMode = false;
@@ -30,48 +27,8 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
   @override
   void initState() {
     super.initState();
-    _refreshData(force: true);
-  }
-
-  Future<void> _refreshData({bool force = false}) async {
-    if (_adminId == null) return;
-
-    final bool canBypass = global.adminLevel == 0 ||
-        global.adminPermissions.contains('bypass_rate_limits');
-
-    if (!force && !canBypass && _lastRefresh != null) {
-      final int limit =
-          global.featureFlags?['admin_refresh_rate_limit_seconds'] ?? 30;
-      final difference = DateTime.now().difference(_lastRefresh!).inSeconds;
-      if (difference < limit) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Please wait ${limit - difference}s before refreshing again.",
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final data = await _adminService.fetchAllUsers();
-      if (mounted) {
-        setState(() {
-          _users = data;
-          _isLoading = false;
-          _lastRefresh = DateTime.now();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error fetching users: $e")));
-      }
+    if (_adminId != null) {
+      _usersStream = _db.getAllUsers(_adminId!);
     }
   }
 
@@ -151,8 +108,14 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
             : [
                 IconButton(
                   icon: const Icon(Icons.refresh, color: global.valueColor),
-                  onPressed: () => _refreshData(),
-                  tooltip: "Refresh List",
+                  onPressed: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Syncing user stats...")),
+                    );
+                    await _db.fetchAllUsers(); // This triggers the sync logic in AdminService
+                    setState(() {});
+                  },
+                  tooltip: "Sync All Stats",
                 ),
               ],
       ),
@@ -182,43 +145,48 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
               ),
             ),
           Expanded(
-            child: _isLoading
-                ? const Center(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _usersStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
                     child: CircularProgressIndicator(
                       color: global.primaryAccent,
                     ),
-                  )
-                : _users.isEmpty
-                ? const Center(
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                }
+
+                final users = snapshot.data ?? [];
+                final filteredUsers = users.where((u) {
+                  final name = (u['name'] ?? "").toString().toLowerCase();
+                  final uid = (u['uid'] ?? "").toString().toLowerCase();
+                  return name.contains(_searchQuery) ||
+                      uid.contains(_searchQuery);
+                }).toList();
+
+                if (filteredUsers.isEmpty) {
+                  return const Center(
                     child: Text(
                       "No users found",
                       style: TextStyle(color: global.labelColor),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _users
-                        .where((u) {
-                          final name = (u['name'] ?? "")
-                              .toString()
-                              .toLowerCase();
-                          final uid = (u['uid'] ?? "").toString().toLowerCase();
-                          return name.contains(_searchQuery) ||
-                              uid.contains(_searchQuery);
-                        })
-                        .toList()
-                        .length,
-                    itemBuilder: (context, index) {
-                      final filteredUsers = _users.where((u) {
-                        final name = (u['name'] ?? "").toString().toLowerCase();
-                        final uid = (u['uid'] ?? "").toString().toLowerCase();
-                        return name.contains(_searchQuery) ||
-                            uid.contains(_searchQuery);
-                      }).toList();
-                      final user = filteredUsers[index];
-                      return _buildUserTile(user);
-                    },
-                  ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: filteredUsers.length,
+                  itemBuilder: (context, index) {
+                    final user = filteredUsers[index];
+                    return _buildUserTile(user);
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),

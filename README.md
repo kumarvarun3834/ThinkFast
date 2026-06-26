@@ -4,40 +4,45 @@ ThinkFast is a high-performance, feature-rich quiz platform built with Flutter a
 
 ## ✨ Key Features
 
-### 🛠️ For Creators
+### 🛠️ For Creators & Managers
 *   **Dynamic Quiz Creation**: Build complex quizzes with multiple-choice questions, custom timers, and descriptions.
-*   **Attempt Limits**: Implement "Select N out of M" logic with global or module-specific constraints for each question type.
+*   **Delegated Management (QAdmins)**: Add collaborators with granular permissions to help manage questions, view results, or moderate participants.
+*   **Attempt Limits & Logic**: Implement "Select N out of M" logic with global or module-specific constraints.
 *   **Flexible Timing**: Set global, per-question, or individual override timers (0 for unlimited).
-*   **Managed Quizzes**: Add collaborators as managers to help administer specific quizzes.
-*   **Quiz Locking**: Instantly stop new responses while keeping your quiz public and visible.
-*   **Attempt Management**: Toggle between single or multiple attempts to control user interaction.
-*   **Creator Analytics**: View detailed response logs, sorted by attempt number and User ID for precise insights.
-*   **Visibility Control**: Easily switch quizzes between Public and Private modes.
+*   **Session Control**: Instantly lock or unlock quiz sessions to control response windows.
+*   **Advanced Analytics**: View detailed response logs, sorted by attempt number and User ID for precise insights.
+*   **Visibility Control**: Easily switch quizzes between Public, Private, and Protected (Restricted) modes.
 
 ### 🎓 For Participants
-*   **My Attempts**: Track personal growth with a detailed history of scores and performance across all quizzes.
-*   **Enhanced Review Mode**: Deep-dive into results with color-coded navigators, solution explanations, and tagged correct/incorrect choices.
-*   **AI Personalization**: Deeply customizable profiles for goal tracking, learning interests, and AI-driven recommendations.
+*   **Growth Tracking**: Personal attempt history with detailed scores and performance trends across all quizzes.
+*   **Enhanced Review Mode**: Deep-dive into results with color-coded navigators, solution explanations, and correct/incorrect tagging.
+*   **AI-Driven Personalization**: Customizable profiles for goal tracking, learning styles, and personalized recommendations.
 *   **Active Session Protection**: Smart auto-expiry and cleanup system prevents multiple simultaneous attempts and handles glitches gracefully.
 *   **Real-time Results**: Instant score calculation based on customizable marking schemes and detailed answer review.
 
-### 🛡️ Under the Hood
-*   **Modular Architecture**: Specialized services for Users, Quizzes, Attempts, Analytics, and Notifications.
-*   **Secure Firestore Backend**: Production-grade security rules protecting private data and answer keys.
-*   **Dual-Layer Admin System**: Global application administrators and delegated quiz-specific managers.
-*   **Comprehensive Logging**: Audit logs and generation history for platform-wide activity tracking.
+### 🛡️ Administrative Suite (App Admins)
+*   **Centralized Admin Panel**: Master control for platform settings, feature flags, and system-wide maintenance mode.
+*   **User Management**: Deep inspection of user profiles, statistics synchronization, and account lifecycle management.
+*   **Audit Logging**: Comprehensive system logs tracking all administrative actions (Who, What, When, and Target).
+*   **Feature Flagging**: Toggle critical platform features (AI, Take Quiz, Registrations, etc.) in real-time without redeployment.
+
+## 🏗️ Architecture & Security
+*   **Modular Service Layer**: Specialized services for Users, Quizzes, Attempts, Analytics, and Notifications.
+*   **Dual-Layer Permissions**: Hierarchical access control combining global App Admin roles and quiz-specific delegated permissions.
+*   **Secure Firestore Backend**: Production-grade security rules protecting private data, answer keys, and administrative operations.
+*   **Data Integrity**: Automated background sync and "auto-repair" logic for user statistics and attempt counters.
 
 ## 🚀 Tech Stack
 
 *   **Frontend**: Flutter (Dart)
-*   **Backend**: Firebase (Firestore, Authentication)
-*   **State Management**: Stateful Widgets & Global Utilities
+*   **Backend**: Firebase (Firestore, Authentication, Storage)
+*   **State Management**: Stateful Architecture with Global Utilities
 *   **Typography**: Google Fonts (Poppins)
 
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Flutter SDK (`^3.8.1`)
+*   Flutter SDK (`^3.10.0`)
 *   Firebase Project Setup
 
 ### Installation

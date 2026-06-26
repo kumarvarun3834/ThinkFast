@@ -7,6 +7,7 @@ import 'package:thinkfast/utils/global.dart' as global;
 
 import '../../widgets/quiz_widgets.dart';
 import '../quiz/result_screen.dart';
+import 'admin_permissions_screen.dart';
 
 class UserDetailsScreen extends StatefulWidget {
   final String userId;
@@ -21,16 +22,31 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   final DatabaseService _db = DatabaseService();
   late final String? _adminId = FirebaseAuth.instance.currentUser?.uid;
   bool _isBanned = false;
+  bool _isAppAdmin = false;
+  List<String> _adminPermissions = [];
+  int _adminLevel = 1;
 
   @override
   void initState() {
     super.initState();
-    _checkBanStatus();
+    _fetchStatus();
   }
 
-  Future<void> _checkBanStatus() async {
+  Future<void> _fetchStatus() async {
     final banned = await _db.isUserBanned(widget.userId);
-    if (mounted) setState(() => _isBanned = banned);
+    final adminDoc = await FirebaseFirestore.instance.collection('admins').doc(widget.userId).get();
+    
+    if (mounted) {
+      setState(() {
+        _isBanned = banned;
+        _isAppAdmin = adminDoc.exists;
+        if (adminDoc.exists) {
+          final data = adminDoc.data()!;
+          _adminPermissions = List<String>.from(data['permissions'] ?? []);
+          _adminLevel = data['level'] ?? 1;
+        }
+      });
+    }
   }
 
   void _handleDelete() async {
@@ -317,27 +333,52 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _isBanned
-                        ? global.errorColor.withOpacity(0.1)
-                        : global.successColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    _isBanned ? "BANNED" : "ACTIVE",
-                    style: TextStyle(
-                      color: _isBanned
-                          ? global.errorColor
-                          : global.successColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isBanned
+                            ? global.errorColor.withOpacity(0.1)
+                            : global.successColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _isBanned ? "BANNED" : "ACTIVE",
+                        style: TextStyle(
+                          color: _isBanned
+                              ? global.errorColor
+                              : global.successColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (_isAppAdmin) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: global.primaryAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          _adminLevel == 0 ? "SUPER ADMIN" : "APP ADMIN",
+                          style: const TextStyle(
+                            color: global.primaryAccent,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -410,34 +451,68 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   }
 
   Widget _buildActionButtons() {
-    return Row(
+    final bool canManageAdmins = global.adminLevel == 0 || global.adminPermissions.contains('manage_admins');
+
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _handleBan,
-            icon: Icon(_isBanned ? Icons.gavel : Icons.block),
-            label: Text(_isBanned ? "UNBAN USER" : "BAN USER"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isBanned
-                  ? global.successColor
-                  : global.warningColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+        if (canManageAdmins) ...[
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AdminPermissionsScreen(
+                      targetUids: [widget.userId],
+                      initialPermissions: _isAppAdmin ? _adminPermissions : null,
+                      initialIsSuper: _isAppAdmin && _adminLevel == 0,
+                    ),
+                  ),
+                ).then((_) => _fetchStatus());
+              },
+              icon: Icon(_isAppAdmin ? Icons.security_rounded : Icons.admin_panel_settings_rounded),
+              label: Text(_isAppAdmin ? "MANAGE ADMIN PERMISSIONS" : "PROMOTE TO APP ADMIN"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.primaryAccent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _handleDelete,
-            icon: const Icon(Icons.delete_forever),
-            label: const Text("DELETE DATA"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: global.errorColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+          const SizedBox(height: 12),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _handleBan,
+                icon: Icon(_isBanned ? Icons.gavel : Icons.block),
+                label: Text(_isBanned ? "UNBAN USER" : "BAN USER"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isBanned
+                      ? global.successColor
+                      : global.warningColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _handleDelete,
+                icon: const Icon(Icons.delete_forever),
+                label: const Text("DELETE DATA"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: global.errorColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
