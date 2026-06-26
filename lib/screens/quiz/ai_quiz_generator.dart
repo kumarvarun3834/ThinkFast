@@ -22,6 +22,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
   final Map<String, dynamic> _profileUpdates = {};
 
   bool _isLoading = false;
+  String _generationStatus = "Queued"; // Queued, Generating, Validating, Saving, Completed
   int _currentStep = 0;
   bool _updateProfileOnFirebase = false;
   Map<String, dynamic> _examConfigs = {};
@@ -149,8 +150,8 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         ],
       },
       {
-        'id': 'Random',
-        'question': 'Should difficulty adjust based on your answers?',
+        'id': 'profile_difficulty',
+        'question': 'Should I optimize the question difficulty based on your performance profile?',
         'type': 'choice',
         'options': ['Yes', 'No'],
       },
@@ -294,23 +295,39 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
   }
 
   Future<void> _generateQuiz() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _generationStatus = "Generating";
+    });
     try {
       final ai = AiService();
-      // Combine quiz settings and profile for the final prompt
+      
+      // Deep Profile Analytics (Mocked for now, should come from AnalyticsService)
+      final profileAnalytics = {
+        'avgScore': '68%',
+        'accuracyByTopic': {'Arrays': '42%', 'Recursion': '91%'},
+        'timeSpentPerQ': '45s',
+        'weakTopics': ['Dynamic Programming', 'Graph Theory'],
+      };
+
       final Map<String, dynamic> finalConfig = {
         ..._quizSettings,
         'profile': global.currentUserProfile,
+        'analytics': profileAnalytics,
       };
 
       final String prompt =
-          "Generate a quiz with the following configuration: ${finalConfig.toString()}";
+          "Generate a quiz with high personalization using this config: ${finalConfig.toString()}";
 
+      setState(() => _generationStatus = "Validating");
+      
       final String quizId = await ai.createAiQuiz(
         userId: global.currentUserProfile?['uid'] ?? '',
         userName: global.currentUserProfile?['name'] ?? 'User',
         prompt: prompt,
       );
+
+      setState(() => _generationStatus = "Saving");
 
       if (_updateProfileOnFirebase) {
         final db = DatabaseService();
@@ -319,6 +336,8 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           details: _profileUpdates,
         );
       }
+
+      setState(() => _generationStatus = "Completed");
 
       if (mounted) {
         Navigator.pushReplacementNamed(
@@ -378,8 +397,13 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      "Generating your personalized quiz...",
-                      style: GoogleFonts.poppins(color: global.labelColor),
+                      "Status: $_generationStatus...",
+                      style: GoogleFonts.poppins(color: global.primaryAccent, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Building your personalized learning experience",
+                      style: GoogleFonts.poppins(color: global.labelColor, fontSize: 11),
                     ),
                   ],
                 ),

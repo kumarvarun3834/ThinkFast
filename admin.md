@@ -26,14 +26,14 @@ application functionality.
 | `management_features`              | `bool`      | `true`  | Enables admin management UI tools.             |
 | `enable_quiz_creation_rate_limit`  | `bool`      | `true`  | Toggles the creation cooldown for users.       |
 | `quiz_creation_rate_limit_minutes` | `number`    | `5`     | Minutes required between quiz creations.       |
+| `admin_refresh_rate_limit_seconds` | `number`    | `30`    | Cooldown between manual data refreshes in UI. |
 | `updatedAt`                        | `timestamp` | -       | Last modification time.                        |
 
 ---
 
 ## 2. Administrator Storage
 
-Administrators are stored in the `admins` collection, indexed by their Firebase Auth **UID**. The
-system uses a granular permission-based model.
+Administrators are stored in the `admins` collection, indexed by their Firebase Auth **UID**.
 
 ### Admin Document Structure
 
@@ -43,6 +43,7 @@ system uses a granular permission-based model.
 | Field Name           | Type            | Description                                                                         |
 |:---------------------|:----------------|:------------------------------------------------------------------------------------|
 | `permissions`        | `array<string>` | List of specific keys defining what the admin can do.                               |
+| `level`              | `number`        | Account hierarchy. `0` represents a **Super Admin** with full access.               |
 | `isAdminModeEnabled` | `bool`          | Toggle for "Admin Mode" UI experience. If `false`, the user acts as a regular user. |
 | `addedBy`            | `string`        | The UID of the admin who granted this user administrative rights.                   |
 | `updatedAt`          | `timestamp`     | Last update to the admin status or permissions.                                     |
@@ -60,16 +61,16 @@ toggled **ON** in the sidebar to activate these privileges.
 | `view_audit_logs`      | View Audit Logs        | Full access to the system-wide activity audit trail.                            |
 | `manage_app_settings`  | Manage App Settings    | Toggle Global Maintenance Mode and modify feature flags/rate limits.            |
 | `bypass_ai_limits`     | Bypass AI Quotas       | Exempt from daily AI generation limits and cooldowns.                           |
+| `bypass_rate_limits`   | Bypass Rate Limits     | Exempt from UI refresh and quiz creation cooldowns.                             |
 | `manage_collaborators` | Manage Collaborators   | Add or remove managers for any quiz globally.                                   |
 
 ### Authorization Logic
 
+- **Super Admin (`level: 0`)**: Automatically possesses all permissions and can manage other Super Admins.
 - **Admin Mode Requirement**: To perform any administrative action, the user must have the relevant
   document in the `admins` collection AND have `isAdminModeEnabled` set to `true`.
-- **Permission Check**: Features check for specific keys in the `permissions` array (e.g.,
-  `manage_admins` is required to access the Admin Management screen).
-- **Derived Level**: The `level` field is used for legacy sorting and hierarchy display, calculated
-  simply as `permissions.length`.
+- **Permission Check**: Features check for specific keys in the `permissions` array.
+- **Bulk Updates**: Admins with `manage_admins` can perform collective updates (Grant/Revoke/Set) on multiple admin accounts simultaneously.
 
 ---
 

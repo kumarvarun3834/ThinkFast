@@ -586,25 +586,43 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                         attemptReviewItems:
                                             r['reviewItems'] as List<dynamic>?,
                                         attemptQuestionOrder: r['questionOrder'] as List<dynamic>?,
+                                        isDeleted: r['isDeleted'] == true,
                                       ),
                                     ),
                                   );
                                 },
-                          title: Row(
+                          leading: Stack(
                             children: [
-                              if (_isSelectionMode)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: Icon(
-                                    isSelected
-                                        ? Icons.check_circle
-                                        : Icons.radio_button_unchecked,
-                                    color: isSelected
-                                        ? _primaryAccent
-                                        : _labelColor,
-                                    size: 20,
+                              CircleAvatar(
+                                backgroundColor: _borderColor,
+                                backgroundImage: r['userPhoto'] != null
+                                    ? NetworkImage(r['userPhoto'])
+                                    : null,
+                                child: r['userPhoto'] == null
+                                    ? Icon(Icons.person, color: _labelColor)
+                                    : null,
+                              ),
+                              if (isSelected)
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_circle,
+                                      color: global.primaryAccent,
+                                      size: 14,
+                                    ),
                                   ),
                                 ),
+                            ],
+                          ),
+                          title: Row(
+                            children: [
                               Expanded(
                                 child: Text(
                                   r['userName'] ?? "User: ${r['userId']}",

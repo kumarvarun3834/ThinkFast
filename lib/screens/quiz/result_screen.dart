@@ -11,6 +11,7 @@ class ResultScreen extends StatefulWidget {
   final List<dynamic>? attemptReviewItems;
   final List<dynamic>? attemptQuestionOrder;
   final List<dynamic>? attemptVisitedItems;
+  final bool isDeleted;
 
   const ResultScreen({
     super.key,
@@ -19,6 +20,7 @@ class ResultScreen extends StatefulWidget {
     this.attemptReviewItems,
     this.attemptQuestionOrder,
     this.attemptVisitedItems,
+    this.isDeleted = false,
   });
 
   @override
@@ -396,6 +398,33 @@ class _ResultScreenState extends State<ResultScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+          if (widget.isDeleted)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: global.errorColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: global.errorColor.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.delete_forever, color: global.errorColor, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "This attempt has been soft-deleted and is visible only to administrators.",
+                      style: GoogleFonts.poppins(
+                        color: global.errorColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Card(
             color: global.cardColor,
             shape: RoundedRectangleBorder(

@@ -40,7 +40,11 @@ class ManagementBottomSheet extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      decoration: BoxDecoration(
+        color: global.cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -62,10 +66,15 @@ class ManagementBottomSheet extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 24),
-          Flexible(
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
             child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   VisibilityAction(
                     quizData: quizData,

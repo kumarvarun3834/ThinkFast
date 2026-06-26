@@ -36,10 +36,9 @@ Quiz administration data is stored in the `quiz_access` collection.
 
 ### 3.1 Primary Roles
 
-- **Owner**: The creator of the quiz. Has implicit full control (all permissions).
+- **Owner**: The creator of the quiz. Has implicit full control (all permissions) and bypasses session/lock checks for their own quiz.
 - **Manager**: A collaborator with specific granted permissions.
-- **Participant**: (Restricted Quizzes) A user explicitly allowed to attempt a private or restricted
-  quiz.
+- **Participant**: A user explicitly granted access to attempt a restricted or private quiz.
 
 ### 3.2 Granular Permissions (`permissions` map)
 

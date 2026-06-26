@@ -423,7 +423,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                 color: Colors.transparent,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode ? () => _toggleSelection(id) : () => Navigator.push(context, MaterialPageRoute(builder: (context) => ResultScreen(quizId: r['quizId'], attemptAnswers: r['answers'] as Map<String, dynamic>, attemptReviewItems: r['reviewItems'] as List<dynamic>?))),
+                  onTap: _isSelectionMode ? () => _toggleSelection(id) : () => Navigator.push(context, MaterialPageRoute(builder: (context) => ResultScreen(quizId: r['quizId'], attemptAnswers: r['answers'] as Map<String, dynamic>, attemptReviewItems: r['reviewItems'] as List<dynamic>?, attemptQuestionOrder: r['questionOrder'] as List<dynamic>?, isDeleted: true))),
                   title: Text("User: ${r['userId']}", style: GoogleFonts.poppins(color: _valueColor, fontWeight: FontWeight.bold, fontSize: 14)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

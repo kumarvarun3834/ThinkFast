@@ -433,6 +433,7 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                     widget.attempt['questionOrder'] as List<dynamic>?,
                 attemptVisitedItems:
                     widget.attempt['visitedItems'] as List<dynamic>?,
+                isDeleted: widget.attempt['isDeleted'] == true,
               ),
             ),
           );

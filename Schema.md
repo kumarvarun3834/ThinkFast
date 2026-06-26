@@ -94,7 +94,30 @@
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `actorId` | String | UID of the performer. |
-| `action` | String | Action type (e.g., `delete_quiz`). |
+| `action` | String | Action type (e.g., `delete_quiz`, `bulk_update_admins`). |
 | `targetId` | String | ID of affected resource. |
-| `category` | String | e.g., `admin`, `quiz`. |
+| `category` | String | e.g., `admin`, `quiz`, `moderation`. |
 | `timestamp` | Timestamp | Log time. |
+
+## 6. Administrative & Team Access
+### 6.1 Admin Records (`/admins/{userId}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `permissions` | List<String> | Active platform permissions. |
+| `level` | Number | `0` for Super User, `1+` for sub-admins. |
+| `isAdminModeEnabled` | Boolean | UI experience toggle. |
+| `addedBy` | String | Granting admin UID. |
+| `updatedAt` | Timestamp | Last record update. |
+
+### 6.2 Quiz Access (`/quiz_access/{quizId}_{userId}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `quizId` | String | Target Quiz. |
+| `userId` | String | Grantee UID. |
+| `role` | String | `manager` or `participant`. |
+| `permissions` | Map<String, Boolean> | Granular manager flags. |
+| `addedBy` | String | Granting user UID. |
+
+### 6.3 Banned Users (`/banned_users/{banId}`)
+- **Format:** `global_{userId}` or `{quizId}_{userId}`.
+- **Fields:** `userId`, `quizId` (null for global), `reason`, `bannedBy`, `createdAt`.

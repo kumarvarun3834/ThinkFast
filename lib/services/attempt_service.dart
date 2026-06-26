@@ -55,8 +55,9 @@ class AttemptService {
 
     userAnswers.forEach((qUid, selections) {
       final correct = correctKey[qUid] ?? [];
-      final List selected =
-          selections is List ? selections : [selections.toString()];
+      final List selected = selections is List
+          ? selections
+          : [selections.toString()];
 
       String? qType;
       try {
@@ -69,10 +70,12 @@ class AttemptService {
       final marking = getMarking(qType, qUid);
 
       if (qType == "Integer") {
-        final String userVal =
-            selected.isNotEmpty ? selected.first.toString().trim() : "";
-        final String correctVal =
-            correct.isNotEmpty ? correct.first.toString().trim() : "";
+        final String userVal = selected.isNotEmpty
+            ? selected.first.toString().trim()
+            : "";
+        final String correctVal = correct.isNotEmpty
+            ? correct.first.toString().trim()
+            : "";
 
         if (userVal.isNotEmpty && userVal == correctVal) {
           score += marking['correct']!;
@@ -181,28 +184,29 @@ class AttemptService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .asyncMap((snapshot) async {
-      List<Map<String, dynamic>> results = [];
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
+          List<Map<String, dynamic>> results = [];
+          for (var doc in snapshot.docs) {
+            final data = doc.data();
+            data['id'] = doc.id;
 
-        if (!includeDeleted && data['isDeleted'] == true) continue;
+            if (!includeDeleted && data['isDeleted'] == true) continue;
 
-        // Fetch user profile to show name
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(data['userId'])
-            .get();
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          data['userName'] = userData['name'] ?? 'Unknown User';
-        } else {
-          data['userName'] = 'Unknown User';
-        }
+            // Fetch user profile to show name
+            final userDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(data['userId'])
+                .get();
+            if (userDoc.exists) {
+              final userData = userDoc.data() as Map<String, dynamic>;
+              data['userName'] = userData['name'] ?? 'Unknown User';
+              data['userPhoto'] = userData['photoUrl'];
+            } else {
+              data['userName'] = 'Unknown User';
+            }
 
-        results.add(data);
-      }
-      return results;
-    });
+            results.add(data);
+          }
+          return results;
+        });
   }
 }

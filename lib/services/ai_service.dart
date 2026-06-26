@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 
 import 'admin_service.dart';
 import 'firebase_direct_commands.dart';
@@ -32,6 +33,7 @@ class AiService {
     required String userId,
     required String prompt,
     required String generatedQuizId,
+    Map<String, dynamic>? metadata,
   }) async {
     await _checkAiEnabled(userId);
     await _generations.add({
@@ -39,6 +41,7 @@ class AiService {
       'prompt': prompt,
       'generatedQuizId': generatedQuizId,
       'createdAt': FieldValue.serverTimestamp(),
+      if (metadata != null) 'metadata': metadata,
     });
 
     // Update usage
@@ -84,7 +87,7 @@ class AiService {
     return data['aiGenerationsToday'] ?? 0;
   }
 
-  /// ✅ Create Quiz directly from AI
+  /// ✅ Create Quiz directly from AI with Validation and Repair Flow
   Future<String> createAiQuiz({
     required String userId,
     required String userName,
@@ -94,22 +97,50 @@ class AiService {
     await _checkAiEnabled(userId);
 
     // 1. Generate JSON with specific "System Prompt" instruction
-    final systemPrompt = """
+    final systemPrompt =
+        """
       Generate a professional quiz JSON for '$prompt'.
-      Rules:
-      - Include a mix of Single Choice, Multiple Choice, and Integer types.
-      - Add detailed 'description' (solutions) for each question.
-      - Group questions into relevant 'subject' modules.
-      - Set a 'markingScheme' with a 'passThreshold' (usually 40).
-      - Ensure all answer IDs and choice IDs match.
+      
+      Dynamic Personalization Rules:
+      - If Accuracy < 50% → 70% Easy, 25% Medium, 5% Hard.
+      - If Accuracy > 80% → 20% Medium, 60% Hard, 20% Challenge.
+      - Otherwise → 50% Easy, 50% Medium.
+      - Wildcard: Always include 1-2 questions of random difficulty.
+
+      Strict JSON Schema:
+      {
+        "title": "string",
+        "description": "string",
+        "questions": [
+          {
+            "type": "Single Choice" | "Multiple Choice" | "Integer",
+            "question": "string",
+            "choices": ["string"],
+            "answers": ["string"],
+            "subject": "string",
+            "description": "string" (explanation)
+          }
+        ]
+      }
     """;
-    
-    final jsonContent = await generateQuizJson(prompt + " " + systemPrompt);
-    
-    // 2. Process Result
+
+    final stopwatch = Stopwatch()..start();
+    String jsonContent = await generateQuizJson("$prompt $systemPrompt");
+
+    // 2. Schema Validation & Repair Flow
+    try {
+      _validateJsonSchema(jsonContent);
+    } catch (e) {
+      debugPrint("Initial AI response malformed. Attempting repair...");
+      jsonContent = await _repairJson(jsonContent, e.toString());
+      _validateJsonSchema(jsonContent); // Final check
+    }
+
+    // 3. Content Quality Checks
     final result = await QuizDataProcessor.processImportData(jsonContent);
-    
-    // 3. Save to Database
+    _performQualityChecks(result);
+
+    // 4. Save to Database
     final db = DatabaseService();
     final quizId = await db.createDatabase(
       creatorId: userId,
@@ -123,8 +154,10 @@ class AiService {
         'type': result.markingType ?? 'default',
         'passThreshold': result.markingPassThreshold ?? 40,
         if (result.markingGlobal != null) 'global': result.markingGlobal,
-        if (result.markingPerType != null) 'perQuestionType': result.markingPerType,
-        if (result.markingPerQuestion != null) 'perQuestion': result.markingPerQuestion,
+        if (result.markingPerType != null)
+          'perQuestionType': result.markingPerType,
+        if (result.markingPerQuestion != null)
+          'perQuestion': result.markingPerQuestion,
       },
       attemptLimits: {
         'type': result.attemptLimitType ?? 'none',
@@ -135,14 +168,67 @@ class AiService {
       isAiGenerated: true,
     );
 
-    // 4. Log it
+    stopwatch.stop();
+
+    // 5. Log it with Metadata
     await logGeneration(
       userId: userId,
       prompt: prompt,
       generatedQuizId: quizId,
+      metadata: {
+        'model': 'ai-engine-v2',
+        'generationTimeMs': stopwatch.elapsedMilliseconds,
+        'tokenUsage': jsonContent.length ~/ 4, // Rough estimate
+      },
     );
 
     return quizId;
+  }
+
+  /// 🛠️ JSON Schema Validator
+  void _validateJsonSchema(String rawJson) {
+    final Map<String, dynamic> data = jsonDecode(rawJson);
+    if (!data.containsKey('title') || data['title'] is! String)
+      throw "Missing 'title'";
+    if (!data.containsKey('questions') || data['questions'] is! List)
+      throw "Missing 'questions' list";
+
+    for (var q in data['questions']) {
+      if (q['question'] == null || q['type'] == null)
+        throw "Malformed question object";
+      if (q['type'] != "Integer" &&
+          (q['choices'] == null || (q['choices'] as List).isEmpty)) {
+        throw "Choices missing for ${q['type']} question";
+      }
+      if (q['answers'] == null || (q['answers'] as List).isEmpty)
+        throw "Answers missing";
+    }
+  }
+
+  /// 🛠️ Repair Flow
+  Future<String> _repairJson(String malformedJson, String error) async {
+    final repairPrompt =
+        "The following JSON is invalid: $error. Please fix the structure and return ONLY the corrected JSON: $malformedJson";
+    return await generateQuizJson(repairPrompt);
+  }
+
+  /// 🛠️ Content Quality Checks
+  void _performQualityChecks(dynamic result) {
+    final questions = result.questions;
+    if (questions.isEmpty) throw "AI generated an empty quiz";
+
+    final seenQuestions = <String>{};
+    for (var q in questions) {
+      final text = q['question'].toString().toLowerCase().trim();
+      if (seenQuestions.contains(text))
+        throw "Duplicate question detected: $text";
+      seenQuestions.add(text);
+
+      if (q['description'] == null ||
+          q['description'].toString().trim().isEmpty) {
+        throw "Empty explanation detected for question: ${q['question']}";
+      }
+    }
   }
 
   /// ✅ Mock AI Generation (Should be replaced with actual API call)
@@ -161,8 +247,8 @@ class AiService {
         "perQuestionType": {
           "Single Choice": {"correct": 4, "wrong": -1},
           "Multiple Choice": {"correct": 6, "wrong": -2},
-          "Integer": {"correct": 10, "wrong": 0}
-        }
+          "Integer": {"correct": 10, "wrong": 0},
+        },
       },
       "questions": [
         {
@@ -171,7 +257,8 @@ class AiService {
           "answers": ["Red", "Blue", "Yellow"],
           "type": "Multiple Choice",
           "subject": "Basics",
-          "description": "Primary colors are those that cannot be created by mixing other colors."
+          "description":
+              "Primary colors are those that cannot be created by mixing other colors.",
         },
         {
           "question": "What is 25 * 4?",
@@ -179,7 +266,7 @@ class AiService {
           "answers": ["100"],
           "type": "Integer",
           "subject": "Arithmetic",
-          "description": "25 times 4 equals exactly 100."
+          "description": "25 times 4 equals exactly 100.",
         },
         {
           "question": "What is the capital of France?",
@@ -187,8 +274,9 @@ class AiService {
           "answers": ["Paris"],
           "type": "Single Choice",
           "subject": "Geography",
-          "description": "Paris is the capital and most populous city of France."
-        }
+          "description":
+              "Paris is the capital and most populous city of France.",
+        },
       ],
     });
   }

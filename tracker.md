@@ -40,6 +40,7 @@
 - [x] **Recycle Bin (7-Day Recovery Window)**
 - [x] **Quiz Scheduling and Timed Activation**
 - [x] **Restricted Quizzes (Allowed Participants List)**
+- [x] **Dynamic Participant Access (Allow-by-UID Dialog)**
 - [x] **Managed Quizzes Dashboard (Collaborators)**
 - [x] Aggregate Quiz Performance Analytics
 - [x] Per-Question Correctness Tracking
@@ -67,6 +68,9 @@
 - [x] **Centralized Theme Tokens (`global.dart`)**
 - [x] Detailed Audit Logging for Actions
 - [x] AI Usage Quota Tracking
+- [x] **Collective Admin Management (Bulk Grant/Revoke/Set)**
+- [x] **Client-Side Permission Caching**
+- [x] **Rate-Limited Data Refresh System**
 
 ---
 
@@ -89,17 +93,17 @@
 
 ---
 
-## 📈 Recent Updates
+## 📈 Development Milestones
 
-- **v1.2.x Patches:** Implemented Recycle Bin, Scheduling, Moderation Panel, Admin Bypass, and **Interactive Help Demo**.
-- **v1.2.5:** Enhanced Answer Data Isolation (Stripping answers in service layer, no-fetch start flow, and UI styling fixes).
-- **v1.3.0:** Conversational AI Quiz Wizard, Profile Preference Integration, and Global Tag Management.
-- **v1.2.0:** Centralized theme tokens, refactored data processor, and enhanced timer hierarchy.
-- **v1.1.0:** Implemented "Attempt Limits" (N out of M) and Enhanced Review Mode with solutions.
-- **v1.0.7:** Added "Double Tap to Instant Submit" for unexpired active quizzes.
-- **v1.0.6:** Added Maintenance Mode bypass for administrators.
-- **v1.0.5:** Integrated `AnalyticsService` for tracking question-level success rates.
-- **v1.0.0:** Finalized `QuizResponsesScreen` for creator analytics.
-- **v0.9.5:** Implemented `AppLinks` for seamless quiz joining via URLs.
-- **v0.9.0:** Added Admin Panel and Feature Flags system.
-- **v0.8.0:** Integrated AI Quiz Generation and Usage Quotas.
+- **Administrative & Performance Cycle (Post-v1.0):**
+    - **Bulk Moderation:** Implemented collective permission management (Grant/Revoke/Set) for administrators.
+    - **Access Control:** Added dynamic participant authorization for restricted quizzes (Allow-by-UID).
+    - **Optimization:** Developed client-side permission caching and rate-limited data refresh system to minimize Firestore overhead.
+- **AI & Automation Cycle (Internal):**
+    - **AI Wizard:** Launched conversational quiz generation and profile preference integration.
+    - **Data Integrity:** Enhanced answer isolation in the service layer and implemented the Recycle Bin (7-day recovery).
+- **Feature Refinement Cycle (Internal):**
+    - **Attempt Logic:** Integrated "Attempt Limits" (Select N out of M) and dynamic scoring overrides.
+    - **UX Enhancements:** Added Enhanced Review Mode with solution tagging and "Double Tap to Instant Submit" for active sessions.
+- **v1.0.0:** Initial Stable Build (Baseline Production).
+- **Beta Phase (Pre-Release):** Deep Linking (AppLinks), AI Core, and Admin Panel foundation.

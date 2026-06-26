@@ -832,14 +832,27 @@ class AdminService {
         );
   }
 
-  /// ✅ Fetch full user profile including private details (Admin only)
+  /// ✅ Fetch full user profile including private and protected details (Admin only)
   Future<Map<String, dynamic>?> getFullUserProfile(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (!doc.exists) return null;
 
       final data = doc.data() as Map<String, dynamic>;
 
+      // 1. Fetch Protected Details (Goals, Interests, etc.)
+      final protectedDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('protected')
+          .doc('details')
+          .get();
+      if (protectedDoc.exists) {
+        data.addAll(protectedDoc.data() as Map<String, dynamic>);
+      }
+
+      // 2. Fetch Private Details (Email, Active Sessions, etc.)
       final privateDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
@@ -849,7 +862,34 @@ class AdminService {
       if (privateDoc.exists) {
         data.addAll(privateDoc.data() as Map<String, dynamic>);
       }
-      
+
+      // 3. Real-time sync for stats (if counters are missing or 0)
+      if ((data['quizCount'] ?? 0) == 0) {
+        final quizzes = await FirebaseFirestore.instance
+            .collection('quizzes')
+            .where('creatorId', isEqualTo: uid)
+            .where('isDeleted', isEqualTo: false)
+            .get();
+        data['quizCount'] = quizzes.docs.length;
+      }
+
+      if ((data['attemptCount'] ?? 0) == 0) {
+        final attempts = await FirebaseFirestore.instance
+            .collection('responses')
+            .where('userId', isEqualTo: uid)
+            .get();
+        data['attemptCount'] = attempts.docs.where((doc) => doc.data()['isDeleted'] != true).length;
+        data['deletedAttemptCount'] = attempts.docs.where((doc) => doc.data()['isDeleted'] == true).length;
+      } else {
+        // Even if attemptCount is not 0, we might want to fetch deleted count
+        final deletedAttempts = await FirebaseFirestore.instance
+            .collection('responses')
+            .where('userId', isEqualTo: uid)
+            .where('isDeleted', isEqualTo: true)
+            .get();
+        data['deletedAttemptCount'] = deletedAttempts.docs.length;
+      }
+
       data['uid'] = uid;
       return data;
     } catch (e) {

@@ -88,4 +88,7 @@ Administrators have elevated access to maintain platform health.
 | `/Quiz Responses` | `QuizResponsesScreen` | Detailed participant analytics for creators. |
 | `/profile`        | `ProfileScreen`       | User account management.                     |
 | `/Admin Panel`    | `AdminPanel`          | Platform administration.                     |
+| `/Manage Admins`  | `ManageAdminsScreen`  | Bulk permission updates for staff.           |
+| `/Add Admins`     | `AddAppAdminScreen`   | Multi-user staff promotion flow.             |
+| `/Blocked Users`  | `QuizModerationScreen`| Quiz-specific bans and data recovery.        |
 | `/maintenance`    | `MaintenanceScreen`   | Global maintenance landing page.             |
