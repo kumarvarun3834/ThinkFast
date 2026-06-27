@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import '../../services/admin_service.dart';
@@ -16,7 +15,6 @@ class AllUsersScreen extends StatefulWidget {
 }
 
 class _AllUsersScreenState extends State<AllUsersScreen> {
-  final DatabaseService _db = DatabaseService();
   final String? _adminId = FirebaseAuth.instance.currentUser?.uid;
   String _searchQuery = "";
   late Stream<List<Map<String, dynamic>>> _usersStream;
@@ -28,7 +26,7 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
   void initState() {
     super.initState();
     if (_adminId != null) {
-      _usersStream = _db.getAllUsers(_adminId!);
+      _usersStream = global.adminDb.getAllUsers(_adminId!);
     }
   }
 
@@ -112,7 +110,7 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Syncing user stats...")),
                     );
-                    await _db.fetchAllUsers(); // This triggers the sync logic in AdminService
+                    await global.adminDb.fetchAllUsers(); // This triggers the sync logic in AdminService
                     setState(() {});
                   },
                   tooltip: "Sync All Stats",

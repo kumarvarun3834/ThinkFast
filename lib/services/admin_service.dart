@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:thinkfast/services/user_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
+import 'attempt_service.dart';
 import 'settings_service.dart';
 
 class AdminService {
+  final UserService _userService = UserService();
+  final AttemptService _attemptService = AttemptService();
   final CollectionReference _admins = FirebaseFirestore.instance.collection(
     'admins',
   );
@@ -128,9 +132,7 @@ class AdminService {
   }) async {
     // Only admins with 'manage_admins' permission can add/update admins
     if (!await hasPermission(actorUid, 'manage_admins')) {
-      throw Exception(
-        'Unauthorized: Permission "manage_admins" required.',
-      );
+      throw Exception('Unauthorized: Permission "manage_admins" required.');
     }
 
     final Map<String, dynamic> data = {
@@ -142,11 +144,14 @@ class AdminService {
 
     // Integrity Check: Only the Super Admin (Level 0) can grant Level 0 or manage another Level 0
     final targetDoc = await _admins.doc(targetUid).get();
-    final bool isTargetSuper = targetDoc.exists && (targetDoc.data() as Map)['level'] == 0;
-    
+    final bool isTargetSuper =
+        targetDoc.exists && (targetDoc.data() as Map)['level'] == 0;
+
     if (global.adminLevel != 0) {
       if (makeSuper || isTargetSuper) {
-        throw Exception("Unauthorized: Only a Super Admin can manage Super Admin privileges.");
+        throw Exception(
+          "Unauthorized: Only a Super Admin can manage Super Admin privileges.",
+        );
       }
     }
 
@@ -164,7 +169,8 @@ class AdminService {
       actorId: actorUid,
       action: 'update_admin_permissions',
       targetId: targetUid,
-      details: 'Target: $targetUid, Permissions: $permissions, Super: $makeSuper',
+      details:
+          'Target: $targetUid, Permissions: $permissions, Super: $makeSuper',
       category: 'admin',
     );
   }
@@ -175,15 +181,17 @@ class AdminService {
     required String actorUid,
   }) async {
     if (!await hasPermission(actorUid, 'manage_admins')) {
-      throw Exception(
-        'Unauthorized: Permission "manage_admins" required.',
-      );
+      throw Exception('Unauthorized: Permission "manage_admins" required.');
     }
 
     // Integrity Check: Cannot remove Super Admin unless actor is Super Admin
     final targetDoc = await _admins.doc(targetUid).get();
-    if (targetDoc.exists && (targetDoc.data() as Map)['level'] == 0 && global.adminLevel != 0) {
-      throw Exception("Unauthorized: Only a Super Admin can remove another Super Admin.");
+    if (targetDoc.exists &&
+        (targetDoc.data() as Map)['level'] == 0 &&
+        global.adminLevel != 0) {
+      throw Exception(
+        "Unauthorized: Only a Super Admin can remove another Super Admin.",
+      );
     }
 
     await _admins.doc(targetUid).delete();
@@ -227,7 +235,9 @@ class AdminService {
       } else if (grantPermissions != null || revokePermissions != null) {
         List<String> currentPerms = [];
         if (doc.exists) {
-          currentPerms = List<String>.from((doc.data() as Map)['permissions'] ?? []);
+          currentPerms = List<String>.from(
+            (doc.data() as Map)['permissions'] ?? [],
+          );
         }
 
         if (grantPermissions != null) {
@@ -244,7 +254,9 @@ class AdminService {
 
       if (makeSuper != null) {
         if (global.adminLevel != 0) {
-          throw Exception("Unauthorized: Only a Super Admin can manage Super Admin privileges.");
+          throw Exception(
+            "Unauthorized: Only a Super Admin can manage Super Admin privileges.",
+          );
         }
         if (makeSuper) {
           updates['level'] = 0;
@@ -263,7 +275,8 @@ class AdminService {
       actorId: actorUid,
       action: 'bulk_update_admins',
       targetId: 'multiple',
-      details: 'Updated ${targetUids.length} admins. Action: grant=${grantPermissions}, revoke=${revokePermissions}, set=${setPermissions}',
+      details:
+          'Updated ${targetUids.length} admins. Action: grant=${grantPermissions}, revoke=${revokePermissions}, set=${setPermissions}',
       category: 'admin',
     );
   }
@@ -316,7 +329,11 @@ class AdminService {
     required String addedBy,
   }) async {
     // Only App Admin, Quiz Owner or manager with permission can add managers
-    if (!await canManageQuiz(quizId, addedBy, permission: 'can_manage_collaborators')) {
+    if (!await canManageQuiz(
+      quizId,
+      addedBy,
+      permission: 'can_manage_collaborators',
+    )) {
       throw Exception(
         "Unauthorized: Only the Quiz Owner, an App Admin, or an authorized Collaborator can manage collaborators.",
       );
@@ -379,8 +396,9 @@ class AdminService {
       }
     } else {
       // Quiz Ban: Requires App Admin OR Quiz Manager with 'canModerate' or 'can_ban_users'
-      final bool hasPerm = await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
-                           await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
+      final bool hasPerm =
+          await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
+          await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
       if (!hasPerm) {
         throw Exception(
           "Unauthorized: You do not have moderation or ban rights for this quiz.",
@@ -415,12 +433,12 @@ class AdminService {
     final doc = await _admins.doc(uid).get();
     if (!doc.exists) return false;
     final data = doc.data() as Map<String, dynamic>;
-    
+
     // Level 0 is Super User (hardcoded field)
     if (data['level'] == 0) return true;
 
     // Standard admins don't have a level field, they operate on permissions
-    // If a specific level (like 1 or 2) is required for sub-admin features, 
+    // If a specific level (like 1 or 2) is required for sub-admin features,
     // we treat standard admins as level 1.
     const standardLevel = 1;
     return standardLevel >= requiredLevel;
@@ -439,8 +457,9 @@ class AdminService {
         );
       }
     } else {
-      final bool hasPerm = await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
-                           await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
+      final bool hasPerm =
+          await canManageQuiz(quizId, adminId, permission: 'canModerate') ||
+          await canManageQuiz(quizId, adminId, permission: 'can_ban_users');
       if (!hasPerm) {
         throw Exception(
           "Unauthorized: You do not have moderation or ban rights for this quiz.",
@@ -655,7 +674,9 @@ class AdminService {
     required String adminId,
   }) async {
     if (!await hasPermission(adminId, 'manage_all_quizzes')) {
-      throw Exception("Unauthorized: 'manage_all_quizzes' permission required.");
+      throw Exception(
+        "Unauthorized: 'manage_all_quizzes' permission required.",
+      );
     }
 
     await FirebaseFirestore.instance
@@ -675,8 +696,12 @@ class AdminService {
   /// ✅ Get all quiz access records for a specific user (for local caching)
   Future<List<Map<String, dynamic>>> getUserAccessRecords(String userId) async {
     try {
-      final snapshot = await _quizAccess.where('userId', isEqualTo: userId).get();
-      return snapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+      final snapshot = await _quizAccess
+          .where('userId', isEqualTo: userId)
+          .get();
+      return snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
     } catch (e) {
       return [];
     }
@@ -690,7 +715,8 @@ class AdminService {
     String? permission,
   }) async {
     // 1. App Admin has global access
-    if (global.isAdmin && userId == FirebaseAuth.instance.currentUser?.uid) return true;
+    if (global.isAdmin && userId == FirebaseAuth.instance.currentUser?.uid)
+      return true;
     if (await isAdmin(userId)) return true;
 
     // 2. Check Local Cache (Fastest)
@@ -699,12 +725,19 @@ class AdminService {
       if (permission == null) return true;
       final perms = global.managedQuizzes[quizId]!;
       if (perms[permission] == true) return true;
-      
+
       // Permission Aliases
-      if (permission == 'canModerate' && (perms['can_moderate'] == true || perms['canModerate'] == true)) return true;
-      if (permission == 'can_update' && (perms['canUpdateData'] == true || perms['can_update'] == true)) return true;
-      if (permission == 'can_ban_users' && perms['can_ban_users'] == true) return true;
-      if (permission == 'can_manage_collaborators' && perms['can_manage_collaborators'] == true) return true;
+      if (permission == 'canModerate' &&
+          (perms['can_moderate'] == true || perms['canModerate'] == true))
+        return true;
+      if (permission == 'can_update' &&
+          (perms['canUpdateData'] == true || perms['can_update'] == true))
+        return true;
+      if (permission == 'can_ban_users' && perms['can_ban_users'] == true)
+        return true;
+      if (permission == 'can_manage_collaborators' &&
+          perms['can_manage_collaborators'] == true)
+        return true;
     }
 
     try {
@@ -725,18 +758,27 @@ class AdminService {
         final data = accessDoc.data() as Map<String, dynamic>;
         if (data['role'] == 'manager') {
           // Update cache
-          global.managedQuizzes[quizId] = Map<String, dynamic>.from(data['permissions'] ?? {});
-          
+          global.managedQuizzes[quizId] = Map<String, dynamic>.from(
+            data['permissions'] ?? {},
+          );
+
           if (permission == null) return true;
           final perms = data['permissions'] as Map<String, dynamic>? ?? {};
           if (perms[permission] == true) return true;
 
           // Permission Aliases
-          if (permission == 'canModerate' && (perms['can_moderate'] == true || perms['canModerate'] == true)) return true;
-          if (permission == 'can_update' && (perms['canUpdateData'] == true || perms['can_update'] == true)) return true;
-          if (permission == 'can_ban_users' && perms['can_ban_users'] == true) return true;
-          if (permission == 'can_manage_collaborators' && perms['can_manage_collaborators'] == true) return true;
-          
+          if (permission == 'canModerate' &&
+              (perms['can_moderate'] == true || perms['canModerate'] == true))
+            return true;
+          if (permission == 'can_update' &&
+              (perms['canUpdateData'] == true || perms['can_update'] == true))
+            return true;
+          if (permission == 'can_ban_users' && perms['can_ban_users'] == true)
+            return true;
+          if (permission == 'can_manage_collaborators' &&
+              perms['can_manage_collaborators'] == true)
+            return true;
+
           return false;
         }
       }
@@ -771,7 +813,11 @@ class AdminService {
     required String removedBy,
   }) async {
     // Only App Admin, Quiz Owner or manager with permission can remove managers
-    if (!await canManageQuiz(quizId, removedBy, permission: 'can_manage_collaborators')) {
+    if (!await canManageQuiz(
+      quizId,
+      removedBy,
+      permission: 'can_manage_collaborators',
+    )) {
       throw Exception(
         "Unauthorized: Insufficient permissions to remove collaborators.",
       );
@@ -788,35 +834,74 @@ class AdminService {
     );
   }
 
-  /// ✅ Get all managers for a quiz with profile data
+  /// ✅ Stream all managers for a quiz with profile data
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) {
     return _quizAccess
         .where('quizId', isEqualTo: quizId)
         .where('role', isEqualTo: 'manager')
         .snapshots()
         .asyncMap((snapshot) async {
-      final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((doc) async {
-        final data = doc.data() as Map<String, dynamic>;
+          final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((
+            doc,
+          ) async {
+            final data = doc.data() as Map<String, dynamic>;
 
-        try {
-          // Fetch user profile
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(data['userId'])
-              .get();
-          if (userDoc.exists) {
-            final userData = userDoc.data() as Map<String, dynamic>;
-            data['userName'] = userData['name'];
-            data['userPhoto'] = userData['photoUrl'];
-          }
-        } catch (e) {
-          debugPrint("Error fetching profile for manager ${data['userId']}: $e");
-        }
-        return data;
-      }).toList();
+            try {
+              // Fetch user profile
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(data['userId'])
+                  .get();
+              if (userDoc.exists) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                data['userName'] = userData['name'];
+                data['userPhoto'] = userData['photoUrl'];
+              }
+            } catch (e) {
+              debugPrint(
+                "Error fetching profile for manager ${data['userId']}: $e",
+              );
+            }
+            return data;
+          }).toList();
 
-      return await Future.wait(futures);
-    });
+          return await Future.wait(futures);
+        });
+  }
+
+  /// ✅ Stream all allowed participants for a quiz
+  Stream<List<Map<String, dynamic>>> getQuizParticipants(String quizId) {
+    return _quizAccess
+        .where('quizId', isEqualTo: quizId)
+        .where('role', isEqualTo: 'participant')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((
+            doc,
+          ) async {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+
+            try {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(data['userId'])
+                  .get();
+              if (userDoc.exists) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                data['userName'] = userData['name'];
+                data['userPhoto'] = userData['photoUrl'];
+              }
+            } catch (e) {
+              debugPrint(
+                "Error fetching profile for participant ${data['userId']}: $e",
+              );
+            }
+            return data;
+          }).toList();
+
+          return await Future.wait(futures);
+        });
   }
 
   /// ✅ Get all audit logs (Admin only) (Stream)
@@ -838,7 +923,7 @@ class AdminService {
         .orderBy('timestamp', descending: true)
         .limit(200)
         .get();
-    
+
     return snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       data['id'] = doc.id;
@@ -869,8 +954,10 @@ class AdminService {
       );
     }
     try {
-      final doc =
-          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       if (!doc.exists) return null;
 
       final data = doc.data() as Map<String, dynamic>;
@@ -909,20 +996,23 @@ class AdminService {
           .collection('responses')
           .where('userId', isEqualTo: uid)
           .get();
-      final currentAttemptCount = attempts.docs.where((doc) => doc.data()['isDeleted'] != true).length;
-      final currentDeletedCount = attempts.docs.where((doc) => doc.data()['isDeleted'] == true).length;
+      final currentAttemptCount = attempts.docs
+          .where((doc) => doc.data()['isDeleted'] != true)
+          .length;
+      final currentDeletedCount = attempts.docs
+          .where((doc) => doc.data()['isDeleted'] == true)
+          .length;
 
       // Update document if stats have changed
-      if (data['quizCount'] != currentQuizCount || 
+      if (data['quizCount'] != currentQuizCount ||
           data['attemptCount'] != currentAttemptCount ||
           data['deletedAttemptCount'] != currentDeletedCount) {
-        
         await FirebaseFirestore.instance.collection('users').doc(uid).update({
           'quizCount': currentQuizCount,
           'attemptCount': currentAttemptCount,
           'deletedAttemptCount': currentDeletedCount,
         });
-        
+
         data['quizCount'] = currentQuizCount;
         data['attemptCount'] = currentAttemptCount;
         data['deletedAttemptCount'] = currentDeletedCount;
@@ -962,27 +1052,43 @@ class AdminService {
     // Integrity Check: Cannot delete a Super Admin or even another admin without manage_admins
     final targetDoc = await _admins.doc(targetUid).get();
     if (targetDoc.exists) {
-       if (!await hasPermission(adminId, 'manage_admins')) {
-         throw Exception("Unauthorized: 'manage_admins' permission required to delete another admin.");
-       }
-       final bool isTargetSuper = (targetDoc.data() as Map)['level'] == 0;
-       if (isTargetSuper && global.adminLevel != 0) {
-         throw Exception("Unauthorized: Only a Super Admin can delete another Super Admin.");
-       }
+      if (!await hasPermission(adminId, 'manage_admins')) {
+        throw Exception(
+          "Unauthorized: 'manage_admins' permission required to delete another admin.",
+        );
+      }
+      final bool isTargetSuper = (targetDoc.data() as Map)['level'] == 0;
+      if (isTargetSuper && global.adminLevel != 0) {
+        throw Exception(
+          "Unauthorized: Only a Super Admin can delete another Super Admin.",
+        );
+      }
     }
 
     final batch = FirebaseFirestore.instance.batch();
-    
+
     // 1. Delete user doc
     batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid));
-    
+
     // 2. Delete private/protected details
-    batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid).collection('private').doc('details'));
-    batch.delete(FirebaseFirestore.instance.collection('users').doc(targetUid).collection('protected').doc('details'));
-    
+    batch.delete(
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .collection('private')
+          .doc('details'),
+    );
+    batch.delete(
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetUid)
+          .collection('protected')
+          .doc('details'),
+    );
+
     // 3. Remove from admin list if present
     batch.delete(_admins.doc(targetUid));
-    
+
     // 4. Remove all global bans
     batch.delete(_bannedUsers.doc('global_$targetUid'));
 
@@ -1049,11 +1155,13 @@ class AdminService {
         .collection('users')
         .orderBy('createdAt', descending: true)
         .get();
-    
-    final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((doc) async {
+
+    final List<Future<Map<String, dynamic>>> futures = snapshot.docs.map((
+      doc,
+    ) async {
       final data = doc.data();
       data['uid'] = doc.id;
-      
+
       // Proactive sync for list view
       if (!data.containsKey('quizCount') || data['quizCount'] == 0) {
         final quizzes = await FirebaseFirestore.instance
@@ -1062,7 +1170,7 @@ class AdminService {
             .where('isDeleted', isEqualTo: false)
             .get();
         data['quizCount'] = quizzes.docs.length;
-        
+
         // Background update to Firestore to fix the record
         if (data['quizCount'] > 0) {
           FirebaseFirestore.instance.collection('users').doc(doc.id).update({
@@ -1070,10 +1178,55 @@ class AdminService {
           });
         }
       }
-      
+
       return data;
     }).toList();
 
     return await Future.wait(futures);
+  }
+
+  /// ✅ Remove all tags that are not linked to any quizzes (Admin only)
+  Future<int> removeEmptyTags(String adminId) async {
+    if (!await hasPermission(adminId, 'manage_app_settings')) {
+      throw Exception(
+        "Unauthorized: 'manage_app_settings' permission required.",
+      );
+    }
+
+    final snapshot = await FirebaseFirestore.instance.collection('tags').get();
+    int count = 0;
+    final batch = FirebaseFirestore.instance.batch();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final List quizIds = data['quizIds'] as List? ?? [];
+      if (quizIds.isEmpty) {
+        batch.delete(doc.reference);
+        count++;
+      }
+    }
+
+    if (count > 0) await batch.commit();
+
+    await logAction(
+      actorId: adminId,
+      action: 'remove_empty_tags',
+      targetId: 'multiple',
+      details: 'Cleaned up $count orphaned tags.',
+      category: 'admin_master',
+    );
+
+    return count;
+  }
+
+  /// ✅ Get user attempts (Admin view)
+  Stream<List<Map<String, dynamic>>> getUserAttempts(
+    String userId, {
+    bool includeDeleted = false,
+  }) {
+    return _attemptService.getUserAttempts(
+      userId,
+      includeDeleted: includeDeleted,
+    );
   }
 }

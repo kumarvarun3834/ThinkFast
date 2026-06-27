@@ -49,6 +49,7 @@ class QuizService {
     int? moduleCount,
     String? markingType,
     String? attemptLimitType,
+    Map<String, List<String>>? moduleTags,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -139,6 +140,7 @@ class QuizService {
       'markingType': markingType ?? 'default',
       'attemptLimitType': attemptLimitType ?? 'none',
       'isDeleted': false,
+      'moduleTags': moduleTags ?? {},
     });
 
     batch.set(_questions.doc(targetQuizId), {
@@ -156,10 +158,11 @@ class QuizService {
     // 5. Sync Tags to global tags collection
     if (tags != null && tags.isNotEmpty) {
       for (var tag in tags) {
-        batch.set(_tags.doc(tag.toLowerCase().trim()), {
-          'name': tag.trim(),
+        final tagId = tag.toLowerCase().trim();
+        batch.set(_tags.doc(tagId), {
+          'name': tagId,
           'lastUsed': FieldValue.serverTimestamp(),
-          'count': FieldValue.increment(1),
+          'quizIds': FieldValue.arrayUnion([targetQuizId]),
         }, SetOptions(merge: true));
       }
     }
@@ -202,10 +205,11 @@ class QuizService {
       if (updates.containsKey('tags')) {
         final List<String> tags = List<String>.from(updates['tags'] ?? []);
         for (var tag in tags) {
-          await _tags.doc(tag.toLowerCase().trim()).set({
-            'name': tag.trim(),
+          final tagId = tag.toLowerCase().trim();
+          await _tags.doc(tagId).set({
+            'name': tagId,
             'lastUsed': FieldValue.serverTimestamp(),
-            'count': FieldValue.increment(1),
+            'quizIds': FieldValue.arrayUnion([quizId]),
           }, SetOptions(merge: true));
         }
       }

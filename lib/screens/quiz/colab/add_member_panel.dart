@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AddMemberPanel extends StatefulWidget {
@@ -20,7 +19,6 @@ class AddMemberPanel extends StatefulWidget {
 
 class _AddMemberPanelState extends State<AddMemberPanel> {
   final TextEditingController _userIdController = TextEditingController();
-  final DatabaseService _db = DatabaseService();
   bool _isProcessing = false;
 
   final Map<String, bool> _permissions = {
@@ -54,7 +52,7 @@ class _AddMemberPanelState extends State<AddMemberPanel> {
     try {
       for (String targetId in targetIds) {
         try {
-          await _db.grantManagementAccess(
+          await global.qDb.grantManagementAccess(
             quizId: widget.quizId,
             userId: targetId,
             permissions: Map.from(_permissions),

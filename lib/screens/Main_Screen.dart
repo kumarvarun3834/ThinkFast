@@ -3,13 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/ai_service.dart';
-import '../services/firebase_direct_commands.dart';
-import '../widgets/drawer_data.dart';
-import '../widgets/quiz_widgets.dart';
-
-import '../services/quiz_data_processor.dart';
-import '../utils/global.dart' as global;
+import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/widgets/drawer_data.dart';
+import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 class Main_Screen extends StatefulWidget {
   final User? creator;
@@ -40,6 +36,10 @@ class _Main_ScreenState extends State<Main_Screen> {
   final Set<String> _selectedQuizIds = {};
   bool _isSelectionMode = false;
 
+  // Filter Logic
+  final Set<String> _selectedTags = {};
+  bool _isStrictFilter = false;
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +47,7 @@ class _Main_ScreenState extends State<Main_Screen> {
       if (mounted) {
         setState(() => _user = u);
         if (u != null && global.currentUserProfile == null) {
-          await DatabaseService().initAppData(u.uid);
+          await global.db.initAppData(u.uid);
           if (mounted) setState(() {}); // Refresh with new global data
         }
       }
@@ -104,13 +104,12 @@ class _Main_ScreenState extends State<Main_Screen> {
     );
 
     if (confirm == true) {
-      final db = DatabaseService();
       try {
         for (String id in _selectedQuizIds) {
           if (widget.showTrash) {
-            await db.restoreDatabase(docId: id, currentUserId: _user!.uid);
+            await global.qDb.restoreDatabase(docId: id, currentUserId: _user!.uid);
           } else {
-            await db.deleteDatabase(docId: id, currentUserId: _user!.uid);
+            await global.qDb.deleteDatabase(docId: id, currentUserId: _user!.uid);
           }
         }
         if (mounted) {
@@ -136,7 +135,7 @@ class _Main_ScreenState extends State<Main_Screen> {
 
   /// 🔥 READ QUIZZES
   Stream<List<Map<String, dynamic>>> readDatabases() {
-    return DatabaseService().readAllDatabases(
+    return global.db.readAllDatabases(
       showMyQuizzes: widget.showMyQuizzes,
       showManagedQuizzes: widget.showManagedQuizzes,
       showTrash: widget.showTrash,
@@ -179,7 +178,7 @@ class _Main_ScreenState extends State<Main_Screen> {
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         elevation: 0,
         color: isSelected
-            ? global.primaryAccent.withOpacity(0.15)
+            ? global.primaryAccent.withValues(alpha: 0.15)
             : global.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -300,7 +299,7 @@ class _Main_ScreenState extends State<Main_Screen> {
             ),
             onPressed: () async {
               try {
-                await DatabaseService().restoreDatabase(
+                await global.qDb.restoreDatabase(
                   docId: data['id'],
                   currentUserId: _user!.uid,
                 );
@@ -319,6 +318,125 @@ class _Main_ScreenState extends State<Main_Screen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTagFilterBar() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tags')
+          .orderBy('lastUsed', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
+        final tags = snapshot.data!.docs.where((doc) {
+          final List quizIds = (doc.data() as Map)['quizIds'] as List? ?? [];
+          return quizIds.isNotEmpty; // Hide empty tags
+        }).toList();
+
+        if (tags.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Row(
+                children: [
+                  Text(
+                    "FILTER BY TAGS",
+                    style: GoogleFonts.poppins(
+                      color: global.labelColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    "STRICT",
+                    style: GoogleFonts.poppins(
+                      color: _isStrictFilter
+                          ? global.primaryAccent
+                          : global.labelColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  SizedBox(
+                    height: 24,
+                    child: Switch(
+                      value: _isStrictFilter,
+                      activeThumbColor: global.primaryAccent,
+                      onChanged: (v) => setState(() => _isStrictFilter = v),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              height: 50,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: tags.length,
+                itemBuilder: (context, index) {
+                  final tag = tags[index].id;
+                  final isSelected = _selectedTags.contains(tag);
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: FilterChip(
+                      label: Text(
+                        tag,
+                        style: TextStyle(
+                          color: isSelected ? Colors.black : global.valueColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                      selected: isSelected,
+                      selectedColor: global.primaryAccent,
+                      checkmarkColor: Colors.black,
+                      backgroundColor: global.cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        side: BorderSide(
+                          color: isSelected
+                              ? global.primaryAccent
+                              : global.borderColor,
+                        ),
+                      ),
+                      onSelected: (v) {
+                        setState(() {
+                          if (v) {
+                            _selectedTags.add(tag);
+                          } else {
+                            _selectedTags.remove(tag);
+                          }
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (_selectedTags.isNotEmpty)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: TextButton(
+                    onPressed: () => setState(() => _selectedTags.clear()),
+                    child: const Text(
+                      "Clear Filters",
+                      style: TextStyle(color: global.errorColor, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -416,51 +534,72 @@ class _Main_ScreenState extends State<Main_Screen> {
             ),
       body: Container(
         color: global.bgColor,
-        child: StreamBuilder<List<Map<String, dynamic>>>(
-          stream: readDatabases(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: global.primaryAccent),
-              );
-            }
+        child: Column(
+          children: [
+            if (!_isSelectionMode) _buildTagFilterBar(),
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: readDatabases(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: global.primaryAccent),
+                    );
+                  }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No quizzes available",
-                  style: TextStyle(color: global.labelColor),
-                ),
-              );
-            }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "No quizzes available",
+                        style: TextStyle(color: global.labelColor),
+                      ),
+                    );
+                  }
 
-            final filteredQuizzes = snapshot.data!.where((quiz) {
-              final title = (quiz['title'] ?? "").toString().toLowerCase();
-              return title.contains(_searchQuery);
-            }).toList();
+                  final filteredQuizzes = snapshot.data!.where((quiz) {
+                    final title = (quiz['title'] ?? "").toString().toLowerCase();
+                    final matchesSearch = title.contains(_searchQuery);
+                    
+                    if (_selectedTags.isEmpty) return matchesSearch;
 
-            if (filteredQuizzes.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No matching quizzes found",
-                  style: TextStyle(color: global.labelColor),
-                ),
-              );
-            }
+                    final quizTags = List<String>.from(quiz['tags'] ?? []);
+                    bool matchesTags;
+                    if (_isStrictFilter) {
+                      // Strict: Quiz must have ALL selected tags
+                      matchesTags = _selectedTags.every((tag) => quizTags.contains(tag));
+                    } else {
+                      // Non-strict: Quiz must have AT LEAST ONE selected tag
+                      matchesTags = _selectedTags.any((tag) => quizTags.contains(tag));
+                    }
 
-            return ListView.builder(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                MediaQuery.of(context).padding.bottom + 100,
+                    return matchesSearch && matchesTags;
+                  }).toList();
+
+                  if (filteredQuizzes.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "No matching quizzes found",
+                        style: TextStyle(color: global.labelColor),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      MediaQuery.of(context).padding.bottom + 100,
+                    ),
+                    itemCount: filteredQuizzes.length,
+                    itemBuilder: (context, index) {
+                      return buildQuizCard(filteredQuizzes[index]);
+                    },
+                  );
+                },
               ),
-              itemCount: filteredQuizzes.length,
-              itemBuilder: (context, index) {
-                return buildQuizCard(filteredQuizzes[index]);
-              },
-            );
-          },
+            ),
+          ],
         ),
       ),
       floatingActionButton:

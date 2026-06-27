@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizStatusPanel extends StatefulWidget {
@@ -24,7 +23,6 @@ class QuizStatusPanel extends StatefulWidget {
 
 class _QuizStatusPanelState extends State<QuizStatusPanel> {
   bool _isProcessing = false;
-  final DatabaseService _db = DatabaseService();
 
   Future<void> _toggleLock(bool newValue) async {
     final uid = widget.currentUserId;
@@ -32,7 +30,7 @@ class _QuizStatusPanelState extends State<QuizStatusPanel> {
     
     setState(() => _isProcessing = true);
     try {
-      await _db.toggleQuizLock(
+      await global.qDb.toggleQuizLock(
         docId: widget.quizId,
         currentUserId: uid,
         isLocked: newValue,

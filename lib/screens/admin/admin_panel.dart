@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/admin_service.dart';
@@ -220,6 +221,71 @@ class _AdminPanelState extends State<AdminPanel> {
               _buildSectionHeader("Rate Limits"),
               const SizedBox(height: 12),
               _buildRateLimitField(flags),
+              const SizedBox(height: 24),
+
+              _buildSectionHeader("Database Maintenance"),
+              const SizedBox(height: 12),
+              _buildManagementTile(
+                icon: Icons.cleaning_services_outlined,
+                title: "Cleanup Orphaned Tags",
+                subtitle: "Remove tags with no associated quizzes",
+                enabled:
+                    _isMaster || _permissions.contains('manage_app_settings'),
+                onTap: () async {
+                  final String? adminId =
+                      FirebaseAuth.instance.currentUser?.uid;
+                  if (adminId == null) return;
+
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: global.cardColor,
+                      title: const Text(
+                        "Cleanup Tags?",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      content: const Text(
+                        "This will permanently delete all tags that are not linked to any active quizzes.",
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("CANCEL"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text("CLEANUP"),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    try {
+                      final count = await global.adminDb.removeEmptyTags(adminId);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              "Successfully removed $count empty tag(s).",
+                            ),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Cleanup Error: $e"),
+                            backgroundColor: global.errorColor,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
               SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
             ],
           );

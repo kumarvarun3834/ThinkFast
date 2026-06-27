@@ -1,5 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../services/firebase/qadminconnect.dart';
+import '../services/firebase/adminconnect.dart';
+import '../services/firebase/aiconnect.dart';
+import '../services/firebase/userconnect.dart';
+
+// Database Services (Global Instances)
+final UserDatabaseService userConnect = UserDatabaseService();
+final AdminDatabaseService adminConnect = AdminDatabaseService();
+final QAdminDatabaseService qAdminConnect = QAdminDatabaseService();
+final AiDatabaseService aiConnect = AiDatabaseService();
+
+// Deprecated aliases (Use the *Connect variants above)
+final UserDatabaseService db = userConnect;
+final AdminDatabaseService adminDb = adminConnect;
+final QAdminDatabaseService qDb = qAdminConnect;
+final AiDatabaseService aiDb = aiConnect;
+
 List<Map<String, Object>> quizData = [];
 List<dynamic> quizResult = [];
 List<String> originalQuestionOrder = []; // UIDs in the database/original format
@@ -24,7 +41,8 @@ List<String> adminPermissions = []; // Platform-wide permissions
 
 // Local Session Cache for Permissions & Ownership
 Set<String> ownedQuizIds = {};
-Map<String, Map<String, dynamic>> managedQuizzes = {}; // quizId -> permissions map
+Map<String, Map<String, dynamic>> managedQuizzes =
+    {}; // quizId -> permissions map
 
 // 🎨 Theme Colors (ThinkFast Palette)
 const Color bgColor = Color(0xFF0F172A); // Deep Blue/Black Background
@@ -35,6 +53,7 @@ const Color labelColor = Color(0xFF94A3B8); // Muted Gray for Labels/Hints
 const Color valueColor = Color(0xFFE2E8F0); // Light Gray for Text/Values
 const Color borderColor = Color(0xFF334155); // Subtle Border/Divider Color
 const Color hintColor = Color(0xFF475569); // Muted Blue/Gray for hints/disabled
+
 const Color successColor = Colors.greenAccent;
 const Color errorColor = Colors.redAccent;
 const Color warningColor = Colors.orangeAccent;

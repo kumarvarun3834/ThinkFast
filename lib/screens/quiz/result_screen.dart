@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
+import 'package:thinkfast/services/firebase/userconnect.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/TextContainer.dart';
 
@@ -53,7 +53,6 @@ class _ResultScreenState extends State<ResultScreen> {
 
   Future<void> _loadAnswersAndCalculateScore() async {
     try {
-      final db = DatabaseService();
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception("User not logged in");
 
@@ -76,7 +75,7 @@ class _ResultScreenState extends State<ResultScreen> {
             : [];
 
         // Fetch quiz data (questions)
-        final quiz = await db.readDatabase(_quizId, userId: user.uid);
+        final quiz = await global.db.readDatabase(_quizId, userId: user.uid);
         _displayQuizData = [];
         final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
         final List<Map<String, dynamic>> allQuestions = [];
@@ -139,7 +138,7 @@ class _ResultScreenState extends State<ResultScreen> {
         }
 
         // Fetch correct answers
-        final response = await db.getQuizAnswers(_quizId, user.uid);
+        final response = await global.db.getQuizAnswers(_quizId, user.uid);
         _correctAnswers = response['answers'];
         _solutions = response['solutions'];
       } else {
@@ -165,7 +164,7 @@ class _ResultScreenState extends State<ResultScreen> {
         }
 
         // Fetch answers and SUBMIT attempt in one call
-        final response = await db.getQuizAnswers(
+        final response = await global.db.getQuizAnswers(
           _quizId,
           user.uid,
           totalQuestions: displayQuizResult.length,

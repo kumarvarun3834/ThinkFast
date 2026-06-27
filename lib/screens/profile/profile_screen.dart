@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class ProfileScreen extends StatefulWidget {
@@ -13,7 +12,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final DatabaseService _dbService = DatabaseService();
   final User? _user = FirebaseAuth.instance.currentUser;
 
   final TextEditingController _nameController = TextEditingController();
@@ -50,7 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedUser = FirebaseAuth.instance.currentUser;
 
       _uidController.text = updatedUser?.uid ?? '';
-      final profile = await _dbService.getUserProfile(
+      final profile = await global.db.getUserProfile(
         updatedUser!.uid,
         actorId: updatedUser.uid,
       );
@@ -106,13 +104,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       // Save Public Profile
-      await _dbService.updateUserProfile(
+      await global.db.updateUserProfile(
         uid: _user.uid,
         name: _nameController.text.trim(),
       );
 
       // Save Protected AI Details
-      await _dbService.updateProtectedDetails(
+      await global.db.updateProtectedDetails(
         uid: _user.uid,
         details: {
           'class': _classController.text.trim(),

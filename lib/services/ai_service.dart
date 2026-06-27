@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 import 'admin_service.dart';
-import 'firebase_direct_commands.dart';
 import 'quiz_data_processor.dart';
 import 'settings_service.dart';
 
@@ -41,7 +41,7 @@ class AiService {
       'prompt': prompt,
       'generatedQuizId': generatedQuizId,
       'createdAt': FieldValue.serverTimestamp(),
-      if (metadata != null) 'metadata': metadata,
+      'metadata': metadata,
     });
 
     // Update usage
@@ -141,8 +141,7 @@ class AiService {
     _performQualityChecks(result);
 
     // 4. Save to Database
-    final db = DatabaseService();
-    final quizId = await db.createDatabase(
+    final quizId = await global.qDb.createDatabase(
       creatorId: userId,
       user: userName,
       title: result.title ?? "AI: $prompt",
@@ -188,10 +187,12 @@ class AiService {
   /// 🛠️ JSON Schema Validator
   void _validateJsonSchema(String rawJson) {
     final Map<String, dynamic> data = jsonDecode(rawJson);
-    if (!data.containsKey('title') || data['title'] is! String)
+    if (!data.containsKey('title') || data['title'] is! String) {
       throw "Missing 'title'";
-    if (!data.containsKey('questions') || data['questions'] is! List)
+    }
+    if (!data.containsKey('questions') || data['questions'] is! List) {
       throw "Missing 'questions' list";
+    }
 
     for (var q in data['questions']) {
       if (q['question'] == null || q['type'] == null)

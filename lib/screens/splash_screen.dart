@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../services/firebase_direct_commands.dart';
 import '../widgets/ImageContainer.dart';
 import '../utils/global.dart' as global;
 
@@ -21,13 +20,11 @@ class _MySplashState extends State<MySplash> {
       if (mounted) {
         final user = FirebaseAuth.instance.currentUser;
         try {
-          final db = DatabaseService();
-
           if (user != null) {
-            await db.initAppData(user.uid);
+            await global.db.initAppData(user.uid);
           } else {
             // If not logged in, still fetch flags for maintenance check
-            global.featureFlags = await db.getFeatureFlags();
+            global.featureFlags = await global.db.getFeatureFlags();
           }
         } catch (e) {
           debugPrint("Initialization error: $e");

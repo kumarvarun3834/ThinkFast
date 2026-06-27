@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'auth_service.dart';
 
@@ -26,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _fetchFlags() async {
     if (global.featureFlags == null) {
-      await DatabaseService().getFeatureFlags();
+      await global.db.getFeatureFlags();
     }
   }
 
@@ -45,8 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (user != null) {
-        final db = DatabaseService();
-        await db.initAppData(user.uid);
+        await global.db.initAppData(user.uid);
 
         // Check if login is enabled or if user is an admin
         final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
@@ -84,8 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final user = await auth.signInWithGoogle();
       if (user != null) {
-        final db = DatabaseService();
-        await db.initAppData(user.uid);
+        await global.db.initAppData(user.uid);
 
         // Check if login is enabled or if user is an admin
         final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;

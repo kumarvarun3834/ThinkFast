@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
+// import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+
 import 'collaborator_tile.dart';
 
 class TeamListPanel extends StatefulWidget {
@@ -22,7 +23,6 @@ class TeamListPanel extends StatefulWidget {
 }
 
 class _TeamListPanelState extends State<TeamListPanel> {
-  final DatabaseService _db = DatabaseService();
   final Set<String> _selectedUids = {};
   bool _isSelectionMode = false;
   bool _isProcessing = false;
@@ -31,7 +31,7 @@ class _TeamListPanelState extends State<TeamListPanel> {
   @override
   void initState() {
     super.initState();
-    _managersStream = _db.getQuizManagers(widget.quizId);
+    _managersStream = global.qDb.getQuizManagers(widget.quizId);
   }
 
   void _toggleSelection(String uid) {
@@ -54,15 +54,26 @@ class _TeamListPanelState extends State<TeamListPanel> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: global.cardColor,
-        title: const Text("Remove Collaborators?", style: TextStyle(color: Colors.white)),
-        content: Text("Are you sure you want to revoke access for ${_selectedUids.length} member(s)?",
-            style: const TextStyle(color: Colors.white70)),
+        title: const Text(
+          "Remove Collaborators?",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          "Are you sure you want to revoke access for ${_selectedUids.length} member(s)?",
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("CANCEL"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: global.errorColor),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("REMOVE ALL", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "REMOVE ALL",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -73,7 +84,7 @@ class _TeamListPanelState extends State<TeamListPanel> {
       int successCount = 0;
       try {
         for (String uid in _selectedUids) {
-          await _db.removeManagementAccess(
+          await global.qDb.removeManagementAccess(
             quizId: widget.quizId,
             userId: uid,
             removedBy: widget.currentUserId!,
@@ -91,7 +102,9 @@ class _TeamListPanelState extends State<TeamListPanel> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Error: $e")));
         }
       } finally {
         if (mounted) setState(() => _isProcessing = false);
@@ -102,7 +115,8 @@ class _TeamListPanelState extends State<TeamListPanel> {
   void _showEditPermissionsDialog(Map<String, dynamic> collaborator) {
     final String uid = collaborator['userId'];
     final String name = collaborator['userName'] ?? "User";
-    final Map<String, dynamic> currentPerms = collaborator['permissions'] as Map<String, dynamic>? ?? {};
+    final Map<String, dynamic> currentPerms =
+        collaborator['permissions'] as Map<String, dynamic>? ?? {};
     final Map<String, bool> selectedPermissions = {
       for (var entry in currentPerms.entries) entry.key: entry.value == true,
     };
@@ -126,32 +140,55 @@ class _TeamListPanelState extends State<TeamListPanel> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: global.cardColor,
-          title: Text("Edit Permissions", style: const TextStyle(color: global.valueColor)),
+          title: Text(
+            "Edit Permissions",
+            style: const TextStyle(color: global.valueColor),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(name, style: const TextStyle(color: global.primaryAccent, fontWeight: FontWeight.bold)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: global.primaryAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 16),
-                ...availablePermissions.entries.map((entry) => CheckboxListTile(
-                      title: Text(entry.value, style: const TextStyle(color: global.valueColor, fontSize: 14)),
-                      value: selectedPermissions[entry.key] ?? false,
-                      activeColor: global.primaryAccent,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          selectedPermissions[entry.key] = val ?? false;
-                        });
-                      },
-                    )),
+                ...availablePermissions.entries.map(
+                  (entry) => CheckboxListTile(
+                    title: Text(
+                      entry.value,
+                      style: const TextStyle(
+                        color: global.valueColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                    value: selectedPermissions[entry.key] ?? false,
+                    activeColor: global.primaryAccent,
+                    onChanged: (val) {
+                      setDialogState(() {
+                        selectedPermissions[entry.key] = val ?? false;
+                      });
+                    },
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(color: global.labelColor))),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "CANCEL",
+                style: TextStyle(color: global.labelColor),
+              ),
+            ),
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await _db.grantManagementAccess(
+                  await global.qDb.grantManagementAccess(
                     quizId: widget.quizId,
                     userId: uid,
                     permissions: selectedPermissions,
@@ -159,13 +196,20 @@ class _TeamListPanelState extends State<TeamListPanel> {
                   );
                   if (mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Permissions updated")));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Permissions updated")),
+                    );
                   }
                 } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                  if (mounted)
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text("Error: $e")));
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: global.primaryAccent),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.primaryAccent,
+              ),
               child: const Text("UPDATE"),
             ),
           ],
@@ -187,9 +231,10 @@ class _TeamListPanelState extends State<TeamListPanel> {
             ),
           );
         }
-        
+
         final managers = snapshot.data ?? [];
-        final bool isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final bool isLoading =
+            snapshot.connectionState == ConnectionState.waiting;
 
         if (isLoading) {
           return const Center(child: CircularProgressIndicator());
@@ -199,7 +244,10 @@ class _TeamListPanelState extends State<TeamListPanel> {
           return const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Text("No collaborators yet", style: TextStyle(color: global.labelColor)),
+              child: Text(
+                "No collaborators yet",
+                style: TextStyle(color: global.labelColor),
+              ),
             ),
           );
         }
@@ -213,13 +261,22 @@ class _TeamListPanelState extends State<TeamListPanel> {
                   children: [
                     Text(
                       "${_selectedUids.length} selected",
-                      style: const TextStyle(color: global.primaryAccent, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: global.primaryAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const Spacer(),
                     TextButton.icon(
                       onPressed: _bulkRemove,
-                      icon: const Icon(Icons.delete_sweep, color: global.errorColor),
-                      label: const Text("REMOVE SELECTED", style: TextStyle(color: global.errorColor)),
+                      icon: const Icon(
+                        Icons.delete_sweep,
+                        color: global.errorColor,
+                      ),
+                      label: const Text(
+                        "REMOVE SELECTED",
+                        style: TextStyle(color: global.errorColor),
+                      ),
                     ),
                     IconButton(
                       onPressed: () => setState(() {
@@ -241,22 +298,37 @@ class _TeamListPanelState extends State<TeamListPanel> {
                 isSelected: isSelected,
                 isSelectionMode: _isSelectionMode,
                 onLongPress: () => _toggleSelection(uid),
-                onTap: _isSelectionMode ? () => _toggleSelection(uid) : () => _showEditPermissionsDialog(m),
+                onTap: _isSelectionMode
+                    ? () => _toggleSelection(uid)
+                    : () => _showEditPermissionsDialog(m),
                 onRemove: (uid, name) async {
                   // Standard single remove
                   final bool? confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: global.cardColor,
-                      title: const Text("Remove Collaborator?", style: TextStyle(color: Colors.white)),
-                      content: Text("Are you sure you want to revoke access for $name?",
-                          style: const TextStyle(color: Colors.white70)),
+                      title: const Text(
+                        "Remove Collaborator?",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      content: Text(
+                        "Are you sure you want to revoke access for $name?",
+                        style: const TextStyle(color: Colors.white70),
+                      ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text("CANCEL"),
+                        ),
                         ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: global.errorColor),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: global.errorColor,
+                          ),
                           onPressed: () => Navigator.pop(context, true),
-                          child: const Text("REMOVE", style: TextStyle(color: Colors.white)),
+                          child: const Text(
+                            "REMOVE",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ],
                     ),
@@ -264,17 +336,21 @@ class _TeamListPanelState extends State<TeamListPanel> {
 
                   if (confirm == true && widget.currentUserId != null) {
                     try {
-                      await _db.removeManagementAccess(
+                      await global.qDb.removeManagementAccess(
                         quizId: widget.quizId,
                         userId: uid,
                         removedBy: widget.currentUserId!,
                       );
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Collaborator removed")));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Collaborator removed")),
+                        );
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text("Error: $e")));
                       }
                     }
                   }

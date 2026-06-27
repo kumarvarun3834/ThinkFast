@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/TextContainer.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
@@ -70,7 +69,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               ),
             )
           : StreamBuilder<List<Map<String, dynamic>>>(
-              stream: DatabaseService().getUserAttempts(_user!.uid),
+              stream: global.db.getUserAttempts(_user!.uid, includeDeleted: true),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -211,7 +210,7 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               final scaffoldMessenger = ScaffoldMessenger.of(context);
               final navigator = Navigator.of(context);
               try {
-                await DatabaseService().softDeleteResponse(
+                await global.qDb.softDeleteResponse(
                   responseId: attempt['id'],
                   quizId: attempt['quizId'],
                   actorId: _user!.uid,
@@ -271,7 +270,6 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
     setState(() => _isLoading = true);
 
     try {
-      final db = DatabaseService();
       final quizId = widget.attempt['quizId'];
       final userAnswers = widget.attempt['answers'] as Map<String, dynamic>;
       final reviewUids = widget.attempt['reviewItems'] != null
@@ -282,8 +280,8 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
           : <String>[];
 
       // Fetch Quiz & Answers
-      final quiz = await db.readDatabase(quizId, userId: widget.user.uid);
-      final response = await db.getQuizAnswers(quizId, widget.user.uid);
+      final quiz = await global.db.readDatabase(quizId, userId: widget.user.uid);
+      final response = await global.db.getQuizAnswers(quizId, widget.user.uid);
       final correctAnswers = response['answers'];
       final markingScheme = quiz['markingScheme'] ?? {"type": "default"};
 
@@ -414,9 +412,15 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: global.cardColor,
+        color: widget.attempt['isDeleted'] == true
+            ? global.errorColor.withOpacity(0.05)
+            : global.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: global.borderColor),
+        border: Border.all(
+          color: widget.attempt['isDeleted'] == true
+              ? global.errorColor.withOpacity(0.3)
+              : global.borderColor,
+        ),
       ),
       child: InkWell(
         onTap: () {
@@ -453,11 +457,22 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: global.valueColor,
+                        color: widget.attempt['isDeleted'] == true
+                            ? global.errorColor.withOpacity(0.8)
+                            : global.valueColor,
                       ),
                     ),
                   ),
-                  if (status == 1)
+                  if (widget.attempt['isDeleted'] == true)
+                    const StatusBadge(
+                      text: "DELETED",
+                      color: global.errorColor,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                    )
+                  else if (status == 1)
                     const StatusBadge(
                       text: "COMPLETED",
                       color: Colors.green,
@@ -545,7 +560,7 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: global.primaryAccent.withOpacity(0.1),
+                        color: global.primaryAccent.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

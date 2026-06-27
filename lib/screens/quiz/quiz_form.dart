@@ -4,17 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/add_quiz_data.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/services/quiz_data_processor.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
-
-import '../../utils/global.dart' as global;
+import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizPage extends StatefulWidget {
-  String docId;
+  final String docId;
 
-  QuizPage(this.docId, {super.key});
+  const QuizPage(this.docId, {super.key});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -27,6 +25,7 @@ class _QuizPageState extends State<QuizPage> {
   bool _importEnabled = false;
   bool _isLoading = false;
   bool _isAiGenerated = false;
+  late String _currentDocId;
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -52,6 +51,7 @@ class _QuizPageState extends State<QuizPage> {
   };
   final Map<String, Map<String, TextEditingController>>
   _moduleLimitControllers = {};
+  final Map<String, TextEditingController> _moduleTagControllers = {};
 
   // Modules
   final List<String> modulesList = ["General"];
@@ -92,6 +92,7 @@ class _QuizPageState extends State<QuizPage> {
   @override
   void initState() {
     super.initState();
+    _currentDocId = widget.docId;
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
     _timeController = TextEditingController();
@@ -107,8 +108,8 @@ class _QuizPageState extends State<QuizPage> {
 
     _updateModuleLimitControllers();
 
-    if (widget.docId.isNotEmpty) {
-      _fetchQuiz(widget.docId);
+    if (_currentDocId.isNotEmpty) {
+      _fetchQuiz(_currentDocId);
     } else {
       questions.add({"subject": "General"});
     }
@@ -126,6 +127,7 @@ class _QuizPageState extends State<QuizPage> {
     _moduleLimitControllers.forEach(
       (_, map) => map.forEach((_, c) => c.dispose()),
     );
+    _moduleTagControllers.forEach((_, c) => c.dispose());
     _globalCorrectController.dispose();
     _globalWrongController.dispose();
     _scCorrectController.dispose();
@@ -145,6 +147,9 @@ class _QuizPageState extends State<QuizPage> {
           "Multiple Choice": TextEditingController(),
           "Integer": TextEditingController(),
         };
+      }
+      if (!_moduleTagControllers.containsKey(module)) {
+        _moduleTagControllers[module] = TextEditingController();
       }
     }
   }
@@ -321,16 +326,15 @@ class _QuizPageState extends State<QuizPage> {
   Future<void> _fetchQuiz(String docId) async {
     setState(() => _isLoading = true);
     try {
-      final db = DatabaseService();
       // Get current user ID for security check
       final String? uid = FirebaseAuth.instance.currentUser?.uid;
-      final data = await db.readDatabase(docId, userId: uid);
+      final data = await global.db.readDatabase(docId, userId: uid);
 
       // Get current user ID for security check in getQuizAnswers
       if (uid == null) throw Exception("User not authenticated");
 
       // Fetch answers because readDatabase strips them
-      final response = await db.getQuizAnswers(docId, uid, from: 'quizform');
+      final response = await global.db.getQuizAnswers(docId, uid, from: 'quizform');
       final Map<String, List<String>> answersMap = response['answers'];
       final Map<String, String> solutionsMap = response['solutions'];
 
@@ -351,6 +355,15 @@ class _QuizPageState extends State<QuizPage> {
         _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0)
             .toString();
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
+
+        // Load Module Tags
+        final mTags = data['moduleTags'] as Map? ?? {};
+        mTags.forEach((module, tags) {
+          if (!_moduleTagControllers.containsKey(module)) {
+            _moduleTagControllers[module] = TextEditingController();
+          }
+          _moduleTagControllers[module]!.text = (tags as List).join(', ');
+        });
 
         // Load Marking Scheme
         final scheme = data['markingScheme'] as Map? ?? {};
@@ -661,7 +674,7 @@ class _QuizPageState extends State<QuizPage> {
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           dropdownColor: global.cardColor,
-          value: attemptLimitType,
+          initialValue: attemptLimitType,
           style: const TextStyle(color: global.valueColor),
           items: const [
             DropdownMenuItem(value: "none", child: Text("No Limits")),
@@ -908,7 +921,7 @@ class _QuizPageState extends State<QuizPage> {
                     style: TextStyle(color: global.labelColor, fontSize: 11),
                   ),
                   value: _isRestricted,
-                  activeColor: global.primaryAccent,
+                  activeThumbColor: global.primaryAccent,
                   onChanged: (v) => setState(() => _isRestricted = v),
                 ),
               ),
@@ -1013,6 +1026,7 @@ class _QuizPageState extends State<QuizPage> {
                   setState(() {
                     modulesList.add(m);
                     _moduleController.clear();
+                    _updateModuleLimitControllers();
                   });
                 }
               },
@@ -1023,36 +1037,72 @@ class _QuizPageState extends State<QuizPage> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: modulesList
-              .map(
-                (m) => InputChip(
-                  label: Text(
-                    m,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+        const SizedBox(height: 20),
+        ...modulesList.map((m) {
+          final tagController = _moduleTagControllers[m];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: global.cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: global.borderColor),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.folder_open, color: global.primaryAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          m.toUpperCase(),
+                          style: const TextStyle(
+                            color: global.valueColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      if (m != "General")
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: global.errorColor, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              modulesList.remove(m);
+                              _moduleTagControllers.remove(m);
+                              _moduleLimitControllers.remove(m);
+                            });
+                          },
+                        ),
+                    ],
                   ),
-                  backgroundColor: global.cardColor,
-                  onPressed: () => _scrollToModule(m),
-                  deleteIcon: const Icon(
-                    Icons.close,
-                    size: 14,
-                    color: Colors.redAccent,
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: tagController,
+                    style: const TextStyle(color: global.valueColor, fontSize: 13),
+                    decoration: const InputDecoration(
+                      labelText: "Tags (comma separated)",
+                      hintText: "e.g. physics, mechanics, vectors...",
+                      isDense: true,
+                    ),
+                    onChanged: (val) {
+                      // Optional: enforce lowercase as they type or handle on save
+                    },
                   ),
-                  onDeleted: m == "General"
-                      ? null
-                      : () {
-                          setState(() => modulesList.remove(m));
-                        },
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: global.borderColor),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => _scrollToModule(m),
+                    icon: const Icon(Icons.near_me_outlined, size: 14),
+                    label: const Text("Go to Questions", style: TextStyle(fontSize: 12)),
                   ),
-                ),
-              )
-              .toList(),
-        ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
@@ -1194,8 +1244,6 @@ class _QuizPageState extends State<QuizPage> {
       attemptLimits['perModule'] = perModule;
     }
 
-    final db = DatabaseService();
-
     // Prepare Allowed Users list
     final List<String> allowedParticipants = _allowedUsersController.text
         .split(',')
@@ -1203,9 +1251,30 @@ class _QuizPageState extends State<QuizPage> {
         .where((e) => e.isNotEmpty)
         .toList();
 
+    // Collect tags from all modules
+    final Map<String, List<String>> moduleTagsMap = {};
+    final Set<String> allTags = {};
+
+    _moduleTagControllers.forEach((module, controller) {
+      final tagsList = controller.text
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      
+      if (tagsList.isNotEmpty) {
+        // Condition: At least 1 question must exist in this module to add its tags
+        final bool hasQuestions = questions.any((q) => q['subject'] == module);
+        if (hasQuestions) {
+          moduleTagsMap[module] = tagsList;
+          allTags.addAll(tagsList);
+        }
+      }
+    });
+
     try {
-      if (widget.docId.isEmpty) {
-        final newId = await db.createDatabase(
+      if (_currentDocId.isEmpty) {
+        final newId = await global.qDb.createDatabase(
           creatorId: user!.uid,
           user: user!.displayName ?? user!.uid,
           title: _titleController.text.trim(),
@@ -1222,14 +1291,16 @@ class _QuizPageState extends State<QuizPage> {
           isRestricted: _isRestricted,
           allowedParticipants: allowedParticipants,
           isAiGenerated: _isAiGenerated,
+          tags: allTags.toList(),
+          moduleTags: moduleTagsMap,
         );
         setState(() {
-          widget.docId = newId;
+          _currentDocId = newId;
           global.ID = newId; // 🔑 Save to global for precise tracking
         });
       } else {
-        await db.updateDatabase(
-          docId: widget.docId,
+        await global.qDb.updateDatabase(
+          docId: _currentDocId,
           currentUserId: user!.uid,
           title: _titleController.text.trim(),
           description: _descriptionController.text.trim(),
@@ -1245,8 +1316,10 @@ class _QuizPageState extends State<QuizPage> {
           isRestricted: _isRestricted,
           allowedParticipants: allowedParticipants,
           isAiGenerated: _isAiGenerated,
+          tags: allTags.toList(),
+          moduleTags: moduleTagsMap,
         );
-        global.ID = widget.docId;
+        global.ID = _currentDocId;
       }
 
       ScaffoldMessenger.of(
@@ -1527,7 +1600,7 @@ class _QuizPageState extends State<QuizPage> {
                                   child: Divider(
                                     color: const Color(
                                       0xFF3B82F6,
-                                    ).withOpacity(0.3),
+                                    ).withValues(alpha: 0.3),
                                   ),
                                 ),
                               ],

@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
 import '../../utils/global.dart' as global;
@@ -42,7 +41,10 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   @override
   void initState() {
     super.initState();
-    _responsesStream = DatabaseService().getQuizResponses(widget.quizId, includeDeleted: false);
+    _responsesStream = global.qDb.getQuizResponses(
+      widget.quizId,
+      includeDeleted: false,
+    );
   }
 
   void _toggleSelection(String id) {
@@ -60,12 +62,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
   Future<void> _handleBulkAction(String action) async {
     if (_selectedResponseIds.isEmpty) return;
 
-    final db = DatabaseService();
     final actorId = FirebaseAuth.instance.currentUser!.uid;
 
     if (action == 'allow') {
       final List<String> uids = [];
-      final responses = await db
+      final responses = await global.qDb
           .getQuizResponses(widget.quizId, includeDeleted: true)
           .first;
       for (var id in _selectedResponseIds) {
@@ -76,7 +77,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
       int count = 0;
       for (var uid in uids) {
         try {
-          await db.addParticipant(
+          await global.qDb.addParticipant(
             quizId: widget.quizId,
             userId: uid,
             addedBy: actorId,
@@ -101,8 +102,9 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
       return;
     }
 
-    final String title =
-        action == 'delete' ? "Delete Selected?" : "Ban Selected?";
+    final String title = action == 'delete'
+        ? "Delete Selected?"
+        : "Ban Selected?";
     final String content = action == 'delete'
         ? "These responses will be moved to the trash."
         : "These users will be blocked from this quiz.";
@@ -131,16 +133,17 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     );
 
     if (confirm == true) {
-      final db = DatabaseService();
       final actorId = FirebaseAuth.instance.currentUser!.uid;
 
       try {
         // Need to fetch current list to get UserIDs if banning
-        final responses = await db.getQuizResponses(widget.quizId, includeDeleted: true).first;
+        final responses = await global.qDb
+            .getQuizResponses(widget.quizId, includeDeleted: true)
+            .first;
 
         for (String id in _selectedResponseIds) {
           if (action == 'delete') {
-            await db.softDeleteResponse(
+            await global.qDb.softDeleteResponse(
               responseId: id,
               quizId: widget.quizId,
               actorId: actorId,
@@ -148,7 +151,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             );
           } else {
             final resp = responses.firstWhere((r) => r['id'] == id);
-            await db.banUser(
+            await global.qDb.banUser(
               userId: resp['userId'],
               quizId: widget.quizId,
               reason: "Bulk banned by Manager",
@@ -203,7 +206,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             onTap: () async {
               Navigator.pop(context);
               _confirmAction("Soft delete this response?", () async {
-                await DatabaseService().softDeleteResponse(
+                await global.qDb.softDeleteResponse(
                   responseId: response['id'],
                   quizId: widget.quizId,
                   actorId: FirebaseAuth.instance.currentUser!.uid,
@@ -228,7 +231,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             onTap: () async {
               Navigator.pop(context);
               _confirmAction("Ban user ${response['userId']}?", () async {
-                await DatabaseService().banUser(
+                await global.qDb.banUser(
                   userId: response['userId'],
                   quizId: widget.quizId,
                   reason: "Banned by Admin",
@@ -277,7 +280,10 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
-        title: const Text("Allow Users to Attempt", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Allow Users to Attempt",
+          style: TextStyle(color: Colors.white),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,8 +300,12 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
               decoration: InputDecoration(
                 hintText: "user_id_1, user_id_2...",
                 hintStyle: TextStyle(color: _labelColor),
-                enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: _borderColor)),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _primaryAccent)),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: _borderColor),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: _primaryAccent),
+                ),
               ),
             ),
           ],
@@ -310,16 +320,19 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
               final input = userIdsController.text.trim();
               if (input.isEmpty) return;
 
-              final ids = input.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              final ids = input
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList();
               Navigator.pop(context);
 
-              final db = DatabaseService();
               final adminId = FirebaseAuth.instance.currentUser!.uid;
               int count = 0;
 
               for (String uid in ids) {
                 try {
-                  await db.addParticipant(
+                  await global.qDb.addParticipant(
                     quizId: widget.quizId,
                     userId: uid,
                     addedBy: adminId,
@@ -382,12 +395,17 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
             ? [
                 TextButton.icon(
                   onPressed: () => _handleBulkAction('allow'),
-                  icon: const Icon(Icons.person_add_alt_1_outlined,
-                      color: global.successColor),
-                  label: const Text("ALLOW",
-                      style: TextStyle(
-                          color: global.successColor,
-                          fontWeight: FontWeight.bold)),
+                  icon: const Icon(
+                    Icons.person_add_alt_1_outlined,
+                    color: global.successColor,
+                  ),
+                  label: const Text(
+                    "ALLOW",
+                    style: TextStyle(
+                      color: global.successColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(
@@ -446,11 +464,17 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                 style: GoogleFonts.poppins(color: _valueColor),
                 decoration: InputDecoration(
                   hintText: "Filter by User, ID, or Marks...",
-                  hintStyle: GoogleFonts.poppins(color: _labelColor, fontSize: 13),
+                  hintStyle: GoogleFonts.poppins(
+                    color: _labelColor,
+                    fontSize: 13,
+                  ),
                   prefixIcon: Icon(Icons.search, color: _labelColor, size: 20),
                   filled: true,
                   fillColor: _cardColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: _borderColor),
@@ -518,11 +542,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                     final uid = (r['userId'] ?? '').toString().toLowerCase();
                     final id = (r['id'] ?? '').toString().toLowerCase();
                     final score = (r['score'] ?? '').toString();
-                    
-                    return name.contains(filter) || 
-                           uid.contains(filter) ||
-                           id.contains(filter) || 
-                           score.contains(filter);
+
+                    return name.contains(filter) ||
+                        uid.contains(filter) ||
+                        id.contains(filter) ||
+                        score.contains(filter);
                   }).toList();
                 }
 
@@ -585,7 +609,9 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                                 as Map<String, dynamic>,
                                         attemptReviewItems:
                                             r['reviewItems'] as List<dynamic>?,
-                                        attemptQuestionOrder: r['questionOrder'] as List<dynamic>?,
+                                        attemptQuestionOrder:
+                                            r['questionOrder']
+                                                as List<dynamic>?,
                                         isDeleted: r['isDeleted'] == true,
                                       ),
                                     ),
@@ -649,8 +675,21 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
-                              Text("User ID: ${r['userId']}", style: TextStyle(color: _labelColor, fontSize: 10)),
-                              Text("ID: $id", style: TextStyle(color: _labelColor, fontSize: 10, fontFamily: 'monospace')),
+                              Text(
+                                "User ID: ${r['userId']}",
+                                style: TextStyle(
+                                  color: _labelColor,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              Text(
+                                "ID: $id",
+                                style: TextStyle(
+                                  color: _labelColor,
+                                  fontSize: 10,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               Row(
                                 children: [
@@ -665,9 +704,16 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: (score >= total / 2 ? global.successColor : global.errorColor).withOpacity(0.1),
+                                      color:
+                                          (score >= total / 2
+                                                  ? global.successColor
+                                                  : global.errorColor)
+                                              .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(

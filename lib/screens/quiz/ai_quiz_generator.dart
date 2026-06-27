@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/ai_service.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -37,7 +36,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       {
         'id': 'exam_type',
         'question': 'Are you preparing for a specific competitive exam?',
-        'type': 'choice',
+        'type': 'dropdown',
         'options': ['None / General', 'JEE Main', 'NEET', 'UPSC', 'Other'],
       },
       {
@@ -161,6 +160,27 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
             'Would you like to focus on topics you\'ve struggled with before?',
         'type': 'choice',
         'options': ['Yes', 'No'],
+      },
+      {
+        'id': 'grade',
+        'question': 'What is your current Class / Grade?',
+        'type': 'dropdown',
+        'options': ['8th', '9th', '10th', '11th', '12th', 'Undergraduate', 'Graduate'],
+        'isProfile': true,
+      },
+      {
+        'id': 'study_goal',
+        'question': 'What is your primary study goal?',
+        'type': 'text',
+        'hint': 'e.g., Crack JEE, Learn for fun',
+        'isProfile': true,
+      },
+      {
+        'id': 'learning_style',
+        'question': 'What is your preferred learning style?',
+        'type': 'choice',
+        'options': ['Visual', 'Auditory', 'Reading/Writing', 'Kinesthetic'],
+        'isProfile': true,
       },
     ];
 
@@ -300,7 +320,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       _generationStatus = "Generating";
     });
     try {
-      final ai = AiService();
+      final ai = global.aiConnect;
       
       // Deep Profile Analytics (Mocked for now, should come from AnalyticsService)
       final profileAnalytics = {
@@ -330,8 +350,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       setState(() => _generationStatus = "Saving");
 
       if (_updateProfileOnFirebase) {
-        final db = DatabaseService();
-        await db.updateProtectedDetails(
+        await global.db.updateProtectedDetails(
           uid: global.currentUserProfile?['uid'] ?? '',
           details: _profileUpdates,
         );
@@ -578,7 +597,31 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
                 ),
               ],
             )
-          : Wrap(
+          : step['type'] == 'dropdown'
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: global.cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: global.borderColor),
+                  ),
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    dropdownColor: global.cardColor,
+                    underline: const SizedBox(),
+                    hint: Text("Select an option", style: GoogleFonts.poppins(color: global.hintColor)),
+                    items: List<String>.from(step['options']).map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value, style: GoogleFonts.poppins(color: Colors.white)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) _handleInput(val);
+                    },
+                  ),
+                )
+              : Wrap(
               spacing: 8,
               runSpacing: 8,
               children: List<String>.from(step['options']).map((opt) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'auth_service.dart';
 
@@ -27,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _fetchFlags() async {
     if (global.featureFlags == null) {
-      await DatabaseService().getFeatureFlags();
+      await global.db.getFeatureFlags();
     }
   }
 
@@ -42,8 +41,7 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => loading = true);
 
     try {
-      final db = DatabaseService();
-      final flags = global.featureFlags ?? await db.getFeatureFlags();
+      final flags = global.featureFlags ?? await global.db.getFeatureFlags();
 
       if (flags?['enable_register'] == false) {
         _show("Registration is currently disabled by the administrator.");
@@ -61,7 +59,7 @@ class _SignupScreenState extends State<SignupScreen> {
         await user.updateDisplayName(nameController.text.trim());
 
         // Check if login is enabled
-        await db.initAppData(user.uid);
+        await global.db.initAppData(user.uid);
         final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
         final bool isAdmin = global.isAdmin || global.isRegisteredAdmin;
 

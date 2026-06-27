@@ -206,3 +206,11 @@ Overall UI is clean and quiz sharing feature is very robust.
 
 check progress and generate report of all done
 > profile picture is linked with google direclty so skip it for time being > report2.md
+
+init  @aiconnect.dart ,  @userconnect.dart ,  @Qadminconnect.dart ,  @adminconnect.dart  once in  @global.dart  and use everywhere
+fix dependencies error
+ @adminconnect.dart  > add admin operaions
+ @Qadminconnect.dart  > all quiz management related
+ @userconnect.dart  > user profile and quiz attempt submission
+ @aiconnect.dart  > add ai related commands
+things to add > tags (modules > store quiz id ) seperate storage document

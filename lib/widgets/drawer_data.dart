@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
@@ -48,7 +47,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
   Future<void> _fetchUserProfile() async {
     // Try fetching from Firestore users collection first
     try {
-      final profile = await DatabaseService().getUserProfile(widget.user!.uid);
+      final profile = await global.db.getUserProfile(widget.user!.uid);
       if (mounted && profile != null) {
         if (profile['name'] != null && profile['name'].toString().isNotEmpty) {
           setState(() => _userName = profile['name']);
@@ -209,7 +208,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
                     ),
                     margin: const EdgeInsets.only(left: 8),
                     decoration: BoxDecoration(
-                      color: global.warningColor.withOpacity(0.2),
+                      color: global.warningColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: global.warningColor),
                     ),
@@ -346,10 +345,10 @@ class _SidebarMenuState extends State<SidebarMenu> {
                     color: global.primaryAccent,
                   ),
                   value: _isAdmin,
-                  activeColor: global.primaryAccent,
+                  activeThumbColor: global.primaryAccent,
                   onChanged: (bool value) async {
                     try {
-                      await DatabaseService().toggleAdminMode(
+                      await global.adminDb.toggleAdminMode(
                         uid: widget.user!.uid,
                         enable: value,
                       );

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 
 import '../../utils/global.dart' as global;
 import 'colab/add_collaborator_screen.dart';
@@ -20,7 +19,6 @@ class QuizCollaboratorsScreen extends StatefulWidget {
 }
 
 class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
-  final DatabaseService _db = DatabaseService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
   bool _isAdmin = false;
@@ -37,8 +35,8 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
   Future<void> _loadPermissions() async {
     if (_currentUserId == null) return;
     try {
-      final isAdmin = await _db.isAdmin(_currentUserId!);
-      final metadata = await _db.readDatabase(
+      final isAdmin = await global.db.isAdmin(_currentUserId!);
+      final metadata = await global.db.readDatabase(
         widget.quizId,
         userId: _currentUserId,
       );
@@ -106,7 +104,7 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                 const SizedBox(height: 8)
               else
                 const SizedBox(height: 12),
-              
+
               if (_canManageThisTeam)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -124,17 +122,23 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 16),
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
                       decoration: BoxDecoration(
                         color: global.primaryAccent.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                            color: global.primaryAccent.withOpacity(0.3)),
+                          color: global.primaryAccent.withOpacity(0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.person_add_alt_1_outlined,
-                              color: global.primaryAccent, size: 20),
+                          const Icon(
+                            Icons.person_add_alt_1_outlined,
+                            color: global.primaryAccent,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Text(
                             "Add New Collaborator",
@@ -145,8 +149,11 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
                             ),
                           ),
                           const Spacer(),
-                          const Icon(Icons.arrow_forward_ios,
-                              color: global.primaryAccent, size: 14),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: global.primaryAccent,
+                            size: 14,
+                          ),
                         ],
                       ),
                     ),

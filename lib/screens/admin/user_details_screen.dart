@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import '../../widgets/quiz_widgets.dart';
@@ -19,7 +18,6 @@ class UserDetailsScreen extends StatefulWidget {
 }
 
 class _UserDetailsScreenState extends State<UserDetailsScreen> {
-  final DatabaseService _db = DatabaseService();
   late final String? _adminId = FirebaseAuth.instance.currentUser?.uid;
   bool _isBanned = false;
   bool _isAppAdmin = false;
@@ -33,7 +31,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   }
 
   Future<void> _fetchStatus() async {
-    final banned = await _db.isUserBanned(widget.userId);
+    final banned = await global.db.isUserBanned(widget.userId);
     final adminDoc = await FirebaseFirestore.instance.collection('admins').doc(widget.userId).get();
     
     if (mounted) {
@@ -81,7 +79,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
     if (confirm == true) {
       try {
-        await _db.deleteUserAccount(
+        await global.adminDb.deleteUserAccount(
           targetUid: widget.userId,
           adminId: _adminId,
         );
@@ -92,10 +90,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           Navigator.pop(context);
         }
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        }
       }
     }
   }
@@ -104,17 +103,19 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     if (_adminId == null) return;
     if (_isBanned) {
       try {
-        await _db.unbanUser(userId: widget.userId, adminId: _adminId!);
+        await global.adminDb.unbanUser(userId: widget.userId, adminId: _adminId);
         setState(() => _isBanned = false);
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text("User unbanned")));
+        }
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        }
       }
     } else {
       final reasonController = TextEditingController();
@@ -152,16 +153,17 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
       if (confirm == true) {
         try {
-          await _db.banUser(
+          await global.adminDb.banUser(
             userId: widget.userId,
             reason: reasonController.text.trim(),
             adminId: _adminId!,
           );
           setState(() => _isBanned = true);
-          if (mounted)
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("User banned globally")),
             );
+          }
         } catch (e) {
           if (mounted)
             ScaffoldMessenger.of(
@@ -188,7 +190,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         ),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: _db.getFullUserProfile(widget.userId, _adminId!),
+        future: global.adminDb.getFullUserProfile(widget.userId, _adminId!),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -342,8 +344,8 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: _isBanned
-                            ? global.errorColor.withOpacity(0.1)
-                            : global.successColor.withOpacity(0.1),
+                            ? global.errorColor.withValues(alpha: 0.1)
+                            : global.successColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -365,9 +367,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: global.primaryAccent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                        color: global.primaryAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                         child: Text(
                           _adminLevel == 0 ? "SUPER ADMIN" : "APP ADMIN",
                           style: const TextStyle(
@@ -520,7 +522,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   Widget _buildQuizzesList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _db.getUserQuizzesMaster(widget.userId, _adminId!),
+      stream: global.adminDb.getUserQuizzesMaster(widget.userId, _adminId!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -585,7 +587,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   Widget _buildAttemptsList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _db.getUserAttempts(widget.userId, includeDeleted: true),
+      stream: global.adminDb.getUserAttempts(widget.userId, includeDeleted: true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -607,12 +609,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: a['isDeleted'] == true
-                        ? global.errorColor.withOpacity(0.05)
+                        ? global.errorColor.withValues(alpha: 0.05)
                         : global.cardColor,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: a['isDeleted'] == true
-                          ? global.errorColor.withOpacity(0.3)
+                          ? global.errorColor.withValues(alpha: 0.3)
                           : global.borderColor,
                     ),
                   ),
@@ -626,7 +628,7 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                               a['quizTitle'] ?? "Untitled Quiz",
                               style: TextStyle(
                                 color: a['isDeleted'] == true
-                                    ? global.errorColor.withOpacity(0.8)
+                                    ? global.errorColor.withValues(alpha: 0.8)
                                     : global.valueColor,
                               ),
                             ),

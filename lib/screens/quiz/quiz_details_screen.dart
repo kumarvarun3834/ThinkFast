@@ -3,11 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/screens/quiz/colab/manage_quiz_button.dart';
-import 'package:thinkfast/screens/quiz/colab/management_bottom_sheet.dart';
-import 'package:thinkfast/services/firebase_direct_commands.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
+import 'package:thinkfast/screens/quiz/colab/manage_quiz_button.dart';
+import 'package:thinkfast/screens/quiz/colab/management_bottom_sheet.dart';
 
 class QuizDetailsScreen extends StatefulWidget {
   final String quizId;
@@ -38,8 +37,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
   Future<void> _fetchQuizDetails() async {
     try {
-      final db = DatabaseService();
-      final aggregatedData = await db.fetchAggregatedQuizDetails(
+      final aggregatedData = await global.db.fetchAggregatedQuizDetails(
         widget.quizId,
         userId: _user?.uid,
       );
@@ -128,7 +126,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: global.bgColor.withOpacity(0.5),
+                      color: global.bgColor.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: global.borderColor),
                     ),
@@ -226,7 +224,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                             ),
                             Switch(
                               value: demoReview,
-                              activeColor: global.reviewColor,
+                              activeThumbColor: global.reviewColor,
                               onChanged: (v) {
                                 setDialogState(() => demoReview = v);
                               },
@@ -365,7 +363,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     final newVisibility = currentVisibility == 'public' ? 'private' : 'public';
 
     try {
-      await DatabaseService().updateDatabase(
+      await global.qDb.updateDatabase(
         docId: _quizData!['id'],
         currentUserId: _user!.uid,
         visibility: newVisibility,
@@ -397,7 +395,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     final bool newLocked = !currentLocked;
 
     try {
-      await DatabaseService().toggleQuizLock(
+      await global.qDb.toggleQuizLock(
         docId: _quizData!['id'],
         currentUserId: _user!.uid,
         isLocked: newLocked,
@@ -504,10 +502,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.05),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: global.borderColor),
-                                ),
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: global.borderColor),
+                              ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -725,10 +723,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: global.primaryAccent.withOpacity(0.1),
+                    color: global.primaryAccent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: global.primaryAccent.withOpacity(0.3),
+                      color: global.primaryAccent.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
@@ -936,7 +934,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           if (confirm == true) {
             if (context.mounted) Navigator.pop(context); // Close bottom sheet
             try {
-              await DatabaseService().deleteDatabase(
+              await global.qDb.deleteDatabase(
                 docId: _quizData!['id'],
                 currentUserId: _user!.uid,
               );
@@ -991,7 +989,6 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           onPressed: () async {
             setState(() => _isStartingQuiz = true);
             try {
-              final db = DatabaseService();
               final String? activeQuizId = _quizData!['activeQuizId'];
               final Timestamp? activeQuizExpiry =
                   _quizData!['activeQuizExpiry'];
@@ -1011,7 +1008,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       content: Text('Cleaning up previous expired session...'),
                     ),
                   );
-                  await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+                  await global.db.handleExpiredQuiz(_user!.uid, activeQuizId);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1077,7 +1074,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 
                 bool hasAccess = allowed.contains(_user?.uid);
                 if (!hasAccess && _user != null) {
-                  hasAccess = await db.hasParticipantAccess(widget.quizId, _user!.uid);
+                  hasAccess = await global.db.hasParticipantAccess(widget.quizId, _user!.uid);
                 }
 
                 if (!hasAccess) {
@@ -1139,7 +1136,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               _user = _auth.currentUser;
 
               // Ban Check
-              final bool isBanned = await db.isUserBanned(
+              final bool isBanned = await global.db.isUserBanned(
                 _user!.uid,
                 quizId: _quizData!['id'],
               );
@@ -1222,7 +1219,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   Duration(seconds: quizDurationSeconds + 300),
                 );
 
-                await db.updateActiveQuiz(
+                await global.db.updateActiveQuiz(
                   uid: _user!.uid,
                   quizId: _quizData!['id'],
                   expiry: expiry,
@@ -1254,7 +1251,6 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           disabledMessage:
               "Access Denied: Quiz taking is currently disabled platform-wide.",
           onDoubleTap: () async {
-            final db = DatabaseService();
             final String? activeQuizId = _quizData!['activeQuizId'];
 
             if (activeQuizId != null && _user != null) {
@@ -1263,7 +1259,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   content: Text('Instant submitting previous session...'),
                 ),
               );
-              await db.handleExpiredQuiz(_user!.uid, activeQuizId);
+              await global.db.handleExpiredQuiz(_user!.uid, activeQuizId);
 
               // Update UI state to reflect cleared active quiz
               setState(() {
