@@ -40,7 +40,17 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
         _isAppAdmin = adminDoc.exists;
         if (adminDoc.exists) {
           final data = adminDoc.data()!;
-          _adminPermissions = List<String>.from(data['permissions'] ?? []);
+          final rawPerms = data['permissions'];
+          if (rawPerms is Map) {
+            _adminPermissions = rawPerms.entries
+                .where((e) => e.value == true)
+                .map((e) => e.key.toString())
+                .toList();
+          } else if (rawPerms is List) {
+            _adminPermissions = List<String>.from(rawPerms);
+          } else {
+            _adminPermissions = [];
+          }
           _adminLevel = data['level'] ?? 1;
         }
       });

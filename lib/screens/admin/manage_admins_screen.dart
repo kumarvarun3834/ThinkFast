@@ -32,7 +32,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
 
   Future<void> _refreshData({bool force = false}) async {
     final bool canBypass = global.adminLevel == 0 ||
-        global.adminPermissions.contains('bypass_rate_limits');
+        global.adminPermissions.contains('manage_admins');
 
     if (!force && !canBypass && _lastRefresh != null) {
       final int limit =
@@ -205,7 +205,17 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                   itemBuilder: (context, index) {
                     final admin = _admins[index];
                     final uid = admin['uid'];
-                    final perms = List<String>.from(admin['permissions'] ?? []);
+                    final rawPerms = admin['permissions'];
+                    List<String> perms = [];
+                    if (rawPerms is Map) {
+                      perms = rawPerms.entries
+                          .where((e) => e.value == true)
+                          .map((e) => e.key.toString())
+                          .toList();
+                    } else if (rawPerms is List) {
+                      perms = List<String>.from(rawPerms);
+                    }
+
                     final level = admin['level'] ?? 1;
                     final isSelected = _selectedUids.contains(uid);
 

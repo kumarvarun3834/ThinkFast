@@ -20,8 +20,6 @@ class QuizService {
   final CollectionReference _tags = FirebaseFirestore.instance.collection(
     'tags',
   );
-  final AdminService _adminService = AdminService();
-  final SettingsService _settingsService = SettingsService();
 
   /// ✅ Create a new Quiz with Idempotency and Configurable Rate Limiting
   Future<String> createQuiz({
@@ -65,12 +63,12 @@ class QuizService {
     }
 
     // 2. Fetch Feature Flags and Admin Status
-    final flags = await _settingsService.getFeatureFlags();
+    final flags = await SettingsService().getFeatureFlags();
     final bool isUserAdmin =
-        await _adminService.isAdmin(creatorId);
+        await AdminService().isAdmin(creatorId);
     
     final bool canBypassLimits = isUserAdmin && 
-        await _adminService.hasPermission(creatorId, 'bypass_rate_limits');
+        await AdminService().hasPermission(creatorId, 'manage_all_quizzes');
 
     // Check if quiz creation is globally disabled
     if (flags != null && flags['enable_create_quiz'] == false) {
@@ -113,6 +111,23 @@ class QuizService {
     final String targetQuizId = quizRef.id;
     final WriteBatch batch = FirebaseFirestore.instance.batch();
 
+    // Automatic tags from modules and examTag
+    final Set<String> derivedTags = Set<String>.from(tags ?? []);
+    if (examTag != null && examTag.trim().isNotEmpty) {
+      derivedTags.add(examTag.trim());
+    }
+    for (var module in questions) {
+      final subject = module['subject']?.toString();
+      final moduleQuestions = module['data'] as List?;
+      if (subject != null &&
+          subject.trim().isNotEmpty &&
+          moduleQuestions != null &&
+          moduleQuestions.isNotEmpty) {
+        derivedTags.add(subject.trim());
+      }
+    }
+    final List<String> finalTags = derivedTags.toList();
+
     batch.set(quizRef, {
       'creatorId': creatorId,
       'clientToken': clientToken,
@@ -120,7 +135,7 @@ class QuizService {
       'title': title,
       'titleLower': title.toLowerCase(),
       'description': description,
-      'tags': tags ?? [],
+      'tags': finalTags,
       'visibility': visibility,
       'time': timeInSeconds,
       'perQuestionTime': perQuestionTime,
@@ -157,8 +172,8 @@ class QuizService {
     });
 
     // 5. Sync Tags to global tags collection
-    if (tags != null && tags.isNotEmpty) {
-      for (var tag in tags) {
+    if (finalTags.isNotEmpty) {
+      for (var tag in finalTags) {
         final tagId = tag.toLowerCase().trim();
         batch.set(_tags.doc(tagId), {
           'name': tagId,
@@ -170,12 +185,13 @@ class QuizService {
 
     batch.update(_users.doc(creatorId), {
       'lastQuizCreatedAt': FieldValue.serverTimestamp(),
+      'lastQuizUpdatedAt': FieldValue.serverTimestamp(),
       'quizCount': FieldValue.increment(1),
     });
 
     await batch.commit();
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: creatorId,
       action: 'create_quiz',
       targetId: targetQuizId,
@@ -194,15 +210,94 @@ class QuizService {
   }) async {
     if (updates == null || updates.isEmpty) return;
 
+    // 1. Rate Limit Check for Form Save
+    final flags = await SettingsService().getFeatureFlags();
+    final bool isUserAdmin = await AdminService().isAdmin(userId);
+    final bool canBypassLimits = isUserAdmin &&
+        await AdminService().hasPermission(userId, 'manage_all_quizzes');
+
+    final bool rateLimitEnabled = flags?['enable_form_save_rate_limit'] ?? true;
+    final int rateLimitSeconds =
+        (flags?['form_save_rate_limit_seconds'] ?? 30).toInt();
+
+    if (rateLimitEnabled && !canBypassLimits) {
+      final userDoc = await _users.doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        final Timestamp? lastSaved = userData['lastQuizUpdatedAt'];
+
+        if (lastSaved != null) {
+          final lastTime = lastSaved.toDate();
+          final now = DateTime.now();
+          final difference = now.difference(lastTime);
+
+          if (difference.inSeconds < rateLimitSeconds) {
+            final waitTime = rateLimitSeconds - difference.inSeconds;
+            throw Exception(
+              "Please wait $waitTime seconds before saving again.",
+            );
+          }
+        }
+      }
+    }
+
+    bool modulesUpdated = false;
+    Map<String, dynamic>? cachedQuizData;
+
     if (updates.containsKey('modules')) {
+      modulesUpdated = true;
       final questionsData = updates.remove('modules');
+
+      // 2. Fetch current quiz for merging tags
+      final currentQuizDoc = await _quizzes.doc(quizId).get();
+      cachedQuizData = currentQuizDoc.data() as Map<String, dynamic>? ?? {};
+      final List<String> existingTags =
+          List<String>.from(cachedQuizData['tags'] ?? []);
+
+      // Derive tags from modules if being updated
+      final Set<String> moduleDerivedTags = {};
+      for (var module in (questionsData as List)) {
+        final subject = module['subject']?.toString();
+        final moduleQuestions = module['data'] as List?;
+        if (subject != null &&
+            subject.trim().isNotEmpty &&
+            moduleQuestions != null &&
+            moduleQuestions.isNotEmpty) {
+          moduleDerivedTags.add(subject.trim());
+        }
+      }
+
+      if (moduleDerivedTags.isNotEmpty) {
+        final Set<String> combined = Set<String>.from(existingTags)
+          ..addAll(List<String>.from(updates['tags'] ?? existingTags))
+          ..addAll(moduleDerivedTags);
+        updates['tags'] = combined.toList();
+      }
+
       await _questions.doc(quizId).update({
         'modules': questionsData,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     }
 
-    if (updates.isNotEmpty) {
+    if (updates.isNotEmpty || modulesUpdated) {
+      // Add examTag to tags if it's being updated
+      if (updates.containsKey('examTag')) {
+        final String? et = updates['examTag'];
+        if (et != null && et.trim().isNotEmpty) {
+          if (cachedQuizData == null) {
+            final doc = await _quizzes.doc(quizId).get();
+            cachedQuizData = doc.data() as Map<String, dynamic>? ?? {};
+          }
+          final List<String> currentTags = List<String>.from(
+            updates['tags'] ?? cachedQuizData['tags'] ?? [],
+          );
+          if (!currentTags.contains(et.trim())) {
+            updates['tags'] = [...currentTags, et.trim()];
+          }
+        }
+      }
+
       if (updates.containsKey('tags')) {
         final List<String> tags = List<String>.from(updates['tags'] ?? []);
         for (var tag in tags) {
@@ -214,11 +309,19 @@ class QuizService {
           }, SetOptions(merge: true));
         }
       }
-      updates['updatedAt'] = FieldValue.serverTimestamp();
-      await _quizzes.doc(quizId).update(updates);
+      
+      if (updates.isNotEmpty) {
+        updates['updatedAt'] = FieldValue.serverTimestamp();
+        await _quizzes.doc(quizId).update(updates);
+      }
+
+      // Update rate limit timestamp
+      await _users.doc(userId).update({
+        'lastQuizUpdatedAt': FieldValue.serverTimestamp(),
+      });
     }
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: userId,
       action: 'update_quiz',
       targetId: quizId,
@@ -238,9 +341,9 @@ class QuizService {
     // Attribution logic: Prioritize Quiz Permissions
     if (data['creatorId'] == userId) {
       deletedByType = 'owner';
-    } else if (await _adminService.canManageQuiz(quizId, userId)) {
+    } else if (await AdminService().canManageQuiz(quizId, userId)) {
       deletedByType = 'manager';
-    } else if (await _adminService.isAdmin(userId)) {
+    } else if (await AdminService().isAdmin(userId)) {
       deletedByType = 'admin';
     }
 
@@ -252,7 +355,7 @@ class QuizService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: userId,
       action: 'delete_quiz',
       targetId: quizId,
@@ -268,7 +371,7 @@ class QuizService {
     final data = quizDoc.data() as Map<String, dynamic>;
 
     if (data['creatorId'] != userId) {
-      final isAdmin = await _adminService.isAdmin(userId);
+      final isAdmin = await AdminService().isAdmin(userId);
       if (!isAdmin) throw Exception("Unauthorized to restore this quiz");
     }
 
@@ -286,7 +389,7 @@ class QuizService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: userId,
       action: 'restore_quiz',
       targetId: quizId,
@@ -419,14 +522,14 @@ class QuizService {
   /// ✅ Check if user has access to a quiz
   Future<bool> hasAccess(String quizId, String userId) async {
     // 0. Check if user is banned
-    final isBanned = await _adminService.isUserBanned(userId, quizId: quizId);
+    final isBanned = await AdminService().isUserBanned(userId, quizId: quizId);
     if (isBanned) return false;
 
     final quiz = await getQuiz(quizId);
     if (quiz == null) return false;
 
     final bool isDeleted = quiz['isDeleted'] ?? false;
-    final isAdmin = await _adminService.isAdmin(userId);
+    final isAdmin = await AdminService().isAdmin(userId);
 
     // If quiz is soft-deleted, only admins can access it.
     // Owners and regular users are blocked.
@@ -455,7 +558,7 @@ class QuizService {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: userId,
       action: 'update_answer_keys',
       targetId: quizId,

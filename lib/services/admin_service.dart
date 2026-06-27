@@ -1,15 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:thinkfast/services/user_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import 'attempt_service.dart';
 import 'settings_service.dart';
 
 class AdminService {
-  final UserService _userService = UserService();
-  final AttemptService _attemptService = AttemptService();
   final CollectionReference _admins = FirebaseFirestore.instance.collection(
     'admins',
   );
@@ -36,8 +33,7 @@ class AdminService {
     'manage_all_quizzes',
     'view_audit_logs',
     'manage_app_settings',
-    'bypass_ai_limits',
-    'bypass_rate_limits',
+    'bypass_ai_quotas',
     'manage_collaborators',
   ];
 
@@ -61,10 +57,25 @@ class AdminService {
 
       // Cache admin level and permissions
       global.adminLevel = data['level'] ?? 1;
-      global.adminPermissions = List<String>.from(data['permissions'] ?? []);
+
+      // Populate active permissions list - handles both legacy List and new Map formats
+      final rawPerms = data['permissions'];
+      if (rawPerms is Map) {
+        global.adminPermissions = rawPerms.entries
+            .where((e) => e.value == true)
+            .map((e) => e.key.toString())
+            .toList();
+      } else if (rawPerms is List) {
+        global.adminPermissions = List<String>.from(rawPerms);
+      } else {
+        global.adminPermissions = [];
+      }
 
       // MUST have toggle enabled AND be a registered admin
-      return data['isAdminModeEnabled'] == true;
+      final bool activeAdmin = data['isAdminModeEnabled'] == true;
+      global.isAdmin = activeAdmin;
+      global.isRegisteredAdmin = true;
+      return activeAdmin;
     } catch (e) {
       // If we can't even check (e.g. permission denied), they are effectively not an admin
       return false;
@@ -95,17 +106,25 @@ class AdminService {
   }
 
   /// ✅ Get admin permissions
-  Future<List<String>> getAdminPermissions(String uid) async {
+  Future<Map<String, bool>> getAdminPermissions(String uid) async {
     final doc = await _admins.doc(uid).get();
-    if (!doc.exists) return [];
+    if (!doc.exists) return {};
     final data = doc.data() as Map<String, dynamic>;
 
     // Super User (Level 0) gets all roles
     if (data['level'] == 0) {
-      return allPermissions;
+      return {for (var p in allPermissions) p: true};
     }
 
-    return List<String>.from(data['permissions'] ?? []);
+    final rawPerms = data['permissions'];
+    if (rawPerms is Map) {
+      return Map<String, bool>.from(rawPerms);
+    } else if (rawPerms is List) {
+      final List<String> list = List<String>.from(rawPerms);
+      return {for (var p in allPermissions) p: list.contains(p)};
+    }
+
+    return {};
   }
 
   /// ✅ Check if admin has specific permission
@@ -119,14 +138,20 @@ class AdminService {
     // Level 0 is Super User: bypass all permission checks
     if (data['level'] == 0) return true;
 
-    final permissions = List<String>.from(data['permissions'] ?? []);
-    return permissions.contains(permission);
+    final rawPerms = data['permissions'];
+    if (rawPerms is Map) {
+      return rawPerms[permission] == true;
+    } else if (rawPerms is List) {
+      return (rawPerms).contains(permission);
+    }
+
+    return false;
   }
 
   /// ✅ Add or Update Admin with selectable permissions
   Future<void> addOrUpdateAdmin({
     required String targetUid,
-    required List<String> permissions,
+    required List<String> selectedPermissions,
     required String actorUid,
     bool makeSuper = false,
   }) async {
@@ -135,8 +160,13 @@ class AdminService {
       throw Exception('Unauthorized: Permission "manage_admins" required.');
     }
 
+    // Convert List to Map (permissionKey: bool)
+    final Map<String, bool> permissionsMap = {
+      for (var p in allPermissions) p: selectedPermissions.contains(p),
+    };
+
     final Map<String, dynamic> data = {
-      'permissions': permissions,
+      'permissions': permissionsMap,
       'addedBy': actorUid,
       'isAdminModeEnabled': true,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -144,8 +174,8 @@ class AdminService {
 
     // Integrity Check: Only the Super Admin (Level 0) can grant Level 0 or manage another Level 0
     final targetDoc = await _admins.doc(targetUid).get();
-    final bool isTargetSuper =
-        targetDoc.exists && (targetDoc.data() as Map)['level'] == 0;
+    final targetData = targetDoc.data() as Map<String, dynamic>?;
+    final bool isTargetSuper = targetDoc.exists && targetData?['level'] == 0;
 
     if (global.adminLevel != 0) {
       if (makeSuper || isTargetSuper) {
@@ -170,7 +200,7 @@ class AdminService {
       action: 'update_admin_permissions',
       targetId: targetUid,
       details:
-          'Target: $targetUid, Permissions: $permissions, Super: $makeSuper',
+          'Target: $targetUid, Permissions: $selectedPermissions, Super: $makeSuper',
       category: 'admin',
     );
   }
@@ -186,8 +216,9 @@ class AdminService {
 
     // Integrity Check: Cannot remove Super Admin unless actor is Super Admin
     final targetDoc = await _admins.doc(targetUid).get();
+    final targetData = targetDoc.data() as Map<String, dynamic>?;
     if (targetDoc.exists &&
-        (targetDoc.data() as Map)['level'] == 0 &&
+        targetData?['level'] == 0 &&
         global.adminLevel != 0) {
       throw Exception(
         "Unauthorized: Only a Super Admin can remove another Super Admin.",
@@ -231,23 +262,26 @@ class AdminService {
       };
 
       if (setPermissions != null) {
-        updates['permissions'] = setPermissions;
+        updates['permissions'] = {
+          for (var p in allPermissions) p: setPermissions.contains(p),
+        };
       } else if (grantPermissions != null || revokePermissions != null) {
-        List<String> currentPerms = [];
+        Map<String, bool> currentPerms = {};
         if (doc.exists) {
-          currentPerms = List<String>.from(
-            (doc.data() as Map)['permissions'] ?? [],
-          );
+          final data = doc.data() as Map<String, dynamic>?;
+          currentPerms = Map<String, bool>.from(data?['permissions'] ?? {});
         }
 
         if (grantPermissions != null) {
           for (var p in grantPermissions) {
-            if (!currentPerms.contains(p)) currentPerms.add(p);
+            currentPerms[p] = true;
           }
         }
 
         if (revokePermissions != null) {
-          currentPerms.removeWhere((p) => revokePermissions.contains(p));
+          for (var p in revokePermissions) {
+            currentPerms[p] = false;
+          }
         }
         updates['permissions'] = currentPerms;
       }
@@ -260,7 +294,7 @@ class AdminService {
         }
         if (makeSuper) {
           updates['level'] = 0;
-          updates['permissions'] = allPermissions;
+          updates['permissions'] = {for (var p in allPermissions) p: true};
         } else {
           updates['level'] = FieldValue.delete();
         }
@@ -276,7 +310,7 @@ class AdminService {
       action: 'bulk_update_admins',
       targetId: 'multiple',
       details:
-          'Updated ${targetUids.length} admins. Action: grant=${grantPermissions}, revoke=${revokePermissions}, set=${setPermissions}',
+          'Updated ${targetUids.length} admins. Action: grant=$grantPermissions, revoke=$revokePermissions, set=${setPermissions}',
       category: 'admin',
     );
   }
@@ -311,8 +345,22 @@ class AdminService {
         global.featureFlags ?? await SettingsService().getFeatureFlags();
     if (flags?['log'] == false) return;
 
+    String actorName = "Unknown";
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(actorId)
+          .get();
+      if (userDoc.exists) {
+        actorName = userDoc.data()?['name'] ?? "Unknown";
+      }
+    } catch (e) {
+      debugPrint("Error fetching actor name for log: $e");
+    }
+
     await _auditLogs.add({
       'actorId': actorId,
+      'actorName': actorName,
       'action': action,
       'targetId': targetId,
       'details': details,
@@ -1057,7 +1105,8 @@ class AdminService {
           "Unauthorized: 'manage_admins' permission required to delete another admin.",
         );
       }
-      final bool isTargetSuper = (targetDoc.data() as Map)['level'] == 0;
+      final data = targetDoc.data() as Map<String, dynamic>?;
+      final bool isTargetSuper = (data?['level'] == 0);
       if (isTargetSuper && global.adminLevel != 0) {
         throw Exception(
           "Unauthorized: Only a Super Admin can delete another Super Admin.",
@@ -1224,7 +1273,7 @@ class AdminService {
     String userId, {
     bool includeDeleted = false,
   }) {
-    return _attemptService.getUserAttempts(
+    return AttemptService().getUserAttempts(
       userId,
       includeDeleted: includeDeleted,
     );

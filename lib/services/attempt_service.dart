@@ -8,7 +8,6 @@ class AttemptService {
   );
   final CollectionReference _quizAttempts = FirebaseFirestore.instance
       .collection('quiz_attempts');
-  final AdminService _adminService = AdminService();
 
   /// ✅ Unified submission (Scoring + 2-Way Storage + Metadata) in 1 stream
   Future<String> submitAttempt({
@@ -141,7 +140,7 @@ class AttemptService {
     await batch.commit();
 
     // Log the successful batch
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: userId,
       action: 'submit_attempt',
       targetId: quizId,

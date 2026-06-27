@@ -50,7 +50,7 @@ class AdminDatabaseService {
     await _ensureAdminPermission(actorUid, 'manage_admins');
     return _adminService.addOrUpdateAdmin(
       targetUid: targetUid,
-      permissions: permissions,
+      selectedPermissions: permissions,
       actorUid: actorUid,
       makeSuper: makeSuper,
     );

@@ -8,7 +8,6 @@ class UserService {
   final CollectionReference _users = FirebaseFirestore.instance.collection(
     'users',
   );
-  final AdminService _adminService = AdminService();
 
   /// ✅ Create a new user profile
   Future<void> createUserProfile({
@@ -34,7 +33,7 @@ class UserService {
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: uid,
       action: 'create_profile',
       targetId: uid,
@@ -97,7 +96,7 @@ class UserService {
 
     await _users.doc(uid).set(updates, SetOptions(merge: true));
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: uid,
       action: 'update_profile',
       targetId: uid,
@@ -120,7 +119,7 @@ class UserService {
         .set(details, SetOptions(merge: true));
 
     // Logging protected changes might be too verbose, but doing it anyway per requirements
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: uid,
       action: 'update_protected_details',
       targetId: uid,
@@ -156,7 +155,7 @@ class UserService {
         .doc('details')
         .set(updates, SetOptions(merge: true));
 
-    await _adminService.logAction(
+    await AdminService().logAction(
       actorId: uid,
       action: 'update_private_details',
       targetId: uid,

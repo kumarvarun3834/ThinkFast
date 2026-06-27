@@ -14,13 +14,11 @@ class AiService {
   final CollectionReference _usage = FirebaseFirestore.instance.collection(
     'user_usage',
   );
-  final SettingsService _settings = SettingsService();
-  final AdminService _admin = AdminService();
 
   Future<void> _checkAiEnabled(String userId) async {
-    final flags = await _settings.getFeatureFlags();
+    final flags = await SettingsService().getFeatureFlags();
     if (flags?['enable_ai'] == false) {
-      if (!await _admin.isAdmin(userId)) {
+      if (!await AdminService().isAdmin(userId)) {
         throw Exception(
           "AI features are currently disabled by the administrator.",
         );
@@ -53,12 +51,21 @@ class AiService {
 
   /// ✅ Check if user has AI generation quota remaining
   Future<bool> hasAiQuota(String userId) async {
-    // Admins with 'bypass_ai_limits' permission can generate unlimited quizzes
-    if (await _admin.hasPermission(userId, 'bypass_ai_limits')) {
+    // 1. Admins with 'bypass_ai_quotas' permission can generate unlimited quizzes
+    if (await AdminService().hasPermission(userId, 'bypass_ai_quotas')) {
       return true;
-    } else {
-      return false;
     }
+
+    final flags = await SettingsService().getFeatureFlags();
+    
+    // 2. Global bypass toggle
+    if (flags?['enable_ai_quota_bypass'] == true) return true;
+
+    // 3. Check daily limit
+    final int limit = (flags?['ai_daily_generation_limit'] ?? 10).toInt();
+    final int usage = await getAiUsageToday(userId);
+
+    return usage < limit;
   }
 
   /// ✅ Get AI usage count for today

@@ -27,11 +27,11 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
   void _checkAccess() {
     final bool isMaster = global.adminLevel == 0;
-    final flags = global.featureFlags;
+    final bool hasViewPerm = global.adminPermissions.contains('view_audit_logs');
     
-    // User logic: log_updates -> can see logs, log_deletes -> can delete logs
-    _canView = isMaster || (flags?['log_updates'] ?? true);
-    _canDelete = isMaster || (flags?['log_deletes'] ?? true);
+    _canView = isMaster || hasViewPerm;
+    // Only Master Admin can clear logs for security integrity
+    _canDelete = isMaster;
     
     if (_canView) {
       _refreshLogs(force: true);
@@ -45,7 +45,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
     final bool canBypass =
         global.adminLevel == 0 ||
-        global.adminPermissions.contains('bypass_rate_limits');
+        global.adminPermissions.contains('view_audit_logs');
 
     if (!force && !canBypass && _lastRefresh != null) {
       final int limit =
@@ -298,7 +298,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                "Actor: ${log['actorId']}",
+                                "Actor: ${log['actorName'] ?? 'Unknown'} (${log['actorId']})",
                                 style: const TextStyle(
                                   color: global.labelColor,
                                   fontSize: 11,

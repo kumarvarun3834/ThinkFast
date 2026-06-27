@@ -1,5 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+
+import 'admin_service.dart';
 
 class SettingsService {
   final CollectionReference _settings = FirebaseFirestore.instance.collection(
@@ -7,6 +10,29 @@ class SettingsService {
   );
   final CollectionReference _featureFlags = FirebaseFirestore.instance
       .collection('feature_flags');
+
+  /// Flag to Document Mapping for granular permissions
+  static const Map<String, String> _flagDocMap = {
+    // Admin Management
+    'admin_refresh_rate_limit_seconds': 'admin',
+    // Moderation
+    'enable_user_banning': 'moderation',
+    // Quizzes
+    'enable_quiz_creation_rate_limit': 'quizzes',
+    'quiz_creation_rate_limit_minutes': 'quizzes',
+    'enable_form_save_rate_limit': 'quizzes',
+    'form_save_rate_limit_seconds': 'quizzes',
+    'management_features': 'quizzes',
+    // AI
+    'enable_ai_quota_bypass': 'ai',
+    'ai_daily_generation_limit': 'ai',
+    // Logs
+    'log': 'logs',
+    'log_updates': 'logs',
+    'log_deletes': 'logs',
+    // Collaboration
+    'enable_realtime_colab': 'collaboration',
+  };
 
   /// ✅ Fetch App Settings
   Future<Map<String, dynamic>?> getAppSettings() async {
@@ -23,62 +49,95 @@ class SettingsService {
   }
 
   /// ✅ Fetch Feature Flags (Cached for session)
+  /// Aggregates flags from multiple granularly-permissioned documents.
   Future<Map<String, dynamic>?> getFeatureFlags() async {
-    final defaultFlags = {
-      'enable_ai': true,
-      'enable_import': true,
-      'enable_login': true,
-      'enable_register': true,
-      'enable_create_quiz': true,
-      'enable_edit_quiz': true,
-      'enable_delete_quiz': true,
-      'enable_take_quiz': true,
-      'enable_profile_edit': true,
-      'enable_analytics': true,
-      'enable_export': true,
-      'maintenance_mode': false,
-      'random_quiz_generator': true,
-      'log': true,
-      'log_updates': true,
-      'log_deletes': true,
-      'management_features': true,
-      'enable_quiz_creation_rate_limit': true,
-      'quiz_creation_rate_limit_minutes': 5,
-      'admin_refresh_rate_limit_seconds': 30,
+    final Map<String, Map<String, dynamic>> docDefaults = {
+      'public': {
+        'enable_ai': true,
+        'enable_import': true,
+        'enable_login': true,
+        'enable_register': true,
+        'enable_create_quiz': true,
+        'enable_edit_quiz': true,
+        'enable_delete_quiz': true,
+        'enable_take_quiz': true,
+        'enable_profile_edit': true,
+        'enable_analytics': true,
+        'enable_export': true,
+        'maintenance_mode': false,
+        'random_quiz_generator': true,
+      },
+      'admin': {'admin_refresh_rate_limit_seconds': 30},
+      'moderation': {'enable_user_banning': true},
+      'ai': {
+        'enable_ai_quota_bypass': false,
+        'ai_daily_generation_limit': 10,
+      },
+      'quizzes': {
+        'enable_quiz_creation_rate_limit': true,
+        'quiz_creation_rate_limit_minutes': 5,
+        'enable_form_save_rate_limit': true,
+        'form_save_rate_limit_seconds': 30,
+        'management_features': true,
+      },
+      'logs': {
+        'log': true,
+        'log_updates': true,
+        'log_deletes': true,
+      },
+      'collaboration': {'enable_realtime_colab': true},
     };
 
+    final Map<String, dynamic> allFlags = {};
+
+    // Parallel fetch for all flag documents
+    await Future.wait(docDefaults.keys.map((docId) async {
+      try {
+        final data = await _fetchAndSyncFlags(docId, docDefaults[docId]!);
+        allFlags.addAll(data);
+      } catch (e) {
+        if (docId == 'public') {
+          debugPrint("Critical: Public flags unavailable. Using defaults.");
+        }
+        allFlags.addAll(docDefaults[docId]!);
+      }
+    }));
+
+    return allFlags;
+  }
+
+  /// Helper to fetch a specific flag document and ensure all default keys exist
+  Future<Map<String, dynamic>> _fetchAndSyncFlags(
+    String docId,
+    Map<String, dynamic> defaults,
+  ) async {
     DocumentSnapshot doc;
     try {
       doc = await _featureFlags
-          .doc('production')
+          .doc(docId)
           .get()
           .timeout(const Duration(seconds: 10));
     } catch (e) {
-      debugPrint(
-        "Warning: Could not fetch feature flags ($e). Using defaults.",
-      );
-      return defaultFlags;
+      rethrow;
     }
 
     if (!doc.exists) {
       try {
-        await _featureFlags.doc('production').set({
-          ...defaultFlags,
+        await _featureFlags.doc(docId).set({
+          ...defaults,
           'updatedAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
         debugPrint(
-          "Silent fail: Could not initialize feature flags document (Permission Denied)",
+          "Silent fail: Could not initialize '$docId' flags (Permission Denied)",
         );
       }
-      return defaultFlags;
+      return defaults;
     }
 
     final data = doc.data() as Map<String, dynamic>;
-
-    // Check if any default flag is missing and update if necessary
     bool needsUpdate = false;
-    defaultFlags.forEach((key, value) {
+    defaults.forEach((key, value) {
       if (!data.containsKey(key)) {
         data[key] = value;
         needsUpdate = true;
@@ -87,31 +146,51 @@ class SettingsService {
 
     if (needsUpdate) {
       try {
-        await _featureFlags.doc('production').update(data);
+        await _featureFlags.doc(docId).update(data);
       } catch (e) {
         debugPrint(
-          "Silent fail: Could not update missing feature flags (Permission Denied)",
+          "Silent fail: Could not update missing flags in '$docId' (Permission Denied)",
         );
       }
     }
-
     return data;
   }
 
   /// ✅ Stream Feature Flags for live updates
   Stream<Map<String, dynamic>?> streamFeatureFlags() {
-    return _featureFlags
-        .doc('production')
-        .snapshots()
-        .map((doc) => doc.data() as Map<String, dynamic>?);
+    return _featureFlags.snapshots().map((snapshot) {
+      final Map<String, dynamic> combined = {};
+      for (var doc in snapshot.docs) {
+        combined.addAll(doc.data() as Map<String, dynamic>);
+      }
+      return combined.isNotEmpty ? combined : null;
+    }).handleError((e) {
+      // Fallback: If collection-wide listener fails, listen only to 'public'
+      return _featureFlags.doc('public').snapshots().map(
+        (doc) => doc.data() as Map<String, dynamic>?,
+      );
+    });
   }
 
-  /// ✅ Update a specific feature flag (Admin only)
+  /// ✅ Update a specific feature flag (Routed by permission)
   Future<void> updateFeatureFlag(String key, dynamic value) async {
-    await _featureFlags.doc('production').set({
+    final String docId = _flagDocMap[key] ?? 'public';
+
+    await _featureFlags.doc(docId).set({
       key: value,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    final String? adminId = FirebaseAuth.instance.currentUser?.uid;
+    if (adminId != null) {
+      await AdminService().logAction(
+        actorId: adminId,
+        action: 'update_feature_flag',
+        targetId: key,
+        details: 'Set $key to $value',
+        category: 'admin',
+      );
+    }
   }
 
   /// ✅ Update App Setting
@@ -120,14 +199,42 @@ class SettingsService {
       key: value,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    final String? adminId = FirebaseAuth.instance.currentUser?.uid;
+    if (adminId != null) {
+      await AdminService().logAction(
+        actorId: adminId,
+        action: 'update_app_setting',
+        targetId: key,
+        details: 'Set app setting $key to $value',
+        category: 'admin',
+      );
+    }
   }
 
-  /// ✅ Fetch Competitive Exam Configs (Highly dynamic)
-  /// Returns a Map where keys are exam names and values are their specific settings
+  /// ✅ AI Quota Management (Specific permission required in rules)
+  Future<void> updateAiQuota(String key, dynamic value) async {
+    await _settings.doc('ai').set({
+      key: value,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final String? adminId = FirebaseAuth.instance.currentUser?.uid;
+    if (adminId != null) {
+      await AdminService().logAction(
+        actorId: adminId,
+        action: 'update_ai_quota',
+        targetId: key,
+        details: 'Set AI quota $key to $value',
+        category: 'admin',
+      );
+    }
+  }
+
+  /// ✅ Fetch Competitive Exam Configs
   Future<Map<String, dynamic>> getExamConfigs() async {
     final doc = await _settings.doc('exam_configs').get();
     if (!doc.exists) {
-      // Default fallback if not in Firestore
       return {
         'JEE Main': {'count': 90, 'time_limit': '180 min'},
         'NEET': {'count': 180, 'time_limit': '200 min'},
@@ -138,7 +245,6 @@ class SettingsService {
   }
 
   /// ✅ Fetch Admin Settings (Template)
-  /// Allow everyone to create the settings template if it doesn't exist, but doesn't add members
   Future<Map<String, dynamic>?> getAdminSettings() async {
     try {
       final doc = await _settings

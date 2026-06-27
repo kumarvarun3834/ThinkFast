@@ -29,22 +29,34 @@ class _AdminPanelState extends State<AdminPanel> {
   final Map<String, List<String>> _flagGroups = {
     "System Control": [
       "maintenance_mode",
-      "management_features",
       "log",
       "log_updates",
       "log_deletes",
       "enable_analytics",
     ],
-    "User Access": ["enable_login", "enable_register", "enable_profile_edit"],
+    "User & Moderation": [
+      "enable_login",
+      "enable_register",
+      "enable_profile_edit",
+      "enable_user_banning",
+    ],
     "Quiz Operations": [
       "enable_create_quiz",
       "enable_edit_quiz",
       "enable_delete_quiz",
       "enable_take_quiz",
       "enable_import",
+      "enable_export",
       "random_quiz_generator",
+      "management_features",
+      "enable_realtime_colab",
     ],
-    "AI & Performance": ["enable_ai", "enable_quiz_creation_rate_limit"],
+    "AI & Performance": [
+      "enable_ai",
+      "enable_ai_quota_bypass",
+      "enable_quiz_creation_rate_limit",
+      "enable_form_save_rate_limit",
+    ],
   };
 
   @override
@@ -71,7 +83,53 @@ class _AdminPanelState extends State<AdminPanel> {
 
   bool _canManageFlag(String key) {
     if (_isMaster) return true;
-    return _permissions.contains('manage_app_settings');
+
+    // Mapping key to the required permission based on SettingsService documentation
+    final Map<String, String> keyPermissionMap = {
+      // Manage App Settings (public doc)
+      'enable_ai': 'manage_app_settings',
+      'enable_import': 'manage_app_settings',
+      'enable_login': 'manage_app_settings',
+      'enable_register': 'manage_app_settings',
+      'enable_create_quiz': 'manage_app_settings',
+      'enable_edit_quiz': 'manage_app_settings',
+      'enable_delete_quiz': 'manage_app_settings',
+      'enable_take_quiz': 'manage_app_settings',
+      'enable_profile_edit': 'manage_app_settings',
+      'enable_analytics': 'manage_app_settings',
+      'enable_export': 'manage_app_settings',
+      'maintenance_mode': 'manage_app_settings',
+      'random_quiz_generator': 'manage_app_settings',
+
+      // Manage Admins
+      'admin_refresh_rate_limit_seconds': 'manage_admins',
+
+      // Moderate Users
+      'enable_user_banning': 'moderate_users',
+
+      // Manage All Quizzes
+      'enable_quiz_creation_rate_limit': 'manage_all_quizzes',
+      'quiz_creation_rate_limit_minutes': 'manage_all_quizzes',
+      'enable_form_save_rate_limit': 'manage_all_quizzes',
+      'form_save_rate_limit_seconds': 'manage_all_quizzes',
+      'management_features': 'manage_all_quizzes',
+
+      // Bypass AI Quotas
+      'enable_ai_quota_bypass': 'bypass_ai_quotas',
+      'ai_daily_generation_limit': 'bypass_ai_quotas',
+
+      // View Audit Logs
+      'log': 'view_audit_logs',
+      'log_updates': 'view_audit_logs',
+      'log_deletes': 'view_audit_logs',
+
+      // Manage Collaborators
+      'enable_realtime_colab': 'manage_collaborators',
+    };
+
+    final requiredPerm = keyPermissionMap[key];
+    if (requiredPerm == null) return _permissions.contains('manage_app_settings');
+    return _permissions.contains(requiredPerm);
   }
 
   @override
@@ -122,6 +180,8 @@ class _AdminPanelState extends State<AdminPanel> {
           // Collect all flags that are already grouped
           final groupedKeys = _flagGroups.values.expand((e) => e).toSet();
           groupedKeys.add('quiz_creation_rate_limit_minutes');
+          groupedKeys.add('form_save_rate_limit_seconds');
+          groupedKeys.add('ai_daily_generation_limit');
           groupedKeys.add('admin_refresh_rate_limit_seconds');
 
           // Find any flags in Firestore that are NOT in our groups
@@ -499,6 +559,20 @@ class _AdminPanelState extends State<AdminPanel> {
           key: 'quiz_creation_rate_limit_minutes',
           label: "Creation Rate Limit (Minutes)",
           defaultValue: 5,
+        ),
+        const SizedBox(height: 12),
+        _buildNumericField(
+          flags: flags,
+          key: 'form_save_rate_limit_seconds',
+          label: "Form Save Rate Limit (Seconds)",
+          defaultValue: 30,
+        ),
+        const SizedBox(height: 12),
+        _buildNumericField(
+          flags: flags,
+          key: 'ai_daily_generation_limit',
+          label: "AI Daily Generation Limit",
+          defaultValue: 10,
         ),
         const SizedBox(height: 12),
         _buildNumericField(

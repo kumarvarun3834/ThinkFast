@@ -33,7 +33,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     'manage_all_quizzes': 'Master Quiz Control',
     'view_audit_logs': 'View Audit Logs',
     'manage_app_settings': 'Manage App Settings',
-    'bypass_ai_limits': 'Bypass AI Quotas',
+    'bypass_ai_quotas': 'Bypass AI Quotas',
     'manage_collaborators': 'Manage Quiz Collaborators',
   };
 
@@ -255,7 +255,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         // Use standard single update if only one user and in SET mode
         await _adminService.addOrUpdateAdmin(
           targetUid: widget.targetUids.first,
-          permissions: _isSuper ? AdminService.allPermissions : _selectedPermissions,
+          selectedPermissions: _isSuper ? AdminService.allPermissions : _selectedPermissions,
           actorUid: actorUid,
           makeSuper: _isSuper,
         );
