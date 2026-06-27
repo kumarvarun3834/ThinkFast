@@ -49,7 +49,7 @@ class QuizService {
     int? moduleCount,
     String? markingType,
     String? attemptLimitType,
-    Map<String, List<String>>? moduleTags,
+    Map<String, List<String>>? moduleTags, String? examTag,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -141,6 +141,7 @@ class QuizService {
       'attemptLimitType': attemptLimitType ?? 'none',
       'isDeleted': false,
       'moduleTags': moduleTags ?? {},
+      'examTag': examTag ?? '',
     });
 
     batch.set(_questions.doc(targetQuizId), {

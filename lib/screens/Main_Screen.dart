@@ -7,13 +7,13 @@ import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
-class Main_Screen extends StatefulWidget {
+class MainScreen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
   final bool showManagedQuizzes;
   final bool showTrash;
 
-  const Main_Screen({
+  const MainScreen({
     super.key,
     this.creator,
     this.showMyQuizzes = false,
@@ -22,10 +22,10 @@ class Main_Screen extends StatefulWidget {
   });
 
   @override
-  State<Main_Screen> createState() => _Main_ScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
-class _Main_ScreenState extends State<Main_Screen> {
+class _MainScreenState extends State<MainScreen> {
   User? _user;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String _searchQuery = "";
@@ -227,6 +227,36 @@ class _Main_ScreenState extends State<Main_Screen> {
                           letterSpacing: 0.5,
                         ),
                       ),
+                    if (data['tags'] != null && (data['tags'] as List).isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 0,
+                        children: (data['tags'] as List).take(3).map((t) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: global.primaryAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: global.primaryAccent.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Text(
+                              t.toString(),
+                              style: const TextStyle(
+                                color: global.primaryAccent,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),

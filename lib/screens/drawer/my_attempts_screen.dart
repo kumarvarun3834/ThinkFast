@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
-import 'package:thinkfast/widgets/TextContainer.dart';
+import 'package:thinkfast/widgets/text_container.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 

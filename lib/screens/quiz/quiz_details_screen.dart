@@ -615,6 +615,46 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 value: _quizData!['marks'].toString(),
                                 icon: Icons.star_outline,
                               ),
+                            if (_quizData != null &&
+                                _quizData!['tags'] != null &&
+                                (_quizData!['tags'] as List).isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                "TAGS",
+                                style: GoogleFonts.poppins(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 0,
+                                children: (_quizData!['tags'] as List).map((t) {
+                                  return Chip(
+                                    label: Text(
+                                      t.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    backgroundColor:
+                                        global.primaryAccent.withValues(alpha: 0.2),
+                                    side: BorderSide(
+                                      color: global.primaryAccent
+                                          .withValues(alpha: 0.3),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                             const Divider(
                               color: global.borderColor,
                               height: 32,
@@ -893,7 +933,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           }
 
           global.quizData = flattenedQuestions;
-          global.ID = _quizData!['id'];
+          global.id = _quizData!['id'];
           global.currentUserProfile = _userProfile;
           global.creatorProfile = _creatorProfile;
 
@@ -1196,7 +1236,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                 global.quizData = flattenedQuestions;
 
-                global.ID = _quizData!['id'];
+                global.id = _quizData!['id'];
                 global.time = _quizData!['time'] as int;
                 global.perQuestionTime = _quizData!['perQuestionTime'] ?? 0;
                 global.completeRandomShuffle =

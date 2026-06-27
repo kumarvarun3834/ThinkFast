@@ -1,8 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/ImageContainer.dart';
 import '../utils/global.dart' as global;
+import '../widgets/image_container.dart';
 
 /// SPLASH SCREEN
 class MySplash extends StatefulWidget {
@@ -42,7 +42,8 @@ class _MySplashState extends State<MySplash> {
 
         if (!mounted) return;
 
-        final bool isMaintenance = global.featureFlags?['maintenance_mode'] == true;
+        final bool isMaintenance =
+            global.featureFlags?['maintenance_mode'] == true;
 
         if (isMaintenance) {
           Navigator.pushReplacementNamed(context, '/maintenance');

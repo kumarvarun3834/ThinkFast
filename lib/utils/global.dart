@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../services/firebase/qadminconnect.dart';
-import '../services/firebase/adminconnect.dart';
-import '../services/firebase/aiconnect.dart';
-import '../services/firebase/userconnect.dart';
+import '../services/firebase/q_admin_connect.dart';
+import '../services/firebase/admin_connect.dart';
+import '../services/firebase/ai_connect.dart';
+import '../services/firebase/user_connect.dart';
 
 // Database Services (Global Instances)
 final UserDatabaseService userConnect = UserDatabaseService();
@@ -29,7 +29,7 @@ bool isReviewMode = false;
 int reviewInitialIndex = 0;
 Map<String, List<String>> correctAnswers = {};
 Map<String, String> solutions = {};
-String ID = "";
+String id = "";
 String currentAttemptId = "";
 Map<String, dynamic>? currentUserProfile;
 Map<String, dynamic>? creatorProfile;

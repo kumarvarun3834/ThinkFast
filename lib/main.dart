@@ -6,7 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
-import 'package:thinkfast/screens/Main_Screen.dart';
+import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
@@ -15,7 +15,7 @@ import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
-import 'package:thinkfast/screens/quiz/quesations.dart';
+import 'package:thinkfast/screens/quiz/questions.dart';
 import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_form.dart';
@@ -114,22 +114,22 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/home':
-            page = const Main_Screen(showMyQuizzes: false);
+            page = const MainScreen(showMyQuizzes: false);
             wrapInGradient = false; // Main_Screen has its own gradient/Scaffold
             break;
           case '/My Quiz':
-            page = Main_Screen(
+            page = MainScreen(
               showMyQuizzes: true,
               creator: FirebaseAuth.instance.currentUser,
             );
             wrapInGradient = false;
             break;
           case '/Managed Quizzes':
-            page = Main_Screen(showManagedQuizzes: true);
+            page = MainScreen(showManagedQuizzes: true);
             wrapInGradient = false;
             break;
           case '/Recycle Bin':
-            page = Main_Screen(
+            page = MainScreen(
               showTrash: true,
               creator: FirebaseAuth.instance.currentUser,
             );
@@ -140,7 +140,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/Update Quiz':
-            page = QuizPage(global.ID);
+            page = QuizPage(global.id);
             wrapInGradient = false;
             break;
           case '/AI Quiz Generator':
@@ -148,7 +148,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           case '/Quiz':
-            page = const Quesations();
+            page = const Questions();
             wrapInGradient = false;
             break;
           case '/Quiz Result':
@@ -202,7 +202,7 @@ class MyApp extends StatelessWidget {
             wrapInGradient = false;
             break;
           default:
-            page = const Main_Screen(showMyQuizzes: false);
+            page = const MainScreen(showMyQuizzes: false);
             wrapInGradient = false;
             break;
         }

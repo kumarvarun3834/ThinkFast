@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:thinkfast/test_quiz/questions_file.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
-import 'Quesations_file.dart';
 import 'demo_quiz.dart';
 
 void main() async {

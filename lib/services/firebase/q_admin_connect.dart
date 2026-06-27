@@ -65,6 +65,7 @@ class QAdminDatabaseService {
     bool isAiGenerated = false,
     List<String>? tags,
     Map<String, List<String>>? moduleTags,
+    String? examTag,
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
@@ -97,6 +98,7 @@ class QAdminDatabaseService {
       attemptLimitType: attemptLimits?['type'] ?? 'none',
       tags: tags,
       moduleTags: moduleTags,
+      examTag: examTag,
     );
 
     if (moduleTags != null && moduleTags.isNotEmpty) {
@@ -125,6 +127,7 @@ class QAdminDatabaseService {
     required bool isAiGenerated,
     List<String>? tags,
     Map<String, List<String>>? moduleTags,
+    String? examTag,
   }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
 
@@ -149,6 +152,7 @@ class QAdminDatabaseService {
     if (allowedParticipants != null) updates['allowedParticipants'] = allowedParticipants;
     if (tags != null) updates['tags'] = tags;
     if (moduleTags != null) updates['moduleTags'] = moduleTags;
+    if (examTag != null) updates['examTag'] = examTag;
 
     if (data != null) {
       Map<String, dynamic> scheme = markingScheme ?? {};
@@ -243,19 +247,28 @@ class QAdminDatabaseService {
   Future<void> syncModuleTags(String quizId, Map<String, List<String>> moduleTags) async {
     final batch = FirebaseFirestore.instance.batch();
     final tagsRef = FirebaseFirestore.instance.collection('tags');
+    final moduleTagsRef = FirebaseFirestore.instance.collection('module_tags');
 
     moduleTags.forEach((moduleName, tags) {
       for (var tag in tags) {
         final tagId = tag.toLowerCase().trim();
+        
+        // 1. Global Tag Document (for platform-wide discovery)
         batch.set(tagsRef.doc(tagId), {
           'name': tagId,
           'lastUsed': FieldValue.serverTimestamp(),
           'quizIds': FieldValue.arrayUnion([quizId]),
-          // Store which modules in this quiz use this tag
-          'moduleMapping': {
-            quizId: FieldValue.arrayUnion([moduleName])
-          }
+          'moduleNames': FieldValue.arrayUnion([moduleName]),
         }, SetOptions(merge: true));
+
+        // 2. Separate Module-Tag Document (as requested for granular storage)
+        final String docId = "${quizId}_${moduleName.replaceAll(' ', '_')}_$tagId";
+        batch.set(moduleTagsRef.doc(docId), {
+          'tag': tagId,
+          'moduleName': moduleName,
+          'quizId': quizId,
+          'syncedAt': FieldValue.serverTimestamp(),
+        });
       }
     });
 

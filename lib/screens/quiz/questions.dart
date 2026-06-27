@@ -6,14 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
-class Quesations extends StatefulWidget {
-  const Quesations({super.key});
+class Questions extends StatefulWidget {
+  const Questions({super.key});
 
   @override
-  State<Quesations> createState() => _Quesations();
+  State<Questions> createState() => _QuestionsState();
 }
 
-class _Quesations extends State<Quesations> with WidgetsBindingObserver {
+class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   int i = 0;
   String? _activeModule;
   String? _drawerActiveModule;

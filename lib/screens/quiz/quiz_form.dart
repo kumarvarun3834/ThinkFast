@@ -29,6 +29,7 @@ class _QuizPageState extends State<QuizPage> {
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
+  late final TextEditingController _examController; // Added exam controller
   late final TextEditingController _timeController;
   late final TextEditingController _perQuestionTimeController;
   late final TextEditingController _allowedUsersController;
@@ -95,6 +96,7 @@ class _QuizPageState extends State<QuizPage> {
     _currentDocId = widget.docId;
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
+    _examController = TextEditingController(); // Added exam init
     _timeController = TextEditingController();
     _perQuestionTimeController = TextEditingController(text: "0");
     _allowedUsersController = TextEditingController();
@@ -119,6 +121,7 @@ class _QuizPageState extends State<QuizPage> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _examController.dispose(); // Added exam dispose
     _timeController.dispose();
     _perQuestionTimeController.dispose();
     _allowedUsersController.dispose();
@@ -341,6 +344,7 @@ class _QuizPageState extends State<QuizPage> {
       setState(() {
         _titleController.text = data['title'] ?? '';
         _descriptionController.text = data['description'] ?? '';
+        _examController.text = data['examTag'] ?? ''; // Load exam tag
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         completeRandomShuffle = data['completeRandomShuffle'] ?? false;
@@ -1293,10 +1297,11 @@ class _QuizPageState extends State<QuizPage> {
           isAiGenerated: _isAiGenerated,
           tags: allTags.toList(),
           moduleTags: moduleTagsMap,
+          examTag: _examController.text.trim(), // Added exam tag
         );
         setState(() {
           _currentDocId = newId;
-          global.ID = newId; // 🔑 Save to global for precise tracking
+          global.id = newId; // 🔑 Save to global for precise tracking
         });
       } else {
         await global.qDb.updateDatabase(
@@ -1318,8 +1323,9 @@ class _QuizPageState extends State<QuizPage> {
           isAiGenerated: _isAiGenerated,
           tags: allTags.toList(),
           moduleTags: moduleTagsMap,
+          examTag: _examController.text.trim(), // Added exam tag
         );
-        global.ID = _currentDocId;
+        global.id = _currentDocId;
       }
 
       ScaffoldMessenger.of(

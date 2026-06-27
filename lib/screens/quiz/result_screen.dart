@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/firebase/userconnect.dart';
 import 'package:thinkfast/utils/global.dart' as global;
-import 'package:thinkfast/widgets/TextContainer.dart';
+
+import '../../widgets/text_container.dart';
 
 class ResultScreen extends StatefulWidget {
   final String? quizId;
@@ -144,7 +144,7 @@ class _ResultScreenState extends State<ResultScreen> {
       } else {
         // JUST FINISHED QUIZ (Using Global)
         setState(() => _loadingMessage = "Submitting attempt...");
-        _quizId = global.ID;
+        _quizId = global.id;
         _displayQuizData = List<Map<String, dynamic>>.from(global.quizData);
         displayQuizResult = List<List<dynamic>>.from(global.quizResult);
         _markingScheme = global.markingScheme;
@@ -281,7 +281,9 @@ class _ResultScreenState extends State<ResultScreen> {
           'type': qType,
           'subject': qSubject ?? 'General',
           'isReview': isReview,
-          'isVisited': resultDataset.length > 3 ? resultDataset[3] == true : true,
+          'isVisited': resultDataset.length > 3
+              ? resultDataset[3] == true
+              : true,
           'solution': _solutions[qUid] ?? '',
         });
       }
@@ -409,7 +411,11 @@ class _ResultScreenState extends State<ResultScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.delete_forever, color: global.errorColor, size: 20),
+                  const Icon(
+                    Icons.delete_forever,
+                    color: global.errorColor,
+                    size: 20,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
