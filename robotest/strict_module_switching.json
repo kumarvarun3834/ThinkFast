@@ -1,0 +1,29 @@
+{
+  "title": "Strict Navigation (20Q)",
+  "description": "Tests disableModuleSwitchingUntilTimeout with 20 questions.",
+  "time": 5,
+  "disableModuleSwitchingUntilTimeout": true,
+  "forceWaitUntilTimeout": true,
+  "questions": [
+    { "question": "A1", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A2", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A3", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A4", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A5", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A6", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A7", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A8", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A9", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "A10", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Part A" },
+    { "question": "B1", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B2", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B3", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B4", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B5", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B6", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B7", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B8", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B9", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" },
+    { "question": "B10", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Part B" }
+  ]
+}

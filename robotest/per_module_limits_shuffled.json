@@ -1,0 +1,35 @@
+{
+  "title": "Module Limits & Shuffle (20Q)",
+  "description": "Tests per-module quotas and random shuffling with 20 questions.",
+  "time": 30,
+  "completeRandomShuffle": true,
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Math": { "Single Choice": 5 },
+      "Science": { "Single Choice": 5 }
+    }
+  },
+  "questions": [
+    { "question": "M1", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M2", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M3", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M4", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M5", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M6 (Limit)", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M7 (Limit)", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M8", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M9", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M10", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "S1", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S2", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S3", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S4", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S5", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S6 (Limit)", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S7", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S8", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S9", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S10", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" }
+  ]
+}

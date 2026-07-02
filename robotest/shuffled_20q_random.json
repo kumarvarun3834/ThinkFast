@@ -1,0 +1,28 @@
+{
+  "title": "Random Shuffle 20Q Test",
+  "description": "Tests complete random shuffle across modules with 20 questions.",
+  "time": 15,
+  "completeRandomShuffle": true,
+  "questions": [
+    { "question": "Geo 1", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "Geo 2", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "Geo 3", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "Geo 4", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "His 1", "choices": ["B"], "answers": ["B"], "type": "Single Choice", "subject": "History" },
+    { "question": "His 2", "choices": ["B"], "answers": ["B"], "type": "Single Choice", "subject": "History" },
+    { "question": "His 3", "choices": ["B"], "answers": ["B"], "type": "Single Choice", "subject": "History" },
+    { "question": "His 4", "choices": ["B"], "answers": ["B"], "type": "Single Choice", "subject": "History" },
+    { "question": "Sci 1", "choices": ["C"], "answers": ["C"], "type": "Single Choice", "subject": "Science" },
+    { "question": "Sci 2", "choices": ["C"], "answers": ["C"], "type": "Single Choice", "subject": "Science" },
+    { "question": "Sci 3", "choices": ["C"], "answers": ["C"], "type": "Single Choice", "subject": "Science" },
+    { "question": "Sci 4", "choices": ["C"], "answers": ["C"], "type": "Single Choice", "subject": "Science" },
+    { "question": "Math 1", "choices": ["D"], "answers": ["D"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Math 2", "choices": ["D"], "answers": ["D"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Math 3", "choices": ["D"], "answers": ["D"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Math 4", "choices": ["D"], "answers": ["D"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Lit 1", "choices": ["E"], "answers": ["E"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "Lit 2", "choices": ["E"], "answers": ["E"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "Lit 3", "choices": ["E"], "answers": ["E"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "Lit 4", "choices": ["E"], "answers": ["E"], "type": "Single Choice", "subject": "Lit" }
+  ]
+}

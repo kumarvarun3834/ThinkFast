@@ -1,0 +1,35 @@
+{
+  "title": "Mega Comprehensive (20Q)",
+  "description": "Massive quiz with 20 questions covering every question type and module tags.",
+  "time": 40,
+  "perQuestionTime": 60,
+  "examTag": "MEGATEST-20Q",
+  "moduleOrder": ["Basics", "Advanced", "Numbers"],
+  "moduleTags": {
+    "Basics": ["intro"],
+    "Advanced": ["complex"],
+    "Numbers": ["math"]
+  },
+  "questions": [
+    { "question": "B1", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "B2", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "B3", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "B4", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "B5", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "A1", "choices": ["1", "2", "3"], "answers": ["1", "2"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "A2", "choices": ["1", "2", "3"], "answers": ["2", "3"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "A3", "choices": ["1", "2", "3"], "answers": ["1", "3"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "A4", "choices": ["1", "2", "3"], "answers": ["1"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "A5", "choices": ["1", "2", "3"], "answers": ["2"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "N1", "answers": ["100"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N2", "answers": ["200"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N3", "answers": ["300"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N4", "answers": ["400"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N5", "answers": ["500"], "type": "Integer", "subject": "Numbers" },
+    { "question": "B6", "choices": ["X"], "answers": ["X"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "A6", "choices": ["Y"], "answers": ["Y"], "type": "Multiple Choice", "subject": "Advanced" },
+    { "question": "N6", "answers": ["600"], "type": "Integer", "subject": "Numbers" },
+    { "question": "B7", "choices": ["Z"], "answers": ["Z"], "type": "Single Choice", "subject": "Basics" },
+    { "question": "N7", "answers": ["700"], "type": "Integer", "subject": "Numbers" }
+  ]
+}

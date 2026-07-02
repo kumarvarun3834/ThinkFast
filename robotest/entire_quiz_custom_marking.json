@@ -1,0 +1,31 @@
+{
+  "title": "Custom Global Marking (20Q)",
+  "description": "Tests 'entire_quiz' marking scheme (+5, -2) with 20 questions.",
+  "time": 25,
+  "markingScheme": {
+    "type": "entire_quiz",
+    "global": { "correct": 5, "wrong": -2 }
+  },
+  "questions": [
+    { "question": "Q1", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q2", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q3", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q4", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q5", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q6", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q7", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q8", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q9", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q10", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q11", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q12", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q13", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q14", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q15", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q16", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q17", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q18", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q19", "choices": ["X", "Y"], "answers": ["X"], "type": "Single Choice", "subject": "Math" },
+    { "question": "Q20", "choices": ["X", "Y"], "answers": ["Y"], "type": "Single Choice", "subject": "Math" }
+  ]
+}

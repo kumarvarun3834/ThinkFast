@@ -1,0 +1,29 @@
+{
+  "title": "Restricted Access (20Q)",
+  "description": "Tests isRestricted and allowedParticipants with 20 questions.",
+  "time": 20,
+  "isRestricted": true,
+  "allowedParticipants": ["tester@example.com", "robo@thinkfast.com"],
+  "questions": [
+    { "question": "Q1", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q2", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q3", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q4", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q5", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q6", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q7", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q8", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q9", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q10", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q11", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q12", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q13", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q14", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q15", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q16", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q17", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q18", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q19", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" },
+    { "question": "Q20", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Private" }
+  ]
+}

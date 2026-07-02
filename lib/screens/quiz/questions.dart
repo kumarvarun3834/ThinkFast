@@ -216,7 +216,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.inactive) &&
         !_isSubmitted &&
-        !global.isReviewMode) {
+        !global.isReviewMode &&
+        global.time > 0) {
       _submitAndFinish();
     }
   }
@@ -587,7 +588,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       global.quizResult[i][0] = qInfo['text'].toString();
       global.quizResult[i][1] = qInfo['id'].toString();
 
-      if (!global.isReviewMode) {
+      if (!global.isReviewMode && global.time > 0) {
         global.quizResult[i][3] = true; // Mark visited while attempting
         final int qTimer =
             int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
@@ -1254,32 +1255,32 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     ),
             ),
           ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(40),
-            child: Container(
-              color: global.cardColor,
-              height: 40,
-              alignment: Alignment.center,
-              child: Text(
-                global.isReviewMode
-                    ? "REVIEW MODE"
-                    : (global.time == 0
-                          ? "⏱ Unlimited Time"
+          bottom: (global.time == 0 && !global.isReviewMode)
+              ? null
+              : PreferredSize(
+                  preferredSize: const Size.fromHeight(40),
+                  child: Container(
+                    color: global.cardColor,
+                    height: 40,
+                    alignment: Alignment.center,
+                    child: Text(
+                      global.isReviewMode
+                          ? "REVIEW MODE"
                           : (_timer?.isActive == true
-                                ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
-                                : "No active timer")),
-                style: TextStyle(
-                  color: global.isReviewMode
-                      ? global.warningColor
-                      : global.valueColor,
-                  fontSize: 14,
-                  fontWeight: global.isReviewMode
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+                              ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
+                              : "No active timer"),
+                      style: TextStyle(
+                        color: global.isReviewMode
+                            ? global.warningColor
+                            : global.valueColor,
+                        fontSize: 14,
+                        fontWeight: global.isReviewMode
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
         drawer: Drawer(
           backgroundColor: global.cardColor,

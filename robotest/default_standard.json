@@ -1,0 +1,27 @@
+{
+  "title": "Standard Basic Quiz (20Q)",
+  "description": "Tests default marking and no limits with a standard 20 question set.",
+  "time": 20,
+  "questions": [
+    { "question": "Q1", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q2", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q3", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q4", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q5", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q6", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q7", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q8", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q9", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q10", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q11", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q12", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q13", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q14", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q15", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q16", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q17", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q18", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q19", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "General" },
+    { "question": "Q20", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "General" }
+  ]
+}

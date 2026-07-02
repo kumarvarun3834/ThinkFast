@@ -1,0 +1,28 @@
+{
+  "title": "Unlimited Math Drills (20Q)",
+  "description": "Tests 'time: 0' (Unlimited) and pure Integer question flow.",
+  "time": 0,
+  "examTag": "PRACTICE-ONLY",
+  "questions": [
+    { "question": "1+1", "answers": ["2"], "type": "Integer", "subject": "Addition" },
+    { "question": "2+2", "answers": ["4"], "type": "Integer", "subject": "Addition" },
+    { "question": "3+3", "answers": ["6"], "type": "Integer", "subject": "Addition" },
+    { "question": "4+4", "answers": ["8"], "type": "Integer", "subject": "Addition" },
+    { "question": "5+5", "answers": ["10"], "type": "Integer", "subject": "Addition" },
+    { "question": "2*2", "answers": ["4"], "type": "Integer", "subject": "Multi" },
+    { "question": "3*3", "answers": ["9"], "type": "Integer", "subject": "Multi" },
+    { "question": "4*4", "answers": ["16"], "type": "Integer", "subject": "Multi" },
+    { "question": "5*5", "answers": ["25"], "type": "Integer", "subject": "Multi" },
+    { "question": "6*6", "answers": ["36"], "type": "Integer", "subject": "Multi" },
+    { "question": "10-5", "answers": ["5"], "type": "Integer", "subject": "Sub" },
+    { "question": "20-10", "answers": ["10"], "type": "Integer", "subject": "Sub" },
+    { "question": "30-15", "answers": ["15"], "type": "Integer", "subject": "Sub" },
+    { "question": "40-20", "answers": ["20"], "type": "Integer", "subject": "Sub" },
+    { "question": "50-25", "answers": ["25"], "type": "Integer", "subject": "Sub" },
+    { "question": "10/2", "answers": ["5"], "type": "Integer", "subject": "Div" },
+    { "question": "20/4", "answers": ["5"], "type": "Integer", "subject": "Div" },
+    { "question": "30/6", "answers": ["5"], "type": "Integer", "subject": "Div" },
+    { "question": "40/8", "answers": ["5"], "type": "Integer", "subject": "Div" },
+    { "question": "50/10", "answers": ["5"], "type": "Integer", "subject": "Div" }
+  ]
+}

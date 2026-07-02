@@ -1,0 +1,39 @@
+{
+  "title": "Type Marking & Global Limits (20Q)",
+  "description": "Tests per-type marking and global attempt quotas with 20 questions.",
+  "time": 30,
+  "markingScheme": {
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Multiple Choice": { "correct": 6, "wrong": -2 },
+      "Integer": { "correct": 10, "wrong": 0 }
+    }
+  },
+  "attemptLimits": {
+    "type": "global",
+    "global": { "Single Choice": 5, "Multiple Choice": 3, "Integer": 2 }
+  },
+  "questions": [
+    { "question": "SC 1", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 2", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 3", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 4", "choices": ["A", "B"], "answers": ["B"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 5", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 6 (Limit)", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 7 (Limit)", "choices": ["A", "B"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "MC 1", "choices": ["A", "B", "C"], "answers": ["A", "B"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "MC 2", "choices": ["A", "B", "C"], "answers": ["A", "C"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "MC 3", "choices": ["A", "B", "C"], "answers": ["B", "C"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "MC 4 (Limit)", "choices": ["A", "B", "C"], "answers": ["A"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "INT 1", "answers": ["10"], "type": "Integer", "subject": "Gen" },
+    { "question": "INT 2", "answers": ["20"], "type": "Integer", "subject": "Gen" },
+    { "question": "INT 3 (Limit)", "answers": ["30"], "type": "Integer", "subject": "Gen" },
+    { "question": "SC 8", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 9", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "SC 10", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Gen" },
+    { "question": "MC 5", "choices": ["A"], "answers": ["A"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "MC 6", "choices": ["A"], "answers": ["A"], "type": "Multiple Choice", "subject": "Gen" },
+    { "question": "INT 4", "answers": ["40"], "type": "Integer", "subject": "Gen" }
+  ]
+}

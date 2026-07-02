@@ -564,11 +564,12 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               color: global.borderColor,
                               height: 32,
                             ),
-                            InfoRow(
-                              label: "Duration",
-                              value: timeLimit,
-                              icon: Icons.timer_outlined,
-                            ),
+                            if (_quizData != null && (_quizData!['time'] ?? 0) > 0)
+                              InfoRow(
+                                label: "Duration",
+                                value: timeLimit,
+                                icon: Icons.timer_outlined,
+                              ),
                             InfoRow(
                               label: "Total Questions",
                               value: totalQuestions,
@@ -790,9 +791,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
     final List<String> types = [];
 
-    // Directly identifying Quiz Type from stored metadata
+    final int time = _quizData!['time'] ?? 0;
     final int perQ = _quizData!['perQuestionTime'] ?? 0;
-    if (perQ > 0) types.add("Rapid Fire ($perQ s/Q)");
+    if (perQ > 0 && time > 0) types.add("Rapid Fire ($perQ s/Q)");
 
     if (_quizData!['markingType'] == 'per_question') types.add("Per Q Marking");
 
@@ -800,14 +801,18 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     if (modCount > 1) types.add("Modular Quiz");
 
     if (_quizData!['shuffleModules'] == true) types.add("Shuffled Modules");
-    if (_quizData!['shuffleQuestionsWithinModules'] == true) types.add("Intra-Module Shuffle");
+    if (_quizData!['shuffleQuestionsWithinModules'] == true) {
+      types.add("Intra-Module Shuffle");
+    }
     if (_quizData!['completeRandomShuffle'] == true) types.add("Global Shuffle");
-    if (_quizData!['disableModuleSwitchingUntilTimeout'] == true) types.add("Strict Module Flow");
-    if (_quizData!['forceWaitUntilTimeout'] == true) types.add("Timed Submission Only");
+    if (_quizData!['disableModuleSwitchingUntilTimeout'] == true && time > 0) {
+      types.add("Strict Module Flow");
+    }
+    if (_quizData!['forceWaitUntilTimeout'] == true && time > 0) {
+      types.add("Timed Submission Only");
+    }
 
-    if ((_quizData!['time'] ?? 0) == 0 && _quizData!['timingScheme'] == null) types.add("Unlimited Duration");
-
-    if (_quizData!['timingScheme'] != null) {
+    if (time > 0 && _quizData!['timingScheme'] != null) {
       final String tt = _quizData!['timingScheme']['type'] ?? 'global';
       if (tt == 'per_module') types.add("Modular Timers");
       if (tt == 'per_question') types.add("Strict Question Timers");
@@ -1344,9 +1349,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                 // Mark as active quiz with expiry (Duration + 5 mins buffer)
                 final int quizDurationSeconds = _quizData!['time'] as int;
-                final DateTime expiry = DateTime.now().add(
-                  Duration(seconds: quizDurationSeconds + 300),
-                );
+                final DateTime expiry = quizDurationSeconds > 0
+                    ? DateTime.now().add(
+                        Duration(seconds: quizDurationSeconds + 300),
+                      )
+                    : DateTime.now().add(const Duration(days: 1)); // Unlimited
 
                 await global.db.updateActiveQuiz(
                   uid: _user!.uid,

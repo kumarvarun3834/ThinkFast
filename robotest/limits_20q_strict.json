@@ -1,0 +1,36 @@
+{
+  "title": "Strict Limits 20Q Test",
+  "description": "Tests attempt limits and navigation constraints with 20 questions.",
+  "time": 20,
+  "disableModuleSwitchingUntilTimeout": true,
+  "forceWaitUntilTimeout": false,
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Section A": { "Single Choice": 5, "Integer": 2 },
+      "Section B": { "Multiple Choice": 3 }
+    }
+  },
+  "questions": [
+    { "question": "A1", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A2", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A3", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A4", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A5", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A6 (Blocked)", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A7 (Blocked)", "choices": ["1", "2"], "answers": ["1"], "type": "Single Choice", "subject": "Section A" },
+    { "question": "A-Int 1", "answers": ["1"], "type": "Integer", "subject": "Section A" },
+    { "question": "A-Int 2", "answers": ["2"], "type": "Integer", "subject": "Section A" },
+    { "question": "A-Int 3 (Blocked)", "answers": ["3"], "type": "Integer", "subject": "Section A" },
+    { "question": "B1", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B2", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B3", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B4 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B5 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B6 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B7 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B8 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B9 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" },
+    { "question": "B10 (Blocked)", "choices": ["X", "Y"], "answers": ["X", "Y"], "type": "Multiple Choice", "subject": "Section B" }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "title": "Timing & Discovery Stress (20Q)",
+  "description": "Tests Module-specific timing and explicit module ordering with heavy tagging.",
+  "time": 60,
+  "examTag": "DISCOVERY-PRO",
+  "moduleOrder": ["Intro", "Hardware", "Numbers"],
+  "moduleTags": {
+    "Intro": ["welcome", "start"],
+    "Hardware": ["cpu", "ram", "storage"],
+    "Numbers": ["math", "binary"]
+  },
+  "timingScheme": {
+    "type": "per_module",
+    "settings": {
+      "perModule": {
+        "Intro": { "total": 300, "perQuestion": 30 },
+        "Hardware": { "total": 600, "perQuestion": 45 },
+        "Numbers": { "total": 900, "perQuestion": 60 }
+      }
+    }
+  },
+  "questions": [
+    { "question": "I1", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "I2", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "I3", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "I4", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "I5", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "I6", "choices": ["A"], "answers": ["A"], "type": "Single Choice", "subject": "Intro" },
+    { "question": "H1", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H2", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H3", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H4", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H5", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H6", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "H7", "choices": ["B"], "answers": ["B"], "type": "Multiple Choice", "subject": "Hardware" },
+    { "question": "N1", "answers": ["1"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N2", "answers": ["2"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N3", "answers": ["3"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N4", "answers": ["4"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N5", "answers": ["5"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N6", "answers": ["6"], "type": "Integer", "subject": "Numbers" },
+    { "question": "N7", "answers": ["7"], "type": "Integer", "subject": "Numbers" }
+  ]
+}

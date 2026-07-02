@@ -1,0 +1,31 @@
+{
+  "title": "Intermediate Shuffling (20Q)",
+  "description": "Tests module-level and question-level shuffling without mixing subjects entirely.",
+  "time": 20,
+  "completeRandomShuffle": false,
+  "shuffleModules": true,
+  "shuffleQuestionsWithinModules": true,
+  "allowMultipleAttempts": false,
+  "questions": [
+    { "question": "M1", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M2", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M3", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "M4", "choices": ["1"], "answers": ["1"], "type": "Single Choice", "subject": "Math" },
+    { "question": "S1", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S2", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S3", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "S4", "choices": ["2"], "answers": ["2"], "type": "Single Choice", "subject": "Science" },
+    { "question": "H1", "choices": ["3"], "answers": ["3"], "type": "Single Choice", "subject": "History" },
+    { "question": "H2", "choices": ["3"], "answers": ["3"], "type": "Single Choice", "subject": "History" },
+    { "question": "H3", "choices": ["3"], "answers": ["3"], "type": "Single Choice", "subject": "History" },
+    { "question": "H4", "choices": ["3"], "answers": ["3"], "type": "Single Choice", "subject": "History" },
+    { "question": "L1", "choices": ["4"], "answers": ["4"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "L2", "choices": ["4"], "answers": ["4"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "L3", "choices": ["4"], "answers": ["4"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "L4", "choices": ["4"], "answers": ["4"], "type": "Single Choice", "subject": "Lit" },
+    { "question": "G1", "choices": ["5"], "answers": ["5"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "G2", "choices": ["5"], "answers": ["5"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "G3", "choices": ["5"], "answers": ["5"], "type": "Single Choice", "subject": "Geo" },
+    { "question": "G4", "choices": ["5"], "answers": ["5"], "type": "Single Choice", "subject": "Geo" }
+  ]
+}
