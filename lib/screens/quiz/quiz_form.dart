@@ -1,10 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/add_quiz_data.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
+import 'package:thinkfast/screens/quiz/form/attempt_limits_panel.dart';
+import 'package:thinkfast/screens/quiz/form/form_data_helpers.dart';
+import 'package:thinkfast/screens/quiz/form/marking_scheme_panel.dart';
+import 'package:thinkfast/screens/quiz/form/modules_panel.dart';
+import 'package:thinkfast/screens/quiz/form/questions_list_section.dart';
+import 'package:thinkfast/screens/quiz/form/quiz_form_controller.dart';
+import 'package:thinkfast/screens/quiz/form/quiz_header_section.dart';
+import 'package:thinkfast/screens/quiz/form/scheduling_panel.dart';
+import 'package:thinkfast/screens/quiz/form/timing_config_panel.dart';
 import 'package:thinkfast/services/quiz_data_processor.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
@@ -21,87 +27,66 @@ class QuizPage extends StatefulWidget {
 
 class _QuizPageState extends State<QuizPage> {
   User? user;
-  bool _isAdmin = false;
-
-  // bool _isAi = false;
-  bool _importEnabled = false;
-  bool _isLoading = false;
-  bool _isAiGenerated = false;
+  bool _isAdmin = false,
+      _importEnabled = false,
+      _isLoading = false,
+      _isAiGenerated = false;
   late String _currentDocId;
-
-  late final TextEditingController _titleController;
-  late final TextEditingController _descriptionController;
-  late final TextEditingController _examController;
-  late final TextEditingController _timeController;
-  late final TextEditingController _perQuestionTimeController;
-  late final TextEditingController _allowedUsersController;
+  late final TextEditingController _titleController,
+      _descriptionController,
+      _examController,
+      _timeController,
+      _perQuestionTimeController,
+      _allowedUsersController;
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _moduleController = TextEditingController();
 
-  String visibility = "private";
-  bool allowMultipleAttempts = true;
-  bool completeRandomShuffle = false;
-  bool shuffleModules = false;
-  bool shuffleQuestionsWithinModules = false;
-  bool disableModuleSwitchingUntilTimeout = false;
-  bool forceWaitUntilTimeout = false;
-
-  // Scheduling & Restriction
+  String visibility = "private",
+      timingType = "global",
+      attemptLimitType = "none",
+      markingType = "default";
+  bool allowMultipleAttempts = true,
+      completeRandomShuffle = false,
+      shuffleModules = false,
+      shuffleQuestionsWithinModules = false,
+      disableModuleSwitchingUntilTimeout = false,
+      forceWaitUntilTimeout = false;
   DateTime? _scheduledTime;
   bool _isRestricted = false;
 
-  // Timing Scheme
-  String timingType = "global";
   final Map<String, Map<String, TextEditingController>>
-  _moduleTimingControllers = {};
-  final Map<String, TextEditingController> _typeTimingControllers = {
-    "Single Choice": TextEditingController(text: "0"),
-    "Multiple Choice": TextEditingController(text: "0"),
-    "Integer": TextEditingController(text: "0"),
-  };
-
-  // Attempt Limits
-  String attemptLimitType = "none";
-  final Map<String, TextEditingController> _globalLimitControllers = {
-    "Single Choice": TextEditingController(),
-    "Multiple Choice": TextEditingController(),
-    "Integer": TextEditingController(),
-  };
-  final Map<String, Map<String, TextEditingController>>
+  _moduleTimingControllers = {},
   _moduleLimitControllers = {};
-  final Map<String, TextEditingController> _moduleTagControllers = {};
+  final Map<String, TextEditingController> _typeTimingControllers = {
+        "Single Choice": TextEditingController(text: "0"),
+        "Multiple Choice": TextEditingController(text: "0"),
+        "Integer": TextEditingController(text: "0"),
+      },
+      _moduleTagControllers = {},
+      _globalLimitControllers = {
+        "Single Choice": TextEditingController(),
+        "Multiple Choice": TextEditingController(),
+        "Integer": TextEditingController(),
+      };
 
-  // Modules
-  final List<String> modulesList = ["General"];
-  final TextEditingController _moduleController = TextEditingController();
-
-  // Marking Scheme
-  String markingType = "default";
   final TextEditingController _globalCorrectController = TextEditingController(
-    text: "4",
-  );
-  final TextEditingController _globalWrongController = TextEditingController(
-    text: "-1",
-  );
+        text: "4",
+      ),
+      _globalWrongController = TextEditingController(text: "-1");
   final TextEditingController _scCorrectController = TextEditingController(
-    text: "4",
-  );
-  final TextEditingController _scWrongController = TextEditingController(
-    text: "-1",
-  );
+        text: "4",
+      ),
+      _scWrongController = TextEditingController(text: "-1");
   final TextEditingController _mcCorrectController = TextEditingController(
-    text: "4",
-  );
-  final TextEditingController _mcWrongController = TextEditingController(
-    text: "-1",
-  );
+        text: "4",
+      ),
+      _mcWrongController = TextEditingController(text: "-1");
   final TextEditingController _intCorrectController = TextEditingController(
-    text: "4",
-  );
-  final TextEditingController _intWrongController = TextEditingController(
-    text: "-1",
-  );
+        text: "4",
+      ),
+      _intWrongController = TextEditingController(text: "-1");
 
-  // Questions
+  final List<String> modulesList = ["General"];
   final List<Map<String, Object>> questions = [];
   final Map<String, GlobalKey> _moduleKeys = {};
   final Map<int, GlobalKey> _questionKeys = {};
@@ -116,13 +101,10 @@ class _QuizPageState extends State<QuizPage> {
     _timeController = TextEditingController();
     _perQuestionTimeController = TextEditingController(text: "0");
     _allowedUsersController = TextEditingController();
-
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
-
     _updateModuleLimitControllers();
-
     if (_currentDocId.isNotEmpty) {
       _fetchQuiz(_currentDocId);
     } else {
@@ -139,11 +121,6 @@ class _QuizPageState extends State<QuizPage> {
     _perQuestionTimeController.dispose();
     _allowedUsersController.dispose();
     _moduleController.dispose();
-    _globalLimitControllers.forEach((_, c) => c.dispose());
-    _moduleLimitControllers.forEach(
-      (_, map) => map.forEach((_, c) => c.dispose()),
-    );
-    _moduleTagControllers.forEach((_, c) => c.dispose());
     _globalCorrectController.dispose();
     _globalWrongController.dispose();
     _scCorrectController.dispose();
@@ -152,99 +129,69 @@ class _QuizPageState extends State<QuizPage> {
     _mcWrongController.dispose();
     _intCorrectController.dispose();
     _intWrongController.dispose();
+    _globalLimitControllers.forEach((_, c) => c.dispose());
+    _moduleLimitControllers.forEach((_, m) => m.forEach((_, c) => c.dispose()));
+    _moduleTagControllers.forEach((_, c) => c.dispose());
     super.dispose();
   }
 
   void _updateModuleLimitControllers() {
-    for (var module in modulesList) {
-      if (!_moduleLimitControllers.containsKey(module)) {
-        _moduleLimitControllers[module] = {
+    for (var m in modulesList) {
+      _moduleLimitControllers.putIfAbsent(
+        m,
+        () => {
           "Single Choice": TextEditingController(),
           "Multiple Choice": TextEditingController(),
           "Integer": TextEditingController(),
-        };
-      }
-      if (!_moduleTagControllers.containsKey(module)) {
-        _moduleTagControllers[module] = TextEditingController();
-      }
+        },
+      );
+      _moduleTagControllers.putIfAbsent(m, () => TextEditingController());
     }
   }
 
   void _updateModuleTimingControllers() {
-    for (var module in modulesList) {
-      if (!_moduleTimingControllers.containsKey(module)) {
-        _moduleTimingControllers[module] = {
+    for (var m in modulesList) {
+      _moduleTimingControllers.putIfAbsent(
+        m,
+        () => {
           "total": TextEditingController(text: "0"),
           "perQuestion": TextEditingController(text: "0"),
-        };
-      }
+        },
+      );
     }
   }
 
-  void _moveModule(int oldIndex, int newIndex) {
-    if (newIndex < 0 || newIndex >= modulesList.length) return;
-    setState(() {
-      final String item = modulesList.removeAt(oldIndex);
-      modulesList.insert(newIndex, item);
-    });
+  void _moveModule(int oldIdx, int newIdx) {
+    if (newIdx >= 0 && newIdx < modulesList.length)
+      setState(() => modulesList.insert(newIdx, modulesList.removeAt(oldIdx)));
   }
 
   void _showImportDialog({bool append = false}) {
-    final TextEditingController importController = TextEditingController();
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: global.cardColor,
         title: Text(
-          append ? "Import More Quiz Data" : "Import Quiz Data",
+          append ? "Append Data" : "Import Data",
           style: GoogleFonts.poppins(color: global.valueColor),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              append
-                  ? "Append new data to the existing quiz."
-                  : "Paste a JSON string or a direct link to a JSON file.",
-              style: TextStyle(color: global.labelColor, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: importController,
-              maxLines: 5,
-              style: const TextStyle(color: global.valueColor, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: "Enter JSON or URL...",
-                hintStyle: const TextStyle(color: global.hintColor),
-                filled: true,
-                fillColor: global.bgColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          decoration: const InputDecoration(hintText: "Enter JSON..."),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "CANCEL",
-              style: TextStyle(color: global.labelColor),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CANCEL"),
           ),
           ElevatedButton(
             onPressed: () {
-              final input = importController.text.trim();
-              if (input.isNotEmpty) {
-                Navigator.pop(context);
-                _importQuizData(input, append: append);
-              }
+              Navigator.pop(ctx);
+              _importQuizData(controller.text.trim(), append: append);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: global.primaryAccent,
-            ),
-            child: Text(append ? "APPEND" : "IMPORT"),
+            child: const Text("IMPORT"),
           ),
         ],
       ),
@@ -253,243 +200,90 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _importQuizData(String input, {bool append = false}) async {
     try {
-      final result = await QuizDataProcessor.processImportData(input);
-
-      setState(() {
-        _isAiGenerated = true;
-        if (!append) {
-          if (result.title != null) _titleController.text = result.title!;
-          if (result.description != null)
-            _descriptionController.text = result.description!;
-          if (result.examTag != null) _examController.text = result.examTag!;
-          if (result.moduleTags != null) {
-            result.moduleTags!.forEach((module, tags) {
-              if (!_moduleTagControllers.containsKey(module)) {
-                _moduleTagControllers[module] = TextEditingController();
-              }
-              _moduleTagControllers[module]!.text = tags.join(', ');
-            });
+      final res = await QuizDataProcessor.processImportData(input);
+      setState(() => _isAiGenerated = true);
+      await QuizFormController.importQuizData(
+        result: res,
+        append: append,
+        titleController: _titleController,
+        descriptionController: _descriptionController,
+        examController: _examController,
+        timeController: _timeController,
+        perQuestionTimeController: _perQuestionTimeController,
+        allowedUsersController: _allowedUsersController,
+        moduleTagControllers: _moduleTagControllers,
+        globalLimitControllers: _globalLimitControllers,
+        moduleLimitControllers: _moduleLimitControllers,
+        moduleTimingControllers: _moduleTimingControllers,
+        typeTimingControllers: _typeTimingControllers,
+        globalCorrectController: _globalCorrectController,
+        globalWrongController: _globalWrongController,
+        scCorrectController: _scCorrectController,
+        scWrongController: _scWrongController,
+        mcCorrectController: _mcCorrectController,
+        mcWrongController: _mcWrongController,
+        intCorrectController: _intCorrectController,
+        intWrongController: _intWrongController,
+        modulesList: modulesList,
+        questions: questions,
+        updateState: (k, v) => setState(() {
+          if (k == 'allowMultipleAttempts') {
+            allowMultipleAttempts = v;
+          } else if (k == 'completeRandomShuffle') {
+            completeRandomShuffle = v;
+          } else if (k == 'shuffleModules') {
+            shuffleModules = v;
+          } else if (k == 'shuffleQuestionsWithinModules') {
+            shuffleQuestionsWithinModules = v;
+          } else if (k == 'disableModuleSwitchingUntilTimeout') {
+            disableModuleSwitchingUntilTimeout = v;
+          } else if (k == 'forceWaitUntilTimeout') {
+            forceWaitUntilTimeout = v;
+          } else if (k == 'isRestricted') {
+            _isRestricted = v;
+          } else if (k == 'timingType') {
+            timingType = v;
+          } else if (k == 'markingType') {
+            markingType = v;
+          } else if (k == 'attemptLimitType') {
+            attemptLimitType = v;
           }
-          if (result.time != null)
-            _timeController.text = (result.time! ~/ 60).toString();
-          if (result.perQuestionTime != null)
-            _perQuestionTimeController.text = result.perQuestionTime.toString();
-          if (result.allowMultipleAttempts != null)
-            allowMultipleAttempts = result.allowMultipleAttempts!;
-          if (result.completeRandomShuffle != null)
-            completeRandomShuffle = result.completeRandomShuffle!;
-          if (result.shuffleModules != null)
-            shuffleModules = result.shuffleModules!;
-          if (result.shuffleQuestionsWithinModules != null)
-            shuffleQuestionsWithinModules =
-                result.shuffleQuestionsWithinModules!;
-          if (result.disableModuleSwitchingUntilTimeout != null)
-            disableModuleSwitchingUntilTimeout =
-                result.disableModuleSwitchingUntilTimeout!;
-          if (result.forceWaitUntilTimeout != null)
-            forceWaitUntilTimeout = result.forceWaitUntilTimeout!;
-          if (result.isRestricted != null) _isRestricted = result.isRestricted!;
-          if (result.allowedParticipants != null)
-            _allowedUsersController.text = result.allowedParticipants!.join(
-              ', ',
-            );
-
-          if (result.timingScheme != null) {
-            timingType = result.timingScheme!['type'] ?? 'global';
-            final settings = result.timingScheme!['settings'] as Map?;
-            if (settings != null) {
-              if (settings['globalTotal'] != null)
-                _timeController.text = settings['globalTotal'].toString();
-              if (settings['perQuestionDefault'] != null)
-                _perQuestionTimeController.text = settings['perQuestionDefault']
-                    .toString();
-              if (settings['perType'] != null) {
-                (settings['perType'] as Map).forEach((type, val) {
-                  _typeTimingControllers[type]?.text = val.toString();
-                });
-              }
-              if (settings['perModule'] != null) {
-                (settings['perModule'] as Map).forEach((module, val) {
-                  if (!modulesList.contains(module)) modulesList.add(module);
-                  _updateModuleTimingControllers();
-                  if (val is Map) {
-                    _moduleTimingControllers[module]?['total']?.text =
-                        (val['total'] ?? 0).toString();
-                    _moduleTimingControllers[module]?['perQuestion']?.text =
-                        (val['perQuestion'] ?? 0).toString();
-                  } else {
-                    _moduleTimingControllers[module]?['total']?.text = val
-                        .toString();
-                  }
-                });
-              }
-            }
-          }
-
-          if (result.markingType != null) {
-            markingType = result.markingType!;
-            if (markingType == 'entire_quiz' && result.markingGlobal != null) {
-              _globalCorrectController.text =
-                  (result.markingGlobal!['correct'] ?? 4).toString();
-              _globalWrongController.text =
-                  (result.markingGlobal!['wrong'] ?? -1).toString();
-            } else if (markingType == 'per_question_type' &&
-                result.markingPerType != null) {
-              final sc = result.markingPerType!['Single Choice'] as Map?;
-              if (sc != null) {
-                _scCorrectController.text = (sc['correct'] ?? 4).toString();
-                _scWrongController.text = (sc['wrong'] ?? -1).toString();
-              }
-              final mc = result.markingPerType!['Multiple Choice'] as Map?;
-              if (mc != null) {
-                _mcCorrectController.text = (mc['correct'] ?? 4).toString();
-                _mcWrongController.text = (mc['wrong'] ?? -1).toString();
-              }
-              final it = result.markingPerType!['Integer'] as Map?;
-              if (it != null) {
-                _intCorrectController.text = (it['correct'] ?? 4).toString();
-                _intWrongController.text = (it['wrong'] ?? -1).toString();
-              }
-            }
-          }
-
-          if (result.attemptLimitType != null) {
-            attemptLimitType = result.attemptLimitType!;
-            if (attemptLimitType == 'global' && result.globalLimits != null) {
-              result.globalLimits!.forEach((key, value) {
-                _globalLimitControllers[key]?.text = value.toString();
-              });
-            } else if (attemptLimitType == 'per_module' &&
-                result.perModuleLimits != null) {
-              result.perModuleLimits!.forEach((module, values) {
-                if (!modulesList.contains(module)) modulesList.add(module);
-                _updateModuleLimitControllers();
-                (values as Map).forEach((key, value) {
-                  _moduleLimitControllers[module]?[key]?.text = value
-                      .toString();
-                });
-              });
-            }
-          }
-
-          questions.clear();
-          _questionKeys.clear();
-          modulesList.clear();
-          if (result.moduleOrder != null && result.moduleOrder!.isNotEmpty) {
-            modulesList.addAll(result.moduleOrder!);
-          } else {
-            if (!modulesList.contains("General")) modulesList.add("General");
-          }
-        }
-
-        for (var newQ in result.questions) {
-          String subject = newQ['subject'] as String? ?? 'General';
-          if (!modulesList.contains(subject)) modulesList.add(subject);
-
-          int existingIndex = questions.indexWhere(
-            (element) =>
-                element['question'].toString().trim().toLowerCase() ==
-                newQ['question'].toString().trim().toLowerCase(),
-          );
-
-          if (existingIndex != -1) {
-            if (!QuizDataProcessor.isQuestionDataSame(
-              questions[existingIndex],
-              newQ,
-            )) {
-              questions[existingIndex] = newQ;
-            }
-          } else {
-            questions.add(newQ);
-          }
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            append
-                ? "Data appended successfully"
-                : "Data imported successfully",
-          ),
-        ),
+        }),
+        updateModuleLimitControllers: _updateModuleLimitControllers,
+        updateModuleTimingControllers: _updateModuleTimingControllers,
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Import error: $e")));
     }
   }
 
   Future<void> _importFromQuizId(String docId) async {
     setState(() => _isLoading = true);
     try {
-      final String? uid = FirebaseAuth.instance.currentUser?.uid;
-      final data = await global.db.readDatabase(docId, userId: uid);
+      final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) throw Exception("User not authenticated");
-
-      final response = await global.db.getQuizAnswers(
-        docId,
-        uid,
-        from: 'quizform',
+      await QuizFormController.importFromQuizId(
+        docId: docId,
+        uid: uid,
+        modulesList: modulesList,
+        questions: questions,
+        updateModuleLimitControllers: _updateModuleLimitControllers,
+        updateState: (k, v) => setState(() {
+          if (k == 'isAiGenerated') _isAiGenerated = v;
+        }),
       );
-      final Map<String, List<String>> answersMap = response['answers'];
-      final Map<String, String> solutionsMap = response['solutions'];
-
-      setState(() {
-        _isAiGenerated = true;
-        final List<dynamic> rawModules = data['modules'] as List? ?? [];
-
-        for (var module in rawModules) {
-          final String qSubject = module['subject'].toString();
-          if (!modulesList.contains(qSubject)) modulesList.add(qSubject);
-          _updateModuleLimitControllers();
-
-          final List<dynamic> rawQuestions = module['data'] as List? ?? [];
-          for (var q in rawQuestions) {
-            final qInfo = q['Q'] as Map;
-            final qUid = qInfo['id'].toString();
-            final qText = qInfo['text'].toString();
-            final List<dynamic> opts = q['As'] as List;
-            final List<String> choiceTexts = [];
-            final List<String> correctTexts = [];
-            final List<String> correctUids = answersMap[qUid] ?? [];
-
-            for (var o in opts) {
-              final oMap = o as Map;
-              final oUid = oMap['id'].toString();
-              final oText = oMap['text'].toString();
-              choiceTexts.add(oText);
-              if (correctUids.contains(oUid)) correctTexts.add(oText);
-            }
-
-            final newQ = {
-              "subject": qSubject,
-              "question": qText,
-              "choices": choiceTexts,
-              "answers": correctTexts,
-              "type": q['type'] ?? 'Single Choice',
-              "correct": 4,
-              "wrong": -1,
-              "timer": q['timer'] ?? 0,
-              "description": solutionsMap[qUid] ?? '',
-            };
-
-            int existingIndex = questions.indexWhere(
-              (element) =>
-                  element['question'].toString().trim().toLowerCase() ==
-                  newQ['question'].toString().trim().toLowerCase(),
-            );
-            if (existingIndex == -1) questions.add(newQ as Map<String, Object>);
-          }
-        }
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Wizard data appended successfully")),
-      );
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Wizard data appended successfully")),
+        );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Import error: $e")));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -498,758 +292,192 @@ class _QuizPageState extends State<QuizPage> {
   Future<void> _fetchQuiz(String docId) async {
     setState(() => _isLoading = true);
     try {
-      final String? uid = FirebaseAuth.instance.currentUser?.uid;
-      final data = await global.db.readDatabase(docId, userId: uid);
-      if (uid == null) throw Exception("User not authenticated");
-
-      final response = await global.db.getQuizAnswers(
-        docId,
-        uid,
-        from: 'quizform',
-      );
-      final Map<String, List<String>> answersMap = response['answers'];
-      final Map<String, String> solutionsMap = response['solutions'];
-
-      setState(() {
-        _titleController.text = data['title'] ?? '';
-        _descriptionController.text = data['description'] ?? '';
-        _examController.text = data['examTag'] ?? '';
-        visibility = data['visibility'] ?? 'private';
-        allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
-        completeRandomShuffle = data['completeRandomShuffle'] ?? false;
-        shuffleModules = data['shuffleModules'] ?? false;
-        shuffleQuestionsWithinModules =
-            data['shuffleQuestionsWithinModules'] ?? false;
-        disableModuleSwitchingUntilTimeout =
-            data['disableModuleSwitchingUntilTimeout'] ?? false;
-        forceWaitUntilTimeout = data['forceWaitUntilTimeout'] ?? false;
-        _isRestricted = data['isRestricted'] ?? false;
-        _allowedUsersController.text =
-            (data['allowedParticipants'] as List? ?? []).join(', ');
-
-        if (data['activeAt'] != null)
-          _scheduledTime = (data['activeAt'] as Timestamp).toDate();
-        _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0)
-            .toString();
-        _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
-
-        final mTags = data['moduleTags'] as Map? ?? {};
-        mTags.forEach((module, tags) {
-          if (!_moduleTagControllers.containsKey(module))
-            _moduleTagControllers[module] = TextEditingController();
-          _moduleTagControllers[module]!.text = (tags as List).join(', ');
-        });
-
-        final scheme = data['markingScheme'] as Map? ?? {};
-        markingType = scheme['type'] ?? 'default';
-        if (markingType == 'entire_quiz') {
-          _globalCorrectController.text = (scheme['global']?['correct'] ?? 4)
-              .toString();
-          _globalWrongController.text = (scheme['global']?['wrong'] ?? -1)
-              .toString();
-        } else if (markingType == 'per_question_type') {
-          final pqt = scheme['perQuestionType'] as Map? ?? {};
-          _scCorrectController.text = (pqt['Single Choice']?['correct'] ?? 4)
-              .toString();
-          _scWrongController.text = (pqt['Single Choice']?['wrong'] ?? -1)
-              .toString();
-          _mcCorrectController.text = (pqt['Multiple Choice']?['correct'] ?? 4)
-              .toString();
-          _mcWrongController.text = (pqt['Multiple Choice']?['wrong'] ?? -1)
-              .toString();
-          _intCorrectController.text = (pqt['Integer']?['correct'] ?? 4)
-              .toString();
-          _intWrongController.text = (pqt['Integer']?['wrong'] ?? -1)
-              .toString();
-        }
-
-        final limits = data['attemptLimits'] as Map? ?? {};
-        attemptLimitType = limits['type'] ?? 'none';
-        if (attemptLimitType == 'global') {
-          final g = limits['global'] as Map? ?? {};
-          _globalLimitControllers['Single Choice']!.text =
-              (g['Single Choice'] ?? '').toString();
-          _globalLimitControllers['Multiple Choice']!.text =
-              (g['Multiple Choice'] ?? '').toString();
-          _globalLimitControllers['Integer']!.text = (g['Integer'] ?? '')
-              .toString();
-        } else if (attemptLimitType == 'per_module') {
-          final pm = limits['perModule'] as Map? ?? {};
-          pm.forEach((module, values) {
-            if (!_moduleLimitControllers.containsKey(module)) {
-              _moduleLimitControllers[module] = {
-                "Single Choice": TextEditingController(),
-                "Multiple Choice": TextEditingController(),
-                "Integer": TextEditingController(),
-              };
-            }
-            final mLimits = values as Map? ?? {};
-            _moduleLimitControllers[module]!['Single Choice']!.text =
-                (mLimits['Single Choice'] ?? '').toString();
-            _moduleLimitControllers[module]!['Multiple Choice']!.text =
-                (mLimits['Multiple Choice'] ?? '').toString();
-            _moduleLimitControllers[module]!['Integer']!.text =
-                (mLimits['Integer'] ?? '').toString();
-          });
-        }
-
-        final pqScheme =
-            (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
-        final List<dynamic> rawModules = data['modules'] as List? ?? [];
-        final List<Map<String, Object>> transformed = [];
-
-        modulesList.clear();
-        rawModules.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
-
-        for (var module in rawModules) {
-          final String qSubject = module['subject'].toString();
-          if (!modulesList.contains(qSubject)) modulesList.add(qSubject);
-          final List<dynamic> rawQuestions = module['data'] as List? ?? [];
-
-          for (var q in rawQuestions) {
-            final qInfo = q['Q'] as Map;
-            final qUid = qInfo['id'].toString();
-            final qText = qInfo['text'].toString();
-            final qMarking = pqScheme[qUid] as Map? ?? {};
-            final int qCorrect = qMarking['correct'] ?? 4;
-            final int qWrong = qMarking['wrong'] ?? -1;
-            final List<dynamic> opts = q['As'] as List;
-            final List<String> choiceTexts = [];
-            final List<String> correctTexts = [];
-            final List<String> correctUids = answersMap[qUid] ?? [];
-
-            for (var o in opts) {
-              final oMap = o as Map;
-              choiceTexts.add(oMap['text'].toString());
-              if (correctUids.contains(oMap['id'].toString()))
-                correctTexts.add(oMap['text'].toString());
-            }
-
-            transformed.add({
-              "subject": qSubject,
-              "question": qText,
-              "choices": choiceTexts,
-              "answers": correctTexts,
-              "type": q['type'] ?? 'Single Choice',
-              "correct": qCorrect,
-              "wrong": qWrong,
-              "timer": q['timer'] ?? 0,
-              "description": solutionsMap[qUid] ?? '',
-            });
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+      await QuizFormController.fetchQuiz(
+        docId: docId,
+        uid: uid,
+        titleController: _titleController,
+        descriptionController: _descriptionController,
+        examController: _examController,
+        timeController: _timeController,
+        perQuestionTimeController: _perQuestionTimeController,
+        allowedUsersController: _allowedUsersController,
+        moduleTagControllers: _moduleTagControllers,
+        globalLimitControllers: _globalLimitControllers,
+        moduleLimitControllers: _moduleLimitControllers,
+        globalCorrectController: _globalCorrectController,
+        globalWrongController: _globalWrongController,
+        scCorrectController: _scCorrectController,
+        scWrongController: _scWrongController,
+        mcCorrectController: _mcCorrectController,
+        mcWrongController: _mcWrongController,
+        intCorrectController: _intCorrectController,
+        intWrongController: _intWrongController,
+        modulesList: modulesList,
+        questions: questions,
+        updateState: (k, v) => setState(() {
+          if (k == 'scheduledTime') {
+            _scheduledTime = v as DateTime?;
+          } else if (k == 'visibility') {
+            visibility = v as String;
+          } else if (k == 'allowMultipleAttempts') {
+            allowMultipleAttempts = v as bool;
+          } else if (k == 'completeRandomShuffle') {
+            completeRandomShuffle = v as bool;
+          } else if (k == 'shuffleModules') {
+            shuffleModules = v as bool;
+          } else if (k == 'shuffleQuestionsWithinModules') {
+            shuffleQuestionsWithinModules = v as bool;
+          } else if (k == 'disableModuleSwitchingUntilTimeout') {
+            disableModuleSwitchingUntilTimeout = v as bool;
+          } else if (k == 'forceWaitUntilTimeout') {
+            forceWaitUntilTimeout = v as bool;
+          } else if (k == 'isRestricted') {
+            _isRestricted = v as bool;
+          } else if (k == 'markingType') {
+            markingType = v as String;
+          } else if (k == 'attemptLimitType') {
+            attemptLimitType = v as String;
           }
-        }
-        if (!modulesList.contains("General")) modulesList.add("General");
-        questions
-          ..clear()
-          ..addAll(transformed);
-      });
+        }),
+        updateModuleLimitControllers: _updateModuleLimitControllers,
+        updateModuleTimingControllers: _updateModuleTimingControllers,
+      );
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Load error: $e")));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
-  Widget _buildMarkingSchemeSection() {
-    if (!_isAdmin && markingType == "default") return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Marking Scheme",
-          style: GoogleFonts.poppins(
-            color: global.valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        AbsorbPointer(
-          absorbing: !_isAdmin,
-          child: Opacity(
-            opacity: _isAdmin ? 1.0 : 0.6,
-            child: Column(
-              children: [
-                DropdownButtonFormField<String>(
-                  dropdownColor: global.cardColor,
-                  initialValue: markingType,
-                  style: const TextStyle(color: global.valueColor),
-                  items: const [
-                    DropdownMenuItem(
-                      value: "default",
-                      child: Text("Default (+4, -1)"),
-                    ),
-                    DropdownMenuItem(
-                      value: "entire_quiz",
-                      child: Text("Custom Global"),
-                    ),
-                    DropdownMenuItem(
-                      value: "per_question_type",
-                      child: Text("Per Question Type"),
-                    ),
-                    DropdownMenuItem(
-                      value: "per_question",
-                      child: Text("Per Question"),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() => markingType = v!),
-                  decoration: const InputDecoration(labelText: "Scheme Type"),
-                ),
-                if (markingType == "entire_quiz") ...[
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _globalCorrectController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: global.valueColor),
-                          decoration: const InputDecoration(
-                            labelText: "Correct Score",
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextField(
-                          controller: _globalWrongController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: global.valueColor),
-                          decoration: const InputDecoration(
-                            labelText: "Wrong Score",
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                if (markingType == "per_question_type") ...[
-                  const SizedBox(height: 16),
-                  _buildTypeMarkingRow(
-                    "Single Choice",
-                    _scCorrectController,
-                    _scWrongController,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTypeMarkingRow(
-                    "Multiple Choice",
-                    _mcCorrectController,
-                    _mcWrongController,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildTypeMarkingRow(
-                    "Integer",
-                    _intCorrectController,
-                    _intWrongController,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        if (!_isAdmin)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              "Note: Only administrators can modify the marking scheme.",
-              style: TextStyle(
-                color: Colors.orangeAccent.withValues(alpha: 0.8),
-                fontSize: 12,
-              ),
-            ),
-          ),
-      ],
+  Future<void> _saveQuiz() async {
+    if (user == null) return;
+    final markingScheme = FormDataHelpers.prepareMarkingScheme(
+      markingType: markingType,
+      globalCorrectController: _globalCorrectController,
+      globalWrongController: _globalWrongController,
+      scCorrectController: _scCorrectController,
+      scWrongController: _scWrongController,
+      mcCorrectController: _mcCorrectController,
+      mcWrongController: _mcWrongController,
+      intCorrectController: _intCorrectController,
+      intWrongController: _intWrongController,
     );
-  }
-
-  Widget _buildTypeMarkingRow(
-    String type,
-    TextEditingController correct,
-    TextEditingController wrong,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: global.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: global.borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            type,
-            style: const TextStyle(
-              color: global.primaryAccent,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: correct,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: global.valueColor),
-                  decoration: const InputDecoration(labelText: "Correct"),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: wrong,
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: global.valueColor),
-                  decoration: const InputDecoration(labelText: "Wrong"),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    final attemptLimits = FormDataHelpers.prepareAttemptLimits(
+      attemptLimitType: attemptLimitType,
+      globalLimitControllers: _globalLimitControllers,
+      moduleLimitControllers: _moduleLimitControllers,
     );
-  }
-
-  Widget _buildTimingSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Timing Configuration",
-          style: GoogleFonts.poppins(
-            color: global.valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          dropdownColor: global.cardColor,
-          initialValue: timingType,
-          style: const TextStyle(color: global.valueColor),
-          items: const [
-            DropdownMenuItem(value: "global", child: Text("Global Timer")),
-            DropdownMenuItem(
-              value: "per_question",
-              child: Text("Per Question Default"),
-            ),
-            DropdownMenuItem(
-              value: "per_module",
-              child: Text("Per Module Settings"),
-            ),
-            DropdownMenuItem(
-              value: "per_question_type",
-              child: Text("Per Question Type"),
-            ),
-          ],
-          onChanged: (v) => setState(() {
-            timingType = v!;
-            if (v == "per_module") _updateModuleTimingControllers();
-          }),
-          decoration: const InputDecoration(labelText: "Timing Mode"),
-        ),
-        if (timingType == "global") ...[
-          const SizedBox(height: 16),
-          TextField(
-            controller: _timeController,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: global.valueColor),
-            decoration: const InputDecoration(
-              labelText: "Global Quiz Time (seconds)",
-              hintText: "e.g. 600 for 10 minutes",
-            ),
-          ),
-        ],
-        if (timingType == "per_question") ...[
-          const SizedBox(height: 16),
-          TextField(
-            controller: _perQuestionTimeController,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: global.valueColor),
-            decoration: const InputDecoration(
-              labelText: "Default Time Per Question (seconds)",
-            ),
-          ),
-        ],
-        if (timingType == "per_question_type") ...[
-          const SizedBox(height: 16),
-          _buildTimingRow(
-            "Single Choice",
-            _typeTimingControllers["Single Choice"]!,
-          ),
-          const SizedBox(height: 8),
-          _buildTimingRow(
-            "Multiple Choice",
-            _typeTimingControllers["Multiple Choice"]!,
-          ),
-          const SizedBox(height: 8),
-          _buildTimingRow("Integer", _typeTimingControllers["Integer"]!),
-        ],
-        if (timingType == "per_module") ...[
-          const SizedBox(height: 16),
-          ...modulesList.map((m) {
-            _updateModuleTimingControllers();
-            final controllers = _moduleTimingControllers[m]!;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12.0),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: global.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: global.borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      m.toUpperCase(),
-                      style: const TextStyle(
-                        color: global.primaryAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildTimingRow("Module Total Time", controllers["total"]!),
-                    const SizedBox(height: 8),
-                    _buildTimingRow(
-                      "Per Question in Module",
-                      controllers["perQuestion"]!,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ],
+    final timingScheme = FormDataHelpers.prepareTimingScheme(
+      timingType: timingType,
+      time: int.tryParse(_timeController.text) ?? 0,
+      perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
+      typeTimingControllers: _typeTimingControllers,
+      moduleTimingControllers: _moduleTimingControllers,
     );
-  }
-
-  Widget _buildTimingRow(String label, TextEditingController controller) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: const TextStyle(color: global.valueColor, fontSize: 13),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: global.valueColor, fontSize: 14),
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              hintText: "0",
-            ),
-          ),
-        ),
-      ],
+    final mTagsMap = FormDataHelpers.parseModuleTags(
+      _moduleTagControllers,
+      questions,
     );
-  }
-
-  Widget _buildAttemptLimitsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Attempt Limits (Select N out of M)",
-          style: GoogleFonts.poppins(
-            color: global.valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    try {
+      if (_currentDocId.isEmpty) {
+        _currentDocId = await global.qDb.createDatabase(
+          creatorId: user!.uid,
+          user: user!.displayName ?? user!.uid,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          visibility: visibility,
+          data: questions,
+          time: int.tryParse(_timeController.text),
+          timingScheme: timingScheme,
+          markingScheme: markingScheme,
+          attemptLimits: attemptLimits,
+          allowMultipleAttempts: allowMultipleAttempts,
+          completeRandomShuffle: completeRandomShuffle,
+          shuffleModules: shuffleModules,
+          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
+          disableModuleSwitchingUntilTimeout:
+              disableModuleSwitchingUntilTimeout,
+          forceWaitUntilTimeout: forceWaitUntilTimeout,
+          perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
+          activeAt: _scheduledTime,
+          isRestricted: _isRestricted,
+          allowedParticipants: FormDataHelpers.parseAllowedParticipants(
+            _allowedUsersController.text,
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          "Limit how many questions of each type a user can answer.",
-          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          dropdownColor: global.cardColor,
-          initialValue: attemptLimitType,
-          style: const TextStyle(color: global.valueColor),
-          items: const [
-            DropdownMenuItem(value: "none", child: Text("No Limits")),
-            DropdownMenuItem(
-              value: "global",
-              child: Text("Same for all modules"),
-            ),
-            DropdownMenuItem(
-              value: "per_module",
-              child: Text("Different for each module"),
-            ),
-          ],
-          onChanged: (v) => setState(() {
-            attemptLimitType = v!;
-            if (v == "per_module") _updateModuleLimitControllers();
-          }),
-          decoration: const InputDecoration(labelText: "Limit Mode"),
-        ),
-        if (attemptLimitType == "global") ...[
-          const SizedBox(height: 16),
-          _buildLimitRow(
-            "Single Choice",
-            _globalLimitControllers["Single Choice"]!,
+          isAiGenerated: _isAiGenerated,
+          tags: mTagsMap.values.expand((e) => e).toList(),
+          moduleTags: mTagsMap,
+          examTag: _examController.text.trim(),
+          moduleOrder: modulesList,
+        );
+      } else {
+        await global.qDb.updateDatabase(
+          docId: _currentDocId,
+          currentUserId: user!.uid,
+          title: _titleController.text.trim(),
+          description: _descriptionController.text.trim(),
+          visibility: visibility,
+          data: questions,
+          time: int.tryParse(_timeController.text),
+          timingScheme: timingScheme,
+          markingScheme: markingScheme,
+          attemptLimits: attemptLimits,
+          allowMultipleAttempts: allowMultipleAttempts,
+          completeRandomShuffle: completeRandomShuffle,
+          shuffleModules: shuffleModules,
+          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
+          disableModuleSwitchingUntilTimeout:
+              disableModuleSwitchingUntilTimeout,
+          forceWaitUntilTimeout: forceWaitUntilTimeout,
+          perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
+          activeAt: _scheduledTime,
+          isRestricted: _isRestricted,
+          allowedParticipants: FormDataHelpers.parseAllowedParticipants(
+            _allowedUsersController.text,
           ),
-          const SizedBox(height: 12),
-          _buildLimitRow(
-            "Multiple Choice",
-            _globalLimitControllers["Multiple Choice"]!,
-          ),
-          const SizedBox(height: 12),
-          _buildLimitRow("Integer", _globalLimitControllers["Integer"]!),
-        ],
-        if (attemptLimitType == "per_module") ...[
-          const SizedBox(height: 16),
-          ...modulesList.map((m) {
-            _updateModuleLimitControllers();
-            final controllers = _moduleLimitControllers[m]!;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: global.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: global.borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      m.toUpperCase(),
-                      style: const TextStyle(
-                        color: global.primaryAccent,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLimitRow(
-                      "Single Choice",
-                      controllers["Single Choice"]!,
-                      dense: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildLimitRow(
-                      "Multiple Choice",
-                      controllers["Multiple Choice"]!,
-                      dense: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildLimitRow(
-                      "Integer",
-                      controllers["Integer"]!,
-                      dense: true,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildLimitRow(
-    String label,
-    TextEditingController controller, {
-    bool dense = false,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: TextStyle(
-              color: global.valueColor,
-              fontSize: dense ? 13 : 14,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(color: global.valueColor, fontSize: 14),
-            decoration: InputDecoration(
-              contentPadding: dense
-                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                  : null,
-              hintText: "No Limit",
-              hintStyle: const TextStyle(color: global.hintColor, fontSize: 12),
-            ),
-          ),
-        ),
-      ],
-    );
+          isAiGenerated: _isAiGenerated,
+          tags: mTagsMap.values.expand((e) => e).toList(),
+          moduleTags: mTagsMap,
+          examTag: _examController.text.trim(),
+          moduleOrder: modulesList,
+        );
+      }
+      global.id = _currentDocId;
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Quiz saved")));
+    } catch (e) {
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Save error: $e")));
+    }
   }
 
   void _addNewForm() => setState(() => questions.add({"subject": "General"}));
 
-  void _removeForm(int index) {
-    setState(() {
-      questions.removeAt(index);
-      if (questions.isEmpty) questions.add({"subject": "General"});
-    });
+  void _removeForm(int idx) => setState(() {
+    questions.removeAt(idx);
+    if (questions.isEmpty) questions.add({"subject": "General"});
+  });
+
+  void _updateFormData(int idx, Map<String, Object> data) {
+    setState(() => questions[idx] = data);
   }
 
-  void _updateFormData(int index, Map<String, Object> data) {
-    final bool subjectChanged = questions[index]['subject'] != data['subject'];
-    setState(() => questions[index] = data);
-    if (subjectChanged)
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _scrollToQuestion(index),
-      );
-  }
-
-  void _scrollToQuestion(int index) {
-    final key = _questionKeys[index];
-    if (key != null && key.currentContext != null)
+  void _scrollToModule(String m) {
+    final key = _moduleKeys[m];
+    if (key?.currentContext != null)
       Scrollable.ensureVisible(
-        key.currentContext!,
+        key!.currentContext!,
         duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
       );
-  }
-
-  void _scrollToModule(String module) {
-    final key = _moduleKeys[module];
-    if (key != null && key.currentContext != null)
-      Scrollable.ensureVisible(
-        key.currentContext!,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-  }
-
-  Widget _buildSchedulingAndRestrictionSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Scheduling & Restriction",
-          style: GoogleFonts.poppins(
-            color: global.valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: global.cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: global.borderColor),
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    color: global.primaryAccent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Scheduled Start Time",
-                          style: TextStyle(
-                            color: global.valueColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          _scheduledTime == null
-                              ? "Immediate (Active Now)"
-                              : "${_scheduledTime!.day}/${_scheduledTime!.month}/${_scheduledTime!.year} ${_scheduledTime!.hour}:${_scheduledTime!.minute.toString().padLeft(2, '0')}",
-                          style: TextStyle(
-                            color: global.labelColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _pickDateTime,
-                    child: Text(_scheduledTime == null ? "SET TIME" : "CHANGE"),
-                  ),
-                  if (_scheduledTime != null)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.clear,
-                        color: global.errorColor,
-                        size: 18,
-                      ),
-                      onPressed: () => setState(() => _scheduledTime = null),
-                    ),
-                ],
-              ),
-              const Divider(color: global.borderColor, height: 32),
-              Material(
-                color: Colors.transparent,
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    "Restricted Quiz",
-                    style: TextStyle(color: global.valueColor, fontSize: 14),
-                  ),
-                  subtitle: const Text(
-                    "Only allow specific users to attempt",
-                    style: TextStyle(color: global.labelColor, fontSize: 11),
-                  ),
-                  value: _isRestricted,
-                  activeThumbColor: global.primaryAccent,
-                  onChanged: (v) => setState(() => _isRestricted = v),
-                ),
-              ),
-              if (_isRestricted) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _allowedUsersController,
-                  maxLines: 2,
-                  style: const TextStyle(
-                    color: global.valueColor,
-                    fontSize: 13,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: "Allowed User UIDs",
-                    hintText: "Enter UIDs separated by commas...",
-                    hintStyle: TextStyle(fontSize: 12),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Tip: Participants can find their UID in the Sidebar/Profile.",
-                  style: TextStyle(color: global.warningColor, fontSize: 10),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
   }
 
   Future<void> _pickDateTime() async {
@@ -1259,7 +487,7 @@ class _QuizPageState extends State<QuizPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null) return;
+    if (date == null || !mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_scheduledTime ?? DateTime.now()),
@@ -1274,411 +502,6 @@ class _QuizPageState extends State<QuizPage> {
         time.minute,
       ),
     );
-  }
-
-  Widget _buildModulesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              "Modules",
-              style: GoogleFonts.poppins(
-                color: global.valueColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (_importEnabled)
-              TextButton.icon(
-                onPressed: () => _showImportDialog(append: true),
-                icon: const Icon(Icons.add_circle_outline, size: 18),
-                label: const Text("IMPORT MORE"),
-                style: TextButton.styleFrom(
-                  foregroundColor: global.primaryAccent,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _moduleController,
-                style: const TextStyle(color: global.valueColor),
-                decoration: const InputDecoration(
-                  labelText: "New Module Name",
-                  hintText: "e.g. Mathematics, Science...",
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () {
-                final m = _moduleController.text.trim();
-                if (m.isNotEmpty && !modulesList.contains(m)) {
-                  setState(() {
-                    modulesList.add(m);
-                    _moduleController.clear();
-                    _updateModuleLimitControllers();
-                  });
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: global.primaryAccent,
-              ),
-              child: const Icon(Icons.add),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        ...modulesList.asMap().entries.map((entry) {
-          final int index = entry.key;
-          final String m = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: global.cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: global.borderColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.folder_open,
-                        color: global.primaryAccent,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          m.toUpperCase(),
-                          style: const TextStyle(
-                            color: global.valueColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.arrow_upward, size: 18),
-                        onPressed: index > 0
-                            ? () => _moveModule(index, index - 1)
-                            : null,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.arrow_downward, size: 18),
-                        onPressed: index < modulesList.length - 1
-                            ? () => _moveModule(index, index + 1)
-                            : null,
-                      ),
-                      if (m != "General")
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: global.errorColor,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              modulesList.remove(m);
-                              _moduleTagControllers.remove(m);
-                              _moduleLimitControllers.remove(m);
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: () => _scrollToModule(m),
-                    icon: const Icon(Icons.near_me_outlined, size: 14),
-                    label: const Text(
-                      "Go to Questions",
-                      style: TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  TextField(
-                    controller: _moduleTagControllers[m],
-                    style: const TextStyle(
-                      color: global.valueColor,
-                      fontSize: 12,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: "Sub Topics / Tags (comma separated)",
-                      hintText: "topic1, topic2...",
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: global.cardColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: global.borderColor),
-          ),
-          child: Column(
-            children: [
-              SwitchListTile(
-                title: const Text(
-                  "Complete Random Shuffle",
-                  style: TextStyle(color: global.valueColor, fontSize: 14),
-                ),
-                subtitle: const Text(
-                  "Mix all questions across all modules",
-                  style: TextStyle(color: global.labelColor, fontSize: 11),
-                ),
-                value: completeRandomShuffle,
-                activeColor: global.primaryAccent,
-                onChanged: (bool value) =>
-                    setState(() => completeRandomShuffle = value),
-              ),
-              if (!completeRandomShuffle) ...[
-                const Divider(color: global.borderColor, height: 1),
-                SwitchListTile(
-                  title: const Text(
-                    "Shuffle Modules",
-                    style: TextStyle(color: global.valueColor, fontSize: 14),
-                  ),
-                  value: shuffleModules,
-                  activeColor: global.primaryAccent,
-                  onChanged: (v) => setState(() => shuffleModules = v),
-                ),
-                const Divider(color: global.borderColor, height: 1),
-                SwitchListTile(
-                  title: const Text(
-                    "Shuffle Within Modules",
-                    style: TextStyle(color: global.valueColor, fontSize: 14),
-                  ),
-                  value: shuffleQuestionsWithinModules,
-                  activeColor: global.primaryAccent,
-                  onChanged: (v) =>
-                      setState(() => shuffleQuestionsWithinModules = v),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _saveQuiz() async {
-    if (user == null) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Login required")));
-      return;
-    }
-    if (_titleController.text.trim().isEmpty ||
-        _descriptionController.text.trim().isEmpty ||
-        _timeController.text.trim().isEmpty) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("All fields required")));
-      return;
-    }
-    final time = int.tryParse(_timeController.text.trim());
-    if (time == null || time < 0) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Invalid time")));
-      return;
-    }
-    final perQuestionTime =
-        int.tryParse(_perQuestionTimeController.text.trim()) ?? 0;
-
-    for (int i = 0; i < questions.length; i++) {
-      if ((questions[i]['question'] ?? '').toString().trim().isEmpty) {
-        if (mounted)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
-        return;
-      }
-      if ((questions[i]['answers'] as List? ?? []).isEmpty) {
-        if (mounted)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Question ${i + 1} needs at least one correct answer",
-              ),
-            ),
-          );
-        return;
-      }
-    }
-
-    final Map<String, dynamic> markingScheme = {'type': markingType};
-    if (markingType == 'entire_quiz') {
-      markingScheme['global'] = {
-        'correct': int.tryParse(_globalCorrectController.text) ?? 4,
-        'wrong': int.tryParse(_globalWrongController.text) ?? -1,
-      };
-    } else if (markingType == 'per_question_type') {
-      markingScheme['perQuestionType'] = {
-        'Single Choice': {
-          'correct': int.tryParse(_scCorrectController.text) ?? 4,
-          'wrong': int.tryParse(_scWrongController.text) ?? -1,
-        },
-        'Multiple Choice': {
-          'correct': int.tryParse(_mcCorrectController.text) ?? 4,
-          'wrong': int.tryParse(_mcWrongController.text) ?? -1,
-        },
-        'Integer': {
-          'correct': int.tryParse(_intCorrectController.text) ?? 4,
-          'wrong': int.tryParse(_intWrongController.text) ?? -1,
-        },
-      };
-    }
-
-    final Map<String, dynamic> attemptLimits = {'type': attemptLimitType};
-    if (attemptLimitType == "global") {
-      attemptLimits['global'] = {
-        'Single Choice': int.tryParse(
-          _globalLimitControllers['Single Choice']!.text,
-        ),
-        'Multiple Choice': int.tryParse(
-          _globalLimitControllers['Multiple Choice']!.text,
-        ),
-        'Integer': int.tryParse(_globalLimitControllers['Integer']!.text),
-      };
-    } else if (attemptLimitType == "per_module") {
-      final Map<String, dynamic> perModule = {};
-      _moduleLimitControllers.forEach((module, controllers) {
-        perModule[module] = {
-          'Single Choice': int.tryParse(controllers['Single Choice']!.text),
-          'Multiple Choice': int.tryParse(controllers['Multiple Choice']!.text),
-          'Integer': int.tryParse(controllers['Integer']!.text),
-        };
-      });
-      attemptLimits['perModule'] = perModule;
-    }
-
-    final List<String> allowedParticipants = _allowedUsersController.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final Map<String, List<String>> moduleTagsMap = {};
-    final Set<String> allTags = {};
-    _moduleTagControllers.forEach((module, controller) {
-      final tagsList = controller.text
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .where((e) => e.isNotEmpty)
-          .toList();
-      if (tagsList.isNotEmpty && questions.any((q) => q['subject'] == module)) {
-        moduleTagsMap[module] = tagsList;
-        allTags.addAll(tagsList);
-      }
-    });
-
-    final Map<String, dynamic> timingScheme = {
-      'type': timingType,
-      'settings': {
-        'globalTotal': time,
-        'perQuestionDefault': perQuestionTime,
-        'perType': _typeTimingControllers.map(
-          (k, v) => MapEntry(k, int.tryParse(v.text) ?? 0),
-        ),
-        'perModule': _moduleTimingControllers.map(
-          (k, v) => MapEntry(k, {
-            'total': int.tryParse(v['total']!.text) ?? 0,
-            'perQuestion': int.tryParse(v['perQuestion']!.text) ?? 0,
-          }),
-        ),
-      },
-    };
-
-    try {
-      if (_currentDocId.isEmpty) {
-        final newId = await global.qDb.createDatabase(
-          creatorId: user!.uid,
-          user: user!.displayName ?? user!.uid,
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          visibility: visibility,
-          data: questions,
-          time: time,
-          timingScheme: timingScheme,
-          markingScheme: markingScheme,
-          attemptLimits: attemptLimits,
-          allowMultipleAttempts: allowMultipleAttempts,
-          completeRandomShuffle: completeRandomShuffle,
-          shuffleModules: shuffleModules,
-          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
-          disableModuleSwitchingUntilTimeout:
-              disableModuleSwitchingUntilTimeout,
-          forceWaitUntilTimeout: forceWaitUntilTimeout,
-          perQuestionTime: perQuestionTime,
-          activeAt: _scheduledTime,
-          isRestricted: _isRestricted,
-          allowedParticipants: allowedParticipants,
-          isAiGenerated: _isAiGenerated,
-          tags: allTags.toList(),
-          moduleTags: moduleTagsMap,
-          examTag: _examController.text.trim(),
-          moduleOrder: modulesList,
-        );
-        setState(() {
-          _currentDocId = newId;
-          global.id = newId;
-        });
-      } else {
-        await global.qDb.updateDatabase(
-          docId: _currentDocId,
-          currentUserId: user!.uid,
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          visibility: visibility,
-          data: questions,
-          time: time,
-          timingScheme: timingScheme,
-          markingScheme: markingScheme,
-          attemptLimits: attemptLimits,
-          allowMultipleAttempts: allowMultipleAttempts,
-          completeRandomShuffle: completeRandomShuffle,
-          shuffleModules: shuffleModules,
-          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
-          disableModuleSwitchingUntilTimeout:
-              disableModuleSwitchingUntilTimeout,
-          forceWaitUntilTimeout: forceWaitUntilTimeout,
-          perQuestionTime: perQuestionTime,
-          activeAt: _scheduledTime,
-          isRestricted: _isRestricted,
-          allowedParticipants: allowedParticipants,
-          isAiGenerated: _isAiGenerated,
-          tags: allTags.toList(),
-          moduleTags: moduleTagsMap,
-          examTag: _examController.text.trim(),
-          moduleOrder: modulesList,
-        );
-        global.id = _currentDocId;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Quiz saved")));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Save error: $e")));
-    }
   }
 
   @override
@@ -1713,14 +536,13 @@ class _QuizPageState extends State<QuizPage> {
                 ),
               ),
               onPressed: () async {
-                final quizId = await Navigator.push<String>(
+                final id = await Navigator.push<String>(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        const AiQuizGenerator(forEditor: true),
+                    builder: (c) => const AiQuizGenerator(forEditor: true),
                   ),
                 );
-                if (quizId != null) _importFromQuizId(quizId);
+                if (id != null) _importFromQuizId(id);
               },
             ),
           if (_importEnabled)
@@ -1729,8 +551,8 @@ class _QuizPageState extends State<QuizPage> {
                 Icons.file_download_outlined,
                 color: global.primaryAccent,
               ),
-              onPressed: _showImportDialog,
-              tooltip: "Import Data",
+              onPressed: () => _showImportDialog(),
+              tooltip: "Import",
             ),
           IconButton(
             icon: const Icon(Icons.save_rounded, color: global.primaryAccent),
@@ -1767,248 +589,120 @@ class _QuizPageState extends State<QuizPage> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    TextField(
-                      controller: _titleController,
-                      style: const TextStyle(color: global.valueColor),
-                      decoration: const InputDecoration(
-                        labelText: "Quiz Title",
+                    QuizHeaderSection(
+                      titleController: _titleController,
+                      descriptionController: _descriptionController,
+                      examController: _examController,
+                      timeController: _timeController,
+                      perQuestionTimeController: _perQuestionTimeController,
+                      visibility: visibility,
+                      onVisibilityChanged: (v) =>
+                          setState(() => visibility = v!),
+                      allowMultipleAttempts: allowMultipleAttempts,
+                      onAllowMultipleAttemptsChanged: (v) =>
+                          setState(() => allowMultipleAttempts = v),
+                      disableModuleSwitchingUntilTimeout:
+                          disableModuleSwitchingUntilTimeout,
+                      onDisableModuleSwitchingChanged: (v) => setState(
+                        () => disableModuleSwitchingUntilTimeout = v,
                       ),
+                      forceWaitUntilTimeout: forceWaitUntilTimeout,
+                      onForceWaitUntilTimeoutChanged: (v) =>
+                          setState(() => forceWaitUntilTimeout = v),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _descriptionController,
-                      style: const TextStyle(color: global.valueColor),
-                      decoration: const InputDecoration(
-                        labelText: "Description",
-                      ),
+                    SchedulingPanel(
+                      scheduledTime: _scheduledTime,
+                      onPickDateTime: _pickDateTime,
+                      onClearDateTime: () =>
+                          setState(() => _scheduledTime = null),
+                      isRestricted: _isRestricted,
+                      onRestrictedChanged: (v) =>
+                          setState(() => _isRestricted = v),
+                      allowedUsersController: _allowedUsersController,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _examController,
-                      style: const TextStyle(color: global.valueColor),
-                      decoration: const InputDecoration(
-                        labelText: "Exam Tag",
-                        hintText: "e.g., JEE Mains, NEET, UPSC...",
-                      ),
+                    ModulesPanel(
+                      modulesList: modulesList,
+                      moduleController: _moduleController,
+                      moduleTagControllers: _moduleTagControllers,
+                      importEnabled: _importEnabled,
+                      onShowImportDialog: () => _showImportDialog(append: true),
+                      onAddModule: () {
+                        final m = _moduleController.text.trim();
+                        if (m.isNotEmpty && !modulesList.contains(m))
+                          setState(() {
+                            modulesList.add(m);
+                            _moduleController.clear();
+                            _updateModuleLimitControllers();
+                          });
+                      },
+                      onMoveModule: _moveModule,
+                      onRemoveModule: (m) => setState(() {
+                        modulesList.remove(m);
+                        _moduleTagControllers.remove(m);
+                        _moduleLimitControllers.remove(m);
+                      }),
+                      onScrollToModule: _scrollToModule,
+                      completeRandomShuffle: completeRandomShuffle,
+                      onCompleteRandomShuffleChanged: (v) =>
+                          setState(() => completeRandomShuffle = v),
+                      shuffleModules: shuffleModules,
+                      onShuffleModulesChanged: (v) =>
+                          setState(() => shuffleModules = v),
+                      shuffleQuestionsWithinModules:
+                          shuffleQuestionsWithinModules,
+                      onShuffleQuestionsWithinModulesChanged: (v) =>
+                          setState(() => shuffleQuestionsWithinModules = v),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _timeController,
-                      style: const TextStyle(color: global.valueColor),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        labelText: "Timer (minutes)",
-                        hintText: "0 = Unlimited",
-                        suffixText: "min",
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _perQuestionTimeController,
-                      style: const TextStyle(color: global.valueColor),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(
-                        labelText: "Per Question (sec)",
-                        hintText: "0 = None",
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      dropdownColor: global.cardColor,
-                      initialValue: visibility,
-                      style: const TextStyle(color: global.valueColor),
-                      items: const [
-                        DropdownMenuItem(
-                          value: "public",
-                          child: Text("Public"),
-                        ),
-                        DropdownMenuItem(
-                          value: "private",
-                          child: Text("Private"),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => visibility = v!),
-                      decoration: const InputDecoration(
-                        labelText: "Visibility",
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text(
-                        "Allow Multiple Attempts",
-                        style: TextStyle(color: global.valueColor),
-                      ),
-                      subtitle: const Text(
-                        "If disabled, users can only take this quiz once",
-                        style: TextStyle(
-                          color: global.labelColor,
-                          fontSize: 12,
-                        ),
-                      ),
-                      value: allowMultipleAttempts,
-                      activeThumbColor: global.primaryAccent,
-                      onChanged: (bool value) =>
-                          setState(() => allowMultipleAttempts = value),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: global.cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: global.borderColor),
-                      ),
-                      child: Column(
-                        children: [
-                          SwitchListTile(
-                            title: const Text(
-                              "Disable Module Switching",
-                              style: TextStyle(
-                                color: global.valueColor,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              "Cannot change modules until time runs out",
-                              style: TextStyle(
-                                color: global.labelColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                            value: disableModuleSwitchingUntilTimeout,
-                            activeColor: global.primaryAccent,
-                            onChanged: (v) => setState(
-                              () => disableModuleSwitchingUntilTimeout = v,
-                            ),
-                          ),
-                          const Divider(color: global.borderColor, height: 1),
-                          SwitchListTile(
-                            title: const Text(
-                              "Force Wait Until Timeout",
-                              style: TextStyle(
-                                color: global.valueColor,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: const Text(
-                              "Cannot submit until the timer reaches zero",
-                              style: TextStyle(
-                                color: global.labelColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                            value: forceWaitUntilTimeout,
-                            activeColor: global.primaryAccent,
-                            onChanged: (v) =>
-                                setState(() => forceWaitUntilTimeout = v),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSchedulingAndRestrictionSection(),
-                    const SizedBox(height: 16),
-                    _buildModulesSection(),
                     const SizedBox(height: 24),
-                    _buildMarkingSchemeSection(),
+                    MarkingSchemePanel(
+                      isAdmin: _isAdmin,
+                      markingType: markingType,
+                      onTypeChanged: (v) => setState(() => markingType = v),
+                      globalCorrectController: _globalCorrectController,
+                      globalWrongController: _globalWrongController,
+                      scCorrectController: _scCorrectController,
+                      scWrongController: _scWrongController,
+                      mcCorrectController: _mcCorrectController,
+                      mcWrongController: _mcWrongController,
+                      intCorrectController: _intCorrectController,
+                      intWrongController: _intWrongController,
+                    ),
                     const SizedBox(height: 24),
-                    _buildTimingSection(),
+                    TimingConfigPanel(
+                      timingType: timingType,
+                      onTypeChanged: (v) => setState(() {
+                        timingType = v;
+                        if (v == "per_module") _updateModuleTimingControllers();
+                      }),
+                      timeController: _timeController,
+                      perQuestionTimeController: _perQuestionTimeController,
+                      modulesList: modulesList,
+                      moduleTimingControllers: _moduleTimingControllers,
+                      typeTimingControllers: _typeTimingControllers,
+                    ),
                     const SizedBox(height: 24),
-                    _buildAttemptLimitsSection(),
+                    AttemptLimitsPanel(
+                      attemptLimitType: attemptLimitType,
+                      onTypeChanged: (v) => setState(() {
+                        attemptLimitType = v;
+                        if (v == "per_module") _updateModuleLimitControllers();
+                      }),
+                      modulesList: modulesList,
+                      globalLimitControllers: _globalLimitControllers,
+                      moduleLimitControllers: _moduleLimitControllers,
+                    ),
                     const SizedBox(height: 24),
-                    ...modulesList.map((module) {
-                      final moduleQuestions = questions
-                          .asMap()
-                          .entries
-                          .where((e) => e.value['subject'] == module)
-                          .toList();
-                      if (moduleQuestions.isEmpty)
-                        return const SizedBox.shrink();
-                      final key = _moduleKeys.putIfAbsent(
-                        module,
-                        () => GlobalKey(),
-                      );
-
-                      return Column(
-                        key: key,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.folder_open_rounded,
-                                  color: Color(0xFF3B82F6),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  module.toUpperCase(),
-                                  style: GoogleFonts.poppins(
-                                    color: const Color(0xFF3B82F6),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.1,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Divider(
-                                    color: const Color(
-                                      0xFF3B82F6,
-                                    ).withValues(alpha: 0.3),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ...moduleQuestions.map((entry) {
-                            final index = entry.key;
-                            final qKey = _questionKeys.putIfAbsent(
-                              index,
-                              () => GlobalKey(),
-                            );
-                            return Card(
-                              key: qKey,
-                              color: global.cardColor,
-                              margin: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: const BorderSide(
-                                  color: global.borderColor,
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  children: [
-                                    QuizForm(
-                                      form_data_part: questions[index],
-                                      onChanged: (d) =>
-                                          _updateFormData(index, d),
-                                      showIndividualMarking:
-                                          markingType == "per_question",
-                                      moduleOptions: modulesList,
-                                    ),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.delete_outline_rounded,
-                                          color: global.errorColor,
-                                        ),
-                                        onPressed: () => _removeForm(index),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      );
-                    }),
+                    QuestionsListSection(
+                      modulesList: modulesList,
+                      questions: questions,
+                      moduleKeys: _moduleKeys,
+                      questionKeys: _questionKeys,
+                      markingType: markingType,
+                      onUpdateFormData: _updateFormData,
+                      onRemoveForm: _removeForm,
+                    ),
                     SizedBox(
                       height: MediaQuery.of(context).padding.bottom + 40,
                     ),
