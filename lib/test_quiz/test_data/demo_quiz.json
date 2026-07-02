@@ -2,8 +2,15 @@
   "title": "Interactive Demo Quiz",
   "description": "A sample quiz to demonstrate ThinkFast features.",
   "time": 5,
+  "examTag": "Demo-2024",
+  "completeRandomShuffle": true,
   "markingScheme": {
     "type": "default"
+  },
+  "moduleTags": {
+    "General": ["misc"],
+    "Tech": ["programming", "frameworks"],
+    "Math": ["basics"]
   },
   "questions": [
     {

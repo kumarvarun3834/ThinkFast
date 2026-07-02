@@ -130,7 +130,8 @@ class AdminDatabaseService {
 
   Stream<List<Map<String, dynamic>>> streamAuditLogs() => _adminService.getAuditLogs();
 
-  Future<Map<String, dynamic>?> getFeatureFlags() => _settingsService.getFeatureFlags();
+  Future<Map<String, dynamic>?> getFeatureFlags() =>
+      _settingsService.getFeatureFlags(isAdmin: true);
 
   // --- Database Maintenance ---
 

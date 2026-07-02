@@ -63,12 +63,16 @@ class _AdminPanelState extends State<AdminPanel> {
   void initState() {
     super.initState();
     _fetchAdminStatus();
-    _featureFlagsStream = _settingsService.streamFeatureFlags();
+    _featureFlagsStream = _settingsService.streamFeatureFlags(
+      isAdmin: global.isAdmin,
+    );
   }
 
   void _refreshPanel() {
     setState(() {
-      _featureFlagsStream = _settingsService.streamFeatureFlags();
+      _featureFlagsStream = _settingsService.streamFeatureFlags(
+        isAdmin: global.isAdmin,
+      );
     });
   }
 

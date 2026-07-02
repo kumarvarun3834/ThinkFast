@@ -39,12 +39,39 @@
 | `isLocked` | Boolean | Prevents new attempts. |
 | `modules` | Array | Ordered modules containing question metadata. |
 | `totalQuestions` | Number | Count of questions. |
+| `tags` | Array | Aggregate list of all tags (module + exam). |
+| `examTag` | String | Target competitive exam name. |
 
 ## 3. Quiz Content & Keys
 - **Questions (`/quiz_questions/{quizId}`):** Document containing a `modules` array.
 - **Answer Keys (`/answer_keys/{quizId}`):** Document mapping `questionId -> List<String>` (correct options).
 
-## 4. Attempts & Analytics
+## 4. Tags & Discovery
+### 4.1 Global Tags (`/tags/{tagId}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `name` | String | Normalized tag ID. |
+| `lastUsed` | Timestamp | Last time this tag was assigned. |
+| `quizIds` | Array<String> | List of quiz IDs using this tag. |
+| `moduleMapping` | Map | `{quizId: Array<moduleName>}` mapping modules to this tag. |
+
+### 4.2 Module-Specific Tags (`/module_tags/{docId}`)
+*Format:* `quizId_moduleName_tagId`
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `quizId` | String | Parent quiz. |
+| `moduleName` | String | Specific module in the quiz. |
+| `tag` | String | The tag assigned. |
+| `syncedAt` | Timestamp | Synchronization time. |
+
+### 4.3 Exam Tags (`/exam_tags/{tagId}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `name` | String | Competitive exam name (normalized). |
+| `lastUsed` | Timestamp | Last usage time. |
+| `quizIds` | Array<String> | Quizzes targeting this exam. |
+
+## 5. Attempts & Analytics
 ### 4.1 Global Responses (`/responses/{attemptId}`)
 | Field | Type | Description |
 | :--- | :--- | :--- |

@@ -3,6 +3,13 @@
   "description": "A test for various timing configurations: global, generalized per-question, and individual overrides.",
   "time": 600,
   "perQuestionTime": 30,
+  "examTag": "Timed-Exams",
+  "disableModuleSwitchingUntilTimeout": true,
+  "forceWaitUntilTimeout": true,
+  "moduleTags": {
+    "Geography": ["world", "capitals"],
+    "Math": ["algebra", "numbers"]
+  },
   "questions": [
     {
       "question": "What is the capital of France? (Generalized 30s)",

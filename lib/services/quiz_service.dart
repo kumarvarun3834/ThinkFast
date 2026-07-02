@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
+import '../utils/global.dart' as global;
 
 import 'admin_service.dart';
 import 'settings_service.dart';
@@ -36,7 +37,12 @@ class QuizService {
     Map<String, dynamic>? attemptLimits,
     bool allowMultipleAttempts = true,
     bool completeRandomShuffle = false,
+    bool shuffleModules = false,
+    bool shuffleQuestionsWithinModules = false,
+    bool disableModuleSwitchingUntilTimeout = false,
+    bool forceWaitUntilTimeout = false,
     int perQuestionTime = 0,
+    Map<String, dynamic>? timingScheme,
     List<String>? tags,
     DateTime? activeAt,
     bool isRestricted = false,
@@ -63,9 +69,8 @@ class QuizService {
     }
 
     // 2. Fetch Feature Flags and Admin Status
-    final flags = await SettingsService().getFeatureFlags();
-    final bool isUserAdmin =
-        await AdminService().isAdmin(creatorId);
+    final bool isUserAdmin = await AdminService().isAdmin(creatorId);
+    final flags = await SettingsService().getFeatureFlags(isAdmin: isUserAdmin);
     
     final bool canBypassLimits = isUserAdmin && 
         await AdminService().hasPermission(creatorId, 'manage_all_quizzes');
@@ -141,6 +146,11 @@ class QuizService {
       'perQuestionTime': perQuestionTime,
       'allowMultipleAttempts': allowMultipleAttempts,
       'completeRandomShuffle': completeRandomShuffle,
+      'shuffleModules': shuffleModules,
+      'shuffleQuestionsWithinModules': shuffleQuestionsWithinModules,
+      'disableModuleSwitchingUntilTimeout': disableModuleSwitchingUntilTimeout,
+      'forceWaitUntilTimeout': forceWaitUntilTimeout,
+      'timingScheme': timingScheme ?? {'type': 'global'},
       'markingScheme': markingScheme ?? {'type': 'default'},
       'attemptLimits': attemptLimits ?? {'type': 'none'},
       'createdAt': FieldValue.serverTimestamp(),
@@ -211,8 +221,8 @@ class QuizService {
     if (updates == null || updates.isEmpty) return;
 
     // 1. Rate Limit Check for Form Save
-    final flags = await SettingsService().getFeatureFlags();
     final bool isUserAdmin = await AdminService().isAdmin(userId);
+    final flags = await SettingsService().getFeatureFlags(isAdmin: isUserAdmin);
     final bool canBypassLimits = isUserAdmin &&
         await AdminService().hasPermission(userId, 'manage_all_quizzes');
 

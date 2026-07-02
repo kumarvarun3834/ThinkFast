@@ -12,7 +12,9 @@ class AiDatabaseService {
   final SettingsService _settingsService = SettingsService();
 
   Future<void> _ensurePermission(String? flag, {String? userId}) async {
-    final flags = global.featureFlags ?? await _settingsService.getFeatureFlags();
+    final flags =
+        global.featureFlags ??
+        await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
     if (flags?['maintenance_mode'] == true) {
       bool isUserAdmin = false;
@@ -45,9 +47,18 @@ class AiDatabaseService {
     required String userName,
     required String prompt,
     bool isPersonal = false,
+    List<String>? tags,
+    String? examTag,
   }) async {
     await _ensurePermission('enable_ai', userId: userId);
-    return _aiService.createAiQuiz(userId: userId, userName: userName, prompt: prompt, isPersonal: isPersonal);
+    return _aiService.createAiQuiz(
+      userId: userId,
+      userName: userName,
+      prompt: prompt,
+      isPersonal: isPersonal,
+      tags: tags,
+      examTag: examTag,
+    );
   }
 
   Future<int> getAiUsageToday(String userId) => _aiService.getAiUsageToday(userId);
@@ -76,5 +87,6 @@ class AiDatabaseService {
             }).toList());
   }
 
-  Future<Map<String, dynamic>?> getFeatureFlags() => _settingsService.getFeatureFlags();
+  Future<Map<String, dynamic>?> getFeatureFlags() =>
+      _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -45,9 +46,35 @@ class _MySplashState extends State<MySplash> {
         final bool isMaintenance =
             global.featureFlags?['maintenance_mode'] == true;
 
-        if (isMaintenance) {
+        if (isMaintenance && !global.isAdmin) {
           Navigator.pushReplacementNamed(context, '/maintenance');
-        } else if (user != null) {
+          return;
+        }
+
+        if (user != null) {
+          final isBanned = await global.db.isUserBanned(user.uid);
+          if (isBanned && !global.isAdmin) {
+            // Get reason if possible
+            String? reason;
+            try {
+              final banDoc = await FirebaseFirestore.instance
+                  .collection('banned_users')
+                  .doc('global_${user.uid}')
+                  .get();
+              if (banDoc.exists) {
+                reason = banDoc.data()?['reason'];
+              }
+            } catch (_) {}
+
+            if (mounted) {
+              Navigator.pushReplacementNamed(
+                context,
+                '/banned',
+                arguments: reason,
+              );
+            }
+            return;
+          }
           Navigator.pushReplacementNamed(context, '/home');
         } else {
           Navigator.pushReplacementNamed(context, '/login');

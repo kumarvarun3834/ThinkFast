@@ -1,0 +1,23 @@
+dont use # commands just writethe text what it performs
+dont add # in shell, continue
+do complete robo testing including quiz creation , quiz deletion , admin mode feature flags working , ban users from quiz , app ban will show screen that states you are banned form app try creating with another email(if not there create it ), attemts management etc , should be for complete app
+
+logs.md what need fix or rework
+ @checklist.md  what already done tracking'
+modules are the tags
+there is no seperate subtags
+
+in quiz generation ui use full form in place of shortform
+
+per quiz there are 2 type of tags > subject tags /module, exam tags
+ai generator button on quiz generation will show quiz wizard in edit mode
+
+ @main_screen.dart  > filter side menu > show all modules name , exam tags (all selectable multiple ) at top add button > strict filter (only show exams with only contains these tags no other than that and if 1 out of 2 satisfy then show it ) , normal filter (show all that contains that tag )
+
+main screen > show exam tags and module tags in card ,
+ @quiz_details_screen.dart  > show exam tag and module tag
+, make it show as much as meta data as possible that is necessary
+
+Quiz creation > shuffle can be disabled > internal shuffle and module shuffle user can set the order in which module will appear , can disable module switching until time ran out
+
+new button > dont allow user to submit before time ran out , will automatically submit on time end

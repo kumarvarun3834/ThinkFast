@@ -50,7 +50,7 @@ class SettingsService {
 
   /// ✅ Fetch Feature Flags (Cached for session)
   /// Aggregates flags from multiple granularly-permissioned documents.
-  Future<Map<String, dynamic>?> getFeatureFlags() async {
+  Future<Map<String, dynamic>?> getFeatureFlags({bool isAdmin = false}) async {
     final Map<String, Map<String, dynamic>> docDefaults = {
       'public': {
         'enable_ai': true,
@@ -90,8 +90,23 @@ class SettingsService {
 
     final Map<String, dynamic> allFlags = {};
 
-    // Parallel fetch for all flag documents
-    await Future.wait(docDefaults.keys.map((docId) async {
+    // Determine which documents we can actually fetch
+    final List<String> docsToFetch = ['public'];
+    if (isAdmin) {
+      docsToFetch.addAll(
+        docDefaults.keys.where((docId) => docId != 'public'),
+      );
+    } else {
+      // For non-admins, add defaults for the other categories immediately
+      docDefaults.forEach((docId, defaults) {
+        if (docId != 'public') {
+          allFlags.addAll(defaults);
+        }
+      });
+    }
+
+    // Parallel fetch for allowed flag documents
+    await Future.wait(docsToFetch.map((docId) async {
       try {
         final data = await _fetchAndSyncFlags(docId, docDefaults[docId]!);
         allFlags.addAll(data);
@@ -157,7 +172,14 @@ class SettingsService {
   }
 
   /// ✅ Stream Feature Flags for live updates
-  Stream<Map<String, dynamic>?> streamFeatureFlags() {
+  Stream<Map<String, dynamic>?> streamFeatureFlags({bool isAdmin = false}) {
+    if (!isAdmin) {
+      // Non-admins only get public flags
+      return _featureFlags.doc('public').snapshots().map(
+        (doc) => doc.data() as Map<String, dynamic>?,
+      );
+    }
+
     return _featureFlags.snapshots().map((snapshot) {
       final Map<String, dynamic> combined = {};
       for (var doc in snapshot.docs) {

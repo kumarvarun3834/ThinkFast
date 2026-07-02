@@ -345,7 +345,7 @@ class _QuizFormState extends State<QuizForm> {
                     keyboardType: TextInputType.number,
                     style: const TextStyle(color: global.valueColor),
                     decoration: const InputDecoration(
-                      labelText: "Q Timer (sec)",
+                      labelText: "Question Timer (sec)",
                       labelStyle: TextStyle(color: global.labelColor),
                       hintText: "0 = use global",
                     ),

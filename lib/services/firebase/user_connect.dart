@@ -24,7 +24,9 @@ class UserDatabaseService {
       global.currentUserProfile = await _userService.getUserProfile(uid);
       global.isRegisteredAdmin = await _adminService.isRegisteredAdmin(uid);
       global.isAdmin = await _adminService.isAdmin(uid);
-      global.featureFlags = await _settingsService.getFeatureFlags();
+      global.featureFlags = await _settingsService.getFeatureFlags(
+        isAdmin: global.isAdmin,
+      );
 
       final accessRecords = await _adminService.getUserAccessRecords(uid);
       global.managedQuizzes = {
@@ -46,7 +48,9 @@ class UserDatabaseService {
   }
 
   Future<void> _ensurePermission(String? flag, {String? userId}) async {
-    final flags = global.featureFlags ?? await _settingsService.getFeatureFlags();
+    final flags =
+        global.featureFlags ??
+        await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
     // 1. Global Maintenance Mode Check
     if (flags?['maintenance_mode'] == true) {
@@ -82,7 +86,7 @@ class UserDatabaseService {
       _adminService.isUserBanned(uid, quizId: quizId);
 
   Future<Map<String, dynamic>?> getFeatureFlags() =>
-      _settingsService.getFeatureFlags();
+      _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
   Future<void> updateProtectedDetails({
     required String uid,

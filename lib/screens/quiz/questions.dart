@@ -80,7 +80,9 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       }
 
       List<String> modules = moduleGroups.keys.toList();
-      modules.shuffle(random);
+      if (global.shuffleModules) {
+        modules.shuffle(random);
+      }
 
       final List<String> typeOrder = [
         'Single Choice',
@@ -90,26 +92,31 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
       for (var module in modules) {
         List<Map<String, Object>> moduleQuestions = moduleGroups[module]!;
-        Map<String, List<Map<String, Object>>> typeGroups = {};
-        for (var q in moduleQuestions) {
-          String type = q['type']?.toString() ?? 'Single Choice';
-          typeGroups.putIfAbsent(type, () => []).add(q);
-        }
-
-        for (var type in typeOrder) {
-          if (typeGroups.containsKey(type)) {
-            List<Map<String, Object>> questionsOfType = typeGroups[type]!;
-            questionsOfType.shuffle(random);
-            shuffledQuestions.addAll(questionsOfType);
+        
+        if (global.shuffleQuestionsWithinModules) {
+          Map<String, List<Map<String, Object>>> typeGroups = {};
+          for (var q in moduleQuestions) {
+            String type = q['type']?.toString() ?? 'Single Choice';
+            typeGroups.putIfAbsent(type, () => []).add(q);
           }
-        }
 
-        typeGroups.forEach((type, questions) {
-          if (!typeOrder.contains(type)) {
-            questions.shuffle(random);
-            shuffledQuestions.addAll(questions);
+          for (var type in typeOrder) {
+            if (typeGroups.containsKey(type)) {
+              List<Map<String, Object>> questionsOfType = typeGroups[type]!;
+              questionsOfType.shuffle(random);
+              shuffledQuestions.addAll(questionsOfType);
+            }
           }
-        });
+
+          typeGroups.forEach((type, questions) {
+            if (!typeOrder.contains(type)) {
+              questions.shuffle(random);
+              shuffledQuestions.addAll(questions);
+            }
+          });
+        } else {
+          shuffledQuestions.addAll(moduleQuestions);
+        }
       }
     }
 
@@ -411,6 +418,14 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                                 selectedColor: global.primaryAccent,
                                 onSelected: (selected) {
                                   if (selected) {
+                                    if (global.disableModuleSwitchingUntilTimeout && 
+                                        _timeLeft.inSeconds > 0 && 
+                                        !global.isReviewMode) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Module switching disabled until timeout")),
+                                      );
+                                      return;
+                                    }
                                     setModalState(() {
                                       localActiveModule = m;
                                     });
@@ -491,6 +506,12 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
+                                if (global.forceWaitUntilTimeout && _timeLeft.inSeconds > 0 && !global.isReviewMode) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text("Submission not allowed until time runs out")),
+                                  );
+                                  return;
+                                }
                                 Navigator.pop(context);
                                 if (global.isReviewMode) {
                                   Navigator.pop(context);
@@ -1214,7 +1235,15 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      onPressed: _showSubmitConfirmation,
+                      onPressed: () {
+                        if (global.forceWaitUntilTimeout && _timeLeft.inSeconds > 0 && !global.isReviewMode) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Submission not allowed until time runs out")),
+                          );
+                          return;
+                        }
+                        _showSubmitConfirmation();
+                      },
                       child: const Text(
                         "SUBMIT",
                         style: TextStyle(
@@ -1319,6 +1348,14 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                               selectedColor: global.primaryAccent,
                               onSelected: (selected) {
                                 if (selected) {
+                                  if (global.disableModuleSwitchingUntilTimeout && 
+                                      _timeLeft.inSeconds > 0 && 
+                                      !global.isReviewMode) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("Module switching disabled until timeout")),
+                                    );
+                                    return;
+                                  }
                                   setDrawerState(() {
                                     _drawerActiveModule = m;
                                   });
@@ -1452,6 +1489,14 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                         selectedColor: global.primaryAccent,
                         onSelected: (selected) {
                           if (selected) {
+                            if (global.disableModuleSwitchingUntilTimeout && 
+                                _timeLeft.inSeconds > 0 && 
+                                !global.isReviewMode) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Module switching disabled until timeout")),
+                              );
+                              return;
+                            }
                             setState(() {
                               _activeModule = m;
                               if (!global.isReviewMode) {

@@ -164,6 +164,11 @@ service cloud.firestore {
       );
     }
 
+    match /exam_tags/{tagId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     match /settings/{docId} {
       allow read: if true;
       allow write: if (docId == 'admin' && hasGlobalPermission('manage_admins')) ||

@@ -595,6 +595,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 icon: Icons.lock_person_outlined,
                               ),
                             if (_quizData != null &&
+                                _quizData!['examTag'] != null &&
+                                _quizData!['examTag'].toString().isNotEmpty)
+                              InfoRow(
+                                label: "Target Exam",
+                                value: _quizData!['examTag'].toString(),
+                                icon: Icons.school_outlined,
+                              ),
+                            if (_quizData != null &&
                                 _quizData!['category'] != null)
                               InfoRow(
                                 label: "Category",
@@ -616,6 +624,67 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 icon: Icons.star_outline,
                               ),
                             if (_quizData != null &&
+                                (_quizData!['modules'] as List? ?? []).isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Text(
+                                "MODULES & TOPICS",
+                                style: GoogleFonts.poppins(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: (_quizData!['modules'] as List).map((m) {
+                                  final sub = m is Map ? m['subject'].toString() : "Unknown";
+                                  final List<String> modTags = (_quizData!['moduleTags'] != null && _quizData!['moduleTags'][sub] != null)
+                                      ? List<String>.from(_quizData!['moduleTags'][sub])
+                                      : [];
+                                  
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Chip(
+                                        label: Text(
+                                          sub,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        backgroundColor:
+                                            global.infoColor.withValues(alpha: 0.2),
+                                        side: BorderSide(
+                                          color: global.infoColor
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      if (modTags.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 4.0, top: 2.0),
+                                          child: Text(
+                                            modTags.join(", "),
+                                            style: const TextStyle(
+                                              color: global.labelColor,
+                                              fontSize: 9,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                            if (_quizData != null &&
                                 _quizData!['tags'] != null &&
                                 (_quizData!['tags'] as List).isNotEmpty) ...[
                               const SizedBox(height: 12),
@@ -631,7 +700,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               const SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
-                                runSpacing: 0,
+                                runSpacing: 8,
                                 children: (_quizData!['tags'] as List).map((t) {
                                   return Chip(
                                     label: Text(
@@ -730,7 +799,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     final int modCount = _quizData!['moduleCount'] ?? 0;
     if (modCount > 1) types.add("Modular Quiz");
 
-    if ((_quizData!['time'] ?? 0) == 0) types.add("Unlimited Duration");
+    if (_quizData!['shuffleModules'] == true) types.add("Shuffled Modules");
+    if (_quizData!['shuffleQuestionsWithinModules'] == true) types.add("Intra-Module Shuffle");
+    if (_quizData!['completeRandomShuffle'] == true) types.add("Global Shuffle");
+    if (_quizData!['disableModuleSwitchingUntilTimeout'] == true) types.add("Strict Module Flow");
+    if (_quizData!['forceWaitUntilTimeout'] == true) types.add("Timed Submission Only");
+
+    if ((_quizData!['time'] ?? 0) == 0 && _quizData!['timingScheme'] == null) types.add("Unlimited Duration");
+
+    if (_quizData!['timingScheme'] != null) {
+      final String tt = _quizData!['timingScheme']['type'] ?? 'global';
+      if (tt == 'per_module') types.add("Modular Timers");
+      if (tt == 'per_question') types.add("Strict Question Timers");
+      if (tt == 'per_question_type') types.add("Variable Difficulty Timers");
+    }
 
     final String alt = _quizData!['attemptLimitType'] ?? 'none';
     if (alt != 'none') {
@@ -1241,6 +1323,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.perQuestionTime = _quizData!['perQuestionTime'] ?? 0;
                 global.completeRandomShuffle =
                     _quizData!['completeRandomShuffle'] ?? false;
+                global.shuffleModules = _quizData!['shuffleModules'] ?? false;
+                global.shuffleQuestionsWithinModules =
+                    _quizData!['shuffleQuestionsWithinModules'] ?? false;
+                global.disableModuleSwitchingUntilTimeout =
+                    _quizData!['disableModuleSwitchingUntilTimeout'] ?? false;
+                global.forceWaitUntilTimeout =
+                    _quizData!['forceWaitUntilTimeout'] ?? false;
                 global.markingScheme =
                     _quizData!['markingScheme'] ?? {"type": "default"};
                 global.attemptLimits =

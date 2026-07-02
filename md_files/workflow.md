@@ -29,6 +29,7 @@ ThinkFast is a Flutter-based quiz application that allows users to create, parti
 - **`quiz_responses_screen.dart`**: Allows quiz creators to view responses from participants.
 
 ### 4. Services Layer (`lib/services/`)
+#### A. Base Services
 - **`quiz_service.dart`**: Manages CRUD operations for quizzes. Uses a highly secure storage pattern:
     - **Metadata**: Stored in `quizzes` collection.
     - **Questions & Options**: Stored in `quiz_questions` collection (Separate document per quiz).
@@ -36,24 +37,26 @@ ThinkFast is a Flutter-based quiz application that allows users to create, parti
     - **Access Control**: Implements `hasAccess()` to check visibility, creator status, or explicit permissions in `quiz_access`.
 
 - **`admin_service.dart`**: Provides administrative and management capabilities:
-    - **Quiz Management**: Allows owners to grant/remove management access to other users with specific permissions. Managers can also "Quit" management roles.
-    - **Audit Logs**: Tracks critical actions (access grants, master updates, deletions) for accountability.
-    - **Master Control**: Allows App Admins to view, update, or delete any quiz regardless of ownership or visibility.
+    - **Quiz Management**: Allows owners to grant/remove management access to other users with specific permissions.
+    - **Audit Logs**: Tracks critical actions (access grants, master updates, deletions).
     - **Banning**: Capabilities to restrict specific users from participating in quizzes.
 
-- **`settings_service.dart`**: Centralized control for App Settings and **Feature Flags**:
-    - **Live Toggle**: Flags can be streamed for real-time app updates (e.g., turning off registration during maintenance).
-    - **Specific Flags**: Includes `enable_ai`, `enable_login`, `enable_register`, `maintenance_mode`, `random_quiz_generator`, `user_action_logging`, and `management_features`.
-
+- **`settings_service.dart`**: Centralized control for App Settings and **Feature Flags**.
 - **`attempt_service.dart`**: Handles the logic for submitting quiz attempts and calculating scores.
 - **`user_service.dart`**: Manages user profile data.
-- **`notification_service.dart`**: Handles app notifications.
+- **`ai_service.dart`**: Handles communication with the AI engine for quiz generation.
+
+#### B. Database Connect Layers (`lib/services/firebase/`)
+- **`user_connect.dart`**: High-performance facade for the normal user experience (Session init, history, taking quizzes).
+- **`q_admin_connect.dart`**: Dedicated interface for quiz lifecycle management, team collaboration, and tag synchronization.
+- **`admin_connect.dart`**: Secure interface for platform-wide administrative operations and master controls.
+- **`ai_connect.dart`**: Bridge for AI-powered features, usage logging, and generation history.
 
 ### 5. Utilities & State (`lib/utils/`)
-- **`global.dart`**: Centralized state management. Stores `quizData` (current quiz questions), `quizResult` (user answers), and app-wide theme colors.
+- **`global.dart`**: Centralized state management. Stores global instances of the Connect layers (`userConnect`, `adminConnect`, `qAdminConnect`, `aiConnect`) and app-wide theme colors.
 
 ### 6. Common Widgets (`lib/widgets/`)
-- Reusable UI components like `opt_buttons.dart` (choices), `TextContainer.dart`, and custom navigation drawers.
+- Reusable UI components like `opt_buttons.dart` (choices), `text_container.dart`, and custom navigation drawers.
 
 ---
 

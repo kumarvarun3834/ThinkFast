@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/global.dart' as global;
 import 'settings_service.dart';
 
 class AnalyticsService {
@@ -9,7 +10,7 @@ class AnalyticsService {
   final SettingsService _settings = SettingsService();
 
   Future<void> _checkAnalyticsEnabled() async {
-    final flags = await _settings.getFeatureFlags();
+    final flags = await _settings.getFeatureFlags(isAdmin: global.isAdmin);
     if (flags?['enable_analytics'] == false) {
       throw Exception("Analytics features are currently disabled.");
     }
@@ -34,7 +35,7 @@ class AnalyticsService {
     required bool isCorrect,
   }) async {
     // We don't throw here to avoid breaking the quiz flow if analytics is off
-    final flags = await _settings.getFeatureFlags();
+    final flags = await _settings.getFeatureFlags(isAdmin: global.isAdmin);
     if (flags?['enable_analytics'] == false) return;
 
     await _questionStats.doc(questionId).set({

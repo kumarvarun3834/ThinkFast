@@ -7,7 +7,8 @@ import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AiQuizGenerator extends StatefulWidget {
-  const AiQuizGenerator({super.key});
+  final bool forEditor;
+  const AiQuizGenerator({super.key, this.forEditor = false});
 
   @override
   _AiQuizGeneratorState createState() => _AiQuizGeneratorState();
@@ -38,6 +39,12 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         'question': 'Are you preparing for a specific competitive exam?',
         'type': 'dropdown',
         'options': ['None / General', 'JEE Main', 'NEET', 'UPSC', 'Other'],
+      },
+      {
+        'id': 'tags',
+        'question': 'Any specific tags you want to add to this quiz?',
+        'type': 'text',
+        'hint': 'e.g., Physics, History, 2024 (comma separated)',
       },
       {
         'id': 'topic',
@@ -340,11 +347,24 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           "Generate a quiz with high personalization using this config: ${finalConfig.toString()}";
 
       setState(() => _generationStatus = "Validating");
-      
-      final String quizId = await ai.createAiQuiz(
+
+      final String? examTag = _quizSettings['exam_type'] != 'None / General'
+          ? _quizSettings['exam_type']
+          : null;
+      final List<String>? tags = _quizSettings['tags'] != null
+          ? (_quizSettings['tags'] as String)
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList()
+          : null;
+
+      final String quizId = await global.aiConnect.createAiQuiz(
         userId: global.currentUserProfile?['uid'] ?? '',
         userName: global.currentUserProfile?['name'] ?? 'User',
         prompt: prompt,
+        examTag: examTag,
+        tags: tags,
       );
 
       setState(() => _generationStatus = "Saving");
@@ -359,11 +379,15 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       setState(() => _generationStatus = "Completed");
 
       if (mounted) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/Quiz Details',
-          arguments: quizId,
-        );
+        if (widget.forEditor) {
+          Navigator.pop(context, quizId);
+        } else {
+          Navigator.pushReplacementNamed(
+            context,
+            '/Quiz Details',
+            arguments: quizId,
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(

@@ -77,11 +77,11 @@ Administrators have elevated access to maintain platform health.
 | `/login`          | `LoginScreen`         | User authentication.                         |
 | `/signup`         | `SignupScreen`        | User registration.                           |
 | `/verify`         | `VerificationScreen`  | Email verification check.                    |
-| `/home`           | `Main_Screen`         | Main dashboard & public quizzes.             |
-| `/My Quiz`        | `Main_Screen`         | Filtered view for creator's own quizzes.     |
+| `/home`           | `MainScreen`          | Main dashboard & public quizzes.             |
+| `/My Quiz`        | `MainScreen`          | Filtered view for creator's own quizzes.     |
 | `/Create Quiz`    | `QuizPage`            | Create a new quiz.                           |
 | `/Update Quiz`    | `QuizPage`            | Edit an existing quiz.                       |
-| `/Quiz`           | `Quesations`          | The active quiz session.                     |
+| `/Quiz`           | `Questions`           | The active quiz session.                     |
 | `/Quiz Result`    | `ResultScreen`        | Post-quiz summary.                           |
 | `/Quiz Details`   | `QuizDetailsScreen`   | Pre-quiz landing page.                       |
 | `/My Attempts`    | `MyAttemptsScreen`    | User's personal attempt history.             |

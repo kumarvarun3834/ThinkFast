@@ -342,7 +342,8 @@ class AdminService {
   }) async {
     // Check if logging is enabled
     final flags =
-        global.featureFlags ?? await SettingsService().getFeatureFlags();
+        global.featureFlags ??
+        await SettingsService().getFeatureFlags(isAdmin: global.isAdmin);
     if (flags?['log'] == false) return;
 
     String actorName = "Unknown";

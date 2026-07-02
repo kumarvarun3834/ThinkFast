@@ -6,6 +6,12 @@ class QuizImportResult {
   final String? description;
   final int? time;
   final int? perQuestionTime;
+  final bool? allowMultipleAttempts;
+  final bool? completeRandomShuffle;
+  final bool? shuffleModules;
+  final bool? shuffleQuestionsWithinModules;
+  final bool? disableModuleSwitchingUntilTimeout;
+  final bool? forceWaitUntilTimeout;
   final String? markingType;
   final int? markingPassThreshold;
   final Map<String, dynamic>? markingGlobal;
@@ -14,6 +20,12 @@ class QuizImportResult {
   final String? attemptLimitType;
   final Map<String, dynamic>? globalLimits;
   final Map<String, dynamic>? perModuleLimits;
+  final String? examTag;
+  final Map<String, List<String>>? moduleTags;
+  final bool? isRestricted;
+  final List<String>? allowedParticipants;
+  final Map<String, dynamic>? timingScheme;
+  final List<String>? moduleOrder;
   final List<Map<String, Object>> questions;
 
   QuizImportResult({
@@ -21,6 +33,12 @@ class QuizImportResult {
     this.description,
     this.time,
     this.perQuestionTime,
+    this.allowMultipleAttempts,
+    this.completeRandomShuffle,
+    this.shuffleModules,
+    this.shuffleQuestionsWithinModules,
+    this.disableModuleSwitchingUntilTimeout,
+    this.forceWaitUntilTimeout,
     this.markingType,
     this.markingPassThreshold,
     this.markingGlobal,
@@ -29,6 +47,12 @@ class QuizImportResult {
     this.attemptLimitType,
     this.globalLimits,
     this.perModuleLimits,
+    this.examTag,
+    this.moduleTags,
+    this.isRestricted,
+    this.allowedParticipants,
+    this.timingScheme,
+    this.moduleOrder,
     required this.questions,
   });
 }
@@ -51,6 +75,14 @@ class QuizDataProcessor {
 
     String? title = data['title']?.toString();
     String? description = data['description']?.toString();
+    String? examTag = data['examTag']?.toString();
+    Map<String, List<String>>? moduleTags;
+    if (data['moduleTags'] != null) {
+      moduleTags = (data['moduleTags'] as Map).map(
+        (key, value) => MapEntry(key.toString(), List<String>.from(value as List)),
+      );
+    }
+
     int? time;
     if (data['time'] != null) {
       time = (data['time'] is int)
@@ -60,6 +92,25 @@ class QuizDataProcessor {
     int? perQuestionTime = data['perQuestionTime'] != null 
         ? int.tryParse(data['perQuestionTime'].toString()) 
         : null;
+
+    bool? allowMultipleAttempts = data['allowMultipleAttempts'];
+    bool? completeRandomShuffle = data['completeRandomShuffle'];
+    bool? shuffleModules = data['shuffleModules'];
+    bool? shuffleQuestionsWithinModules = data['shuffleQuestionsWithinModules'];
+    bool? disableModuleSwitchingUntilTimeout = data['disableModuleSwitchingUntilTimeout'];
+    bool? forceWaitUntilTimeout = data['forceWaitUntilTimeout'];
+    bool? isRestricted = data['isRestricted'];
+    List<String>? allowedParticipants = data['allowedParticipants'] != null 
+        ? List<String>.from(data['allowedParticipants'] as List) 
+        : null;
+
+    Map<String, dynamic>? timingScheme;
+    if (data['timingScheme'] != null) {
+      timingScheme = Map<String, dynamic>.from(data['timingScheme'] as Map);
+    } else if (data['timing'] != null) {
+      // Legacy or alternative field name
+      timingScheme = Map<String, dynamic>.from(data['timing'] as Map);
+    }
 
     String? markingType;
     int? markingPassThreshold;
@@ -95,6 +146,10 @@ class QuizDataProcessor {
         perModuleLimits = Map<String, dynamic>.from(limits['perModule'] as Map? ?? {});
       }
     }
+
+    List<String>? moduleOrder = data['moduleOrder'] != null 
+        ? List<String>.from(data['moduleOrder'] as List) 
+        : null;
 
     final List<Map<String, Object>> questions = [];
     final List<dynamic> rawData = (data['data'] ?? data['questions'] ?? []) as List;
@@ -143,6 +198,12 @@ class QuizDataProcessor {
       description: description,
       time: time,
       perQuestionTime: perQuestionTime,
+      allowMultipleAttempts: allowMultipleAttempts,
+      completeRandomShuffle: completeRandomShuffle,
+      shuffleModules: shuffleModules,
+      shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
+      disableModuleSwitchingUntilTimeout: disableModuleSwitchingUntilTimeout,
+      forceWaitUntilTimeout: forceWaitUntilTimeout,
       markingType: markingType,
       markingPassThreshold: markingPassThreshold,
       markingGlobal: markingGlobal,
@@ -151,6 +212,12 @@ class QuizDataProcessor {
       attemptLimitType: attemptLimitType,
       globalLimits: globalLimits,
       perModuleLimits: perModuleLimits,
+      examTag: examTag,
+      moduleTags: moduleTags,
+      isRestricted: isRestricted,
+      allowedParticipants: allowedParticipants,
+      timingScheme: timingScheme,
+      moduleOrder: moduleOrder,
       questions: questions,
     );
   }

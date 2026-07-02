@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/add_quiz_data.dart';
+import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
 import 'package:thinkfast/services/quiz_data_processor.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
-import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizPage extends StatefulWidget {
   final String docId;
@@ -21,7 +22,8 @@ class QuizPage extends StatefulWidget {
 class _QuizPageState extends State<QuizPage> {
   User? user;
   bool _isAdmin = false;
-  bool _isAi = false;
+
+  // bool _isAi = false;
   bool _importEnabled = false;
   bool _isLoading = false;
   bool _isAiGenerated = false;
@@ -29,7 +31,7 @@ class _QuizPageState extends State<QuizPage> {
 
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
-  late final TextEditingController _examController; // Added exam controller
+  late final TextEditingController _examController;
   late final TextEditingController _timeController;
   late final TextEditingController _perQuestionTimeController;
   late final TextEditingController _allowedUsersController;
@@ -38,10 +40,24 @@ class _QuizPageState extends State<QuizPage> {
   String visibility = "private";
   bool allowMultipleAttempts = true;
   bool completeRandomShuffle = false;
+  bool shuffleModules = false;
+  bool shuffleQuestionsWithinModules = false;
+  bool disableModuleSwitchingUntilTimeout = false;
+  bool forceWaitUntilTimeout = false;
 
   // Scheduling & Restriction
   DateTime? _scheduledTime;
   bool _isRestricted = false;
+
+  // Timing Scheme
+  String timingType = "global";
+  final Map<String, Map<String, TextEditingController>>
+  _moduleTimingControllers = {};
+  final Map<String, TextEditingController> _typeTimingControllers = {
+    "Single Choice": TextEditingController(text: "0"),
+    "Multiple Choice": TextEditingController(text: "0"),
+    "Integer": TextEditingController(text: "0"),
+  };
 
   // Attempt Limits
   String attemptLimitType = "none";
@@ -96,16 +112,13 @@ class _QuizPageState extends State<QuizPage> {
     _currentDocId = widget.docId;
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    _examController = TextEditingController(); // Added exam init
+    _examController = TextEditingController();
     _timeController = TextEditingController();
     _perQuestionTimeController = TextEditingController(text: "0");
     _allowedUsersController = TextEditingController();
 
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
-    _isAi =
-        (global.currentUserProfile?['role'] == 'ai' || _isAdmin) &&
-        (global.featureFlags?['enable_ai'] ?? true);
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
 
     _updateModuleLimitControllers();
@@ -121,7 +134,7 @@ class _QuizPageState extends State<QuizPage> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _examController.dispose(); // Added exam dispose
+    _examController.dispose();
     _timeController.dispose();
     _perQuestionTimeController.dispose();
     _allowedUsersController.dispose();
@@ -155,6 +168,25 @@ class _QuizPageState extends State<QuizPage> {
         _moduleTagControllers[module] = TextEditingController();
       }
     }
+  }
+
+  void _updateModuleTimingControllers() {
+    for (var module in modulesList) {
+      if (!_moduleTimingControllers.containsKey(module)) {
+        _moduleTimingControllers[module] = {
+          "total": TextEditingController(text: "0"),
+          "perQuestion": TextEditingController(text: "0"),
+        };
+      }
+    }
+  }
+
+  void _moveModule(int oldIndex, int newIndex) {
+    if (newIndex < 0 || newIndex >= modulesList.length) return;
+    setState(() {
+      final String item = modulesList.removeAt(oldIndex);
+      modulesList.insert(newIndex, item);
+    });
   }
 
   void _showImportDialog({bool append = false}) {
@@ -227,22 +259,82 @@ class _QuizPageState extends State<QuizPage> {
         _isAiGenerated = true;
         if (!append) {
           if (result.title != null) _titleController.text = result.title!;
-          if (result.description != null) {
+          if (result.description != null)
             _descriptionController.text = result.description!;
+          if (result.examTag != null) _examController.text = result.examTag!;
+          if (result.moduleTags != null) {
+            result.moduleTags!.forEach((module, tags) {
+              if (!_moduleTagControllers.containsKey(module)) {
+                _moduleTagControllers[module] = TextEditingController();
+              }
+              _moduleTagControllers[module]!.text = tags.join(', ');
+            });
           }
-          if (result.time != null) {
+          if (result.time != null)
             _timeController.text = (result.time! ~/ 60).toString();
-          }
-          if (result.perQuestionTime != null) {
+          if (result.perQuestionTime != null)
             _perQuestionTimeController.text = result.perQuestionTime.toString();
+          if (result.allowMultipleAttempts != null)
+            allowMultipleAttempts = result.allowMultipleAttempts!;
+          if (result.completeRandomShuffle != null)
+            completeRandomShuffle = result.completeRandomShuffle!;
+          if (result.shuffleModules != null)
+            shuffleModules = result.shuffleModules!;
+          if (result.shuffleQuestionsWithinModules != null)
+            shuffleQuestionsWithinModules =
+                result.shuffleQuestionsWithinModules!;
+          if (result.disableModuleSwitchingUntilTimeout != null)
+            disableModuleSwitchingUntilTimeout =
+                result.disableModuleSwitchingUntilTimeout!;
+          if (result.forceWaitUntilTimeout != null)
+            forceWaitUntilTimeout = result.forceWaitUntilTimeout!;
+          if (result.isRestricted != null) _isRestricted = result.isRestricted!;
+          if (result.allowedParticipants != null)
+            _allowedUsersController.text = result.allowedParticipants!.join(
+              ', ',
+            );
+
+          if (result.timingScheme != null) {
+            timingType = result.timingScheme!['type'] ?? 'global';
+            final settings = result.timingScheme!['settings'] as Map?;
+            if (settings != null) {
+              if (settings['globalTotal'] != null)
+                _timeController.text = settings['globalTotal'].toString();
+              if (settings['perQuestionDefault'] != null)
+                _perQuestionTimeController.text = settings['perQuestionDefault']
+                    .toString();
+              if (settings['perType'] != null) {
+                (settings['perType'] as Map).forEach((type, val) {
+                  _typeTimingControllers[type]?.text = val.toString();
+                });
+              }
+              if (settings['perModule'] != null) {
+                (settings['perModule'] as Map).forEach((module, val) {
+                  if (!modulesList.contains(module)) modulesList.add(module);
+                  _updateModuleTimingControllers();
+                  if (val is Map) {
+                    _moduleTimingControllers[module]?['total']?.text =
+                        (val['total'] ?? 0).toString();
+                    _moduleTimingControllers[module]?['perQuestion']?.text =
+                        (val['perQuestion'] ?? 0).toString();
+                  } else {
+                    _moduleTimingControllers[module]?['total']?.text = val
+                        .toString();
+                  }
+                });
+              }
+            }
           }
 
           if (result.markingType != null) {
             markingType = result.markingType!;
             if (markingType == 'entire_quiz' && result.markingGlobal != null) {
-              _globalCorrectController.text = (result.markingGlobal!['correct'] ?? 4).toString();
-              _globalWrongController.text = (result.markingGlobal!['wrong'] ?? -1).toString();
-            } else if (markingType == 'per_question_type' && result.markingPerType != null) {
+              _globalCorrectController.text =
+                  (result.markingGlobal!['correct'] ?? 4).toString();
+              _globalWrongController.text =
+                  (result.markingGlobal!['wrong'] ?? -1).toString();
+            } else if (markingType == 'per_question_type' &&
+                result.markingPerType != null) {
               final sc = result.markingPerType!['Single Choice'] as Map?;
               if (sc != null) {
                 _scCorrectController.text = (sc['correct'] ?? 4).toString();
@@ -283,14 +375,17 @@ class _QuizPageState extends State<QuizPage> {
           questions.clear();
           _questionKeys.clear();
           modulesList.clear();
-          if (!modulesList.contains("General")) modulesList.add("General");
+          if (result.moduleOrder != null && result.moduleOrder!.isNotEmpty) {
+            modulesList.addAll(result.moduleOrder!);
+          } else {
+            if (!modulesList.contains("General")) modulesList.add("General");
+          }
         }
 
         for (var newQ in result.questions) {
           String subject = newQ['subject'] as String? ?? 'General';
           if (!modulesList.contains(subject)) modulesList.add(subject);
 
-          // Check if same Q already exists
           int existingIndex = questions.indexWhere(
             (element) =>
                 element['question'].toString().trim().toLowerCase() ==
@@ -298,7 +393,6 @@ class _QuizPageState extends State<QuizPage> {
           );
 
           if (existingIndex != -1) {
-            // Found duplicate. Check if data is different.
             if (!QuizDataProcessor.isQuestionDataSame(
               questions[existingIndex],
               newQ,
@@ -326,50 +420,126 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+  Future<void> _importFromQuizId(String docId) async {
+    setState(() => _isLoading = true);
+    try {
+      final String? uid = FirebaseAuth.instance.currentUser?.uid;
+      final data = await global.db.readDatabase(docId, userId: uid);
+      if (uid == null) throw Exception("User not authenticated");
+
+      final response = await global.db.getQuizAnswers(
+        docId,
+        uid,
+        from: 'quizform',
+      );
+      final Map<String, List<String>> answersMap = response['answers'];
+      final Map<String, String> solutionsMap = response['solutions'];
+
+      setState(() {
+        _isAiGenerated = true;
+        final List<dynamic> rawModules = data['modules'] as List? ?? [];
+
+        for (var module in rawModules) {
+          final String qSubject = module['subject'].toString();
+          if (!modulesList.contains(qSubject)) modulesList.add(qSubject);
+          _updateModuleLimitControllers();
+
+          final List<dynamic> rawQuestions = module['data'] as List? ?? [];
+          for (var q in rawQuestions) {
+            final qInfo = q['Q'] as Map;
+            final qUid = qInfo['id'].toString();
+            final qText = qInfo['text'].toString();
+            final List<dynamic> opts = q['As'] as List;
+            final List<String> choiceTexts = [];
+            final List<String> correctTexts = [];
+            final List<String> correctUids = answersMap[qUid] ?? [];
+
+            for (var o in opts) {
+              final oMap = o as Map;
+              final oUid = oMap['id'].toString();
+              final oText = oMap['text'].toString();
+              choiceTexts.add(oText);
+              if (correctUids.contains(oUid)) correctTexts.add(oText);
+            }
+
+            final newQ = {
+              "subject": qSubject,
+              "question": qText,
+              "choices": choiceTexts,
+              "answers": correctTexts,
+              "type": q['type'] ?? 'Single Choice',
+              "correct": 4,
+              "wrong": -1,
+              "timer": q['timer'] ?? 0,
+              "description": solutionsMap[qUid] ?? '',
+            };
+
+            int existingIndex = questions.indexWhere(
+              (element) =>
+                  element['question'].toString().trim().toLowerCase() ==
+                  newQ['question'].toString().trim().toLowerCase(),
+            );
+            if (existingIndex == -1) questions.add(newQ as Map<String, Object>);
+          }
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Wizard data appended successfully")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Import error: $e")));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _fetchQuiz(String docId) async {
     setState(() => _isLoading = true);
     try {
-      // Get current user ID for security check
       final String? uid = FirebaseAuth.instance.currentUser?.uid;
       final data = await global.db.readDatabase(docId, userId: uid);
-
-      // Get current user ID for security check in getQuizAnswers
       if (uid == null) throw Exception("User not authenticated");
 
-      // Fetch answers because readDatabase strips them
-      final response = await global.db.getQuizAnswers(docId, uid, from: 'quizform');
+      final response = await global.db.getQuizAnswers(
+        docId,
+        uid,
+        from: 'quizform',
+      );
       final Map<String, List<String>> answersMap = response['answers'];
       final Map<String, String> solutionsMap = response['solutions'];
 
       setState(() {
         _titleController.text = data['title'] ?? '';
         _descriptionController.text = data['description'] ?? '';
-        _examController.text = data['examTag'] ?? ''; // Load exam tag
+        _examController.text = data['examTag'] ?? '';
         visibility = data['visibility'] ?? 'private';
         allowMultipleAttempts = data['allowMultipleAttempts'] ?? true;
         completeRandomShuffle = data['completeRandomShuffle'] ?? false;
+        shuffleModules = data['shuffleModules'] ?? false;
+        shuffleQuestionsWithinModules =
+            data['shuffleQuestionsWithinModules'] ?? false;
+        disableModuleSwitchingUntilTimeout =
+            data['disableModuleSwitchingUntilTimeout'] ?? false;
+        forceWaitUntilTimeout = data['forceWaitUntilTimeout'] ?? false;
         _isRestricted = data['isRestricted'] ?? false;
         _allowedUsersController.text =
             (data['allowedParticipants'] as List? ?? []).join(', ');
 
-        if (data['activeAt'] != null) {
+        if (data['activeAt'] != null)
           _scheduledTime = (data['activeAt'] as Timestamp).toDate();
-        }
-
         _perQuestionTimeController.text = (data['perQuestionTime'] ?? 0)
             .toString();
         _timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
-        // Load Module Tags
         final mTags = data['moduleTags'] as Map? ?? {};
         mTags.forEach((module, tags) {
-          if (!_moduleTagControllers.containsKey(module)) {
+          if (!_moduleTagControllers.containsKey(module))
             _moduleTagControllers[module] = TextEditingController();
-          }
           _moduleTagControllers[module]!.text = (tags as List).join(', ');
         });
 
-        // Load Marking Scheme
         final scheme = data['markingScheme'] as Map? ?? {};
         markingType = scheme['type'] ?? 'default';
         if (markingType == 'entire_quiz') {
@@ -393,7 +563,6 @@ class _QuizPageState extends State<QuizPage> {
               .toString();
         }
 
-        // Load Attempt Limits
         final limits = data['attemptLimits'] as Map? ?? {};
         attemptLimitType = limits['type'] ?? 'none';
         if (attemptLimitType == 'global') {
@@ -424,45 +593,36 @@ class _QuizPageState extends State<QuizPage> {
           });
         }
 
-        final Map<String, dynamic> pqScheme =
+        final pqScheme =
             (scheme['perQuestion'] as Map?)?.cast<String, dynamic>() ?? {};
-
         final List<dynamic> rawModules = data['modules'] as List? ?? [];
         final List<Map<String, Object>> transformed = [];
 
         modulesList.clear();
-        if (!modulesList.contains("General")) modulesList.add("General");
+        rawModules.sort((a, b) => (a['order'] ?? 0).compareTo(b['order'] ?? 0));
 
         for (var module in rawModules) {
           final String qSubject = module['subject'].toString();
           if (!modulesList.contains(qSubject)) modulesList.add(qSubject);
-
           final List<dynamic> rawQuestions = module['data'] as List? ?? [];
 
           for (var q in rawQuestions) {
             final qInfo = q['Q'] as Map;
             final qUid = qInfo['id'].toString();
             final qText = qInfo['text'].toString();
-
-            // Load individual marking if it exists
             final qMarking = pqScheme[qUid] as Map? ?? {};
             final int qCorrect = qMarking['correct'] ?? 4;
             final int qWrong = qMarking['wrong'] ?? -1;
-
             final List<dynamic> opts = q['As'] as List;
             final List<String> choiceTexts = [];
             final List<String> correctTexts = [];
-
             final List<String> correctUids = answersMap[qUid] ?? [];
 
             for (var o in opts) {
               final oMap = o as Map;
-              final oUid = oMap['id'].toString();
-              final oText = oMap['text'].toString();
-              choiceTexts.add(oText);
-              if (correctUids.contains(oUid)) {
-                correctTexts.add(oText);
-              }
+              choiceTexts.add(oMap['text'].toString());
+              if (correctUids.contains(oMap['id'].toString()))
+                correctTexts.add(oMap['text'].toString());
             }
 
             transformed.add({
@@ -478,27 +638,23 @@ class _QuizPageState extends State<QuizPage> {
             });
           }
         }
-
+        if (!modulesList.contains("General")) modulesList.add("General");
         questions
           ..clear()
           ..addAll(transformed);
       });
     } catch (e) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Load error: $e")));
-      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Widget _buildMarkingSchemeSection() {
-    if (!_isAdmin && markingType == "default") {
-      return const SizedBox.shrink(); // Hide for non-admins if it's already default
-    }
-
+    if (!_isAdmin && markingType == "default") return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -658,6 +814,149 @@ class _QuizPageState extends State<QuizPage> {
     );
   }
 
+  Widget _buildTimingSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Timing Configuration",
+          style: GoogleFonts.poppins(
+            color: global.valueColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          dropdownColor: global.cardColor,
+          initialValue: timingType,
+          style: const TextStyle(color: global.valueColor),
+          items: const [
+            DropdownMenuItem(value: "global", child: Text("Global Timer")),
+            DropdownMenuItem(
+              value: "per_question",
+              child: Text("Per Question Default"),
+            ),
+            DropdownMenuItem(
+              value: "per_module",
+              child: Text("Per Module Settings"),
+            ),
+            DropdownMenuItem(
+              value: "per_question_type",
+              child: Text("Per Question Type"),
+            ),
+          ],
+          onChanged: (v) => setState(() {
+            timingType = v!;
+            if (v == "per_module") _updateModuleTimingControllers();
+          }),
+          decoration: const InputDecoration(labelText: "Timing Mode"),
+        ),
+        if (timingType == "global") ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _timeController,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: global.valueColor),
+            decoration: const InputDecoration(
+              labelText: "Global Quiz Time (seconds)",
+              hintText: "e.g. 600 for 10 minutes",
+            ),
+          ),
+        ],
+        if (timingType == "per_question") ...[
+          const SizedBox(height: 16),
+          TextField(
+            controller: _perQuestionTimeController,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: global.valueColor),
+            decoration: const InputDecoration(
+              labelText: "Default Time Per Question (seconds)",
+            ),
+          ),
+        ],
+        if (timingType == "per_question_type") ...[
+          const SizedBox(height: 16),
+          _buildTimingRow(
+            "Single Choice",
+            _typeTimingControllers["Single Choice"]!,
+          ),
+          const SizedBox(height: 8),
+          _buildTimingRow(
+            "Multiple Choice",
+            _typeTimingControllers["Multiple Choice"]!,
+          ),
+          const SizedBox(height: 8),
+          _buildTimingRow("Integer", _typeTimingControllers["Integer"]!),
+        ],
+        if (timingType == "per_module") ...[
+          const SizedBox(height: 16),
+          ...modulesList.map((m) {
+            _updateModuleTimingControllers();
+            final controllers = _moduleTimingControllers[m]!;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: global.cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: global.borderColor),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      m.toUpperCase(),
+                      style: const TextStyle(
+                        color: global.primaryAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTimingRow("Module Total Time", controllers["total"]!),
+                    const SizedBox(height: 8),
+                    _buildTimingRow(
+                      "Per Question in Module",
+                      controllers["perQuestion"]!,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTimingRow(String label, TextEditingController controller) {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: const TextStyle(color: global.valueColor, fontSize: 13),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(color: global.valueColor, fontSize: 14),
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              hintText: "0",
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAttemptLimitsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,7 +1013,7 @@ class _QuizPageState extends State<QuizPage> {
         if (attemptLimitType == "per_module") ...[
           const SizedBox(height: 16),
           ...modulesList.map((m) {
-            _updateModuleLimitControllers(); // Ensure controllers exist
+            _updateModuleLimitControllers();
             final controllers = _moduleLimitControllers[m]!;
             return Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
@@ -738,18 +1037,22 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     const SizedBox(height: 12),
                     _buildLimitRow(
-                      "SC",
+                      "Single Choice",
                       controllers["Single Choice"]!,
                       dense: true,
                     ),
                     const SizedBox(height: 8),
                     _buildLimitRow(
-                      "MC",
+                      "Multiple Choice",
                       controllers["Multiple Choice"]!,
                       dense: true,
                     ),
                     const SizedBox(height: 8),
-                    _buildLimitRow("Int", controllers["Integer"]!, dense: true),
+                    _buildLimitRow(
+                      "Integer",
+                      controllers["Integer"]!,
+                      dense: true,
+                    ),
                   ],
                 ),
               ),
@@ -802,43 +1105,37 @@ class _QuizPageState extends State<QuizPage> {
   void _removeForm(int index) {
     setState(() {
       questions.removeAt(index);
-      if (questions.isEmpty) {
-        questions.add({"subject": "General"});
-      }
+      if (questions.isEmpty) questions.add({"subject": "General"});
     });
   }
 
   void _updateFormData(int index, Map<String, Object> data) {
     final bool subjectChanged = questions[index]['subject'] != data['subject'];
     setState(() => questions[index] = data);
-
-    if (subjectChanged) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToQuestion(index);
-      });
-    }
+    if (subjectChanged)
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _scrollToQuestion(index),
+      );
   }
 
   void _scrollToQuestion(int index) {
     final key = _questionKeys[index];
-    if (key != null && key.currentContext != null) {
+    if (key != null && key.currentContext != null)
       Scrollable.ensureVisible(
         key.currentContext!,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
-    }
   }
 
   void _scrollToModule(String module) {
     final key = _moduleKeys[module];
-    if (key != null && key.currentContext != null) {
+    if (key != null && key.currentContext != null)
       Scrollable.ensureVisible(
         key.currentContext!,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
-    }
   }
 
   Widget _buildSchedulingAndRestrictionSection() {
@@ -863,7 +1160,6 @@ class _QuizPageState extends State<QuizPage> {
           ),
           child: Column(
             children: [
-              // Scheduled Time
               Row(
                 children: [
                   const Icon(
@@ -911,7 +1207,6 @@ class _QuizPageState extends State<QuizPage> {
                 ],
               ),
               const Divider(color: global.borderColor, height: 32),
-              // Restriction Switch
               Material(
                 color: Colors.transparent,
                 child: SwitchListTile(
@@ -965,22 +1260,20 @@ class _QuizPageState extends State<QuizPage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date == null) return;
-
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_scheduledTime ?? DateTime.now()),
     );
     if (time == null) return;
-
-    setState(() {
-      _scheduledTime = DateTime(
+    setState(
+      () => _scheduledTime = DateTime(
         date.year,
         date.month,
         date.day,
         time.hour,
         time.minute,
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildModulesSection() {
@@ -1042,8 +1335,9 @@ class _QuizPageState extends State<QuizPage> {
           ],
         ),
         const SizedBox(height: 20),
-        ...modulesList.map((m) {
-          final tagController = _moduleTagControllers[m];
+        ...modulesList.asMap().entries.map((entry) {
+          final int index = entry.key;
+          final String m = entry.value;
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
             child: Container(
@@ -1058,7 +1352,11 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.folder_open, color: global.primaryAccent, size: 20),
+                      const Icon(
+                        Icons.folder_open,
+                        color: global.primaryAccent,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -1070,9 +1368,25 @@ class _QuizPageState extends State<QuizPage> {
                           ),
                         ),
                       ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_upward, size: 18),
+                        onPressed: index > 0
+                            ? () => _moveModule(index, index - 1)
+                            : null,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_downward, size: 18),
+                        onPressed: index < modulesList.length - 1
+                            ? () => _moveModule(index, index + 1)
+                            : null,
+                      ),
                       if (m != "General")
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, color: global.errorColor, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: global.errorColor,
+                            size: 20,
+                          ),
                           onPressed: () {
                             setState(() {
                               modulesList.remove(m);
@@ -1083,24 +1397,25 @@ class _QuizPageState extends State<QuizPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: tagController,
-                    style: const TextStyle(color: global.valueColor, fontSize: 13),
-                    decoration: const InputDecoration(
-                      labelText: "Tags (comma separated)",
-                      hintText: "e.g. physics, mechanics, vectors...",
-                      isDense: true,
-                    ),
-                    onChanged: (val) {
-                      // Optional: enforce lowercase as they type or handle on save
-                    },
-                  ),
                   const SizedBox(height: 8),
                   TextButton.icon(
                     onPressed: () => _scrollToModule(m),
                     icon: const Icon(Icons.near_me_outlined, size: 14),
-                    label: const Text("Go to Questions", style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      "Go to Questions",
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                  TextField(
+                    controller: _moduleTagControllers[m],
+                    style: const TextStyle(
+                      color: global.valueColor,
+                      fontSize: 12,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: "Sub Topics / Tags (comma separated)",
+                      hintText: "topic1, topic2...",
+                    ),
                   ),
                 ],
               ),
@@ -1114,25 +1429,46 @@ class _QuizPageState extends State<QuizPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: global.borderColor),
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: SwitchListTile(
-              title: const Text(
-                "Complete Random Shuffle",
-                style: TextStyle(color: global.valueColor, fontSize: 14),
+          child: Column(
+            children: [
+              SwitchListTile(
+                title: const Text(
+                  "Complete Random Shuffle",
+                  style: TextStyle(color: global.valueColor, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  "Mix all questions across all modules",
+                  style: TextStyle(color: global.labelColor, fontSize: 11),
+                ),
+                value: completeRandomShuffle,
+                activeColor: global.primaryAccent,
+                onChanged: (bool value) =>
+                    setState(() => completeRandomShuffle = value),
               ),
-              subtitle: const Text(
-                "Mix all questions across all modules",
-                style: TextStyle(color: global.labelColor, fontSize: 11),
-              ),
-              value: completeRandomShuffle,
-              activeColor: global.primaryAccent,
-              onChanged: (bool value) {
-                setState(() {
-                  completeRandomShuffle = value;
-                });
-              },
-            ),
+              if (!completeRandomShuffle) ...[
+                const Divider(color: global.borderColor, height: 1),
+                SwitchListTile(
+                  title: const Text(
+                    "Shuffle Modules",
+                    style: TextStyle(color: global.valueColor, fontSize: 14),
+                  ),
+                  value: shuffleModules,
+                  activeColor: global.primaryAccent,
+                  onChanged: (v) => setState(() => shuffleModules = v),
+                ),
+                const Divider(color: global.borderColor, height: 1),
+                SwitchListTile(
+                  title: const Text(
+                    "Shuffle Within Modules",
+                    style: TextStyle(color: global.valueColor, fontSize: 14),
+                  ),
+                  value: shuffleQuestionsWithinModules,
+                  activeColor: global.primaryAccent,
+                  onChanged: (v) =>
+                      setState(() => shuffleQuestionsWithinModules = v),
+                ),
+              ],
+            ],
           ),
         ),
       ],
@@ -1141,53 +1477,42 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _saveQuiz() async {
     if (user == null) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Login required")));
-      }
       return;
     }
-
     if (_titleController.text.trim().isEmpty ||
         _descriptionController.text.trim().isEmpty ||
         _timeController.text.trim().isEmpty) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("All fields required")));
-      }
       return;
     }
-
     final time = int.tryParse(_timeController.text.trim());
     if (time == null || time < 0) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Invalid time")));
-      }
       return;
     }
-
     final perQuestionTime =
         int.tryParse(_perQuestionTimeController.text.trim()) ?? 0;
 
     for (int i = 0; i < questions.length; i++) {
-      final qText = (questions[i]['question'] ?? '').toString().trim();
-      final List answers = questions[i]['answers'] as List? ?? [];
-
-      if (qText.isEmpty) {
-        if (mounted) {
+      if ((questions[i]['question'] ?? '').toString().trim().isEmpty) {
+        if (mounted)
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text("Question ${i + 1} is empty")));
-        }
         return;
       }
-
-      if (answers.isEmpty) {
-        if (mounted) {
+      if ((questions[i]['answers'] as List? ?? []).isEmpty) {
+        if (mounted)
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -1195,12 +1520,10 @@ class _QuizPageState extends State<QuizPage> {
               ),
             ),
           );
-        }
         return;
       }
     }
 
-    // Prepare Marking Scheme
     final Map<String, dynamic> markingScheme = {'type': markingType};
     if (markingType == 'entire_quiz') {
       markingScheme['global'] = {
@@ -1224,7 +1547,6 @@ class _QuizPageState extends State<QuizPage> {
       };
     }
 
-    // Prepare Attempt Limits
     final Map<String, dynamic> attemptLimits = {'type': attemptLimitType};
     if (attemptLimitType == "global") {
       attemptLimits['global'] = {
@@ -1248,33 +1570,41 @@ class _QuizPageState extends State<QuizPage> {
       attemptLimits['perModule'] = perModule;
     }
 
-    // Prepare Allowed Users list
     final List<String> allowedParticipants = _allowedUsersController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-
-    // Collect tags from all modules
     final Map<String, List<String>> moduleTagsMap = {};
     final Set<String> allTags = {};
-
     _moduleTagControllers.forEach((module, controller) {
       final tagsList = controller.text
           .split(',')
           .map((e) => e.trim().toLowerCase())
           .where((e) => e.isNotEmpty)
           .toList();
-      
-      if (tagsList.isNotEmpty) {
-        // Condition: At least 1 question must exist in this module to add its tags
-        final bool hasQuestions = questions.any((q) => q['subject'] == module);
-        if (hasQuestions) {
-          moduleTagsMap[module] = tagsList;
-          allTags.addAll(tagsList);
-        }
+      if (tagsList.isNotEmpty && questions.any((q) => q['subject'] == module)) {
+        moduleTagsMap[module] = tagsList;
+        allTags.addAll(tagsList);
       }
     });
+
+    final Map<String, dynamic> timingScheme = {
+      'type': timingType,
+      'settings': {
+        'globalTotal': time,
+        'perQuestionDefault': perQuestionTime,
+        'perType': _typeTimingControllers.map(
+          (k, v) => MapEntry(k, int.tryParse(v.text) ?? 0),
+        ),
+        'perModule': _moduleTimingControllers.map(
+          (k, v) => MapEntry(k, {
+            'total': int.tryParse(v['total']!.text) ?? 0,
+            'perQuestion': int.tryParse(v['perQuestion']!.text) ?? 0,
+          }),
+        ),
+      },
+    };
 
     try {
       if (_currentDocId.isEmpty) {
@@ -1286,10 +1616,16 @@ class _QuizPageState extends State<QuizPage> {
           visibility: visibility,
           data: questions,
           time: time,
+          timingScheme: timingScheme,
           markingScheme: markingScheme,
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
+          shuffleModules: shuffleModules,
+          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
+          disableModuleSwitchingUntilTimeout:
+              disableModuleSwitchingUntilTimeout,
+          forceWaitUntilTimeout: forceWaitUntilTimeout,
           perQuestionTime: perQuestionTime,
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
@@ -1297,11 +1633,12 @@ class _QuizPageState extends State<QuizPage> {
           isAiGenerated: _isAiGenerated,
           tags: allTags.toList(),
           moduleTags: moduleTagsMap,
-          examTag: _examController.text.trim(), // Added exam tag
+          examTag: _examController.text.trim(),
+          moduleOrder: modulesList,
         );
         setState(() {
           _currentDocId = newId;
-          global.id = newId; // 🔑 Save to global for precise tracking
+          global.id = newId;
         });
       } else {
         await global.qDb.updateDatabase(
@@ -1312,10 +1649,16 @@ class _QuizPageState extends State<QuizPage> {
           visibility: visibility,
           data: questions,
           time: time,
+          timingScheme: timingScheme,
           markingScheme: markingScheme,
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
           completeRandomShuffle: completeRandomShuffle,
+          shuffleModules: shuffleModules,
+          shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
+          disableModuleSwitchingUntilTimeout:
+              disableModuleSwitchingUntilTimeout,
+          forceWaitUntilTimeout: forceWaitUntilTimeout,
           perQuestionTime: perQuestionTime,
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
@@ -1323,11 +1666,11 @@ class _QuizPageState extends State<QuizPage> {
           isAiGenerated: _isAiGenerated,
           tags: allTags.toList(),
           moduleTags: moduleTagsMap,
-          examTag: _examController.text.trim(), // Added exam tag
+          examTag: _examController.text.trim(),
+          moduleOrder: modulesList,
         );
         global.id = _currentDocId;
       }
-
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text("Quiz saved")));
@@ -1354,21 +1697,31 @@ class _QuizPageState extends State<QuizPage> {
         ),
         actions: [
           if (global.isAdmin) const AdminBadge(),
-          if (_isAi)
-            IconButton(
+          if (global.featureFlags?['enable_ai'] == true)
+            TextButton.icon(
               icon: const Icon(
                 Icons.auto_awesome_rounded,
                 color: global.primaryAccent,
+                size: 20,
               ),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AiGenerationDialog(
-                    onGenerated: (json) => _importQuizData(json, append: true),
+              label: Text(
+                "QUIZ WIZARD",
+                style: GoogleFonts.poppins(
+                  color: global.primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              onPressed: () async {
+                final quizId = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const AiQuizGenerator(forEditor: true),
                   ),
                 );
+                if (quizId != null) _importFromQuizId(quizId);
               },
-              tooltip: "AI Generate",
             ),
           if (_importEnabled)
             IconButton(
@@ -1388,57 +1741,7 @@ class _QuizPageState extends State<QuizPage> {
       drawer: Drawer(
         backgroundColor: global.cardColor,
         child: Column(
-          children: [
-            Expanded(child: SidebarMenu(user: user)),
-            if (modulesList.isNotEmpty) ...[
-              const Divider(color: global.borderColor, height: 1),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                color: global.bgColor,
-                child: Text(
-                  "QUIZ MODULES",
-                  style: GoogleFonts.poppins(
-                    color: global.primaryAccent,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: modulesList.length,
-                  itemBuilder: (context, index) {
-                    final module = modulesList[index];
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(
-                        Icons.folder_open_rounded,
-                        size: 20,
-                        color: global.labelColor,
-                      ),
-                      title: Text(
-                        module,
-                        style: const TextStyle(
-                          color: global.valueColor,
-                          fontSize: 14,
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _scrollToModule(module);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
+          children: [Expanded(child: SidebarMenu(user: user))],
         ),
       ),
       body: _isLoading
@@ -1481,6 +1784,15 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     const SizedBox(height: 16),
                     TextField(
+                      controller: _examController,
+                      style: const TextStyle(color: global.valueColor),
+                      decoration: const InputDecoration(
+                        labelText: "Exam Tag",
+                        hintText: "e.g., JEE Mains, NEET, UPSC...",
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
                       controller: _timeController,
                       style: const TextStyle(color: global.valueColor),
                       keyboardType: TextInputType.number,
@@ -1492,23 +1804,15 @@ class _QuizPageState extends State<QuizPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _perQuestionTimeController,
-                            style: const TextStyle(color: global.valueColor),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            decoration: const InputDecoration(
-                              labelText: "Per Question (sec)",
-                              hintText: "0 = None",
-                            ),
-                          ),
-                        ),
-                      ],
+                    TextField(
+                      controller: _perQuestionTimeController,
+                      style: const TextStyle(color: global.valueColor),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: const InputDecoration(
+                        labelText: "Per Question (sec)",
+                        hintText: "0 = None",
+                      ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -1531,27 +1835,75 @@ class _QuizPageState extends State<QuizPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Material(
-                      color: Colors.transparent,
-                      child: SwitchListTile(
-                        title: const Text(
-                          "Allow Multiple Attempts",
-                          style: TextStyle(color: global.valueColor),
+                    SwitchListTile(
+                      title: const Text(
+                        "Allow Multiple Attempts",
+                        style: TextStyle(color: global.valueColor),
+                      ),
+                      subtitle: const Text(
+                        "If disabled, users can only take this quiz once",
+                        style: TextStyle(
+                          color: global.labelColor,
+                          fontSize: 12,
                         ),
-                        subtitle: const Text(
-                          "If disabled, users can only take this quiz once",
-                          style: TextStyle(
-                            color: global.labelColor,
-                            fontSize: 12,
+                      ),
+                      value: allowMultipleAttempts,
+                      activeThumbColor: global.primaryAccent,
+                      onChanged: (bool value) =>
+                          setState(() => allowMultipleAttempts = value),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: global.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: global.borderColor),
+                      ),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            title: const Text(
+                              "Disable Module Switching",
+                              style: TextStyle(
+                                color: global.valueColor,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              "Cannot change modules until time runs out",
+                              style: TextStyle(
+                                color: global.labelColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                            value: disableModuleSwitchingUntilTimeout,
+                            activeColor: global.primaryAccent,
+                            onChanged: (v) => setState(
+                              () => disableModuleSwitchingUntilTimeout = v,
+                            ),
                           ),
-                        ),
-                        value: allowMultipleAttempts,
-                        activeThumbColor: global.primaryAccent,
-                        onChanged: (bool value) {
-                          setState(() {
-                            allowMultipleAttempts = value;
-                          });
-                        },
+                          const Divider(color: global.borderColor, height: 1),
+                          SwitchListTile(
+                            title: const Text(
+                              "Force Wait Until Timeout",
+                              style: TextStyle(
+                                color: global.valueColor,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              "Cannot submit until the timer reaches zero",
+                              style: TextStyle(
+                                color: global.labelColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                            value: forceWaitUntilTimeout,
+                            activeColor: global.primaryAccent,
+                            onChanged: (v) =>
+                                setState(() => forceWaitUntilTimeout = v),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1561,6 +1913,8 @@ class _QuizPageState extends State<QuizPage> {
                     const SizedBox(height: 24),
                     _buildMarkingSchemeSection(),
                     const SizedBox(height: 24),
+                    _buildTimingSection(),
+                    const SizedBox(height: 24),
                     _buildAttemptLimitsSection(),
                     const SizedBox(height: 24),
                     ...modulesList.map((module) {
@@ -1569,11 +1923,8 @@ class _QuizPageState extends State<QuizPage> {
                           .entries
                           .where((e) => e.value['subject'] == module)
                           .toList();
-
                       if (moduleQuestions.isEmpty)
                         return const SizedBox.shrink();
-
-                      // Ensure a key exists for this module for scrolling
                       final key = _moduleKeys.putIfAbsent(
                         module,
                         () => GlobalKey(),
@@ -1618,7 +1969,6 @@ class _QuizPageState extends State<QuizPage> {
                               index,
                               () => GlobalKey(),
                             );
-
                             return Card(
                               key: qKey,
                               color: global.cardColor,
@@ -1659,7 +2009,9 @@ class _QuizPageState extends State<QuizPage> {
                         ],
                       );
                     }),
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.bottom + 40,
+                    ),
                   ],
                 ),
               ),

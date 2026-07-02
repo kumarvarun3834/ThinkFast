@@ -16,9 +16,10 @@ class AiService {
   );
 
   Future<void> _checkAiEnabled(String userId) async {
-    final flags = await SettingsService().getFeatureFlags();
+    final bool isAdmin = await AdminService().isAdmin(userId);
+    final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
     if (flags?['enable_ai'] == false) {
-      if (!await AdminService().isAdmin(userId)) {
+      if (!isAdmin) {
         throw Exception(
           "AI features are currently disabled by the administrator.",
         );
@@ -56,7 +57,8 @@ class AiService {
       return true;
     }
 
-    final flags = await SettingsService().getFeatureFlags();
+    final bool isAdmin = await AdminService().isAdmin(userId);
+    final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
     
     // 2. Global bypass toggle
     if (flags?['enable_ai_quota_bypass'] == true) return true;
@@ -100,6 +102,8 @@ class AiService {
     required String userName,
     required String prompt,
     bool isPersonal = false,
+    List<String>? tags,
+    String? examTag,
   }) async {
     await _checkAiEnabled(userId);
 
@@ -170,8 +174,16 @@ class AiService {
         if (result.globalLimits != null) 'global': result.globalLimits,
         if (result.perModuleLimits != null) 'perModule': result.perModuleLimits,
       },
+      allowMultipleAttempts: result.allowMultipleAttempts ?? true,
+      completeRandomShuffle: result.completeRandomShuffle ?? false,
+      shuffleModules: result.shuffleModules ?? false,
+      shuffleQuestionsWithinModules: result.shuffleQuestionsWithinModules ?? false,
+      disableModuleSwitchingUntilTimeout: result.disableModuleSwitchingUntilTimeout ?? false,
+      forceWaitUntilTimeout: result.forceWaitUntilTimeout ?? false,
       isPersonal: isPersonal,
       isAiGenerated: true,
+      tags: tags,
+      examTag: examTag,
     );
 
     stopwatch.stop();

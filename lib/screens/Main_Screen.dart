@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/screens/quiz/quiz_filter_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
@@ -38,6 +39,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // Filter Logic
   final Set<String> _selectedTags = {};
+  final Set<String> _selectedSubjects = {}; // Added subject selection
   bool _isStrictFilter = false;
 
   @override
@@ -215,6 +217,18 @@ class _MainScreenState extends State<MainScreen> {
                         color: global.valueColor,
                       ),
                     ),
+                    if (data['examTag'] != null && data['examTag'].toString().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          "Exam: ${data['examTag']}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: global.primaryAccent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: 6),
                     if (widget.showTrash)
                       _buildTrashSubtitle(data)
@@ -227,36 +241,29 @@ class _MainScreenState extends State<MainScreen> {
                           letterSpacing: 0.5,
                         ),
                       ),
-                    if (data['tags'] != null && (data['tags'] as List).isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 0,
-                        children: (data['tags'] as List).take(3).map((t) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: global.primaryAccent.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: global.primaryAccent.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Text(
-                              t.toString(),
-                              style: const TextStyle(
-                                color: global.primaryAccent,
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                    // Show Module Subjects and Tags
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        // Module Subjects
+                        ...(data['modules'] as List? ?? []).map((m) {
+                          final sub = m is Map ? m['subject'].toString() : "";
+                          if (sub.isEmpty) return const SizedBox.shrink();
+                          return _buildMetaChip(sub, isSubject: true);
+                        }),
+                        // Module Tags
+                        if (data['moduleTags'] != null)
+                          ...(data['moduleTags'] as Map).values.expand((tags) => tags as List).take(3).map((t) {
+                            return _buildMetaChip(t.toString(), isModuleTag: true);
+                          }),
+                        // Regular Tags
+                        ...(data['tags'] as List? ?? []).take(5).map((t) {
+                          return _buildMetaChip(t.toString());
+                        }),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -282,6 +289,31 @@ class _MainScreenState extends State<MainScreen> {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetaChip(String text, {bool isSubject = false, bool isModuleTag = false}) {
+    Color chipColor = global.primaryAccent;
+    if (isSubject) chipColor = global.infoColor;
+    if (isModuleTag) chipColor = global.successColor;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: chipColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: chipColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: chipColor,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -351,126 +383,77 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildTagFilterBar() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('tags')
-          .orderBy('lastUsed', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+  Widget _buildQuizList(List<Map<String, dynamic>> allQuizzes) {
+    final filteredQuizzes = allQuizzes.where((quiz) {
+      final title = (quiz['title'] ?? "").toString().toLowerCase();
+      final matchesSearch = title.contains(_searchQuery);
 
-        final tags = snapshot.data!.docs.where((doc) {
-          final List quizIds = (doc.data() as Map)['quizIds'] as List? ?? [];
-          return quizIds.isNotEmpty; // Hide empty tags
-        }).toList();
+      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty) return matchesSearch;
 
-        if (tags.isEmpty) return const SizedBox.shrink();
+      final quizTags = List<String>.from(quiz['tags'] ?? []);
+      final quizSubjects = (quiz['modules'] as List? ?? [])
+          .map((m) => m is Map ? m['subject'].toString() : "")
+          .toSet();
+      
+      // Include examTag in quizSubjects for easier filtering
+      if (quiz['examTag'] != null && quiz['examTag'].toString().isNotEmpty) {
+        quizSubjects.add(quiz['examTag'].toString());
+      }
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  Text(
-                    "FILTER BY TAGS",
-                    style: GoogleFonts.poppins(
-                      color: global.labelColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    "STRICT",
-                    style: GoogleFonts.poppins(
-                      color: _isStrictFilter
-                          ? global.primaryAccent
-                          : global.labelColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  SizedBox(
-                    height: 24,
-                    child: Switch(
-                      value: _isStrictFilter,
-                      activeThumbColor: global.primaryAccent,
-                      onChanged: (v) => setState(() => _isStrictFilter = v),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: tags.length,
-                itemBuilder: (context, index) {
-                  final tag = tags[index].id;
-                  final isSelected = _selectedTags.contains(tag);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(
-                        tag,
-                        style: TextStyle(
-                          color: isSelected ? Colors.black : global.valueColor,
-                          fontSize: 12,
-                        ),
-                      ),
-                      selected: isSelected,
-                      selectedColor: global.primaryAccent,
-                      checkmarkColor: Colors.black,
-                      backgroundColor: global.cardColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: isSelected
-                              ? global.primaryAccent
-                              : global.borderColor,
-                        ),
-                      ),
-                      onSelected: (v) {
-                        setState(() {
-                          if (v) {
-                            _selectedTags.add(tag);
-                          } else {
-                            _selectedTags.remove(tag);
-                          }
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (_selectedTags.isNotEmpty)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: TextButton(
-                    onPressed: () => setState(() => _selectedTags.clear()),
-                    child: const Text(
-                      "Clear Filters",
-                      style: TextStyle(color: global.errorColor, fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
+      bool matchesTags = true;
+      bool matchesSubjects = true;
+
+      if (_isStrictFilter) {
+        // Strict: Quiz tags/subjects must be a SUBSET of selected filters
+        // i.e., it should only contain selected tags and nothing else.
+        if (_selectedTags.isNotEmpty) {
+          matchesTags = quizTags.isNotEmpty && quizTags.every((tag) => _selectedTags.contains(tag));
+        }
+        if (_selectedSubjects.isNotEmpty) {
+          matchesSubjects = quizSubjects.isNotEmpty && quizSubjects.every((sub) => _selectedSubjects.contains(sub));
+        }
+      } else {
+        // Non-strict: Must match AT LEAST ONE selected item (union across categories)
+        final bool hasSelectedTags = _selectedTags.isNotEmpty;
+        final bool hasSelectedSubjects = _selectedSubjects.isNotEmpty;
+
+        bool tagMatch = hasSelectedTags && _selectedTags.any((tag) => quizTags.contains(tag));
+        bool subjectMatch = hasSelectedSubjects && _selectedSubjects.any((sub) => quizSubjects.contains(sub));
+
+        if (hasSelectedTags && hasSelectedSubjects) {
+          return matchesSearch && (tagMatch || subjectMatch);
+        } else if (hasSelectedTags) {
+          return matchesSearch && tagMatch;
+        } else if (hasSelectedSubjects) {
+          return matchesSearch && subjectMatch;
+        }
+      }
+
+      return matchesSearch && matchesTags && matchesSubjects;
+    }).toList();
+
+    if (filteredQuizzes.isEmpty) {
+      return const Center(
+        child: Text(
+          "No matching quizzes found",
+          style: TextStyle(color: global.labelColor),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.of(context).padding.bottom + 100,
+      ),
+      itemCount: filteredQuizzes.length,
+      itemBuilder: (context, index) {
+        return buildQuizCard(filteredQuizzes[index]);
       },
     );
   }
-
-  /// 🧱 BUILD
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -554,6 +537,41 @@ class _MainScreenState extends State<MainScreen> {
                     });
                   },
                 ),
+                IconButton(
+                  icon: Icon(
+                    Icons.filter_list,
+                    color: (_selectedTags.isNotEmpty || _selectedSubjects.isNotEmpty)
+                        ? global.primaryAccent
+                        : global.valueColor,
+                  ),
+                  onPressed: () async {
+                    final List<Map<String, dynamic>> allQuizzes = await readDatabases().first;
+                    if (!mounted) return;
+                    
+                    final result = await Navigator.push<Map<String, dynamic>>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuizFilterScreen(
+                          initialTags: _selectedTags,
+                          initialSubjects: _selectedSubjects,
+                          initialStrict: _isStrictFilter,
+                          allQuizzes: allQuizzes,
+                        ),
+                      ),
+                    );
+
+                    if (result != null) {
+                      setState(() {
+                        _selectedTags.clear();
+                        _selectedTags.addAll(result['tags']);
+                        _selectedSubjects.clear();
+                        _selectedSubjects.addAll(result['subjects']);
+                        _isStrictFilter = result['isStrict'];
+                      });
+                    }
+                  },
+                  tooltip: "Filters",
+                ),
               ],
       ),
       drawer: _isSelectionMode
@@ -564,72 +582,29 @@ class _MainScreenState extends State<MainScreen> {
             ),
       body: Container(
         color: global.bgColor,
-        child: Column(
-          children: [
-            if (!_isSelectionMode) _buildTagFilterBar(),
-            Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: readDatabases(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: global.primaryAccent),
-                    );
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No quizzes available",
-                        style: TextStyle(color: global.labelColor),
-                      ),
-                    );
-                  }
-
-                  final filteredQuizzes = snapshot.data!.where((quiz) {
-                    final title = (quiz['title'] ?? "").toString().toLowerCase();
-                    final matchesSearch = title.contains(_searchQuery);
-                    
-                    if (_selectedTags.isEmpty) return matchesSearch;
-
-                    final quizTags = List<String>.from(quiz['tags'] ?? []);
-                    bool matchesTags;
-                    if (_isStrictFilter) {
-                      // Strict: Quiz must have ALL selected tags
-                      matchesTags = _selectedTags.every((tag) => quizTags.contains(tag));
-                    } else {
-                      // Non-strict: Quiz must have AT LEAST ONE selected tag
-                      matchesTags = _selectedTags.any((tag) => quizTags.contains(tag));
-                    }
-
-                    return matchesSearch && matchesTags;
-                  }).toList();
-
-                  if (filteredQuizzes.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No matching quizzes found",
-                        style: TextStyle(color: global.labelColor),
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      16,
-                      16,
-                      MediaQuery.of(context).padding.bottom + 100,
-                    ),
-                    itemCount: filteredQuizzes.length,
-                    itemBuilder: (context, index) {
-                      return buildQuizCard(filteredQuizzes[index]);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: readDatabases(),
+          builder: (context, snapshot) {
+            final allQuizzes = snapshot.data ?? [];
+            return Column(
+              children: [
+                Expanded(
+                  child: snapshot.connectionState == ConnectionState.waiting
+                      ? const Center(
+                          child: CircularProgressIndicator(color: global.primaryAccent),
+                        )
+                      : allQuizzes.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No quizzes available",
+                                style: TextStyle(color: global.labelColor),
+                              ),
+                            )
+                          : _buildQuizList(allQuizzes),
+                ),
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton:

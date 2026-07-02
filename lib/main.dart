@@ -11,6 +11,7 @@ import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
 import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
+import 'package:thinkfast/screens/moderation/ban_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
@@ -199,6 +200,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/maintenance':
             page = const MaintenanceScreen();
+            wrapInGradient = false;
+            break;
+          case '/banned':
+            page = BanScreen(reason: settings.arguments as String?);
             wrapInGradient = false;
             break;
           default:
