@@ -195,7 +195,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                         : global.borderColor,
                                   ),
                                   color: isSelected
-                                      ? global.primaryAccent.withOpacity(0.1)
+                                      ? global.primaryAccent.withValues(alpha: 0.1)
                                       : Colors.transparent,
                                 ),
                                 child: Text(
@@ -309,7 +309,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               color: secondaryColor == null ? primary : null,
               boxShadow: [
                 BoxShadow(
-                  color: primary.withOpacity(0.4),
+                  color: primary.withValues(alpha: 0.4),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -361,6 +361,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
     final currentVisibility = _quizData!['visibility'] ?? 'private';
     final newVisibility = currentVisibility == 'public' ? 'private' : 'public';
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await global.qDb.updateDatabase(
@@ -370,20 +371,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         isAiGenerated: _quizData!['isAiGenerated'] ?? false,
       );
 
+      if (!mounted) return;
+
       setState(() {
         _quizData!['visibility'] = newVisibility;
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Quiz is now $newVisibility")));
-      }
+      messenger.showSnackBar(SnackBar(content: Text("Quiz is now $newVisibility")));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -401,15 +398,15 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         isLocked: newLocked,
       );
 
+      if (!mounted) return;
+
       setState(() {
         _quizData!['isLocked'] = newLocked;
       });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(newLocked ? "Quiz Locked" : "Quiz Unlocked")),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(newLocked ? "Quiz Locked" : "Quiz Unlocked")),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -479,13 +476,12 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                   : () {
                                       final link =
                                           "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
+                                      final messenger = ScaffoldMessenger.of(context);
                                       Clipboard.setData(
                                         ClipboardData(text: link),
                                       ).then((_) {
                                         if (mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          messenger.showSnackBar(
                                             const SnackBar(
                                               content: Text(
                                                 "Quiz link copied!",
@@ -550,7 +546,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                           border: Border.all(color: global.borderColor),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -976,9 +972,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
     // Fallback: This quiz doc is missing totalQuestions metadata
     final List<dynamic> rawModules = _quizData!['modules'] as List? ?? [];
-    return rawModules.fold<int>(0, (sum, module) {
+    return rawModules.fold<int>(0, (total, module) {
       final List<dynamic> questions = module['data'] as List? ?? [];
-      return sum + questions.length;
+      return total + questions.length;
     });
   }
 
@@ -1059,25 +1055,26 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           );
 
           if (confirm == true) {
-            if (context.mounted) Navigator.pop(context); // Close bottom sheet
+            if (!context.mounted) return;
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(context);
+            navigator.pop(); // Close bottom sheet
             try {
               await global.qDb.deleteDatabase(
                 docId: _quizData!['id'],
                 currentUserId: _user!.uid,
               );
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Quiz moved to trash (Soft Delete)"),
-                  ),
-                );
-                Navigator.pop(context); // Go back from Details screen
-              }
+              if (!mounted) return;
+
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text("Quiz moved to trash (Soft Delete)"),
+                ),
+              );
+              navigator.pop(); // Go back from Details screen
             } catch (e) {
               if (mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Delete Error: $e")));
+                messenger.showSnackBar(SnackBar(content: Text("Delete Error: $e")));
               }
             }
           }
@@ -1136,6 +1133,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     ),
                   );
                   await global.db.handleExpiredQuiz(_user!.uid, activeQuizId);
+                  if (!mounted) return;
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1174,7 +1172,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       "This quiz is scheduled for later. Bypass and start now?",
                     );
                     if (bypass != true) {
-                      setState(() => _isStartingQuiz = false);
+                      if (mounted) setState(() => _isStartingQuiz = false);
                       return;
                     }
                   } else {
@@ -1204,6 +1202,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   hasAccess = await global.db.hasParticipantAccess(widget.quizId, _user!.uid);
                 }
 
+                if (!mounted) return;
+
                 if (!hasAccess) {
                   if (global.isAdmin) {
                     final bool? bypass = await _showBypassDialog(
@@ -1211,7 +1211,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       "You are not in the allowed list. Bypass restriction?",
                     );
                     if (bypass != true) {
-                      setState(() => _isStartingQuiz = false);
+                      if (mounted) setState(() => _isStartingQuiz = false);
                       return;
                     }
                   } else {
@@ -1260,6 +1260,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
               // Refresh user state to check verification
               await _user!.reload();
+              if (!mounted) return;
               _user = _auth.currentUser;
 
               // Ban Check
@@ -1267,6 +1268,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 _user!.uid,
                 quizId: _quizData!['id'],
               );
+
+              if (!mounted) return;
+
               if (isBanned) {
                 if (global.isAdmin) {
                   final bool? bypass = await _showBypassDialog(
@@ -1278,16 +1282,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                     return;
                   }
                 } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Access Denied: You have been blocked from this quiz.",
-                        ),
-                        backgroundColor: Colors.redAccent,
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Access Denied: You have been blocked from this quiz.",
                       ),
-                    );
-                  }
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
                   setState(() => _isStartingQuiz = false);
                   return;
                 }
@@ -1396,6 +1398,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 ),
               );
               await global.db.handleExpiredQuiz(_user!.uid, activeQuizId);
+
+              if (!mounted) return;
 
               // Update UI state to reflect cleared active quiz
               setState(() {

@@ -8,7 +8,7 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -100,6 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSaving = true);
 
     try {
@@ -134,27 +135,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         },
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "Profile updated successfully",
-            style: GoogleFonts.poppins(),
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              "Profile updated successfully",
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.green,
           ),
-          backgroundColor: Colors.green,
-        ),
-      );
+        );
+      }
 
       // If we came from login, we might want to navigate away after saving
       // Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Update failed: $e", style: GoogleFonts.poppins()),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text("Update failed: $e", style: GoogleFonts.poppins()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -210,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: Border.all(color: global.borderColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -569,12 +574,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: GoogleFonts.poppins(
-          color: global.labelColor.withOpacity(0.5),
+          color: global.labelColor.withValues(alpha: 0.5),
         ),
         prefixIcon: Icon(icon, color: global.primaryAccent, size: 22),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: global.bgColor.withOpacity(0.5),
+        fillColor: global.bgColor.withValues(alpha: 0.5),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: global.borderColor),
@@ -591,13 +596,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: global.bgColor.withOpacity(0.5),
+        color: global.bgColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: global.borderColor),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
-          value: _preferredDifficulty,
+          initialValue: _preferredDifficulty,
           dropdownColor: global.cardColor,
           icon: const Icon(
             Icons.keyboard_arrow_down_rounded,

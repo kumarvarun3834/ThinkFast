@@ -21,7 +21,6 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
   bool _isSelectionMode = false;
   bool _isAdmin = false;
   bool _isOwner = false;
-  Map<String, dynamic>? _quizMetadata;
 
   final Color _bgColor = global.bgColor;
   final Color _cardColor = global.cardColor;
@@ -65,7 +64,6 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
 
       if (mounted) {
         setState(() {
-          _quizMetadata = metadata;
           _isAdmin = isAdmin;
           _isOwner = metadata['creatorId'] == uid;
         });
@@ -191,6 +189,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
 
     if (confirm == true) {
       final adminId = FirebaseAuth.instance.currentUser!.uid;
+      final messenger = ScaffoldMessenger.of(context);
 
       try {
         if (isBannedTab) {
@@ -221,7 +220,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(content: Text("${_selectedIds.length} items processed")),
           );
           setState(() {
@@ -230,10 +229,9 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           });
         }
       } catch (e) {
-        if (mounted)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        if (mounted) {
+          messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
+        }
       }
     }
   }
@@ -405,14 +403,16 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _participantsStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
         final participants = snapshot.data ?? [];
-        if (participants.isEmpty)
+        if (participants.isEmpty) {
           return _buildEmptyState(
             Icons.lock_open_rounded,
             "No explicit allowed users",
           );
+        }
 
         return ListView.builder(
           padding: EdgeInsets.fromLTRB(
@@ -432,7 +432,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? _primaryAccent.withOpacity(0.2)
+                    ? _primaryAccent.withValues(alpha: 0.2)
                     : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -495,7 +495,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                             Icons.remove_circle_outline,
                             color: _hasPerm('can_manage_collaborators')
                                 ? global.errorColor
-                                : global.labelColor.withOpacity(0.3),
+                                : global.labelColor.withValues(alpha: 0.3),
                           ),
                           onPressed: () {
                             if (_hasPerm('can_manage_collaborators')) {
@@ -538,6 +538,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: global.errorColor),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await global.qDb.removeManagementAccess(
                   quizId: widget.quizId,
@@ -546,17 +547,16 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                 );
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text("Access revoked successfully"),
                     ),
                   );
                 }
               } catch (e) {
-                if (mounted)
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                if (mounted) {
+                  messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
               }
             },
             child: const Text("REVOKE", style: TextStyle(color: Colors.white)),
@@ -570,11 +570,13 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _bannedUsersStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
         final bannedUsers = snapshot.data ?? [];
-        if (bannedUsers.isEmpty)
+        if (bannedUsers.isEmpty) {
           return _buildEmptyState(Icons.block_rounded, "No blocked users");
+        }
 
         return ListView.builder(
           padding: EdgeInsets.fromLTRB(
@@ -594,7 +596,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? _primaryAccent.withOpacity(0.2)
+                    ? _primaryAccent.withValues(alpha: 0.2)
                     : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -674,7 +676,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                                         (global.featureFlags?['management_features'] ??
                                             true))
                                 ? global.successColor
-                                : global.labelColor.withOpacity(0.3),
+                                : global.labelColor.withValues(alpha: 0.3),
                           ),
                           onPressed: () {
                             if (!(_isAdmin ||
@@ -691,9 +693,9 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                               return;
                             }
                             if (_hasPerm('can_ban_users') ||
-                                _hasPerm('canModerate'))
+                                _hasPerm('canModerate')) {
                               _confirmUnban(user);
-                            else
+                            } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -702,6 +704,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                                   backgroundColor: global.errorColor,
                                 ),
                               );
+                            }
                           },
                           tooltip: "Unblock User",
                         ),
@@ -748,7 +751,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? _primaryAccent.withOpacity(0.2)
+                    ? _primaryAccent.withValues(alpha: 0.2)
                     : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
@@ -813,7 +816,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                                         (global.featureFlags?['management_features'] ??
                                             true))
                                 ? global.errorColor
-                                : global.labelColor.withOpacity(0.3),
+                                : global.labelColor.withValues(alpha: 0.3),
                           ),
                           onPressed: () {
                             if (!(_isAdmin ||
@@ -829,7 +832,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                               );
                               return;
                             }
-                            if (_hasPerm('canModerate'))
+                            if (_hasPerm('canModerate')) {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -842,7 +845,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                                   ),
                                 ),
                               );
-                            else
+                            } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -851,6 +854,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                                   backgroundColor: global.errorColor,
                                 ),
                               );
+                            }
                           },
                         ),
                 ),
@@ -895,6 +899,7 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               foregroundColor: Colors.black,
             ),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
               try {
                 await global.qDb.unbanUser(
                   userId: user['userId'],
@@ -903,17 +908,18 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                 );
                 if (mounted) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text("User unblocked successfully"),
                     ),
                   );
                 }
               } catch (e) {
-                if (mounted)
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted) {
+                  messenger.showSnackBar(
                     SnackBar(content: Text("Failed to unblock: $e")),
                   );
+                }
               }
             },
             child: const Text("Unblock"),

@@ -46,9 +46,9 @@ class BanScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: global.errorColor.withOpacity(0.1),
+                    color: global.errorColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: global.errorColor.withOpacity(0.3)),
+                    border: Border.all(color: global.errorColor.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     "Reason: $reason",
@@ -75,9 +75,9 @@ class BanScreen extends StatelessWidget {
                   icon: const Icon(Icons.report_problem_outlined, size: 18),
                   label: const Text("REPORT AN ISSUE"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: global.errorColor.withOpacity(0.1),
+                    backgroundColor: global.errorColor.withValues(alpha: 0.1),
                     foregroundColor: global.errorColor,
-                    side: BorderSide(color: global.errorColor.withOpacity(0.5)),
+                    side: BorderSide(color: global.errorColor.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -98,9 +98,9 @@ class BanScreen extends StatelessWidget {
                   icon: const Icon(Icons.report_problem_outlined, size: 20, color: global.errorColor),
                   label: const Text("REPORT AN ISSUE / APPEAL"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: global.errorColor.withOpacity(0.1),
+                    backgroundColor: global.errorColor.withValues(alpha: 0.1),
                     foregroundColor: global.errorColor,
-                    side: BorderSide(color: global.errorColor.withOpacity(0.5)),
+                    side: BorderSide(color: global.errorColor.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),

@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/services/admin_service.dart';
 import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -20,7 +19,6 @@ class AdminPanel extends StatefulWidget {
 
 class _AdminPanelState extends State<AdminPanel> {
   final SettingsService _settingsService = SettingsService();
-  final AdminService _adminService = AdminService();
   List<String> _permissions = [];
   bool _isMaster = false;
   late Stream<Map<String, dynamic>?> _featureFlagsStream;
@@ -300,6 +298,7 @@ class _AdminPanelState extends State<AdminPanel> {
                       FirebaseAuth.instance.currentUser?.uid;
                   if (adminId == null) return;
 
+                  final messenger = ScaffoldMessenger.of(context);
                   final confirm = await showDialog<bool>(
                     context: context,
                     builder: (context) => AlertDialog(
@@ -329,7 +328,7 @@ class _AdminPanelState extends State<AdminPanel> {
                     try {
                       final count = await global.adminDb.removeEmptyTags(adminId);
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text(
                               "Successfully removed $count empty tag(s).",
@@ -339,7 +338,7 @@ class _AdminPanelState extends State<AdminPanel> {
                       }
                     } catch (e) {
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text("Cleanup Error: $e"),
                             backgroundColor: global.errorColor,
@@ -373,7 +372,7 @@ class _AdminPanelState extends State<AdminPanel> {
         border: Border.all(
           color: enabled
               ? global.borderColor
-              : global.borderColor.withOpacity(0.3),
+              : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
       child: ListTile(
@@ -383,14 +382,14 @@ class _AdminPanelState extends State<AdminPanel> {
           icon,
           color: enabled
               ? global.primaryAccent
-              : global.primaryAccent.withOpacity(0.4),
+              : global.primaryAccent.withValues(alpha: 0.4),
         ),
         title: Text(
           title,
           style: TextStyle(
             color: enabled
                 ? global.valueColor
-                : global.valueColor.withOpacity(0.4),
+                : global.valueColor.withValues(alpha: 0.4),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -399,7 +398,7 @@ class _AdminPanelState extends State<AdminPanel> {
           style: TextStyle(
             color: enabled
                 ? global.labelColor
-                : global.errorColor.withOpacity(0.6),
+                : global.errorColor.withValues(alpha: 0.6),
             fontSize: 12,
           ),
         ),
@@ -408,7 +407,7 @@ class _AdminPanelState extends State<AdminPanel> {
           size: 14,
           color: enabled
               ? global.labelColor
-              : global.labelColor.withOpacity(0.2),
+              : global.labelColor.withValues(alpha: 0.2),
         ),
       ),
     );
@@ -431,7 +430,7 @@ class _AdminPanelState extends State<AdminPanel> {
         border: Border.all(
           color: canManage
               ? global.borderColor
-              : global.borderColor.withOpacity(0.3),
+              : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -442,7 +441,7 @@ class _AdminPanelState extends State<AdminPanel> {
               style: TextStyle(
                 color: canManage
                     ? global.valueColor
-                    : global.valueColor.withOpacity(0.4),
+                    : global.valueColor.withValues(alpha: 0.4),
                 fontSize: 14,
               ),
             ),
@@ -455,7 +454,7 @@ class _AdminPanelState extends State<AdminPanel> {
               style: TextStyle(
                 color: canManage
                     ? global.valueColor
-                    : global.valueColor.withOpacity(0.4),
+                    : global.valueColor.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
               decoration: const InputDecoration(isDense: true),
@@ -513,7 +512,7 @@ class _AdminPanelState extends State<AdminPanel> {
         border: Border.all(
           color: canManage
               ? global.borderColor
-              : global.borderColor.withOpacity(0.3),
+              : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
       child: Material(
@@ -524,7 +523,7 @@ class _AdminPanelState extends State<AdminPanel> {
             style: TextStyle(
               color: canManage
                   ? global.valueColor
-                  : global.valueColor.withOpacity(0.4),
+                  : global.valueColor.withValues(alpha: 0.4),
               fontSize: 16,
             ),
           ),
@@ -535,15 +534,16 @@ class _AdminPanelState extends State<AdminPanel> {
                 )
               : null,
           value: value,
-          activeTrackColor: global.primaryAccent.withOpacity(0.5),
+          activeTrackColor: global.primaryAccent.withValues(alpha: 0.5),
           activeThumbColor: global.primaryAccent,
           onChanged: canManage
               ? (newValue) async {
+                  final messenger = ScaffoldMessenger.of(context);
                   try {
                     await _settingsService.updateFeatureFlag(key, newValue);
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text("Error updating $key: $e")),
                       );
                     }
@@ -607,7 +607,7 @@ class _AdminPanelState extends State<AdminPanel> {
         border: Border.all(
           color: canManage
               ? global.borderColor
-              : global.borderColor.withOpacity(0.3),
+              : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -618,7 +618,7 @@ class _AdminPanelState extends State<AdminPanel> {
               style: TextStyle(
                 color: canManage
                     ? global.valueColor
-                    : global.valueColor.withOpacity(0.4),
+                    : global.valueColor.withValues(alpha: 0.4),
                 fontSize: 16,
               ),
             ),
@@ -631,7 +631,7 @@ class _AdminPanelState extends State<AdminPanel> {
               style: TextStyle(
                 color: canManage
                     ? global.valueColor
-                    : global.valueColor.withOpacity(0.4),
+                    : global.valueColor.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
               decoration: const InputDecoration(
@@ -643,13 +643,14 @@ class _AdminPanelState extends State<AdminPanel> {
               ),
               controller: TextEditingController(text: currentVal.toString()),
               onSubmitted: (val) async {
+                final messenger = ScaffoldMessenger.of(context);
                 final newValue = int.tryParse(val);
                 if (newValue != null) {
                   try {
                     await _settingsService.updateFeatureFlag(key, newValue);
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         SnackBar(content: Text("Error updating $key: $e")),
                       );
                     }

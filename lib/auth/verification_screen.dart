@@ -8,7 +8,7 @@ class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
 
   @override
-  _VerificationScreenState createState() => _VerificationScreenState();
+  State<VerificationScreen> createState() => _VerificationScreenState();
 }
 
 class _VerificationScreenState extends State<VerificationScreen> {
@@ -137,7 +137,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   border: Border.all(color: _borderColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),

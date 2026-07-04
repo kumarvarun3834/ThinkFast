@@ -33,12 +33,6 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
     _user = _auth.currentUser;
   }
 
-  String _formatDate(dynamic timestamp) {
-    if (timestamp == null) return 'N/A';
-    final DateTime date = timestamp.toDate();
-    return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -413,12 +407,12 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: widget.attempt['isDeleted'] == true
-            ? global.errorColor.withOpacity(0.05)
+            ? global.errorColor.withValues(alpha: 0.05)
             : global.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: widget.attempt['isDeleted'] == true
-              ? global.errorColor.withOpacity(0.3)
+              ? global.errorColor.withValues(alpha: 0.3)
               : global.borderColor,
         ),
       ),
@@ -458,7 +452,7 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: widget.attempt['isDeleted'] == true
-                            ? global.errorColor.withOpacity(0.8)
+                            ? global.errorColor.withValues(alpha: 0.8)
                             : global.valueColor,
                       ),
                     ),

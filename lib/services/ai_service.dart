@@ -214,14 +214,16 @@ class AiService {
     }
 
     for (var q in data['questions']) {
-      if (q['question'] == null || q['type'] == null)
+      if (q['question'] == null || q['type'] == null) {
         throw "Malformed question object";
+      }
       if (q['type'] != "Integer" &&
           (q['choices'] == null || (q['choices'] as List).isEmpty)) {
         throw "Choices missing for ${q['type']} question";
       }
-      if (q['answers'] == null || (q['answers'] as List).isEmpty)
+      if (q['answers'] == null || (q['answers'] as List).isEmpty) {
         throw "Answers missing";
+      }
     }
   }
 

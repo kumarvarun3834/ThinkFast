@@ -554,7 +554,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
               Switch(
                 value: _updateProfileOnFirebase,
                 onChanged: (v) => setState(() => _updateProfileOnFirebase = v),
-                activeColor: global.primaryAccent,
+                activeThumbColor: global.primaryAccent,
               ),
             ],
           ),

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizForm extends StatefulWidget {
-  final Map<String, Object> form_data_part;
+  final Map<String, Object> formDataPart;
   final void Function(Map<String, Object>) onChanged;
   final bool showIndividualMarking;
   final List<String> moduleOptions;
 
   const QuizForm({
     super.key,
-    required this.form_data_part,
+    required this.formDataPart,
     required this.onChanged,
     required this.moduleOptions,
     this.showIndividualMarking = false,
@@ -40,17 +40,17 @@ class _QuizFormState extends State<QuizForm> {
     super.initState();
 
     // Load existing marking if any
-    if (widget.form_data_part["correct"] != null) {
-      _correctController.text = widget.form_data_part["correct"].toString();
+    if (widget.formDataPart["correct"] != null) {
+      _correctController.text = widget.formDataPart["correct"].toString();
     }
-    if (widget.form_data_part["wrong"] != null) {
-      _wrongController.text = widget.form_data_part["wrong"].toString();
+    if (widget.formDataPart["wrong"] != null) {
+      _wrongController.text = widget.formDataPart["wrong"].toString();
     }
-    if (widget.form_data_part["timer"] != null) {
-      _timerController.text = widget.form_data_part["timer"].toString();
+    if (widget.formDataPart["timer"] != null) {
+      _timerController.text = widget.formDataPart["timer"].toString();
     }
-    if (widget.form_data_part["subject"] != null) {
-      _selectedModule = widget.form_data_part["subject"] as String;
+    if (widget.formDataPart["subject"] != null) {
+      _selectedModule = widget.formDataPart["subject"] as String;
     }
 
     if (_selectedModule == null ||
@@ -60,21 +60,21 @@ class _QuizFormState extends State<QuizForm> {
           : "General";
     }
 
-    if (widget.form_data_part["question"] != null) {
-      _questionController.text = widget.form_data_part["question"] as String;
+    if (widget.formDataPart["question"] != null) {
+      _questionController.text = widget.formDataPart["question"] as String;
     }
-    if (widget.form_data_part["description"] != null) {
-      _descriptionController.text = widget.form_data_part["description"] as String;
+    if (widget.formDataPart["description"] != null) {
+      _descriptionController.text = widget.formDataPart["description"] as String;
     }
 
     // Load existing type
-    if (widget.form_data_part["type"] != null) {
-      _selectedValue = widget.form_data_part["type"] as String;
+    if (widget.formDataPart["type"] != null) {
+      _selectedValue = widget.formDataPart["type"] as String;
     }
 
     // Load existing choices
-    if (widget.form_data_part["choices"] != null) {
-      List choices = widget.form_data_part["choices"] as List;
+    if (widget.formDataPart["choices"] != null) {
+      List choices = widget.formDataPart["choices"] as List;
       for (var choice in choices) {
         final controller = TextEditingController(text: choice.toString());
         _choiceControllers.add(controller);
@@ -84,14 +84,14 @@ class _QuizFormState extends State<QuizForm> {
     }
 
     // Load existing answers
-    if (widget.form_data_part["answers"] != null) {
-      List answers = widget.form_data_part["answers"] as List;
+    if (widget.formDataPart["answers"] != null) {
+      List answers = widget.formDataPart["answers"] as List;
       
       if (_selectedValue == "Integer" && answers.isNotEmpty) {
         _correctAnswerController.text = answers.first.toString();
       } else {
         for (var answer in answers) {
-          final index = (widget.form_data_part["choices"] as List).indexOf(
+          final index = (widget.formDataPart["choices"] as List).indexOf(
             answer,
           );
           if (index != -1) {
@@ -191,14 +191,14 @@ class _QuizFormState extends State<QuizForm> {
     );
   }
 
-  List<Widget> options_data() => List.generate(
+  List<Widget> optionsData() => List.generate(
     _choiceControllers.length,
     (y) => Column(children: [choicetemplate(y), SizedBox(height: 8)]),
   );
 
   @override
   Widget build(BuildContext context) {
-    final List<String> _options = ["Multiple Choice", "Single Choice", "Integer"];
+    final List<String> options = ["Multiple Choice", "Single Choice", "Integer"];
 
     return Material(
       color: global.cardColor,
@@ -214,7 +214,7 @@ class _QuizFormState extends State<QuizForm> {
             DropdownButtonFormField<String>(
               dropdownColor: global.cardColor,
               style: const TextStyle(color: global.valueColor),
-              initialValue: _options.contains(_selectedValue)
+              initialValue: options.contains(_selectedValue)
                   ? _selectedValue
                   : null,
               decoration: const InputDecoration(
@@ -227,7 +227,7 @@ class _QuizFormState extends State<QuizForm> {
                   borderSide: BorderSide(color: global.primaryAccent),
                 ),
               ),
-              items: _options.map((String option) {
+              items: options.map((String option) {
                 return DropdownMenuItem<String>(
                   value: option,
                   child: Text(option),
@@ -244,7 +244,7 @@ class _QuizFormState extends State<QuizForm> {
             DropdownButtonFormField<String>(
               dropdownColor: global.cardColor,
               style: const TextStyle(color: global.valueColor),
-              value: widget.moduleOptions.contains(_selectedModule)
+              initialValue: widget.moduleOptions.contains(_selectedModule)
                   ? _selectedModule
                   : (widget.moduleOptions.isNotEmpty
                       ? widget.moduleOptions.first
@@ -373,7 +373,7 @@ class _QuizFormState extends State<QuizForm> {
                 onChanged: (_) => _emitData(),
               )
             else ...[
-              Column(children: options_data()),
+              Column(children: optionsData()),
               const SizedBox(height: 12),
               if (_selectedAnswers.isEmpty)
                 Padding(
@@ -381,7 +381,7 @@ class _QuizFormState extends State<QuizForm> {
                   child: Text(
                     "⚠️ Select at least one correct answer",
                     style: TextStyle(
-                      color: global.warningColor.withOpacity(0.8),
+                      color: global.warningColor.withValues(alpha: 0.8),
                       fontSize: 12,
                     ),
                   ),

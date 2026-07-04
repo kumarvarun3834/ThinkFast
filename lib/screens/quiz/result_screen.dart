@@ -117,9 +117,10 @@ class _ResultScreenState extends State<ResultScreen> {
 
         // Build displayQuizResult from quiz data and userAnswers
         for (var q in _displayQuizData) {
-          final qMap = q['Q'] as Map;
-          final qId = qMap['id'].toString();
-          final qText = qMap['text'].toString();
+          final qMap = q['Q'] as Map?;
+          final qId = (qMap?['id'] ?? q['uid'] ?? q['id']).toString();
+          final qText = (qMap?['text'] ?? q['question'] ?? q['text'] ?? '').toString();
+
           final selections = userAnswers[qId] is List
               ? List<String>.from(userAnswers[qId])
               : (userAnswers[qId] != null
@@ -240,12 +241,21 @@ class _ResultScreenState extends State<ResultScreen> {
 
         int questionMark = 0;
         bool isCorrect = false;
-        if (selections.isEmpty) {
+        bool isActuallyAnswered = selections.isNotEmpty;
+
+        // For Integer questions, treat empty string as unattempted
+        if (isActuallyAnswered && qType == "Integer") {
+          if (selections.first.toString().trim().isEmpty) {
+            isActuallyAnswered = false;
+          }
+        }
+
+        if (!isActuallyAnswered) {
           questionMark = 0;
           unattempted++;
         } else {
           if (qType == "Integer") {
-            final String userVal = selections.first.trim();
+            final String userVal = selections.first.toString().trim();
             final String correctVal = answers.isNotEmpty
                 ? answers.first.trim()
                 : "";
@@ -275,9 +285,10 @@ class _ResultScreenState extends State<ResultScreen> {
         _calculatedResults.add({
           'text': qText,
           'uid': qUid,
-          'selections': selections,
+          'selections': isActuallyAnswered ? selections : <String>[],
           'answers': answers,
           'mark': questionMark,
+          'maxMark': marking['correct'], // Added maxMark
           'type': qType,
           'subject': qSubject ?? 'General',
           'isReview': isReview,
@@ -285,6 +296,7 @@ class _ResultScreenState extends State<ResultScreen> {
               ? resultDataset[3] == true
               : true,
           'solution': _solutions[qUid] ?? '',
+          'originalIndex': i, // Added to fix review navigation
         });
       }
 
@@ -299,9 +311,8 @@ class _ResultScreenState extends State<ResultScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error fetching answers: $e")));
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(SnackBar(content: Text("Error fetching answers: $e")));
         setState(() => _isLoading = false);
       }
     }
@@ -405,9 +416,9 @@ class _ResultScreenState extends State<ResultScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                color: global.errorColor.withOpacity(0.1),
+                color: global.errorColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: global.errorColor.withOpacity(0.3)),
+                border: Border.all(color: global.errorColor.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -569,7 +580,7 @@ class _ResultScreenState extends State<ResultScreen> {
     if (modules.isEmpty) return const SizedBox.shrink();
 
     final List<String> displayModules = ["All", ...modules];
-    if (_activeResultModule == null) _activeResultModule = "All";
+    _activeResultModule ??= "All";
 
     final activeGroup = _activeResultModule == "All"
         ? _calculatedResults
@@ -635,7 +646,7 @@ class _ResultScreenState extends State<ResultScreen> {
                   itemBuilder: (context, idx) {
                     final res = activeGroup[idx];
                     return GestureDetector(
-                      onTap: () => _startReview(index: idx),
+                      onTap: () => _startReview(index: res['originalIndex'] ?? idx),
                       child: Container(
                         width: 44,
                         height: 44,
@@ -769,11 +780,11 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildModuleSummaryStats(List<Map<String, dynamic>> group) {
+    int moduleScore = 0;
+    int moduleMax = 0;
     int correct = 0;
     int wrong = 0;
     int skipped = 0;
-    int totalMarks = 0;
-    int maxMarks = 0;
 
     for (var res in group) {
       final mark = res['mark'] as int;
@@ -786,17 +797,14 @@ class _ResultScreenState extends State<ResultScreen> {
       } else {
         wrong++;
       }
-      totalMarks += mark;
-
-      // Estimate max marks for this question (defaulting to 4 if unknown)
-      // In a real app we'd get this from the marking scheme used during calculation
-      maxMarks += 4;
+      moduleScore += mark;
+      moduleMax += (res['maxMark'] as int? ?? 4);
     }
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildSmallStat("Score", "$totalMarks", global.primaryAccent),
+        _buildSmallStat("Score", "$moduleScore/$moduleMax", global.primaryAccent),
         _buildSmallStat("Correct", "$correct", global.successColor),
         _buildSmallStat("Wrong", "$wrong", global.errorColor),
         _buildSmallStat("Skipped", "$skipped", global.warningColor),

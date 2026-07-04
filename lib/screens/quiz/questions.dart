@@ -178,11 +178,17 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     final List<String> correct = global.correctAnswers[qUid] ?? [];
 
     if (selection.isEmpty) return 0;
+    
+    // For Integer questions, treat empty string as unattempted
+    if (qType == "Integer" && selection.first.toString().trim().isEmpty) {
+      return 0;
+    }
+
     final marking = _getMarkingConfig(qType, qUid);
 
     bool isCorrect = false;
     if (qType == "Integer") {
-      final String userVal = selection.first.trim();
+      final String userVal = selection.first.toString().trim();
       final String correctVal = correct.isNotEmpty ? correct.first.trim() : "";
       isCorrect = userVal == correctVal;
     } else {
@@ -1045,8 +1051,16 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
   int _calculateAnsweredCount() {
     int count = 0;
-    for (var result in global.quizResult) {
-      if (_getSelection(result).isNotEmpty) count++;
+    for (int j = 0; j < global.quizResult.length; j++) {
+      final result = global.quizResult[j];
+      final List<String> selection = _getSelection(result);
+      if (selection.isEmpty) continue;
+
+      final String? qType = global.quizData[j]['type']?.toString();
+      if (qType == "Integer" && selection.first.toString().trim().isEmpty) {
+        continue;
+      }
+      count++;
     }
     return count;
   }

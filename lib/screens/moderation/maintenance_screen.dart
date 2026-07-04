@@ -67,7 +67,7 @@ class MaintenanceScreen extends StatelessWidget {
                 Text(
                   "Maintenance mode is active, but you have admin privileges.",
                   style: TextStyle(
-                    color: global.labelColor.withOpacity(0.7),
+                    color: global.labelColor.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),

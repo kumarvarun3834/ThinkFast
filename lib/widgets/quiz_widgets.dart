@@ -88,7 +88,7 @@ class VisibilityBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color),
       ),
@@ -161,8 +161,8 @@ class QuizActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: isPrimary
                 ? (effectiveEnabled ? global.btnColor : global.hintColor)
-                : Colors.white.withOpacity(effectiveEnabled ? 0.05 : 0.02),
-            foregroundColor: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
+                : Colors.white.withValues(alpha: effectiveEnabled ? 0.05 : 0.02),
+            foregroundColor: Colors.white.withValues(alpha: effectiveEnabled ? 1.0 : 0.4),
             minimumSize: const Size(double.infinity, 56),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -171,11 +171,11 @@ class QuizActionButton extends StatelessWidget {
                   : BorderSide(
                       color: effectiveEnabled
                           ? global.borderColor
-                          : global.borderColor.withOpacity(0.3)),
+                          : global.borderColor.withValues(alpha: 0.3)),
             ),
             elevation: isPrimary && effectiveEnabled ? 4 : 0,
-            disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withOpacity(0.02),
-            disabledForegroundColor: Colors.white.withOpacity(0.4),
+            disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withValues(alpha: 0.02),
+            disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -193,7 +193,7 @@ class QuizActionButton extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: Colors.white.withOpacity(effectiveEnabled ? 1.0 : 0.4),
+                  color: Colors.white.withValues(alpha: effectiveEnabled ? 1.0 : 0.4),
                 )
               ],
             ],
@@ -232,10 +232,10 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(
-          color: color.withOpacity(0.5),
+          color: color.withValues(alpha: 0.5),
         ),
       ),
       child: Text(
