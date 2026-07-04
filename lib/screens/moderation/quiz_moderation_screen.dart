@@ -21,6 +21,8 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
   bool _isSelectionMode = false;
   bool _isAdmin = false;
   bool _isOwner = false;
+  bool _isLoadingPerms = true;
+  bool _hasPermError = false;
 
   final Color _bgColor = global.bgColor;
   final Color _cardColor = global.cardColor;
@@ -58,6 +60,11 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
+    setState(() {
+      _isLoadingPerms = true;
+      _hasPermError = false;
+    });
+
     try {
       final metadata = await global.db.readDatabase(widget.quizId, userId: uid);
       final isAdmin = await global.db.isAdmin(uid);
@@ -66,10 +73,17 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
         setState(() {
           _isAdmin = isAdmin;
           _isOwner = metadata['creatorId'] == uid;
+          _isLoadingPerms = false;
         });
       }
     } catch (e) {
       debugPrint("Error loading moderation permissions: $e");
+      if (mounted) {
+        setState(() {
+          _hasPermError = true;
+          _isLoadingPerms = false;
+        });
+      }
     }
   }
 
@@ -367,6 +381,14 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
                 ),
               ]
             : [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () {
+                    _loadPermissions();
+                    setState(() {});
+                  },
+                  tooltip: "Refresh Moderation Data",
+                ),
                 IconButton(
                   icon: const Icon(
                     Icons.person_add_alt_1_outlined,

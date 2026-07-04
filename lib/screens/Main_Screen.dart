@@ -526,6 +526,11 @@ class _MainScreenState extends State<MainScreen> {
             : [
                 if (global.isAdmin) const AdminBadge(),
                 IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => setState(() {}),
+                  tooltip: "Refresh Feed",
+                ),
+                IconButton(
                   icon: Icon(_isSearching ? Icons.close : Icons.search),
                   onPressed: () {
                     setState(() {

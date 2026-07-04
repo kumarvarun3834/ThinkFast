@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
-import '../../services/admin_service.dart';
 import 'admin_permissions_screen.dart';
 import 'user_details_screen.dart';
 
@@ -107,11 +106,23 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
                 IconButton(
                   icon: const Icon(Icons.refresh, color: global.valueColor),
                   onPressed: () async {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.showSnackBar(
                       const SnackBar(content: Text("Syncing user stats...")),
                     );
-                    await global.adminDb.fetchAllUsers(); // This triggers the sync logic in AdminService
-                    setState(() {});
+                    try {
+                      await global.adminDb
+                          .fetchAllUsers(); // This triggers the sync logic in AdminService
+                      if (mounted) {
+                        setState(() {});
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(content: Text("Sync failed: $e")),
+                        );
+                      }
+                    }
                   },
                   tooltip: "Sync All Stats",
                 ),
@@ -155,7 +166,12 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+                  return Center(
+                    child: Text(
+                      "Error: ${snapshot.error}",
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
                 }
 
                 final users = snapshot.data ?? [];

@@ -50,6 +50,13 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
           ),
         ),
         iconTheme: IconThemeData(color: _valueColor),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => setState(() {}),
+            tooltip: "Refresh History",
+          ),
+        ],
       ),
       drawer: Drawer(
         backgroundColor: _cardColor,

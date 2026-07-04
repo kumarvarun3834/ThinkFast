@@ -15,6 +15,7 @@ class SettingsService {
   static const Map<String, String> _flagDocMap = {
     // Admin Management
     'admin_refresh_rate_limit_seconds': 'admin',
+    'enable_refresh_limit_bypass': 'admin',
     // Moderation
     'enable_user_banning': 'moderation',
     // Quizzes
@@ -53,8 +54,8 @@ class SettingsService {
   Future<Map<String, dynamic>?> getFeatureFlags({bool isAdmin = false}) async {
     final Map<String, Map<String, dynamic>> docDefaults = {
       'public': {
-        'enable_ai': true,
-        'enable_import': true,
+        'enable_ai': false,
+        'enable_import': false,
         'enable_login': true,
         'enable_register': true,
         'enable_create_quiz': true,
@@ -62,17 +63,16 @@ class SettingsService {
         'enable_delete_quiz': true,
         'enable_take_quiz': true,
         'enable_profile_edit': true,
-        'enable_analytics': true,
-        'enable_export': true,
+        'enable_analytics': false,
+        'enable_export': false,
         'maintenance_mode': false,
-        'random_quiz_generator': true,
       },
-      'admin': {'admin_refresh_rate_limit_seconds': 30},
+      'admin': {
+        'admin_refresh_rate_limit_seconds': 30,
+        'enable_refresh_limit_bypass': false,
+      },
       'moderation': {'enable_user_banning': true},
-      'ai': {
-        'enable_ai_quota_bypass': false,
-        'ai_daily_generation_limit': 10,
-      },
+      'ai': {'enable_ai_quota_bypass': false, 'ai_daily_generation_limit': 10},
       'quizzes': {
         'enable_quiz_creation_rate_limit': true,
         'quiz_creation_rate_limit_minutes': 5,
@@ -80,11 +80,7 @@ class SettingsService {
         'form_save_rate_limit_seconds': 30,
         'management_features': true,
       },
-      'logs': {
-        'log': true,
-        'log_updates': true,
-        'log_deletes': true,
-      },
+      'logs': {'log': true, 'log_updates': true, 'log_deletes': true},
       'collaboration': {'enable_realtime_colab': true},
     };
 
@@ -93,9 +89,7 @@ class SettingsService {
     // Determine which documents we can actually fetch
     final List<String> docsToFetch = ['public'];
     if (isAdmin) {
-      docsToFetch.addAll(
-        docDefaults.keys.where((docId) => docId != 'public'),
-      );
+      docsToFetch.addAll(docDefaults.keys.where((docId) => docId != 'public'));
     } else {
       // For non-admins, add defaults for the other categories immediately
       docDefaults.forEach((docId, defaults) {
@@ -106,17 +100,19 @@ class SettingsService {
     }
 
     // Parallel fetch for allowed flag documents
-    await Future.wait(docsToFetch.map((docId) async {
-      try {
-        final data = await _fetchAndSyncFlags(docId, docDefaults[docId]!);
-        allFlags.addAll(data);
-      } catch (e) {
-        if (docId == 'public') {
-          debugPrint("Critical: Public flags unavailable. Using defaults.");
+    await Future.wait(
+      docsToFetch.map((docId) async {
+        try {
+          final data = await _fetchAndSyncFlags(docId, docDefaults[docId]!);
+          allFlags.addAll(data);
+        } catch (e) {
+          if (docId == 'public') {
+            debugPrint("Critical: Public flags unavailable. Using defaults.");
+          }
+          allFlags.addAll(docDefaults[docId]!);
         }
-        allFlags.addAll(docDefaults[docId]!);
-      }
-    }));
+      }),
+    );
 
     return allFlags;
   }
@@ -175,23 +171,28 @@ class SettingsService {
   Stream<Map<String, dynamic>?> streamFeatureFlags({bool isAdmin = false}) {
     if (!isAdmin) {
       // Non-admins only get public flags
-      return _featureFlags.doc('public').snapshots().map(
-        (doc) => doc.data() as Map<String, dynamic>?,
-      );
+      return _featureFlags
+          .doc('public')
+          .snapshots()
+          .map((doc) => doc.data() as Map<String, dynamic>?);
     }
 
-    return _featureFlags.snapshots().map((snapshot) {
-      final Map<String, dynamic> combined = {};
-      for (var doc in snapshot.docs) {
-        combined.addAll(doc.data() as Map<String, dynamic>);
-      }
-      return combined.isNotEmpty ? combined : null;
-    }).handleError((e) {
-      // Fallback: If collection-wide listener fails, listen only to 'public'
-      return _featureFlags.doc('public').snapshots().map(
-        (doc) => doc.data() as Map<String, dynamic>?,
-      );
-    });
+    return _featureFlags
+        .snapshots()
+        .map((snapshot) {
+          final Map<String, dynamic> combined = {};
+          for (var doc in snapshot.docs) {
+            combined.addAll(doc.data() as Map<String, dynamic>);
+          }
+          return combined.isNotEmpty ? combined : null;
+        })
+        .handleError((e) {
+          // Fallback: If collection-wide listener fails, listen only to 'public'
+          return _featureFlags
+              .doc('public')
+              .snapshots()
+              .map((doc) => doc.data() as Map<String, dynamic>?);
+        });
   }
 
   /// ✅ Update a specific feature flag (Routed by permission)

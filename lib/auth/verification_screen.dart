@@ -110,18 +110,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
             color: _valueColor,
           ),
         ),
-        // actions: [
-        //   TextButton(
-        //     onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-        //     child: Text(
-        //       "SKIP",
-        //       style: TextStyle(
-        //         color: _primaryAccent,
-        //         fontWeight: FontWeight.bold,
-        //       ),
-        //     ),
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => checkVerification(),
+            tooltip: "Check Status Now",
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(

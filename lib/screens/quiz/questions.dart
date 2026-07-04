@@ -23,6 +23,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   Timer? _timer;
   bool _isSubmitted = false;
   bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = "";
   String _loadingMessage = "Initializing Quiz...";
   late final TextEditingController _integerController;
   int _backPressCount = 0;
@@ -231,65 +233,72 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   Future<void> _loadQuizWithTime() async {
     setState(() {
       _isLoading = true;
+      _hasError = false;
+      _errorMessage = "";
       _loadingMessage = global.isReviewMode
           ? "Loading Attempt Details..."
           : "Checking Environment...";
     });
 
-    if (!global.isReviewMode) {
-      // Artificial delay for "Checking Environment" as requested
-      await Future.delayed(const Duration(milliseconds: 1500));
-    }
+    try {
+      if (!global.isReviewMode) {
+        // Artificial delay for "Checking Environment" as requested
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
 
-    if (global.quizData.isEmpty) {
-      setState(() {
-        _loadingMessage = "Error: Quiz data is empty. Returning...";
-      });
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) Navigator.pop(context);
-      return;
-    }
+      if (global.quizData.isEmpty) {
+        throw "Quiz data is empty. Please try reloading the quiz.";
+      }
 
-    if (!global.isReviewMode) {
-      setState(() {
-        _loadingMessage = "Shuffling Questions...";
-      });
-    }
+      if (!global.isReviewMode) {
+        setState(() {
+          _loadingMessage = "Shuffling Questions...";
+        });
+      }
 
-    int timeSeconds = global.time;
-    final firstQ = global.quizData.isNotEmpty ? global.quizData[0] : null;
-    final int qTimer = int.tryParse(firstQ?['timer']?.toString() ?? '0') ?? 0;
+      int timeSeconds = global.time;
+      final firstQ = global.quizData.isNotEmpty ? global.quizData[0] : null;
+      final int qTimer = int.tryParse(firstQ?['timer']?.toString() ?? '0') ?? 0;
 
-    if (qTimer > 0) {
-      timeSeconds = qTimer;
-    } else if (global.perQuestionTime > 0) {
-      timeSeconds = global.perQuestionTime;
-    }
+      if (qTimer > 0) {
+        timeSeconds = qTimer;
+      } else if (global.perQuestionTime > 0) {
+        timeSeconds = global.perQuestionTime;
+      }
 
-    if (!global.isReviewMode) {
-      _shuffleQuestionsAndOptions();
-    }
+      if (!global.isReviewMode) {
+        _shuffleQuestionsAndOptions();
+      }
 
-    if (mounted) {
-      setState(() {
-        _updateDisplaySequence();
-        if (global.isReviewMode && global.reviewInitialIndex < _displaySequence.length) {
-          i = _displaySequence[global.reviewInitialIndex];
-        } else {
-          i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
-        }
-        currentData = global.quizData[i];
-        _activeModule = currentData['subject']?.toString() ?? 'General';
-        _timeLeft = Duration(seconds: timeSeconds.toInt());
-        if (!global.isReviewMode && global.quizResult.isNotEmpty) {
-          global.quizResult[i][3] = true; // Mark first question visited
-        }
-        _isLoading = false;
-      });
-    }
+      if (mounted) {
+        setState(() {
+          _updateDisplaySequence();
+          if (global.isReviewMode && global.reviewInitialIndex < _displaySequence.length) {
+            i = _displaySequence[global.reviewInitialIndex];
+          } else {
+            i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
+          }
+          currentData = global.quizData[i];
+          _activeModule = currentData['subject']?.toString() ?? 'General';
+          _timeLeft = Duration(seconds: timeSeconds.toInt());
+          if (!global.isReviewMode && global.quizResult.isNotEmpty) {
+            global.quizResult[i][3] = true; // Mark first question visited
+          }
+          _isLoading = false;
+        });
+      }
 
-    if (!global.isReviewMode && global.time > 0) {
-      _startTimer();
+      if (!global.isReviewMode && global.time > 0) {
+        _startTimer();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = e.toString();
+        });
+      }
     }
   }
 
@@ -1120,6 +1129,59 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                 ),
               ),
             ],
+          ),
+        ),
+      );
+    }
+
+    if (_hasError) {
+      return Scaffold(
+        backgroundColor: global.bgColor,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: global.errorColor,
+                  size: 64,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  _errorMessage,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    color: global.valueColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: _loadQuizWithTime,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: global.btnColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(200, 56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text(
+                    "RETRY LOADING",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("GO BACK"),
+                ),
+              ],
+            ),
           ),
         ),
       );

@@ -26,6 +26,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   bool _isAdmin = false;
   bool _canManage = false;
   bool _isStartingQuiz = false;
+  bool _hasError = false;
+  String _errorMessage = "";
   Map<String, dynamic>? _quizData;
 
   @override
@@ -36,11 +38,19 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   }
 
   Future<void> _fetchQuizDetails() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = "";
+    });
+
     try {
       final aggregatedData = await global.db.fetchAggregatedQuizDetails(
         widget.quizId,
         userId: _user?.uid,
       );
+
+      if (!mounted) return;
 
       setState(() {
         _quizData = aggregatedData;
@@ -52,14 +62,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       });
     } catch (e) {
       if (mounted) {
-        String errorMsg = e.toString().contains("permission")
-            ? "Access Denied: This quiz is private."
-            : "Error: $e";
+        setState(() {
+          _isLoading = false;
+          _hasError = true;
+          _errorMessage = e.toString().contains("permission")
+              ? "Access Denied: This quiz is private or restricted."
+              : "Failed to load quiz details. Please check your connection.";
+        });
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMsg)));
-        Navigator.pop(context);
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -454,7 +466,55 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               ? const Center(
                   child: CircularProgressIndicator(color: global.primaryAccent),
                 )
-              : SingleChildScrollView(
+              : _hasError && _quizData == null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: global.errorColor,
+                              size: 64,
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              _errorMessage,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                color: global.valueColor,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            ElevatedButton.icon(
+                              onPressed: _fetchQuizDetails,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: global.btnColor,
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(200, 56),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text(
+                                "RETRY LOADING",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("GO BACK"),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,

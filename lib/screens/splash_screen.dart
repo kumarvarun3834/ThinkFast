@@ -17,6 +17,7 @@ class MySplash extends StatefulWidget {
 class _MySplashState extends State<MySplash> {
   bool _hasError = false;
   String _errorMessage = "";
+  bool _isFirstAttempt = true;
 
   @override
   void initState() {
@@ -30,8 +31,11 @@ class _MySplashState extends State<MySplash> {
       _errorMessage = "";
     });
 
-    // Minimum splash duration
-    await Future.delayed(const Duration(seconds: 2));
+    if (_isFirstAttempt) {
+      // Minimum splash duration only on first load
+      await Future.delayed(const Duration(seconds: 2));
+      _isFirstAttempt = false;
+    }
 
     if (!mounted) return;
 
@@ -40,6 +44,30 @@ class _MySplashState extends State<MySplash> {
 
     try {
       if (user != null) {
+        if (!user.emailVerified) {
+          final creationTime = user.metadata.creationTime;
+          if (creationTime != null) {
+            final diff = DateTime.now().difference(creationTime);
+            if (diff.inDays >= 7) {
+              try {
+                await user.delete();
+              } catch (_) {
+                // If delete fails (session old), just sign out.
+                // The login screen logic will handle deletion on next try.
+                await FirebaseAuth.instance.signOut();
+              }
+              navigator.pushReplacementNamed('/login');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    "Session expired: Unverified accounts are removed after 7 days.",
+                  ),
+                ),
+              );
+              return;
+            }
+          }
+        }
         await global.db.initAppData(user.uid);
       } else {
         // If not logged in, still fetch flags for maintenance check
@@ -52,11 +80,58 @@ class _MySplashState extends State<MySplash> {
         'enable_login': true,
         'enable_signup': true,
         'enable_ai': true,
-        'enable_import': false,
+        'enable_ai_quota_bypass': false,
+        'ai_daily_generation_limit': 10,
+        'enable_import': true,
         'enable_create_quiz': true,
         'enable_export': true,
         'enable_take_quiz': true,
+        'enable_refresh_limit_bypass': false,
       };
+
+      if (!mounted) return;
+
+      final bool isMaintenance =
+          global.featureFlags?['maintenance_mode'] == true;
+
+      if (isMaintenance && !global.isAdmin) {
+        navigator.pushReplacementNamed('/maintenance');
+        return;
+      }
+
+      if (user != null) {
+        final isBanned = await global.db.isUserBanned(user.uid);
+        if (isBanned && !global.isAdmin) {
+          // Get reason if possible
+          String? reason;
+          try {
+            final banDoc = await FirebaseFirestore.instance
+                .collection('banned_users')
+                .doc('global_${user.uid}')
+                .get();
+            if (banDoc.exists) {
+              reason = banDoc.data()?['reason'];
+            }
+          } catch (_) {}
+
+          if (mounted) {
+            navigator.pushReplacementNamed(
+              '/banned',
+              arguments: reason,
+            );
+          }
+          return;
+        }
+
+        if (!user.emailVerified) {
+          navigator.pushReplacementNamed('/verify');
+          return;
+        }
+
+        navigator.pushReplacementNamed('/home');
+      } else {
+        navigator.pushReplacementNamed('/login');
+      }
     } catch (e) {
       debugPrint("Initialization error: $e");
       // Ensure default flags even on total failure
@@ -65,10 +140,13 @@ class _MySplashState extends State<MySplash> {
         'enable_login': true,
         'enable_signup': true,
         'enable_ai': true,
-        'enable_import': false,
+        'enable_ai_quota_bypass': false,
+        'ai_daily_generation_limit': 10,
+        'enable_import': true,
         'enable_create_quiz': true,
         'enable_export': true,
         'enable_take_quiz': true,
+        'enable_refresh_limit_bypass': false,
       };
       if (mounted) {
         setState(() {
@@ -78,45 +156,6 @@ class _MySplashState extends State<MySplash> {
               : "Server connection failed. Please try again.";
         });
       }
-      return;
-    }
-
-    if (!mounted) return;
-
-    final bool isMaintenance =
-        global.featureFlags?['maintenance_mode'] == true;
-
-    if (isMaintenance && !global.isAdmin) {
-      navigator.pushReplacementNamed('/maintenance');
-      return;
-    }
-
-    if (user != null) {
-      final isBanned = await global.db.isUserBanned(user.uid);
-      if (isBanned && !global.isAdmin) {
-        // Get reason if possible
-        String? reason;
-        try {
-          final banDoc = await FirebaseFirestore.instance
-              .collection('banned_users')
-              .doc('global_${user.uid}')
-              .get();
-          if (banDoc.exists) {
-            reason = banDoc.data()?['reason'];
-          }
-        } catch (_) {}
-
-        if (mounted) {
-          navigator.pushReplacementNamed(
-            '/banned',
-            arguments: reason,
-          );
-        }
-        return;
-      }
-      navigator.pushReplacementNamed('/home');
-    } else {
-      navigator.pushReplacementNamed('/login');
     }
   }
 

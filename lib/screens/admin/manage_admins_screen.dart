@@ -32,7 +32,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
 
   Future<void> _refreshData({bool force = false}) async {
     final bool canBypass = global.adminLevel == 0 ||
-        global.adminPermissions.contains('manage_admins');
+        global.adminPermissions.contains('manage_admins') ||
+        global.featureFlags?['enable_refresh_limit_bypass'] == true;
 
     if (!force && !canBypass && _lastRefresh != null) {
       final int limit =

@@ -45,7 +45,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
     final bool canBypass =
         global.adminLevel == 0 ||
-        global.adminPermissions.contains('view_audit_logs');
+        global.adminPermissions.contains('view_audit_logs') ||
+        global.featureFlags?['enable_refresh_limit_bypass'] == true;
 
     if (!force && !canBypass && _lastRefresh != null) {
       final int limit =

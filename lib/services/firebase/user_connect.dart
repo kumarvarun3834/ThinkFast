@@ -44,6 +44,7 @@ class UserDatabaseService {
       global.ownedQuizIds = myQuizzesSnapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
       debugPrint("Error initializing app data: $e");
+      rethrow;
     }
   }
 

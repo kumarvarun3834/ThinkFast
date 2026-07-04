@@ -30,7 +30,9 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAdmin = false,
       _importEnabled = false,
       _isLoading = false,
+      _hasError = false,
       _isAiGenerated = false;
+  String _errorMessage = "";
   late String _currentDocId;
   late final TextEditingController _titleController,
       _descriptionController,
@@ -90,6 +92,23 @@ class _QuizPageState extends State<QuizPage> {
   final List<Map<String, Object>> questions = [];
   final Map<String, GlobalKey> _moduleKeys = {};
   final Map<int, GlobalKey> _questionKeys = {};
+
+  bool _isFirstLoad = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isFirstLoad) {
+      _isFirstLoad = false;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is String && args.isNotEmpty) {
+        // If arguments is a non-empty string, it's a JSON string from AI Dialog
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _importQuizData(args);
+        });
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -290,10 +309,14 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _fetchQuiz(String docId) async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorMessage = "";
+    });
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
+      if (uid == null) throw "Authentication failed. Please login again.";
       await QuizFormController.fetchQuiz(
         docId: docId,
         uid: uid,
@@ -345,12 +368,15 @@ class _QuizPageState extends State<QuizPage> {
         updateModuleTimingControllers: _updateModuleTimingControllers,
       );
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Load error: $e")));
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = "Failed to load quiz for editing. Please check your connection.";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Load error: $e")));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -570,7 +596,55 @@ class _QuizPageState extends State<QuizPage> {
           ? const Center(
               child: CircularProgressIndicator(color: global.primaryAccent),
             )
-          : Theme(
+          : _hasError
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: global.errorColor,
+                          size: 64,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          _errorMessage,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: global.valueColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton.icon(
+                          onPressed: () => _fetchQuiz(_currentDocId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: global.btnColor,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(200, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text(
+                            "RETRY LOADING",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("GO BACK"),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Theme(
               data: Theme.of(context).copyWith(
                 inputDecorationTheme: InputDecorationTheme(
                   labelStyle: const TextStyle(color: global.labelColor),

@@ -426,6 +426,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
               ]
             : [
                 IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => setState(() {}),
+                  tooltip: "Refresh Responses",
+                ),
+                IconButton(
                   icon: const Icon(
                     Icons.person_add_alt_1_outlined,
                     color: global.primaryAccent,

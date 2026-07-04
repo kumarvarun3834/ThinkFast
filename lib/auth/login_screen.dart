@@ -7,7 +7,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -69,6 +69,12 @@ class _LoginScreenState extends State<LoginScreen> {
         _show("Wrong password");
       } else if (e == 'invalid-email') {
         _show("Invalid email");
+      } else if (e == 'too-many-requests') {
+        _show("Firebase: Too many requests. Please try again later.");
+      } else if (e == 'too_many_attempts_ip_blocked') {
+        _show("Too many failed attempts. This device/IP has been temporarily flagged.");
+      } else if (e == 'account_deleted_unverified') {
+        _show("Account deleted: Unverified accounts older than a week are automatically removed.");
       } else {
         _show("Login failed: $e");
       }
@@ -94,7 +100,11 @@ class _LoginScreenState extends State<LoginScreen> {
           return;
         }
 
-        Navigator.pushReplacementNamed(context, '/home');
+        if (!user.emailVerified) {
+          Navigator.pushReplacementNamed(context, '/verify');
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       }
     } catch (e) {
       _show("Google Sign-In failed: $e");

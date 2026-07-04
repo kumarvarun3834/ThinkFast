@@ -1,10 +1,24 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  /// ---------------- GET PUBLIC IP ----------------
+  Future<String> _getPublicIP() async {
+    try {
+      final response = await http.get(Uri.parse('https://api64.ipify.org'));
+      if (response.statusCode == 200) {
+        return response.body.trim();
+      }
+    } catch (_) {}
+    return "unknown_ip";
+  }
 
   /// ---------------- CURRENT USER ----------------
   User? get user => _auth.currentUser;
@@ -28,6 +42,15 @@ class AuthService {
 
         if (!user.emailVerified) {
           await user.sendEmailVerification();
+          // Initialize last_resend_timestamp to now
+          await _db
+              .collection('users')
+              .doc(user.uid)
+              .collection('private')
+              .doc('details')
+              .set({
+                'last_verification_resend': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
         }
       }
 
@@ -41,14 +64,67 @@ class AuthService {
 
   /// ---------------- LOGIN WITH EMAIL ----------------
   Future<User?> login(String email, String password) async {
+    final ip = await _getPublicIP();
+    final ipRef = _db.collection('security_logs').doc('ip_$ip');
+
+    // Check if IP is flagged
+    final snapshot = await ipRef.get();
+    if (snapshot.exists) {
+      final data = snapshot.data()!;
+      if (data['is_blocked'] == true) {
+        throw "too_many_attempts_ip_blocked";
+      }
+
+      // Auto-unblock after 1 hour (Optional but good for UX)
+      final Timestamp? lastAttempt = data['last_failed_attempt'];
+      if (lastAttempt != null && (data['failed_count'] ?? 0) >= 5) {
+        final diff = DateTime.now().difference(lastAttempt.toDate());
+        if (diff.inHours >= 1) {
+          await ipRef.update({'failed_count': 0, 'is_blocked': false});
+        } else {
+          throw "too_many_attempts_ip_blocked";
+        }
+      }
+    }
+
     try {
       final res = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      return res.user;
+      final user = res.user;
+
+      if (user != null && !user.emailVerified) {
+        final creationTime = user.metadata.creationTime;
+        if (creationTime != null) {
+          final diff = DateTime.now().difference(creationTime);
+          if (diff.inDays >= 7) {
+            // Unverified for more than a week -> Auto delete
+            await user.delete();
+            throw "account_deleted_unverified";
+          }
+        }
+      }
+
+      // Reset on success
+      await ipRef.delete();
+      return user;
     } on FirebaseAuthException catch (e) {
+      // Increment failed count
+      await ipRef.set({
+        'failed_count': FieldValue.increment(1),
+        'last_failed_attempt': FieldValue.serverTimestamp(),
+        'last_email_tried': email,
+      }, SetOptions(merge: true));
+
+      // Re-fetch to check if we just hit the limit
+      final updated = await ipRef.get();
+      if ((updated.data()?['failed_count'] ?? 0) >= 5) {
+        await ipRef.update({'is_blocked': true});
+        throw "too_many_attempts_ip_blocked";
+      }
+
       throw e.code;
     } catch (e) {
       throw "login_failed";
@@ -62,10 +138,12 @@ class AuthService {
       // Note: In google_sign_in 7.0.0+, you must call initialize() first if using custom config,
       // but here we use the default (configured via google-services.json on Android).
       // The method is now 'authenticate' for interactive sign-in.
-      final GoogleSignInAccount googleAccount = await _googleSignIn.authenticate();
+      final GoogleSignInAccount googleAccount = await _googleSignIn
+          .authenticate();
 
       // Obtain the auth details from the account
-      final GoogleSignInAuthentication googleAuth = googleAccount.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          googleAccount.authentication;
 
       // Create a new credential
       final AuthCredential credential = GoogleAuthProvider.credential(
@@ -75,7 +153,9 @@ class AuthService {
       );
 
       // Once signed in, return the UserCredential
-      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      final UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
       final user = userCredential.user;
 
       if (user != null) {
@@ -116,8 +196,32 @@ class AuthService {
 
     if (user == null) throw "no_user";
 
+    // 5-minute cooldown check
+    final privateRef = _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('private')
+        .doc('details');
+    final snapshot = await privateRef.get();
+
+    if (snapshot.exists) {
+      final data = snapshot.data()!;
+      final Timestamp? lastResend = data['last_verification_resend'];
+
+      if (lastResend != null) {
+        final diff = DateTime.now().difference(lastResend.toDate());
+        if (diff.inMinutes < 5) {
+          final remaining = 5 - diff.inMinutes;
+          throw "Please wait $remaining minute(s) before resending.";
+        }
+      }
+    }
+
     try {
       await user.sendEmailVerification();
+      await privateRef.set({
+        'last_verification_resend': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       throw "resend_failed";
     }

@@ -32,8 +32,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   Future<void> _fetchStatus() async {
     final banned = await global.db.isUserBanned(widget.userId);
-    final adminDoc = await FirebaseFirestore.instance.collection('admins').doc(widget.userId).get();
-    
+    final adminDoc = await FirebaseFirestore.instance
+        .collection('admins')
+        .doc(widget.userId)
+        .get();
+
     if (mounted) {
       setState(() {
         _isBanned = banned;
@@ -113,7 +116,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
     if (_adminId == null) return;
     if (_isBanned) {
       try {
-        await global.adminDb.unbanUser(userId: widget.userId, adminId: _adminId);
+        await global.adminDb.unbanUser(
+          userId: widget.userId,
+          adminId: _adminId,
+        );
         setState(() => _isBanned = false);
         if (mounted) {
           ScaffoldMessenger.of(
@@ -175,10 +181,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             );
           }
         } catch (e) {
-          if (mounted)
+          if (mounted) {
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text("Error: $e")));
+          }
         }
       }
     }
@@ -198,6 +205,16 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           "User Details",
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: global.valueColor),
+            onPressed: () {
+              _fetchStatus();
+              setState(() {});
+            },
+            tooltip: "Refresh User Data",
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: global.adminDb.getFullUserProfile(widget.userId, _adminId!),
@@ -377,9 +394,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                        color: global.primaryAccent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                          color: global.primaryAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                         child: Text(
                           _adminLevel == 0 ? "SUPER ADMIN" : "APP ADMIN",
                           style: const TextStyle(
@@ -463,7 +480,9 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
   }
 
   Widget _buildActionButtons() {
-    final bool canManageAdmins = global.adminLevel == 0 || global.adminPermissions.contains('manage_admins');
+    final bool canManageAdmins =
+        global.adminLevel == 0 ||
+        global.adminPermissions.contains('manage_admins');
 
     return Column(
       children: [
@@ -477,19 +496,31 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                   MaterialPageRoute(
                     builder: (context) => AdminPermissionsScreen(
                       targetUids: [widget.userId],
-                      initialPermissions: _isAppAdmin ? _adminPermissions : null,
+                      initialPermissions: _isAppAdmin
+                          ? _adminPermissions
+                          : null,
                       initialIsSuper: _isAppAdmin && _adminLevel == 0,
                     ),
                   ),
                 ).then((_) => _fetchStatus());
               },
-              icon: Icon(_isAppAdmin ? Icons.security_rounded : Icons.admin_panel_settings_rounded),
-              label: Text(_isAppAdmin ? "MANAGE ADMIN PERMISSIONS" : "PROMOTE TO APP ADMIN"),
+              icon: Icon(
+                _isAppAdmin
+                    ? Icons.security_rounded
+                    : Icons.admin_panel_settings_rounded,
+              ),
+              label: Text(
+                _isAppAdmin
+                    ? "MANAGE ADMIN PERMISSIONS"
+                    : "PROMOTE TO APP ADMIN",
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: global.primaryAccent,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -597,7 +628,10 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
 
   Widget _buildAttemptsList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: global.adminDb.getUserAttempts(widget.userId, includeDeleted: true),
+      stream: global.adminDb.getUserAttempts(
+        widget.userId,
+        includeDeleted: true,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

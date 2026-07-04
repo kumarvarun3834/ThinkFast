@@ -27,6 +27,7 @@ class _AdminPanelState extends State<AdminPanel> {
   final Map<String, List<String>> _flagGroups = {
     "System Control": [
       "maintenance_mode",
+      "enable_refresh_limit_bypass",
       "log",
       "log_updates",
       "log_deletes",
@@ -45,7 +46,6 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_take_quiz",
       "enable_import",
       "enable_export",
-      "random_quiz_generator",
       "management_features",
       "enable_realtime_colab",
     ],
@@ -101,7 +101,7 @@ class _AdminPanelState extends State<AdminPanel> {
       'enable_analytics': 'manage_app_settings',
       'enable_export': 'manage_app_settings',
       'maintenance_mode': 'manage_app_settings',
-      'random_quiz_generator': 'manage_app_settings',
+      'enable_refresh_limit_bypass': 'manage_admins',
 
       // Manage Admins
       'admin_refresh_rate_limit_seconds': 'manage_admins',
