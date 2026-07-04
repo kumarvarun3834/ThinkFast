@@ -410,6 +410,25 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () async {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Refreshing AI Model settings...")),
+              );
+              // Refreshing global feature flags will pick up latest model settings
+              await global.db.getFeatureFlags();
+              if (mounted) {
+                setState(() {});
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("AI Models synchronized")),
+                );
+              }
+            },
+            tooltip: "Refresh AI Model",
+          ),
+        ],
       ),
       body: Column(
         children: [

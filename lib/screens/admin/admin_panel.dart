@@ -55,6 +55,12 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_quiz_creation_rate_limit",
       "enable_form_save_rate_limit",
     ],
+    "Security Batch AI Services": [
+      "ai_model_main",
+      "ai_model_backup_1",
+      "ai_model_backup_2",
+      "ai_model_index",
+    ],
   };
 
   @override
@@ -127,6 +133,12 @@ class _AdminPanelState extends State<AdminPanel> {
 
       // Manage Collaborators
       'enable_realtime_colab': 'manage_collaborators',
+
+      // Security Batch AI Services
+      'ai_model_main': 'manage_app_settings',
+      'ai_model_backup_1': 'manage_app_settings',
+      'ai_model_backup_2': 'manage_app_settings',
+      'ai_model_index': 'manage_app_settings',
     };
 
     final requiredPerm = keyPermissionMap[key];

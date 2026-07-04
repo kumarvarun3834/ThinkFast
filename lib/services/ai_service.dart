@@ -136,14 +136,46 @@ class AiService {
     """;
 
     final stopwatch = Stopwatch()..start();
-    String jsonContent = await generateQuizJson("$prompt $systemPrompt");
+    
+    // Get models from feature flags
+    final List<String> models = [
+      global.featureFlags?['ai_model_main'] ?? 'gpt-4o',
+      global.featureFlags?['ai_model_backup_1'] ?? 'gpt-4-turbo',
+      global.featureFlags?['ai_model_backup_2'] ?? 'gpt-3.5-turbo',
+    ];
+    
+    int startIndex = (global.featureFlags?['ai_model_index'] ?? 0) as int;
+    String jsonContent = "";
+    String? error;
+    String activeModel = "";
+
+    // Try models in sequence with fallback
+    for (int i = 0; i < models.length; i++) {
+      int currentIndex = (startIndex + i) % models.length;
+      activeModel = models[currentIndex];
+      
+      try {
+        debugPrint("AI: Attempting generation with model: $activeModel");
+        jsonContent = await generateQuizJson("$prompt $systemPrompt", model: activeModel);
+        error = null;
+        break; // Success
+      } catch (e) {
+        error = e.toString();
+        debugPrint("AI Error with $activeModel: $e");
+        continue; // Try next model
+      }
+    }
+
+    if (jsonContent.isEmpty) {
+      throw "AI Generation failed across all models. Last error: $error";
+    }
 
     // 2. Schema Validation & Repair Flow
     try {
       _validateJsonSchema(jsonContent);
     } catch (e) {
       debugPrint("Initial AI response malformed. Attempting repair...");
-      jsonContent = await _repairJson(jsonContent, e.toString());
+      jsonContent = await _repairJson(jsonContent, e.toString(), model: activeModel);
       _validateJsonSchema(jsonContent); // Final check
     }
 
@@ -194,7 +226,7 @@ class AiService {
       prompt: prompt,
       generatedQuizId: quizId,
       metadata: {
-        'model': 'ai-engine-v2',
+        'model': activeModel,
         'generationTimeMs': stopwatch.elapsedMilliseconds,
         'tokenUsage': jsonContent.length ~/ 4, // Rough estimate
       },
@@ -228,10 +260,10 @@ class AiService {
   }
 
   /// 🛠️ Repair Flow
-  Future<String> _repairJson(String malformedJson, String error) async {
+  Future<String> _repairJson(String malformedJson, String error, {String model = 'gpt-4o'}) async {
     final repairPrompt =
         "The following JSON is invalid: $error. Please fix the structure and return ONLY the corrected JSON: $malformedJson";
-    return await generateQuizJson(repairPrompt);
+    return await generateQuizJson(repairPrompt, model: model);
   }
 
   /// 🛠️ Content Quality Checks
@@ -254,14 +286,17 @@ class AiService {
   }
 
   /// ✅ Mock AI Generation (Should be replaced with actual API call)
-  Future<String> generateQuizJson(String prompt) async {
-    // In a real app, this would call OpenAI/Gemini with the prompt
+  Future<String> generateQuizJson(String prompt, {String model = 'gpt-4o'}) async {
+    // In a real app, this would call OpenAI/Gemini with the prompt and model
     await Future.delayed(const Duration(seconds: 2));
+
+    // For testing fallback, you could simulate an error:
+    // if (model == 'gpt-4o') throw Exception("Simulated failure for $model");
 
     // Returning a more diverse template
     return jsonEncode({
-      "title": "ThinkFast AI: Topic Exploration",
-      "description": "Comprehensive quiz generated for your request.",
+      "title": "ThinkFast AI: Topic Exploration ($model)",
+      "description": "Comprehensive quiz generated using $model for your request.",
       "time": 900,
       "markingScheme": {
         "type": "per_question_type",

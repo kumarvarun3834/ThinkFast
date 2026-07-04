@@ -27,6 +27,10 @@ class SettingsService {
     // AI
     'enable_ai_quota_bypass': 'ai',
     'ai_daily_generation_limit': 'ai',
+    'ai_model_main': 'ai',
+    'ai_model_backup_1': 'ai',
+    'ai_model_backup_2': 'ai',
+    'ai_model_index': 'ai',
     // Logs
     'log': 'logs',
     'log_updates': 'logs',
@@ -72,7 +76,14 @@ class SettingsService {
         'enable_refresh_limit_bypass': false,
       },
       'moderation': {'enable_user_banning': true},
-      'ai': {'enable_ai_quota_bypass': false, 'ai_daily_generation_limit': 10},
+      'ai': {
+        'enable_ai_quota_bypass': false,
+        'ai_daily_generation_limit': 10,
+        'ai_model_main': 'gpt-4o',
+        'ai_model_backup_1': 'gpt-4-turbo',
+        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'ai_model_index': 0,
+      },
       'quizzes': {
         'enable_quiz_creation_rate_limit': true,
         'quiz_creation_rate_limit_minutes': 5,

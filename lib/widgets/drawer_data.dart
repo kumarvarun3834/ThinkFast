@@ -290,6 +290,23 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'AI Quiz Wizard',
               onTap: () => _checkAndNavigate(context, "/AI Quiz Generator"),
             ),
+          if (widget.user != null && (_canCreateQuiz || _isAdmin))
+            _drawerItem(
+              icon: Icons.sync_rounded,
+              text: 'Refresh AI Model',
+              onTap: () async {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Syncing AI services...")),
+                );
+                await global.db.getFeatureFlags();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("AI Models updated")),
+                  );
+                  Navigator.pop(context);
+                }
+              },
+            ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.library_books_outlined,

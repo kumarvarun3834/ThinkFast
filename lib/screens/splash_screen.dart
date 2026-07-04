@@ -87,6 +87,10 @@ class _MySplashState extends State<MySplash> {
         'enable_export': true,
         'enable_take_quiz': true,
         'enable_refresh_limit_bypass': false,
+        'ai_model_main': 'gpt-4o',
+        'ai_model_backup_1': 'gpt-4-turbo',
+        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'ai_model_index': 0,
       };
 
       if (!mounted) return;
@@ -147,6 +151,10 @@ class _MySplashState extends State<MySplash> {
         'enable_export': true,
         'enable_take_quiz': true,
         'enable_refresh_limit_bypass': false,
+        'ai_model_main': 'gpt-4o',
+        'ai_model_backup_1': 'gpt-4-turbo',
+        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'ai_model_index': 0,
       };
       if (mounted) {
         setState(() {
