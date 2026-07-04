@@ -201,6 +201,20 @@ class AboutUsScreen extends StatelessWidget {
             const Divider(color: Color(0xFF334155)),
             const SizedBox(height: 16),
             Center(
+              child: TextButton(
+                onPressed: () => Navigator.pushNamed(context, "/Privacy Policy"),
+                child: Text(
+                  "Read our Privacy Policy",
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: _primaryAccent,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
               child: Text(
                 "© 2024 ThinkFast. Challenge Your Mind.",
                 textAlign: TextAlign.center,

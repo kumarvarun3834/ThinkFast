@@ -6,6 +6,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
+import 'package:thinkfast/screens/drawer/privacy_policy.dart';
 import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
@@ -168,6 +169,10 @@ class MyApp extends StatelessWidget {
             break;
           case '/About Us':
             page = const AboutUsScreen();
+            wrapInGradient = false;
+            break;
+          case '/Privacy Policy':
+            page = const PrivacyPolicyScreen();
             wrapInGradient = false;
             break;
           case '/profile':

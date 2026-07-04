@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../utils/global.dart' as global;
@@ -62,7 +61,9 @@ class UserDatabaseService {
         isUserAdmin = true;
       }
       if (!isUserAdmin) {
-        throw Exception("System is currently under maintenance. Please try again later.");
+        throw Exception(
+          "System is currently under maintenance. Please try again later.",
+        );
       }
     }
 
@@ -75,8 +76,12 @@ class UserDatabaseService {
         isUserAdmin = true;
       }
       if (!isUserAdmin) {
-        final actionName = flag.replaceFirst('enable_', '').replaceAll('_', ' ');
-        throw Exception("Access Denied: '$actionName' is currently disabled by the administrator.");
+        final actionName = flag
+            .replaceFirst('enable_', '')
+            .replaceAll('_', ' ');
+        throw Exception(
+          "Access Denied: '$actionName' is currently disabled by the administrator.",
+        );
       }
     }
   }
@@ -109,23 +114,41 @@ class UserDatabaseService {
     String? photoUrl,
   }) async {
     await _ensurePermission(null, userId: uid);
-    return _userService.createUserProfile(uid: uid, email: email, name: name, photoUrl: photoUrl);
+    return _userService.createUserProfile(
+      uid: uid,
+      email: email,
+      name: name,
+      photoUrl: photoUrl,
+    );
   }
 
-  Future<Map<String, dynamic>?> getUserProfile(String uid, {String? actorId}) async {
+  Future<Map<String, dynamic>?> getUserProfile(
+    String uid, {
+    String? actorId,
+  }) async {
     await _ensurePermission(null, userId: actorId ?? uid);
     return _userService.getUserProfile(uid);
   }
 
-  Future<void> updateUserProfile({required String uid, String? name, String? email}) async {
+  Future<void> updateUserProfile({
+    required String uid,
+    String? name,
+    String? email,
+  }) async {
     await _ensurePermission('enable_profile_edit', userId: uid);
     await _userService.updateUserProfile(uid: uid, name: name);
-    if (email != null) await _userService.updatePrivateDetails(uid: uid, email: email);
+    if (email != null)
+      await _userService.updatePrivateDetails(uid: uid, email: email);
   }
 
   // --- Quiz Session Management ---
 
-  Future<void> updateActiveQuiz({required String uid, String? quizId, DateTime? expiry, bool clear = false}) async {
+  Future<void> updateActiveQuiz({
+    required String uid,
+    String? quizId,
+    DateTime? expiry,
+    bool clear = false,
+  }) async {
     await _ensurePermission(null, userId: uid);
     return _userService.updatePrivateDetails(
       uid: uid,
@@ -198,7 +221,10 @@ class UserDatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>> readDatabase(String docId, {String? userId}) async {
+  Future<Map<String, dynamic>> readDatabase(
+    String docId, {
+    String? userId,
+  }) async {
     await _ensurePermission(null, userId: userId);
     final quiz = await _quizService.getQuiz(docId);
     if (quiz == null) throw Exception("Quiz not found");
@@ -223,7 +249,8 @@ class UserDatabaseService {
 
     final String visibility = quiz['visibility'] ?? 'private';
     if (visibility != 'public' && !isAdminUser && quiz['creatorId'] != userId) {
-      if (userId == null) throw Exception("Access Denied: This quiz is private.");
+      if (userId == null)
+        throw Exception("Access Denied: This quiz is private.");
       final hasAccess = await _quizService.hasAccess(docId, userId);
       if (!hasAccess) throw Exception("Access Denied: This quiz is private.");
     }
@@ -248,12 +275,21 @@ class UserDatabaseService {
     return quiz;
   }
 
-  Future<Map<String, dynamic>> fetchAggregatedQuizDetails(String quizId, {String? userId}) async {
+  Future<Map<String, dynamic>> fetchAggregatedQuizDetails(
+    String quizId, {
+    String? userId,
+  }) async {
     final results = await Future.wait([
       readDatabase(quizId, userId: userId),
-      if (userId != null) hasUserAttemptedQuiz(userId, quizId) else Future.value(false),
+      if (userId != null)
+        hasUserAttemptedQuiz(userId, quizId)
+      else
+        Future.value(false),
       if (userId != null) isAdmin(userId) else Future.value(false),
-      if (userId != null) getUserProfile(userId, actorId: userId) else Future.value(null),
+      if (userId != null)
+        getUserProfile(userId, actorId: userId)
+      else
+        Future.value(null),
     ], eagerError: false);
 
     final Map<String, dynamic> quizData = results[0] as Map<String, dynamic>;
@@ -263,11 +299,15 @@ class UserDatabaseService {
 
     if (quizData['creatorId'] != null) {
       try {
-        quizData['creatorProfile'] = await getUserProfile(quizData['creatorId'], actorId: userId);
+        quizData['creatorProfile'] = await getUserProfile(
+          quizData['creatorId'],
+          actorId: userId,
+        );
       } catch (_) {}
     }
 
-    quizData['canManage'] = global.ownedQuizIds.contains(quizId) ||
+    quizData['canManage'] =
+        global.ownedQuizIds.contains(quizId) ||
         global.managedQuizzes.containsKey(quizId) ||
         (quizData['isAdmin'] == true);
 
@@ -302,18 +342,21 @@ class UserDatabaseService {
     for (var entry in keysList) {
       final qUid = entry['q'].toString();
       final optUid = entry['a'].toString();
-      if (optUid != '__desc__') correctKey.putIfAbsent(qUid, () => []).add(optUid);
+      if (optUid != '__desc__')
+        correctKey.putIfAbsent(qUid, () => []).add(optUid);
       if (entry.containsKey('s')) solutions[qUid] = entry['s'].toString();
     }
 
     if (from == 'quizform') {
-      if (!isCreator) throw Exception("Only creator can access answers in editor");
+      if (!isCreator)
+        throw Exception("Only creator can access answers in editor");
     } else if (userAnswers != null && totalQuestions != null) {
       final questions = await _quizService.getQuizQuestions(docId);
       final List<Map<String, dynamic>> flattenedQuestions = [];
       for (var module in questions) {
         final List<dynamic> qList = module['data'] as List? ?? [];
-        for (var q in qList) flattenedQuestions.add(Map<String, dynamic>.from(q));
+        for (var q in qList)
+          flattenedQuestions.add(Map<String, dynamic>.from(q));
       }
 
       await _attemptService.submitAttempt(
@@ -399,5 +442,40 @@ class UserDatabaseService {
         .limit(1)
         .get();
     return attempts.docs.isNotEmpty;
+  }
+
+  // --- Content Reporting (UGC Compliance) ---
+
+  Future<void> reportContent({
+    required String reporterId,
+    required String targetType, // 'quiz' or 'question'
+    required String quizId,
+    String? questionId,
+    required String reason,
+    String? details,
+  }) async {
+    final reportData = {
+      'reporterId': reporterId,
+      'targetType': targetType,
+      'quizId': quizId,
+      'questionId': ?questionId,
+      'reason': reason,
+      'details': ?details,
+      'status': 'pending', // pending, reviewed, resolved, dismissed
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    await FirebaseFirestore.instance
+        .collection('content_reports')
+        .add(reportData);
+
+    // Log the report action for admins
+    await _adminService.logAction(
+      actorId: reporterId,
+      action: 'report_content',
+      targetId: targetType == 'quiz' ? quizId : (questionId ?? quizId),
+      details: 'Type: $targetType, Reason: $reason',
+      category: 'moderation',
+    );
   }
 }

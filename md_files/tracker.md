@@ -20,10 +20,14 @@
 ### Authentication & User Management
 
 - [x] Email/Password Sign-up and Login
+- [x] **Brute-Force Protection (IP-based rate limiting)**
 - [x] Google Sign-In Integration
 - [x] Mandatory Email Verification Flow
+- [x] **Automatic 7-Day Purge for Unverified Accounts**
 - [x] User Profile Creation and Management
+- [x] **Privacy Policy Acceptance & Tracking**
 - [x] Protected/Private User Data Segregation
+- [x] **Opt-in flow for AI Data Analysis (Age/Grade)**
 
 ### Quiz Creation (The Creator Flow)
 
@@ -61,6 +65,8 @@
 - [x] Participant Response Analytics for Creators
 - [x] Admin Panel (Feature Flags & Settings)
 - [x] Admin Mode/Elevated Privilege Switching
+- [x] **UGC Reporting System (Quiz & Question flagging)**
+- [x] **Data Safety Documentation (Play Store aligned)**
 - [x] **Visual Feedback for Admin Mode (Admin Shield)**
 - [x] **Admin Bypass for Ban/Restriction Guards**
 - [x] **Moderation Panel (Blocked Users & Response Trash)**
@@ -79,6 +85,7 @@
 - [ ] Optimizing AI Prompt Engineering for better quiz variety.
 - [ ] Improving error handling for network-edge cases during quiz submission.
 - [ ] Profile screen more fields to add
+- [ ] **Infrastructure:** Flutter_Ai server-side configuration for model processing.
 
 ---
 
@@ -90,20 +97,36 @@
 - [ ] **Exporting:** Download participant results as CSV/PDF.
 - [ ] **Advanced AI:** Personalized feedback based on attempt performance.
 - [ ] **Notifications:** Reminders for new public quizzes or attempt results.
+- [ ] **Account Management:**
+    - [ ] **Account Deletion:** Self-service "Delete My Account" with data purge (Play Store
+      requirement).
+    - [ ] **Email Updates:** Allow users to change their registered email address.
+    - [ ] **Phone Authentication:** Integration of phone number login and primary contact updates.
+- [ ] **Compliance & Safety:**
+    - [x] **Restricted Mode for Minors:** Disabled AI personalization for users under 13 (COPPA
+      aligned).
+    - [ ] **Privacy Policy URL:** Publicly hosted version for Play Store listing.
+- [ ] **Firestore Security rules:** need update based on privacy settings
 
 ---
 
 ## 📈 Development Milestones
 
 - **Administrative & Performance Cycle (Post-v1.0):**
-    - **Bulk Moderation:** Implemented collective permission management (Grant/Revoke/Set) for administrators.
-    - **Access Control:** Added dynamic participant authorization for restricted quizzes (Allow-by-UID).
-    - **Optimization:** Developed client-side permission caching and rate-limited data refresh system to minimize Firestore overhead.
+    - **Bulk Moderation:** Implemented collective permission management (Grant/Revoke/Set) for
+      administrators.
+    - **Access Control:** Added dynamic participant authorization for restricted quizzes (
+      Allow-by-UID).
+    - **Optimization:** Developed client-side permission caching and rate-limited data refresh
+      system to minimize Firestore overhead.
 - **AI & Automation Cycle (Internal):**
     - **AI Wizard:** Launched conversational quiz generation and profile preference integration.
-    - **Data Integrity:** Enhanced answer isolation in the service layer and implemented the Recycle Bin (7-day recovery).
+    - **Data Integrity:** Enhanced answer isolation in the service layer and implemented the Recycle
+      Bin (7-day recovery).
 - **Feature Refinement Cycle (Internal):**
-    - **Attempt Logic:** Integrated "Attempt Limits" (Select N out of M) and dynamic scoring overrides.
-    - **UX Enhancements:** Added Enhanced Review Mode with solution tagging and "Double Tap to Instant Submit" for active sessions.
+    - **Attempt Logic:** Integrated "Attempt Limits" (Select N out of M) and dynamic scoring
+      overrides.
+    - **UX Enhancements:** Added Enhanced Review Mode with solution tagging and "Double Tap to
+      Instant Submit" for active sessions.
 - **v1.0.0:** Initial Stable Build (Baseline Production).
 - **Beta Phase (Pre-Release):** Deep Linking (AppLinks), AI Core, and Admin Panel foundation.

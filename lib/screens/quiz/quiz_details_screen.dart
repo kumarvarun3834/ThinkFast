@@ -428,6 +428,113 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     }
   }
 
+  void _showReportDialog({String? questionId}) {
+    if (_user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please login to report content.")),
+      );
+      return;
+    }
+
+    final reasonController = TextEditingController();
+    final detailsController = TextEditingController();
+    String selectedReason = "Offensive Content";
+    final List<String> reasons = [
+      "Offensive Content",
+      "Inappropriate Language",
+      "Copyright Violation",
+      "Spam",
+      "Inaccurate Information",
+      "Other"
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: global.cardColor,
+          title: Text(
+            questionId == null ? "Report Quiz" : "Report Question",
+            style: GoogleFonts.poppins(color: global.valueColor, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Why are you reporting this?",
+                  style: GoogleFonts.poppins(color: global.labelColor, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: global.bgColor.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: global.borderColor),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedReason,
+                      dropdownColor: global.cardColor,
+                      style: GoogleFonts.poppins(color: global.valueColor),
+                      items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                      onChanged: (v) => setDialogState(() => selectedReason = v!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: detailsController,
+                  maxLines: 3,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Provide more details (optional)...",
+                    hintStyle: TextStyle(color: global.labelColor, fontSize: 12),
+                    filled: true,
+                    fillColor: global.bgColor.withValues(alpha: 0.5),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: global.errorColor),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  await global.db.reportContent(
+                    reporterId: _user!.uid,
+                    targetType: questionId == null ? 'quiz' : 'question',
+                    quizId: widget.quizId,
+                    questionId: questionId,
+                    reason: selectedReason,
+                    details: detailsController.text.trim(),
+                  );
+                  Navigator.pop(context);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text("Thank you. Your report has been submitted.")),
+                  );
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
+              },
+              child: const Text("SUBMIT REPORT", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = _quizData?['title'] ?? 'Loading Quiz...';
@@ -460,7 +567,15 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               ),
             ),
             iconTheme: const IconThemeData(color: global.valueColor),
-            actions: [if (_isAdmin) const AdminBadge()],
+            actions: [
+              if (!_isLoading && _quizData != null)
+                IconButton(
+                  icon: const Icon(Icons.report_gmailerrorred_rounded, color: global.errorColor),
+                  onPressed: () => _showReportDialog(),
+                  tooltip: "Report Quiz",
+                ),
+              if (_isAdmin) const AdminBadge()
+            ],
           ),
           body: _isLoading && _quizData == null
               ? const Center(

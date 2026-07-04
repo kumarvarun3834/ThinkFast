@@ -410,6 +410,14 @@ class _SidebarMenuState extends State<SidebarMenu> {
               Navigator.pushNamed(context, "/About Us");
             },
           ),
+          _drawerItem(
+            icon: Icons.privacy_tip_outlined,
+            text: 'Privacy Policy',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, "/Privacy Policy");
+            },
+          ),
         ],
       ),
     );

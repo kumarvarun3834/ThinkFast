@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -94,7 +95,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
       for (var module in modules) {
         List<Map<String, Object>> moduleQuestions = moduleGroups[module]!;
-        
+
         if (global.shuffleQuestionsWithinModules) {
           Map<String, List<Map<String, Object>>> typeGroups = {};
           for (var q in moduleQuestions) {
@@ -180,7 +181,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     final List<String> correct = global.correctAnswers[qUid] ?? [];
 
     if (selection.isEmpty) return 0;
-    
+
     // For Integer questions, treat empty string as unattempted
     if (qType == "Integer" && selection.first.toString().trim().isEmpty) {
       return 0;
@@ -273,7 +274,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _updateDisplaySequence();
-          if (global.isReviewMode && global.reviewInitialIndex < _displaySequence.length) {
+          if (global.isReviewMode &&
+              global.reviewInitialIndex < _displaySequence.length) {
             i = _displaySequence[global.reviewInitialIndex];
           } else {
             i = _displaySequence.isNotEmpty ? _displaySequence[0] : 0;
@@ -434,11 +436,18 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                                 selectedColor: global.primaryAccent,
                                 onSelected: (selected) {
                                   if (selected) {
-                                    if (global.disableModuleSwitchingUntilTimeout && 
-                                        _timeLeft.inSeconds > 0 && 
+                                    if (global
+                                            .disableModuleSwitchingUntilTimeout &&
+                                        _timeLeft.inSeconds > 0 &&
                                         !global.isReviewMode) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("Module switching disabled until timeout")),
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Module switching disabled until timeout",
+                                          ),
+                                        ),
                                       );
                                       return;
                                     }
@@ -522,9 +531,15 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
-                                if (global.forceWaitUntilTimeout && _timeLeft.inSeconds > 0 && !global.isReviewMode) {
+                                if (global.forceWaitUntilTimeout &&
+                                    _timeLeft.inSeconds > 0 &&
+                                    !global.isReviewMode) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Submission not allowed until time runs out")),
+                                    const SnackBar(
+                                      content: Text(
+                                        "Submission not allowed until time runs out",
+                                      ),
+                                    ),
                                   );
                                   return;
                                 }
@@ -1101,6 +1116,142 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     );
   }
 
+  void _showReportDialog(int index) {
+    final Map<String, Object> question = global.quizData[index];
+    final String qUid =
+        (question["Q"] as Map?)?['id']?.toString() ??
+        question['uid']?.toString() ??
+        '';
+
+    final reasonController = TextEditingController();
+    final detailsController = TextEditingController();
+    String selectedReason = "Inaccurate Information";
+    final List<String> reasons = [
+      "Inaccurate Information",
+      "Offensive Content",
+      "Inappropriate Language",
+      "Copyright Violation",
+      "Spam",
+      "Other",
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: global.cardColor,
+          title: Text(
+            "Report Question",
+            style: GoogleFonts.poppins(
+              color: global.valueColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Why are you reporting this question?",
+                  style: GoogleFonts.poppins(
+                    color: global.labelColor,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: global.bgColor.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: global.borderColor),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedReason,
+                      dropdownColor: global.cardColor,
+                      style: GoogleFonts.poppins(color: global.valueColor),
+                      items: reasons
+                          .map(
+                            (r) => DropdownMenuItem(value: r, child: Text(r)),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedReason = v!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: detailsController,
+                  maxLines: 3,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: "Provide more details (optional)...",
+                    hintStyle: TextStyle(
+                      color: global.labelColor,
+                      fontSize: 12,
+                    ),
+                    filled: true,
+                    fillColor: global.bgColor.withValues(alpha: 0.5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.errorColor,
+              ),
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  final String userId =
+                      global.currentUserProfile?['uid'] ??
+                      FirebaseAuth.instance.currentUser?.uid ??
+                      'anonymous';
+
+                  await global.db.reportContent(
+                    reporterId: userId,
+                    targetType: 'question',
+                    quizId: global.id,
+                    questionId: qUid,
+                    reason: selectedReason,
+                    details: detailsController.text.trim(),
+                  );
+                  Navigator.pop(context);
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Thank you. Your report has been submitted.",
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
+                }
+              },
+              child: const Text(
+                "SUBMIT REPORT",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -1313,9 +1464,15 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                         ),
                       ),
                       onPressed: () {
-                        if (global.forceWaitUntilTimeout && _timeLeft.inSeconds > 0 && !global.isReviewMode) {
+                        if (global.forceWaitUntilTimeout &&
+                            _timeLeft.inSeconds > 0 &&
+                            !global.isReviewMode) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Submission not allowed until time runs out")),
+                            const SnackBar(
+                              content: Text(
+                                "Submission not allowed until time runs out",
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -1343,8 +1500,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                       global.isReviewMode
                           ? "REVIEW MODE"
                           : (_timer?.isActive == true
-                              ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
-                              : "No active timer"),
+                                ? "⏱ ${global.perQuestionTime > 0 ? 'Q' : 'Time'} left: ${_format(_timeLeft)}"
+                                : "No active timer"),
                       style: TextStyle(
                         color: global.isReviewMode
                             ? global.warningColor
@@ -1425,11 +1582,16 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                               selectedColor: global.primaryAccent,
                               onSelected: (selected) {
                                 if (selected) {
-                                  if (global.disableModuleSwitchingUntilTimeout && 
-                                      _timeLeft.inSeconds > 0 && 
+                                  if (global
+                                          .disableModuleSwitchingUntilTimeout &&
+                                      _timeLeft.inSeconds > 0 &&
                                       !global.isReviewMode) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("Module switching disabled until timeout")),
+                                      const SnackBar(
+                                        content: Text(
+                                          "Module switching disabled until timeout",
+                                        ),
+                                      ),
                                     );
                                     return;
                                   }
@@ -1566,11 +1728,15 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                         selectedColor: global.primaryAccent,
                         onSelected: (selected) {
                           if (selected) {
-                            if (global.disableModuleSwitchingUntilTimeout && 
-                                _timeLeft.inSeconds > 0 && 
+                            if (global.disableModuleSwitchingUntilTimeout &&
+                                _timeLeft.inSeconds > 0 &&
                                 !global.isReviewMode) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Module switching disabled until timeout")),
+                                const SnackBar(
+                                  content: Text(
+                                    "Module switching disabled until timeout",
+                                  ),
+                                ),
                               );
                               return;
                             }
@@ -1729,9 +1895,25 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                                 ),
                               ],
                             ),
-                            if (!global.isReviewMode &&
-                                global.attemptLimits['type'] != 'none')
-                              _buildLimitStatusIndicatorAtIndex(i),
+                            Row(
+                              children: [
+                                if (!global.isReviewMode &&
+                                    global.attemptLimits['type'] != 'none')
+                                  _buildLimitStatusIndicatorAtIndex(i),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(
+                                    Icons.report_gmailerrorred_rounded,
+                                    color: global.errorColor,
+                                    size: 20,
+                                  ),
+                                  onPressed: () => _showReportDialog(i),
+                                  tooltip: "Report Question",
+                                ),
+                              ],
+                            ),
                             if (global.isReviewMode)
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -2102,7 +2284,8 @@ class ButtonsOpt extends StatelessWidget {
                     optText,
                     style: GoogleFonts.poppins(
                       fontSize: 16,
-                      fontWeight: ((global.isReviewMode && isCorrect) || isSelected)
+                      fontWeight:
+                          ((global.isReviewMode && isCorrect) || isSelected)
                           ? FontWeight.bold
                           : FontWeight.normal,
                     ),

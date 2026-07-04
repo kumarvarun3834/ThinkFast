@@ -55,7 +55,7 @@ service cloud.firestore {
 
     function isQuizOwner(quizId) {
       return isAuthenticated() &&
-             getAfter(/databases/$(database)/documents/quizzes/$(quizId)).data.get('creatorId', '') == request.auth.uid;
+             get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('creatorId', '') == request.auth.uid;
     }
 
     function isOwner(userId) {
@@ -241,10 +241,34 @@ service cloud.firestore {
     }
 
     match /audit_logs/{logId} {
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() || true; // Allow security logs during failed login
       allow read: if hasGlobalPermission('view_audit_logs');
-      // Only Super Admin (Level 0) can delete logs
       allow delete: if isGlobalAdmin() && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.get('level', 1) == 0;
+    }
+
+    match /security_logs/{logId} {
+      // Brute-force protection tracking
+      allow read: if isGlobalAdmin();
+      allow create, update: if true; // Public access required for IP logging on failed auth
+    }
+
+    match /content_reports/{reportId} {
+      // UGC Reporting
+      allow create: if isAuthenticated();
+      allow read: if hasGlobalPermission('view_audit_logs') || hasGlobalPermission('manage_app_settings');
+      allow update, delete: if isGlobalAdmin();
+    }
+
+    match /user_usage/{userId} {
+      // AI Quota tracking
+      allow read: if isOwner(userId) || isGlobalAdmin();
+      allow write: if isOwner(userId) || isGlobalAdmin();
+    }
+
+    match /ai_generations/{genId} {
+      // AI Generation history
+      allow create: if isAuthenticated();
+      allow read: if isGlobalAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     match /notifications/{notifId} {

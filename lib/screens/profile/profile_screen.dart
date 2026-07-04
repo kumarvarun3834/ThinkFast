@@ -29,6 +29,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _targetExamController = TextEditingController();
   final TextEditingController _learningStyleController = TextEditingController();
   String _preferredDifficulty = 'medium';
+  bool _optInAiAnalysis = false;
+  bool _privacyPolicyAccepted = false;
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -75,6 +77,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _targetExamController.text = profile['targetExam'] ?? '';
         _learningStyleController.text = profile['learningStyle'] ?? '';
         _preferredDifficulty = profile['preferredDifficulty'] ?? 'medium';
+        _optInAiAnalysis = profile['optInAiAnalysis'] ?? false;
+        _privacyPolicyAccepted = profile['privacyPolicyAccepted'] ?? false;
       } else {
         // New user fallback
         _nameController.text = updatedUser.displayName ?? '';
@@ -114,24 +118,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await global.db.updateProtectedDetails(
         uid: _user.uid,
         details: {
-          'class': _classController.text.trim(),
-          'age': _ageController.text.trim(),
-          'goal': _goalController.text.trim(),
-          'interests': _interestsController.text
-              .split(',')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList(),
-          'learningTopics': _learningTopicsController.text
-              .split(',')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList(),
-          'preferredDifficulty': _preferredDifficulty,
-          'preferredLanguage': _languageController.text.trim(),
-          'studyHoursPerWeek': int.tryParse(_studyHoursController.text) ?? 0,
-          'targetExam': _targetExamController.text.trim(),
-          'learningStyle': _learningStyleController.text.trim(),
+          'privacyPolicyAccepted': _privacyPolicyAccepted,
+          'optInAiAnalysis': _optInAiAnalysis,
+          'class': _optInAiAnalysis ? _classController.text.trim() : null,
+          'age': _optInAiAnalysis ? _ageController.text.trim() : null,
+          'goal': _optInAiAnalysis ? _goalController.text.trim() : null,
+          'interests': _optInAiAnalysis
+              ? _interestsController.text
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList()
+              : [],
+          'learningTopics': _optInAiAnalysis
+              ? _learningTopicsController.text
+                  .split(',')
+                  .map((e) => e.trim())
+                  .where((e) => e.isNotEmpty)
+                  .toList()
+              : [],
+          'preferredDifficulty': _optInAiAnalysis ? _preferredDifficulty : 'medium',
+          'preferredLanguage': _optInAiAnalysis ? _languageController.text.trim() : null,
+          'studyHoursPerWeek': _optInAiAnalysis ? (int.tryParse(_studyHoursController.text) ?? 0) : 0,
+          'targetExam': _optInAiAnalysis ? _targetExamController.text.trim() : null,
+          'learningStyle': _optInAiAnalysis ? _learningStyleController.text.trim() : null,
         },
       );
 
@@ -160,6 +170,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _handleAgeChanged(String val) {
+    final int? age = int.tryParse(val);
+    if (age != null && age < 13) {
+      if (_optInAiAnalysis) {
+        setState(() {
+          _optInAiAnalysis = false;
+        });
+      }
     }
   }
 
@@ -304,6 +325,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
 
                         const SizedBox(height: 24),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: global.bgColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _privacyPolicyAccepted
+                                  ? global.borderColor
+                                  : global.errorColor.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: CheckboxListTile(
+                            title: GestureDetector(
+                              onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
+                              child: Text(
+                                "I accept the Privacy Policy",
+                                style: GoogleFonts.poppins(
+                                  color: global.valueColor,
+                                  fontSize: 14,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                            value: _privacyPolicyAccepted,
+                            activeColor: global.primaryAccent,
+                            onChanged: (v) => setState(() => _privacyPolicyAccepted = v ?? false),
+                            controlAffinity: ListTileControlAffinity.leading,
+                          ),
+                        ),
+                        if (!_privacyPolicyAccepted)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12, top: 4),
+                            child: Text(
+                              "You must accept the privacy policy to continue.",
+                              style: GoogleFonts.poppins(color: global.errorColor, fontSize: 10),
+                            ),
+                          ),
+
+                        const SizedBox(height: 24),
                         _buildLabel("User UID"),
                         const SizedBox(height: 8),
                         _buildTextField(
@@ -332,145 +391,184 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                         const SizedBox(height: 32),
                         _buildSectionHeader("AI & Personalization"),
-                        const SizedBox(height: 16),
-
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Class/Grade"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _classController,
-                                    "e.g. 12th",
-                                    Icons.school_outlined,
-                                  ),
-                                ],
+                        const SizedBox(height: 12),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: global.bgColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: global.borderColor),
+                          ),
+                          child: SwitchListTile(
+                            title: Text(
+                              "Opt-in for AI Analysis",
+                              style: GoogleFonts.poppins(
+                                color: (int.tryParse(_ageController.text) ?? 13) < 13
+                                    ? global.hintColor
+                                    : global.valueColor,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Age"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _ageController,
-                                    "e.g. 18",
-                                    Icons.cake_outlined,
-                                    keyboardType: TextInputType.number,
-                                  ),
-                                ],
+                            subtitle: Text(
+                              (int.tryParse(_ageController.text) ?? 13) < 13
+                                  ? "Personalization is restricted for users under 13."
+                                  : "Allow AI to analyze your learning style for personalized quizzes.",
+                              style: GoogleFonts.poppins(
+                                color: (int.tryParse(_ageController.text) ?? 13) < 13
+                                    ? global.errorColor.withValues(alpha: 0.7)
+                                    : global.labelColor,
+                                fontSize: 11,
                               ),
                             ),
-                          ],
+                            value: _optInAiAnalysis,
+                            activeColor: global.primaryAccent,
+                            onChanged: (int.tryParse(_ageController.text) ?? 13) < 13
+                                ? null
+                                : (v) => setState(() => _optInAiAnalysis = v),
+                          ),
                         ),
 
-                        const SizedBox(height: 20),
-                        _buildLabel("Study Goal"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          _goalController,
-                          "e.g. Crack NEET 2025",
-                          Icons.track_changes_rounded,
-                        ),
-
-                        const SizedBox(height: 20),
-                        _buildLabel("Interests (comma separated)"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          _interestsController,
-                          "Physics, Space, Coding",
-                          Icons.auto_awesome_outlined,
-                        ),
-
-                        const SizedBox(height: 20),
-                        _buildLabel("Specific Learning Topics"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          _learningTopicsController,
-                          "e.g. Quantum Mechanics, Organic Chemistry",
-                          Icons.book_outlined,
-                        ),
-
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Preferred Language"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _languageController,
-                                    "English / Hindi",
-                                    Icons.translate_rounded,
-                                  ),
-                                ],
+                        if (_optInAiAnalysis) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Class/Grade"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _classController,
+                                      "e.g. 12th",
+                                      Icons.school_outlined,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Study Hours/Week"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _studyHoursController,
-                                    "e.g. 10",
-                                    Icons.timer_outlined,
-                                    keyboardType: TextInputType.number,
-                                  ),
-                                ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Age"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _ageController,
+                                      "e.g. 18",
+                                      Icons.cake_outlined,
+                                      keyboardType: TextInputType.number,
+                                      onChanged: _handleAgeChanged,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
 
-                        const SizedBox(height: 20),
-                        _buildLabel("Difficulty Preference"),
-                        const SizedBox(height: 8),
-                        _buildDropdownField(),
+                          const SizedBox(height: 20),
+                          _buildLabel("Study Goal"),
+                          const SizedBox(height: 8),
+                          _buildTextField(
+                            _goalController,
+                            "e.g. Crack NEET 2025",
+                            Icons.track_changes_rounded,
+                          ),
 
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Target Exam"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _targetExamController,
-                                    "NEET, JEE, UPSC",
-                                    Icons.school_outlined,
-                                  ),
-                                ],
+                          const SizedBox(height: 20),
+                          _buildLabel("Interests (comma separated)"),
+                          const SizedBox(height: 8),
+                          _buildTextField(
+                            _interestsController,
+                            "Physics, Space, Coding",
+                            Icons.auto_awesome_outlined,
+                          ),
+
+                          const SizedBox(height: 20),
+                          _buildLabel("Specific Learning Topics"),
+                          const SizedBox(height: 8),
+                          _buildTextField(
+                            _learningTopicsController,
+                            "e.g. Quantum Mechanics, Organic Chemistry",
+                            Icons.book_outlined,
+                          ),
+
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Preferred Language"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _languageController,
+                                      "English / Hindi",
+                                      Icons.translate_rounded,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildLabel("Learning Style"),
-                                  const SizedBox(height: 8),
-                                  _buildTextField(
-                                    _learningStyleController,
-                                    "Visual, Auditory, etc.",
-                                    Icons.psychology_outlined,
-                                  ),
-                                ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Study Hours/Week"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _studyHoursController,
+                                      "e.g. 10",
+                                      Icons.timer_outlined,
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 20),
+                          _buildLabel("Difficulty Preference"),
+                          const SizedBox(height: 8),
+                          _buildDropdownField(),
+
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Target Exam"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _targetExamController,
+                                      "NEET, JEE, UPSC",
+                                      Icons.school_outlined,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Learning Style"),
+                                    const SizedBox(height: 8),
+                                    _buildTextField(
+                                      _learningStyleController,
+                                      "Visual, Auditory, etc.",
+                                      Icons.psychology_outlined,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
 
                         const SizedBox(height: 32),
                         _buildSectionHeader("Private Information"),
@@ -565,11 +663,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool readOnly = false,
     Widget? suffixIcon,
     TextInputType keyboardType = TextInputType.text,
+    void Function(String)? onChanged,
   }) {
     return TextField(
       controller: controller,
       readOnly: readOnly,
       keyboardType: keyboardType,
+      onChanged: onChanged,
       style: GoogleFonts.poppins(color: global.valueColor),
       decoration: InputDecoration(
         hintText: hint,

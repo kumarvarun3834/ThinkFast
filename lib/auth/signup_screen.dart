@@ -17,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final AuthService auth = AuthService();
   bool loading = false;
+  bool privacyPolicyAccepted = false;
 
   @override
   void initState() {
@@ -35,6 +36,11 @@ class _SignupScreenState extends State<SignupScreen> {
         emailController.text.isEmpty ||
         passwordController.text.isEmpty) {
       _show("Please fill all fields");
+      return;
+    }
+
+    if (!privacyPolicyAccepted) {
+      _show("Please accept the Privacy Policy to continue.");
       return;
     }
 
@@ -57,6 +63,12 @@ class _SignupScreenState extends State<SignupScreen> {
       if (user != null) {
         // optionally store name in Firebase Auth
         await user.updateDisplayName(nameController.text.trim());
+
+        // Store privacy policy acceptance
+        await global.db.updateProtectedDetails(
+          uid: user.uid,
+          details: {'privacyPolicyAccepted': true},
+        );
 
         // Check if login is enabled
         await global.db.initAppData(user.uid);
@@ -167,7 +179,34 @@ class _SignupScreenState extends State<SignupScreen> {
                 prefixIcon: const Icon(Icons.lock, color: global.primaryAccent),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
+            Theme(
+              data: ThemeData(unselectedWidgetColor: global.labelColor),
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                title: GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
+                  child: Text(
+                    "I accept the Privacy Policy",
+                    style: GoogleFonts.poppins(
+                      color: global.labelColor,
+                      fontSize: 14,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                value: privacyPolicyAccepted,
+                onChanged: (val) {
+                  setState(() {
+                    privacyPolicyAccepted = val ?? false;
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+                activeColor: global.primaryAccent,
+                checkColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
             loading
                 ? const CircularProgressIndicator(color: global.primaryAccent)
                 : SizedBox(
