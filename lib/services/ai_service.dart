@@ -1,19 +1,15 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import 'admin_service.dart';
+import 'local_cache_service.dart';
 import 'quiz_data_processor.dart';
 import 'settings_service.dart';
 
 class AiService {
-  final CollectionReference _generations = FirebaseFirestore.instance
-      .collection('ai_generations');
-  final CollectionReference _usage = FirebaseFirestore.instance.collection(
-    'user_usage',
-  );
+  final LocalCacheService _cache = LocalCacheService();
 
   Future<void> _checkAiEnabled(String userId) async {
     final bool isAdmin = await AdminService().isAdmin(userId);
@@ -35,19 +31,18 @@ class AiService {
     Map<String, dynamic>? metadata,
   }) async {
     await _checkAiEnabled(userId);
-    await _generations.add({
-      'userId': userId,
-      'prompt': prompt,
-      'generatedQuizId': generatedQuizId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'metadata': metadata,
-    });
 
-    // Update usage
-    await _usage.doc(userId).set({
-      'aiGenerationsToday': FieldValue.increment(1),
-      'lastReset': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    // Call database service
+    await global.aiConnect.logGeneration(
+      userId: userId,
+      prompt: prompt,
+      generatedQuizId: generatedQuizId,
+      metadata: metadata,
+    );
+
+    // Update local cache: fetch fresh or increment
+    final newUsage = await global.aiConnect.getAiUsageToday(userId);
+    await _cache.saveAiUsage(newUsage);
   }
 
   /// ✅ Check if user has AI generation quota remaining
@@ -59,7 +54,7 @@ class AiService {
 
     final bool isAdmin = await AdminService().isAdmin(userId);
     final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
-    
+
     // 2. Global bypass toggle
     if (flags?['enable_ai_quota_bypass'] == true) return true;
 
@@ -70,30 +65,19 @@ class AiService {
     return usage < limit;
   }
 
-  /// ✅ Get AI usage count for today
+  /// ✅ Get AI usage count for today (with Local Cache support)
   Future<int> getAiUsageToday(String userId) async {
-    final doc = await _usage.doc(userId).get();
-    if (!doc.exists) return 0;
+    // 1. Try Local Cache first
+    final cached = await _cache.getAiUsage();
+    if (cached != null) return cached;
 
-    final data = doc.data() as Map<String, dynamic>;
-    final Timestamp? lastReset = data['lastReset'];
+    // 2. Fallback to Firestore
+    final usage = await global.aiConnect.getAiUsageToday(userId);
 
-    if (lastReset != null) {
-      final lastDate = lastReset.toDate();
-      final now = DateTime.now();
-      if (lastDate.day != now.day ||
-          lastDate.month != now.month ||
-          lastDate.year != now.year) {
-        // Reset count if it's a new day
-        await _usage.doc(userId).update({
-          'aiGenerationsToday': 0,
-          'lastReset': FieldValue.serverTimestamp(),
-        });
-        return 0;
-      }
-    }
+    // 3. Update Cache
+    await _cache.saveAiUsage(usage);
 
-    return data['aiGenerationsToday'] ?? 0;
+    return usage;
   }
 
   /// ✅ Create Quiz directly from AI with Validation and Repair Flow
@@ -136,14 +120,14 @@ class AiService {
     """;
 
     final stopwatch = Stopwatch()..start();
-    
+
     // Get models from feature flags
     final List<String> models = [
       global.featureFlags?['ai_model_main'] ?? 'gpt-4o',
       global.featureFlags?['ai_model_backup_1'] ?? 'gpt-4-turbo',
       global.featureFlags?['ai_model_backup_2'] ?? 'gpt-3.5-turbo',
     ];
-    
+
     int startIndex = (global.featureFlags?['ai_model_index'] ?? 0) as int;
     String jsonContent = "";
     String? error;
@@ -153,10 +137,13 @@ class AiService {
     for (int i = 0; i < models.length; i++) {
       int currentIndex = (startIndex + i) % models.length;
       activeModel = models[currentIndex];
-      
+
       try {
         debugPrint("AI: Attempting generation with model: $activeModel");
-        jsonContent = await generateQuizJson("$prompt $systemPrompt", model: activeModel);
+        jsonContent = await generateQuizJson(
+          "$prompt $systemPrompt",
+          model: activeModel,
+        );
         error = null;
         break; // Success
       } catch (e) {
@@ -175,7 +162,11 @@ class AiService {
       _validateJsonSchema(jsonContent);
     } catch (e) {
       debugPrint("Initial AI response malformed. Attempting repair...");
-      jsonContent = await _repairJson(jsonContent, e.toString(), model: activeModel);
+      jsonContent = await _repairJson(
+        jsonContent,
+        e.toString(),
+        model: activeModel,
+      );
       _validateJsonSchema(jsonContent); // Final check
     }
 
@@ -209,8 +200,10 @@ class AiService {
       allowMultipleAttempts: result.allowMultipleAttempts ?? true,
       completeRandomShuffle: result.completeRandomShuffle ?? false,
       shuffleModules: result.shuffleModules ?? false,
-      shuffleQuestionsWithinModules: result.shuffleQuestionsWithinModules ?? false,
-      disableModuleSwitchingUntilTimeout: result.disableModuleSwitchingUntilTimeout ?? false,
+      shuffleQuestionsWithinModules:
+          result.shuffleQuestionsWithinModules ?? false,
+      disableModuleSwitchingUntilTimeout:
+          result.disableModuleSwitchingUntilTimeout ?? false,
       forceWaitUntilTimeout: result.forceWaitUntilTimeout ?? false,
       isPersonal: isPersonal,
       isAiGenerated: true,
@@ -260,7 +253,11 @@ class AiService {
   }
 
   /// 🛠️ Repair Flow
-  Future<String> _repairJson(String malformedJson, String error, {String model = 'gpt-4o'}) async {
+  Future<String> _repairJson(
+    String malformedJson,
+    String error, {
+    String model = 'gpt-4o',
+  }) async {
     final repairPrompt =
         "The following JSON is invalid: $error. Please fix the structure and return ONLY the corrected JSON: $malformedJson";
     return await generateQuizJson(repairPrompt, model: model);
@@ -274,8 +271,9 @@ class AiService {
     final seenQuestions = <String>{};
     for (var q in questions) {
       final text = q['question'].toString().toLowerCase().trim();
-      if (seenQuestions.contains(text))
+      if (seenQuestions.contains(text)) {
         throw "Duplicate question detected: $text";
+      }
       seenQuestions.add(text);
 
       if (q['description'] == null ||
@@ -286,7 +284,10 @@ class AiService {
   }
 
   /// ✅ Mock AI Generation (Should be replaced with actual API call)
-  Future<String> generateQuizJson(String prompt, {String model = 'gpt-4o'}) async {
+  Future<String> generateQuizJson(
+    String prompt, {
+    String model = 'gpt-4o',
+  }) async {
     // In a real app, this would call OpenAI/Gemini with the prompt and model
     await Future.delayed(const Duration(seconds: 2));
 
@@ -296,7 +297,8 @@ class AiService {
     // Returning a more diverse template
     return jsonEncode({
       "title": "ThinkFast AI: Topic Exploration ($model)",
-      "description": "Comprehensive quiz generated using $model for your request.",
+      "description":
+          "Comprehensive quiz generated using $model for your request.",
       "time": 900,
       "markingScheme": {
         "type": "per_question_type",

@@ -7,16 +7,23 @@ to instruct an AI to generate specific quiz types.
 
 ## 🧩 1. Core Quiz Structure
 
-| Field                   | Type    | Required | Description                                                     |
-|:------------------------|:--------|:---------|:----------------------------------------------------------------|
-| `title`                 | String  | Yes      | Name of the quiz.                                               |
-| `description`           | String  | Yes      | Summary of the quiz.                                            |
-| `time`                  | Number  | Yes      | Total quiz time in **minutes**. Set to `0` for **Unlimited**.   |
-| `perQuestionTime`       | Number  | No       | Default time for every question in **seconds**. `0` to disable. |
-| `completeRandomShuffle` | Boolean | No       | `true` to mix all modules; `false` to keep module grouping.     |
-| `markingScheme`         | Map     | No       | Scoring configuration (see Section 2).                          |
+| Field                   | Type    | Required | Description                                                         |
+|:------------------------|:--------|:---------|:--------------------------------------------------------------------|
+| `title`                 | String  | Yes      | Name of the quiz.                                                   |
+| `description`           | String  | Yes      | Summary of the quiz.                                                |
+| `visibility`            | String  | No       | `public`, `private`, or `scheduled`.                                |
+| `activeAt`              | String  | No       | ISO Timestamp for scheduled activation (e.g. `2024-12-31T09:00Z`).  |
+| `time`                  | Number  | Yes      | Total quiz time in **minutes**. Set to `0` for **Unlimited**.       |
+| `perQuestionTime`       | Number  | No       | Default time for every question in **seconds**. `0` to disable.     |
+| `allowMultipleAttempts` | Boolean | No       | `true` to allow; `false` for one-time attempt.                      |
+| `maxAttempts`           | Number  | No       | Total attempts allowed if `allowMultipleAttempts` is `true`.        |
+| `isRestricted`          | Boolean | No       | `true` to only allow specific users (see `allowedParticipants`).    |
+| `allowedParticipants`   | Array   | No       | List of Emails or UIDs: `["user@mail.com", "uid123"]`.              |
+| `completeRandomShuffle` | Boolean | No       | `true` to mix all modules; `false` to keep module grouping.         |
+| `markingScheme`         | Map     | No       | Scoring configuration (see Section 2).                              |
 | `attemptLimits`         | Map     | No       | Selection constraints (see Section 3).                          |
-| `questions`             | Array   | Yes      | List of question objects (see Section 4).                       |
+| `timingScheme`          | Map     | No       | Advanced Pacing (see Section 4).                                    |
+| `questions`             | Array   | Yes      | List of question objects (see Section 5).                       |
 
 ---
 
@@ -33,7 +40,7 @@ to instruct an AI to generate specific quiz types.
 
 ## 📊 3. Attempt Limit Options (`attemptLimits`)
 
-*Limits how many questions a user can answer in a section.*
+*Limits how many questions a user can answer in a section (Select N out of M). Use `0` or omit for no limit.*
 
 | Type             | JSON Structure                                                                                       |
 |:-----------------|:-----------------------------------------------------------------------------------------------------|
@@ -43,7 +50,19 @@ to instruct an AI to generate specific quiz types.
 
 ---
 
-## ❓ 4. Question Object Structure
+## ⏱️ 4. Advanced Timing Options (`timingScheme`)
+
+| Type                       | JSON Structure                                                                                                                                                                                                     |
+|:---------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Global Only**            | `{"type": "global"}` (Uses the top-level `time` field)                                                                                                                                                             |
+| **Per Question (Fixed)**   | `{"type": "per_question"}` (Uses the top-level `perQuestionTime` field)                                                                                                                                            |
+| **Per Module (Fixed)**     | `{"type": "per_module", "settings": {"perModule": {"Math": {"total": 600, "perQuestion": 0}, "Physics": {"total": 900}}}}`                                                                                         |
+| **Per Question Type**      | `{"type": "per_question_type", "settings": {"perType": {"Single Choice": 30, "Multiple Choice": 60, "Integer": 120}}}`                                                                                             |
+| **Per Type Per Module**    | `{"type": "per_type_per_module", "settings": {"perModuleType": {"Physics": {"Single Choice": 60, "Integer": 120}}}}`                                                                                               |
+
+---
+
+## ❓ 5. Question Object Structure
 
 | Field         | Type   | Required   | Description                                                    |
 |:--------------|:-------|:-----------|:---------------------------------------------------------------|
@@ -59,7 +78,7 @@ to instruct an AI to generate specific quiz types.
 
 ---
 
-## 🧪 5. All Sample Combinations
+## 🧪 6. All Sample Combinations
 
 ### Sample 1: The "Simple Trivia" (Basic)
 

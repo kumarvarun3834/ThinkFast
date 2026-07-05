@@ -5,6 +5,7 @@ class QuizForm extends StatefulWidget {
   final Map<String, Object> formDataPart;
   final void Function(Map<String, Object>) onChanged;
   final bool showIndividualMarking;
+  final bool showIndividualTiming;
   final List<String> moduleOptions;
 
   const QuizForm({
@@ -13,6 +14,7 @@ class QuizForm extends StatefulWidget {
     required this.onChanged,
     required this.moduleOptions,
     this.showIndividualMarking = false,
+    this.showIndividualTiming = true,
   });
 
   @override
@@ -339,19 +341,20 @@ class _QuizFormState extends State<QuizForm> {
                   ),
                   const SizedBox(width: 12),
                 ],
-                Expanded(
-                  child: TextField(
-                    controller: _timerController,
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: global.valueColor),
-                    decoration: const InputDecoration(
-                      labelText: "Question Timer (sec)",
-                      labelStyle: TextStyle(color: global.labelColor),
-                      hintText: "0 = use global",
+                if (widget.showIndividualTiming)
+                  Expanded(
+                    child: TextField(
+                      controller: _timerController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: global.valueColor),
+                      decoration: const InputDecoration(
+                        labelText: "Question Timer (sec)",
+                        labelStyle: TextStyle(color: global.labelColor),
+                        hintText: "0 = use global",
+                      ),
+                      onChanged: (_) => _emitData(),
                     ),
-                    onChanged: (_) => _emitData(),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),

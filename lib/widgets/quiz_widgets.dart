@@ -80,6 +80,9 @@ class VisibilityBadge extends StatelessWidget {
         case 'private':
           color = global.warningColor;
           break;
+        case 'scheduled':
+          color = global.infoColor;
+          break;
         default:
           color = Colors.blueGrey;
       }

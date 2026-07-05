@@ -39,7 +39,8 @@ class _QuizPageState extends State<QuizPage> {
       _examController,
       _timeController,
       _perQuestionTimeController,
-      _allowedUsersController;
+      _allowedUsersController,
+      _maxAttemptsController;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _moduleController = TextEditingController();
 
@@ -58,7 +59,8 @@ class _QuizPageState extends State<QuizPage> {
 
   final Map<String, Map<String, TextEditingController>>
   _moduleTimingControllers = {},
-  _moduleLimitControllers = {};
+  _moduleLimitControllers = {},
+  _moduleTypeTimingControllers = {};
   final Map<String, TextEditingController> _typeTimingControllers = {
         "Single Choice": TextEditingController(text: "0"),
         "Multiple Choice": TextEditingController(text: "0"),
@@ -120,10 +122,12 @@ class _QuizPageState extends State<QuizPage> {
     _timeController = TextEditingController();
     _perQuestionTimeController = TextEditingController(text: "0");
     _allowedUsersController = TextEditingController();
+    _maxAttemptsController = TextEditingController(text: "1");
     user = FirebaseAuth.instance.currentUser;
     _isAdmin = global.isAdmin;
     _importEnabled = global.featureFlags?['enable_import'] ?? false;
     _updateModuleLimitControllers();
+    _updateModuleTimingControllers();
     if (_currentDocId.isNotEmpty) {
       _fetchQuiz(_currentDocId);
     } else {
@@ -139,6 +143,7 @@ class _QuizPageState extends State<QuizPage> {
     _timeController.dispose();
     _perQuestionTimeController.dispose();
     _allowedUsersController.dispose();
+    _maxAttemptsController.dispose();
     _moduleController.dispose();
     _globalCorrectController.dispose();
     _globalWrongController.dispose();
@@ -150,6 +155,12 @@ class _QuizPageState extends State<QuizPage> {
     _intWrongController.dispose();
     _globalLimitControllers.forEach((_, c) => c.dispose());
     _moduleLimitControllers.forEach((_, m) => m.forEach((_, c) => c.dispose()));
+    _moduleTimingControllers.forEach(
+      (_, m) => m.forEach((_, c) => c.dispose()),
+    );
+    _moduleTypeTimingControllers.forEach(
+      (_, m) => m.forEach((_, c) => c.dispose()),
+    );
     _moduleTagControllers.forEach((_, c) => c.dispose());
     super.dispose();
   }
@@ -175,6 +186,14 @@ class _QuizPageState extends State<QuizPage> {
         () => {
           "total": TextEditingController(text: "0"),
           "perQuestion": TextEditingController(text: "0"),
+        },
+      );
+      _moduleTypeTimingControllers.putIfAbsent(
+        m,
+        () => {
+          "Single Choice": TextEditingController(text: "0"),
+          "Multiple Choice": TextEditingController(text: "0"),
+          "Integer": TextEditingController(text: "0"),
         },
       );
     }
@@ -230,10 +249,12 @@ class _QuizPageState extends State<QuizPage> {
         timeController: _timeController,
         perQuestionTimeController: _perQuestionTimeController,
         allowedUsersController: _allowedUsersController,
+        maxAttemptsController: _maxAttemptsController,
         moduleTagControllers: _moduleTagControllers,
         globalLimitControllers: _globalLimitControllers,
         moduleLimitControllers: _moduleLimitControllers,
         moduleTimingControllers: _moduleTimingControllers,
+        moduleTypeTimingControllers: _moduleTypeTimingControllers,
         typeTimingControllers: _typeTimingControllers,
         globalCorrectController: _globalCorrectController,
         globalWrongController: _globalWrongController,
@@ -326,9 +347,13 @@ class _QuizPageState extends State<QuizPage> {
         timeController: _timeController,
         perQuestionTimeController: _perQuestionTimeController,
         allowedUsersController: _allowedUsersController,
+        maxAttemptsController: _maxAttemptsController,
         moduleTagControllers: _moduleTagControllers,
         globalLimitControllers: _globalLimitControllers,
         moduleLimitControllers: _moduleLimitControllers,
+        moduleTimingControllers: _moduleTimingControllers,
+        moduleTypeTimingControllers: _moduleTypeTimingControllers,
+        typeTimingControllers: _typeTimingControllers,
         globalCorrectController: _globalCorrectController,
         globalWrongController: _globalWrongController,
         scCorrectController: _scCorrectController,
@@ -371,9 +396,12 @@ class _QuizPageState extends State<QuizPage> {
       if (mounted) {
         setState(() {
           _hasError = true;
-          _errorMessage = "Failed to load quiz for editing. Please check your connection.";
+          _errorMessage =
+              "Failed to load quiz for editing. Please check your connection.";
         });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Load error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Load error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -404,6 +432,7 @@ class _QuizPageState extends State<QuizPage> {
       perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
       typeTimingControllers: _typeTimingControllers,
       moduleTimingControllers: _moduleTimingControllers,
+      moduleTypeTimingControllers: _moduleTypeTimingControllers,
     );
     final mTagsMap = FormDataHelpers.parseModuleTags(
       _moduleTagControllers,
@@ -423,6 +452,7 @@ class _QuizPageState extends State<QuizPage> {
           markingScheme: markingScheme,
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
+          maxAttempts: int.tryParse(_maxAttemptsController.text) ?? 1,
           completeRandomShuffle: completeRandomShuffle,
           shuffleModules: shuffleModules,
           shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
@@ -454,6 +484,7 @@ class _QuizPageState extends State<QuizPage> {
           markingScheme: markingScheme,
           attemptLimits: attemptLimits,
           allowMultipleAttempts: allowMultipleAttempts,
+          maxAttempts: int.tryParse(_maxAttemptsController.text) ?? 1,
           completeRandomShuffle: completeRandomShuffle,
           shuffleModules: shuffleModules,
           shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
@@ -554,7 +585,7 @@ class _QuizPageState extends State<QuizPage> {
                 size: 20,
               ),
               label: Text(
-                "QUIZ WIZARD",
+                "",
                 style: GoogleFonts.poppins(
                   color: global.primaryAccent,
                   fontWeight: FontWeight.bold,
@@ -597,54 +628,54 @@ class _QuizPageState extends State<QuizPage> {
               child: CircularProgressIndicator(color: global.primaryAccent),
             )
           : _hasError
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: global.errorColor,
-                          size: 64,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: global.valueColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                          onPressed: () => _fetchQuiz(_currentDocId),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: global.btnColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(200, 56),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text(
-                            "RETRY LOADING",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("GO BACK"),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: global.errorColor,
+                      size: 64,
                     ),
-                  ),
-                )
-              : Theme(
+                    const SizedBox(height: 24),
+                    Text(
+                      _errorMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: global.valueColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: () => _fetchQuiz(_currentDocId),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: global.btnColor,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(200, 56),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text(
+                        "RETRY LOADING",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("GO BACK"),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Theme(
               data: Theme.of(context).copyWith(
                 inputDecorationTheme: InputDecorationTheme(
                   labelStyle: const TextStyle(color: global.labelColor),
@@ -667,14 +698,13 @@ class _QuizPageState extends State<QuizPage> {
                       titleController: _titleController,
                       descriptionController: _descriptionController,
                       examController: _examController,
-                      timeController: _timeController,
-                      perQuestionTimeController: _perQuestionTimeController,
                       visibility: visibility,
                       onVisibilityChanged: (v) =>
                           setState(() => visibility = v!),
                       allowMultipleAttempts: allowMultipleAttempts,
                       onAllowMultipleAttemptsChanged: (v) =>
                           setState(() => allowMultipleAttempts = v),
+                      maxAttemptsController: _maxAttemptsController,
                       disableModuleSwitchingUntilTimeout:
                           disableModuleSwitchingUntilTimeout,
                       onDisableModuleSwitchingChanged: (v) => setState(
@@ -731,7 +761,10 @@ class _QuizPageState extends State<QuizPage> {
                     ),
                     const SizedBox(height: 24),
                     MarkingSchemePanel(
-                      isAdmin: _isAdmin,
+                      canEdit:
+                          _isAdmin ||
+                          global.ownedQuizIds.contains(_currentDocId) ||
+                          _currentDocId.isEmpty,
                       markingType: markingType,
                       onTypeChanged: (v) => setState(() => markingType = v),
                       globalCorrectController: _globalCorrectController,
@@ -748,12 +781,15 @@ class _QuizPageState extends State<QuizPage> {
                       timingType: timingType,
                       onTypeChanged: (v) => setState(() {
                         timingType = v;
-                        if (v == "per_module") _updateModuleTimingControllers();
+                        if (v == "per_module" || v == "per_type_per_module") {
+                          _updateModuleTimingControllers();
+                        }
                       }),
                       timeController: _timeController,
                       perQuestionTimeController: _perQuestionTimeController,
                       modulesList: modulesList,
                       moduleTimingControllers: _moduleTimingControllers,
+                      moduleTypeTimingControllers: _moduleTypeTimingControllers,
                       typeTimingControllers: _typeTimingControllers,
                     ),
                     const SizedBox(height: 24),
@@ -774,6 +810,7 @@ class _QuizPageState extends State<QuizPage> {
                       moduleKeys: _moduleKeys,
                       questionKeys: _questionKeys,
                       markingType: markingType,
+                      timingType: timingType,
                       onUpdateFormData: _updateFormData,
                       onRemoveForm: _removeForm,
                     ),

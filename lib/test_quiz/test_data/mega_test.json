@@ -1,6 +1,8 @@
 {
   "title": "ThinkFast Mega Configuration Test",
   "description": "The ultimate test case: Multiple modules, every question type, mixed marking schemes, and strict attempt limits.",
+  "visibility": "public",
+  "maxAttempts": 3,
   "time": 1800,
   "perQuestionTime": 45,
   "markingScheme": {

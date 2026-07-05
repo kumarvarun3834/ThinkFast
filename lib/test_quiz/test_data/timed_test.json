@@ -1,6 +1,10 @@
 {
   "title": "Time Pressure Simulation",
   "description": "A test for various timing configurations: global, generalized per-question, and individual overrides.",
+  "visibility": "scheduled",
+  "activeAt": "2025-01-01T10:00:00Z",
+  "isRestricted": true,
+  "allowedParticipants": ["test_user@example.com"],
   "time": 600,
   "perQuestionTime": 30,
   "examTag": "Timed-Exams",

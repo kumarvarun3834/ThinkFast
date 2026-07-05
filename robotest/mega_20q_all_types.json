@@ -2,6 +2,8 @@
   "title": "Mega 20Q Comprehensive Test",
   "description": "Full-scale test with 20 questions across all types, modules, and complex marking.",
   "time": 30,
+  "visibility": "public",
+  "maxAttempts": 5,
   "perQuestionTime": 45,
   "examTag": "MEGA-20",
   "markingScheme": {

@@ -44,20 +44,29 @@ class FormDataHelpers {
     required Map<String, Map<String, TextEditingController>> moduleLimitControllers,
   }) {
     final Map<String, dynamic> attemptLimits = {'type': attemptLimitType};
+
+    int? parseLimit(String text) {
+      final val = int.tryParse(text);
+      if (val == null || val <= 0) return null; // 0 or negative = No Limit
+      return val;
+    }
+
     if (attemptLimitType == "global") {
-      attemptLimits['global'] = {
-        'Single Choice': int.tryParse(globalLimitControllers['Single Choice']!.text),
-        'Multiple Choice': int.tryParse(globalLimitControllers['Multiple Choice']!.text),
-        'Integer': int.tryParse(globalLimitControllers['Integer']!.text),
-      };
+      final Map<String, int> limits = {};
+      globalLimitControllers.forEach((type, controller) {
+        final l = parseLimit(controller.text);
+        if (l != null) limits[type] = l;
+      });
+      attemptLimits['global'] = limits;
     } else if (attemptLimitType == "per_module") {
       final Map<String, dynamic> perModule = {};
       moduleLimitControllers.forEach((module, controllers) {
-        perModule[module] = {
-          'Single Choice': int.tryParse(controllers['Single Choice']!.text),
-          'Multiple Choice': int.tryParse(controllers['Multiple Choice']!.text),
-          'Integer': int.tryParse(controllers['Integer']!.text),
-        };
+        final Map<String, int> limits = {};
+        controllers.forEach((type, controller) {
+          final l = parseLimit(controller.text);
+          if (l != null) limits[type] = l;
+        });
+        perModule[module] = limits;
       });
       attemptLimits['perModule'] = perModule;
     }
@@ -70,6 +79,7 @@ class FormDataHelpers {
     required int perQuestionTime,
     required Map<String, TextEditingController> typeTimingControllers,
     required Map<String, Map<String, TextEditingController>> moduleTimingControllers,
+    required Map<String, Map<String, TextEditingController>> moduleTypeTimingControllers,
   }) {
     return {
       'type': timingType,
@@ -88,6 +98,12 @@ class FormDataHelpers {
             },
           ),
         ),
+        'perModuleType': moduleTypeTimingControllers.map(
+          (m, types) => MapEntry(
+            m,
+            types.map((t, c) => MapEntry(t, int.tryParse(c.text) ?? 0)),
+          ),
+        ),
       },
     };
   }
@@ -95,7 +111,7 @@ class FormDataHelpers {
   static List<String> parseAllowedParticipants(String input) {
     return input
         .split(',')
-        .map((e) => e.trim())
+        .map((e) => e.trim().toLowerCase())
         .where((e) => e.isNotEmpty)
         .toList();
   }

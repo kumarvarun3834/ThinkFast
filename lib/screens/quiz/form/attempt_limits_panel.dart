@@ -21,45 +21,75 @@ class AttemptLimitsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Attempt Limits (Select N out of M)",
-          style: GoogleFonts.poppins(
-            color: global.valueColor,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+    return Material(
+      color: global.cardColor,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: global.borderColor),
+          borderRadius: BorderRadius.circular(16),
         ),
-        const SizedBox(height: 8),
-        Text(
-          "Limit how many questions of each type a user can answer.",
-          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          dropdownColor: global.cardColor,
-          value: attemptLimitType,
-          style: const TextStyle(color: global.valueColor),
-          items: const [
-            DropdownMenuItem(value: "none", child: Text("No Limits")),
-            DropdownMenuItem(
-              value: "global",
-              child: Text("Same for all modules"),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.rule_folder_outlined, color: global.primaryAccent),
+                const SizedBox(width: 12),
+                Text(
+                  "Attempt Limits",
+                  style: GoogleFonts.poppins(
+                    color: global.valueColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-            DropdownMenuItem(
-              value: "per_module",
-              child: Text("Different for each module"),
+            const SizedBox(height: 8),
+            Text(
+              "Limit how many questions (e.g. answer any 5 out of 10) user can answer.",
+              style: GoogleFonts.poppins(color: global.labelColor, fontSize: 11),
             ),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              dropdownColor: global.cardColor,
+              initialValue: attemptLimitType,
+              style: const TextStyle(color: global.valueColor),
+              items: const [
+                DropdownMenuItem(value: "none", child: Text("No Limits")),
+                DropdownMenuItem(
+                  value: "global",
+                  child: Text("Same for all modules"),
+                ),
+                DropdownMenuItem(
+                  value: "per_module",
+                  child: Text("Different for each module"),
+                ),
+              ],
+              onChanged: (v) {
+                if (v != null) onTypeChanged(v);
+              },
+              decoration: const InputDecoration(
+                labelText: "Limit Mode",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            if (attemptLimitType == "global") _buildGlobalLimitBlock(),
+            if (attemptLimitType == "per_module") _buildPerModuleLimitBlock(),
           ],
-          onChanged: (v) {
-            if (v != null) onTypeChanged(v);
-          },
-          decoration: const InputDecoration(labelText: "Limit Mode"),
         ),
-        if (attemptLimitType == "global") ...[
-          const SizedBox(height: 16),
+      ),
+    );
+  }
+
+  Widget _buildGlobalLimitBlock() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Column(
+        children: [
           _buildLimitRow(
             "Single Choice",
             globalLimitControllers["Single Choice"]!,
@@ -72,63 +102,77 @@ class AttemptLimitsPanel extends StatelessWidget {
           const SizedBox(height: 12),
           _buildLimitRow("Integer", globalLimitControllers["Integer"]!),
         ],
-        if (attemptLimitType == "per_module") ...[
-          const SizedBox(height: 16),
-          ...modulesList.map((m) {
-            final controllers = moduleLimitControllers[m];
-            if (controllers == null) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: global.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: global.borderColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+    );
+  }
+
+  Widget _buildPerModuleLimitBlock() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0),
+      child: Column(
+        children: modulesList.map((m) {
+          final controllers = moduleLimitControllers[m];
+          if (controllers == null) return const SizedBox.shrink();
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: global.cardColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: global.borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
+                    const Icon(
+                      Icons.folder_outlined,
+                      size: 16,
+                      color: global.primaryAccent,
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       m.toUpperCase(),
                       style: const TextStyle(
                         color: global.primaryAccent,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
+                        letterSpacing: 1.1,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLimitRow(
-                      "Single Choice",
-                      controllers["Single Choice"]!,
-                      dense: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildLimitRow(
-                      "Multiple Choice",
-                      controllers["Multiple Choice"]!,
-                      dense: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildLimitRow(
-                      "Integer",
-                      controllers["Integer"]!,
-                      dense: true,
                     ),
                   ],
                 ),
-              ),
-            );
-          }),
-        ],
-      ],
+                const SizedBox(height: 12),
+                _buildLimitRow(
+                  "Single Choice",
+                  controllers["Single Choice"]!,
+                  small: true,
+                ),
+                const SizedBox(height: 8),
+                _buildLimitRow(
+                  "Multiple Choice",
+                  controllers["Multiple Choice"]!,
+                  small: true,
+                ),
+                const SizedBox(height: 8),
+                _buildLimitRow(
+                  "Integer",
+                  controllers["Integer"]!,
+                  small: true,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
   Widget _buildLimitRow(
     String label,
     TextEditingController controller, {
-    bool dense = false,
+    bool small = false,
   }) {
     return Row(
       children: [
@@ -138,23 +182,36 @@ class AttemptLimitsPanel extends StatelessWidget {
             label,
             style: TextStyle(
               color: global.valueColor,
-              fontSize: dense ? 13 : 14,
+              fontSize: small ? 12 : 13,
             ),
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(color: global.valueColor, fontSize: 14),
-            decoration: InputDecoration(
-              contentPadding: dense
-                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                  : null,
-              hintText: "No Limit",
-              hintStyle: const TextStyle(color: global.hintColor, fontSize: 12),
+          child: SizedBox(
+            height: small ? 36 : 45,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: TextStyle(
+                color: global.valueColor,
+                fontSize: small ? 13 : 14,
+              ),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                hintText: "Unlimited",
+                hintStyle: const TextStyle(fontSize: 10, color: global.labelColor),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: global.borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: global.primaryAccent),
+                ),
+              ),
             ),
           ),
         ),

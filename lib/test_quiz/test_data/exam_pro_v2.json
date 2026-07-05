@@ -1,0 +1,47 @@
+{
+  "title": "Pro Exam Simulation v2",
+  "description": "Exercises Scheduled visibility, email-based restrictions, and granular timing.",
+  "visibility": "scheduled",
+  "activeAt": "2024-12-31T09:00:00Z",
+  "maxAttempts": 2,
+  "isRestricted": true,
+  "allowedParticipants": ["student1@example.com", "pro_tester@thinkfast.app"],
+  "timingScheme": {
+    "type": "per_type_per_module",
+    "settings": {
+      "perModuleType": {
+        "Advanced Physics": {
+          "Single Choice": 60,
+          "Integer": 120
+        },
+        "General": {
+          "Single Choice": 30
+        }
+      }
+    }
+  },
+  "markingScheme": {
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Integer": { "correct": 10, "wrong": 0 }
+    }
+  },
+  "questions": [
+    {
+      "question": "Speed of light in vacuum is approx?",
+      "choices": ["3e8 m/s", "2e8 m/s", "1e8 m/s"],
+      "answers": ["3e8 m/s"],
+      "type": "Single Choice",
+      "subject": "Advanced Physics"
+    },
+    {
+      "question": "Calculate force (N) for 10kg at 9.8 m/s^2",
+      "choices": [],
+      "answers": ["98"],
+      "type": "Integer",
+      "subject": "Advanced Physics",
+      "description": "F = m*a"
+    }
+  ]
+}

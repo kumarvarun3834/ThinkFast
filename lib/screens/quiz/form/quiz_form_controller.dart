@@ -14,9 +14,13 @@ class QuizFormController {
     required TextEditingController timeController,
     required TextEditingController perQuestionTimeController,
     required TextEditingController allowedUsersController,
+    required TextEditingController maxAttemptsController,
     required Map<String, TextEditingController> moduleTagControllers,
     required Map<String, TextEditingController> globalLimitControllers,
     required Map<String, Map<String, TextEditingController>> moduleLimitControllers,
+    required Map<String, Map<String, TextEditingController>> moduleTimingControllers,
+    required Map<String, Map<String, TextEditingController>> moduleTypeTimingControllers,
+    required Map<String, TextEditingController> typeTimingControllers,
     required TextEditingController globalCorrectController,
     required TextEditingController globalWrongController,
     required TextEditingController scCorrectController,
@@ -40,6 +44,7 @@ class QuizFormController {
     descriptionController.text = data['description'] ?? '';
     examController.text = data['examTag'] ?? '';
     allowedUsersController.text = (data['allowedParticipants'] as List? ?? []).join(', ');
+    maxAttemptsController.text = (data['maxAttempts'] ?? 1).toString();
     perQuestionTimeController.text = (data['perQuestionTime'] ?? 0).toString();
     timeController.text = ((data['time'] ?? 0) ~/ 60).toString();
 
@@ -59,6 +64,15 @@ class QuizFormController {
     mTags.forEach((module, tags) {
       moduleTagControllers.putIfAbsent(module, () => TextEditingController()).text = (tags as List).join(', ');
     });
+
+    final tType = data['timingScheme']?['type'] ?? 'global';
+    updateState('timingType', tType);
+    FormDataMapping.mapTimingToControllers(
+      Map<String, dynamic>.from(data['timingScheme']?['settings'] ?? {}),
+      timeController, perQuestionTimeController,
+      typeTimingControllers, moduleTimingControllers, moduleTypeTimingControllers,
+      modulesList, updateModuleTimingControllers,
+    );
 
     final mType = data['markingScheme']?['type'] ?? 'default';
     updateState('markingType', mType);
@@ -121,10 +135,12 @@ class QuizFormController {
     required TextEditingController timeController,
     required TextEditingController perQuestionTimeController,
     required TextEditingController allowedUsersController,
+    required TextEditingController maxAttemptsController,
     required Map<String, TextEditingController> moduleTagControllers,
     required Map<String, TextEditingController> globalLimitControllers,
     required Map<String, Map<String, TextEditingController>> moduleLimitControllers,
     required Map<String, Map<String, TextEditingController>> moduleTimingControllers,
+    required Map<String, Map<String, TextEditingController>> moduleTypeTimingControllers,
     required Map<String, TextEditingController> typeTimingControllers,
     required TextEditingController globalCorrectController,
     required TextEditingController globalWrongController,
@@ -144,6 +160,7 @@ class QuizFormController {
       if (result.title != null) titleController.text = result.title!;
       if (result.description != null) descriptionController.text = result.description!;
       if (result.examTag != null) examController.text = result.examTag!;
+      if (result.maxAttempts != null) maxAttemptsController.text = result.maxAttempts.toString();
       if (result.moduleTags != null) {
         result.moduleTags!.forEach((module, tags) {
           moduleTagControllers.putIfAbsent(module, () => TextEditingController()).text = tags.join(', ');
@@ -167,7 +184,7 @@ class QuizFormController {
           FormDataMapping.mapTimingToControllers(
             settings.cast<String, dynamic>(),
             timeController, perQuestionTimeController,
-            typeTimingControllers, moduleTimingControllers,
+            typeTimingControllers, moduleTimingControllers, moduleTypeTimingControllers,
             modulesList, updateModuleTimingControllers,
           );
         }

@@ -3,6 +3,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalCacheService {
   static const String _keyRecentQuizzes = 'recent_quizzes';
+  static const String _keyAiUsage = 'ai_usage_today';
+  static const String _keyAiUsageDate = 'ai_usage_date';
+
+  /// ✅ Cache AI Usage for the day
+  Future<void> saveAiUsage(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyAiUsage, count);
+    await prefs.setString(_keyAiUsageDate, DateTime.now().toIso8601String());
+  }
+
+  /// ✅ Get cached AI Usage
+  Future<int?> getAiUsage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dateStr = prefs.getString(_keyAiUsageDate);
+    if (dateStr == null) return null;
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      if (date.day != now.day || date.month != now.month || date.year != now.year) {
+        return null;
+      }
+      return prefs.getInt(_keyAiUsage);
+    } catch (e) {
+      return null;
+    }
+  }
 
   /// ✅ Save a quiz to the "Recently Viewed" list (Limited to last 10)
   Future<void> saveRecentQuiz(Map<String, dynamic> quizData) async {

@@ -39,24 +39,27 @@ class FormDataMapping {
     Function(String) updateModuleLimitControllers,
   ) {
     final type = limits['type'] ?? 'none';
+    
+    // Reset all global controllers first
+    globalLimitControllers.values.forEach((c) => c.text = '');
+
     if (type == 'global') {
       final g = limits['global'] as Map? ?? {};
-      globalLimitControllers['Single Choice']?.text =
-          (g['Single Choice'] ?? '').toString();
-      globalLimitControllers['Multiple Choice']?.text =
-          (g['Multiple Choice'] ?? '').toString();
-      globalLimitControllers['Integer']?.text = (g['Integer'] ?? '').toString();
+      g.forEach((type, val) {
+        globalLimitControllers[type]?.text = val.toString();
+      });
     } else if (type == 'per_module') {
       final pm = limits['perModule'] as Map? ?? {};
       pm.forEach((module, values) {
         updateModuleLimitControllers(module);
         final mLimits = values as Map? ?? {};
-        moduleLimitControllers[module]?['Single Choice']?.text =
-            (mLimits['Single Choice'] ?? '').toString();
-        moduleLimitControllers[module]?['Multiple Choice']?.text =
-            (mLimits['Multiple Choice'] ?? '').toString();
-        moduleLimitControllers[module]?['Integer']?.text =
-            (mLimits['Integer'] ?? '').toString();
+        
+        // Reset module controllers
+        moduleLimitControllers[module]?.values.forEach((c) => c.text = '');
+        
+        mLimits.forEach((type, val) {
+          moduleLimitControllers[module]?[type]?.text = val.toString();
+        });
       });
     }
   }
@@ -67,6 +70,7 @@ class FormDataMapping {
     TextEditingController perQuestionTimeController,
     Map<String, TextEditingController> typeTimingControllers,
     Map<String, Map<String, TextEditingController>> moduleTimingControllers,
+    Map<String, Map<String, TextEditingController>> moduleTypeTimingControllers,
     List<String> modulesList,
     Function updateModuleTimingControllers,
   ) {
@@ -84,7 +88,7 @@ class FormDataMapping {
     }
     if (settings['perModule'] != null) {
       (settings['perModule'] as Map).forEach((module, val) {
-        if (!modulesList.contains(module)) modulesList.add(module);
+        if (!modulesList.contains(module)) modulesList.add(module.toString());
         updateModuleTimingControllers();
         if (val is Map) {
           moduleTimingControllers[module]?['total']?.text =
@@ -93,6 +97,17 @@ class FormDataMapping {
               (val['perQuestion'] ?? 0).toString();
         } else {
           moduleTimingControllers[module]?['total']?.text = val.toString();
+        }
+      });
+    }
+    if (settings['perModuleType'] != null) {
+      (settings['perModuleType'] as Map).forEach((module, types) {
+        if (!modulesList.contains(module)) modulesList.add(module.toString());
+        updateModuleTimingControllers();
+        if (types is Map) {
+          types.forEach((type, val) {
+            moduleTypeTimingControllers[module]?[type]?.text = val.toString();
+          });
         }
       });
     }

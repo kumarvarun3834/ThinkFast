@@ -2,6 +2,9 @@
   "title": "Restricted Access (20Q)",
   "description": "Tests isRestricted and allowedParticipants with 20 questions.",
   "time": 20,
+  "visibility": "scheduled",
+  "activeAt": "2025-01-01T12:00:00Z",
+  "maxAttempts": 2,
   "isRestricted": true,
   "allowedParticipants": ["tester@example.com", "robo@thinkfast.com"],
   "questions": [

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../utils/global.dart' as global;
@@ -20,13 +21,35 @@ class UserDatabaseService {
 
   Future<void> initAppData(String uid) async {
     try {
-      global.currentUserProfile = await _userService.getUserProfile(uid);
+      // 1. Fetch & Sync User Profile (Initial Setup to prevent missing document errors)
+      var profile = await _userService.getUserProfile(uid);
+      if (profile == null) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await _userService.createUserProfile(
+            uid: uid,
+            email: user.email ?? 'unknown',
+            name: user.displayName,
+            photoUrl: user.photoURL,
+          );
+          profile = await _userService.getUserProfile(uid);
+        }
+      }
+      global.currentUserProfile = profile;
+
+      // 2. Fetch Admin Status
       global.isRegisteredAdmin = await _adminService.isRegisteredAdmin(uid);
       global.isAdmin = await _adminService.isAdmin(uid);
+
+      // 3. Fetch Feature Flags
       global.featureFlags = await _settingsService.getFeatureFlags(
         isAdmin: global.isAdmin,
       );
 
+      // 4. Initialize AI Usage (Initial Setup for daily quota tracking)
+      await global.aiConnect.getAiUsageToday(uid);
+
+      // 5. Fetch Management & Access Records for Local Cache
       final accessRecords = await _adminService.getUserAccessRecords(uid);
       global.managedQuizzes = {
         for (var rec in accessRecords)
@@ -34,6 +57,7 @@ class UserDatabaseService {
             rec['quizId']: Map<String, dynamic>.from(rec['permissions'] ?? {}),
       };
 
+      // 6. Fetch Owned Quizzes (Just IDs for quick check)
       final myQuizzesSnapshot = await FirebaseFirestore.instance
           .collection('quizzes')
           .where('creatorId', isEqualTo: uid)
@@ -102,8 +126,10 @@ class UserDatabaseService {
     return _userService.updateProtectedDetails(uid: uid, details: details);
   }
 
-  Future<bool> hasParticipantAccess(String quizId, String userId) =>
-      _quizService.hasAccess(quizId, userId);
+  Future<bool> hasParticipantAccess(String quizId, String userId) async {
+    await _ensurePermission(null, userId: userId);
+    return _quizService.hasAccess(quizId, userId);
+  }
 
   // --- Profile Management ---
 
@@ -137,8 +163,9 @@ class UserDatabaseService {
   }) async {
     await _ensurePermission('enable_profile_edit', userId: uid);
     await _userService.updateUserProfile(uid: uid, name: name);
-    if (email != null)
+    if (email != null) {
       await _userService.updatePrivateDetails(uid: uid, email: email);
+    }
   }
 
   // --- Quiz Session Management ---
@@ -181,7 +208,7 @@ class UserDatabaseService {
         }
       }
 
-      await _attemptService.submitAttempt(
+      await submitAttempt(
         userId: uid,
         quizId: quizId,
         quizTitle: quiz['title'] ?? 'Timed Out Quiz',
@@ -249,10 +276,13 @@ class UserDatabaseService {
 
     final String visibility = quiz['visibility'] ?? 'private';
     if (visibility != 'public' && !isAdminUser && quiz['creatorId'] != userId) {
-      if (userId == null)
+      if (userId == null) {
         throw Exception("Access Denied: This quiz is private.");
+      }
       final hasAccess = await _quizService.hasAccess(docId, userId);
-      if (!hasAccess) throw Exception("Access Denied: This quiz is private.");
+      if (!hasAccess) {
+        throw Exception("Access Denied: This quiz is private.");
+      }
     }
 
     try {
@@ -355,8 +385,9 @@ class UserDatabaseService {
       final List<Map<String, dynamic>> flattenedQuestions = [];
       for (var module in questions) {
         final List<dynamic> qList = module['data'] as List? ?? [];
-        for (var q in qList)
+        for (var q in qList) {
           flattenedQuestions.add(Map<String, dynamic>.from(q));
+        }
       }
 
       await _attemptService.submitAttempt(
@@ -389,6 +420,7 @@ class UserDatabaseService {
     List<String>? questionOrder,
     List<String>? visitedItems,
   }) async {
+    await _ensurePermission('enable_take_quiz', userId: userId);
     return _attemptService.submitAttempt(
       userId: userId,
       quizId: quizId,
@@ -435,6 +467,7 @@ class UserDatabaseService {
   }
 
   Future<bool> hasUserAttemptedQuiz(String userId, String quizId) async {
+    await _ensurePermission(null, userId: userId);
     final attempts = await FirebaseFirestore.instance
         .collection('responses')
         .where('userId', isEqualTo: userId)
@@ -454,16 +487,20 @@ class UserDatabaseService {
     required String reason,
     String? details,
   }) async {
+    await _ensurePermission(null, userId: reporterId);
     final reportData = {
       'reporterId': reporterId,
       'targetType': targetType,
       'quizId': quizId,
-      'questionId': ?questionId,
+      'questionId': questionId,
       'reason': reason,
-      'details': ?details,
+      'details': details,
       'status': 'pending', // pending, reviewed, resolved, dismissed
       'timestamp': FieldValue.serverTimestamp(),
     };
+
+    // Remove null entries
+    reportData.removeWhere((key, value) => value == null);
 
     await FirebaseFirestore.instance
         .collection('content_reports')

@@ -10,12 +10,12 @@
     "Numbers": ["math", "binary"]
   },
   "timingScheme": {
-    "type": "per_module",
+    "type": "per_type_per_module",
     "settings": {
-      "perModule": {
-        "Intro": { "total": 300, "perQuestion": 30 },
-        "Hardware": { "total": 600, "perQuestion": 45 },
-        "Numbers": { "total": 900, "perQuestion": 60 }
+      "perModuleType": {
+        "Intro": { "Single Choice": 30 },
+        "Hardware": { "Multiple Choice": 45 },
+        "Numbers": { "Integer": 60 }
       }
     }
   },

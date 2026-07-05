@@ -65,6 +65,7 @@ class QAdminDatabaseService {
     Map<String, dynamic>? markingScheme,
     Map<String, dynamic>? attemptLimits,
     bool allowMultipleAttempts = true,
+    int maxAttempts = 1,
     bool completeRandomShuffle = false,
     bool shuffleModules = false,
     bool shuffleQuestionsWithinModules = false,
@@ -104,6 +105,7 @@ class QAdminDatabaseService {
       markingScheme: scheme,
       attemptLimits: attemptLimits ?? {'type': 'none'},
       allowMultipleAttempts: allowMultipleAttempts,
+      maxAttempts: maxAttempts,
       completeRandomShuffle: completeRandomShuffle,
       shuffleModules: shuffleModules,
       shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
@@ -166,6 +168,7 @@ class QAdminDatabaseService {
     bool? disableModuleSwitchingUntilTimeout,
     bool? forceWaitUntilTimeout,
     int? perQuestionTime,
+    int? maxAttempts,
     Map<String, dynamic>? markingScheme,
     Map<String, dynamic>? attemptLimits,
     DateTime? activeAt,
@@ -193,6 +196,7 @@ class QAdminDatabaseService {
     if (timingScheme != null) updates['timingScheme'] = timingScheme;
     if (allowMultipleAttempts != null)
       updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    if (maxAttempts != null) updates['maxAttempts'] = maxAttempts;
     if (completeRandomShuffle != null)
       updates['completeRandomShuffle'] = completeRandomShuffle;
     if (shuffleModules != null) updates['shuffleModules'] = shuffleModules;
@@ -204,7 +208,10 @@ class QAdminDatabaseService {
     if (forceWaitUntilTimeout != null)
       updates['forceWaitUntilTimeout'] = forceWaitUntilTimeout;
     if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
-    if (markingScheme != null) updates['markingScheme'] = markingScheme;
+    if (markingScheme != null) {
+      updates['markingScheme'] = markingScheme;
+      updates['markingType'] = markingScheme['type'] ?? 'default';
+    }
     if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
     if (activeAt != null) updates['activeAt'] = Timestamp.fromDate(activeAt);
     if (isRestricted != null) updates['isRestricted'] = isRestricted;
@@ -419,6 +426,7 @@ class QAdminDatabaseService {
 
   Future<void> softDeleteResponse(
       {required String responseId, required String quizId, required String actorId, required String reason}) async {
+    await _ensurePermission(null, userId: actorId);
     return _adminService.softDeleteResponse(responseId: responseId,
         quizId: quizId,
         actorId: actorId,
@@ -427,6 +435,7 @@ class QAdminDatabaseService {
 
   Future<void> restoreResponse(
       {required String responseId, required String quizId}) async {
+    await _ensurePermission(null, userId: global.currentUserProfile?['uid']);
     return _adminService.restoreResponse(
         responseId: responseId, quizId: quizId);
   }

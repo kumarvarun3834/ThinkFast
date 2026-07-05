@@ -7,6 +7,7 @@ class QuizImportResult {
   final int? time;
   final int? perQuestionTime;
   final bool? allowMultipleAttempts;
+  final int? maxAttempts;
   final bool? completeRandomShuffle;
   final bool? shuffleModules;
   final bool? shuffleQuestionsWithinModules;
@@ -34,6 +35,7 @@ class QuizImportResult {
     this.time,
     this.perQuestionTime,
     this.allowMultipleAttempts,
+    this.maxAttempts,
     this.completeRandomShuffle,
     this.shuffleModules,
     this.shuffleQuestionsWithinModules,
@@ -94,6 +96,9 @@ class QuizDataProcessor {
         : null;
 
     bool? allowMultipleAttempts = data['allowMultipleAttempts'];
+    int? maxAttempts = data['maxAttempts'] != null 
+        ? int.tryParse(data['maxAttempts'].toString()) 
+        : null;
     bool? completeRandomShuffle = data['completeRandomShuffle'];
     bool? shuffleModules = data['shuffleModules'];
     bool? shuffleQuestionsWithinModules = data['shuffleQuestionsWithinModules'];
@@ -199,6 +204,7 @@ class QuizDataProcessor {
       time: time,
       perQuestionTime: perQuestionTime,
       allowMultipleAttempts: allowMultipleAttempts,
+      maxAttempts: maxAttempts,
       completeRandomShuffle: completeRandomShuffle,
       shuffleModules: shuffleModules,
       shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,

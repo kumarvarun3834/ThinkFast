@@ -327,8 +327,6 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       _generationStatus = "Generating";
     });
     try {
-      final ai = global.aiConnect;
-      
       // Deep Profile Analytics (Mocked for now, should come from AnalyticsService)
       final profileAnalytics = {
         'avgScore': '68%',
@@ -359,7 +357,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
               .toList()
           : null;
 
-      final String quizId = await global.aiConnect.createAiQuiz(
+      final String quizId = await AiService().createAiQuiz(
         userId: global.currentUserProfile?['uid'] ?? '',
         userName: global.currentUserProfile?['name'] ?? 'User',
         prompt: prompt,

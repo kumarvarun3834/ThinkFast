@@ -9,6 +9,7 @@ class QuestionsListSection extends StatelessWidget {
   final Map<String, GlobalKey> moduleKeys;
   final Map<int, GlobalKey> questionKeys;
   final String markingType;
+  final String timingType;
   final Function(int, Map<String, Object>) onUpdateFormData;
   final Function(int) onRemoveForm;
 
@@ -19,6 +20,7 @@ class QuestionsListSection extends StatelessWidget {
     required this.moduleKeys,
     required this.questionKeys,
     required this.markingType,
+    required this.timingType,
     required this.onUpdateFormData,
     required this.onRemoveForm,
   });
@@ -97,6 +99,7 @@ class QuestionsListSection extends StatelessWidget {
                         formDataPart: questions[index],
                         onChanged: (d) => onUpdateFormData(index, d),
                         showIndividualMarking: markingType == "per_question",
+                        showIndividualTiming: timingType == "per_question",
                         moduleOptions: modulesList,
                       ),
                       Align(

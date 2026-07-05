@@ -735,6 +735,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             InfoRow(label: "Description", value: description),
+                            if (_quizData != null &&
+                                _quizData!['examTag'] != null &&
+                                _quizData!['examTag'].toString().isNotEmpty)
+                              InfoRow(
+                                label: "Target Exam",
+                                value: _quizData!['examTag'].toString(),
+                                icon: Icons.school_outlined,
+                              ),
                             const Divider(
                               color: global.borderColor,
                               height: 32,
@@ -771,39 +779,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 icon: Icons.lock_person_outlined,
                               ),
                             if (_quizData != null &&
-                                _quizData!['examTag'] != null &&
-                                _quizData!['examTag'].toString().isNotEmpty)
-                              InfoRow(
-                                label: "Target Exam",
-                                value: _quizData!['examTag'].toString(),
-                                icon: Icons.school_outlined,
-                              ),
-                            if (_quizData != null &&
-                                _quizData!['category'] != null)
-                              InfoRow(
-                                label: "Category",
-                                value: _quizData!['category'].toString(),
-                                icon: Icons.category_outlined,
-                              ),
-                            if (_quizData != null &&
-                                _quizData!['difficulty'] != null)
-                              InfoRow(
-                                label: "Difficulty",
-                                value: _quizData!['difficulty'].toString(),
-                                icon: Icons.speed,
-                              ),
-                            if (_quizData != null &&
-                                _quizData!['marks'] != null)
-                              InfoRow(
-                                label: "Marks",
-                                value: _quizData!['marks'].toString(),
-                                icon: Icons.star_outline,
-                              ),
-                            if (_quizData != null &&
                                 (_quizData!['modules'] as List? ?? []).isNotEmpty) ...[
                               const SizedBox(height: 12),
                               Text(
-                                "MODULES & TOPICS",
+                                "MODULES",
                                 style: GoogleFonts.poppins(
                                   color: global.labelColor,
                                   fontSize: 12,
@@ -811,7 +790,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                   letterSpacing: 1.1,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -821,81 +800,62 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                       ? List<String>.from(_quizData!['moduleTags'][sub])
                                       : [];
                                   
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Chip(
-                                        label: Text(
-                                          sub,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11,
+                                  return InkWell(
+                                    onTap: modTags.isEmpty ? null : () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          backgroundColor: global.cardColor,
+                                          title: Text(
+                                            "$sub Subtopics",
+                                            style: GoogleFonts.poppins(color: global.valueColor),
                                           ),
+                                          content: Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: modTags.map((t) => Chip(
+                                              label: Text(t, style: const TextStyle(fontSize: 12, color: Colors.white)),
+                                              backgroundColor: global.primaryAccent.withValues(alpha: 0.2),
+                                              side: BorderSide(color: global.primaryAccent.withValues(alpha: 0.3)),
+                                            )).toList(),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx),
+                                              child: const Text("CLOSE"),
+                                            ),
+                                          ],
                                         ),
-                                        backgroundColor:
-                                            global.infoColor.withValues(alpha: 0.2),
-                                        side: BorderSide(
-                                          color: global.infoColor
-                                              .withValues(alpha: 0.3),
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      if (modTags.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.only(left: 4.0, top: 2.0),
-                                          child: Text(
-                                            modTags.join(", "),
+                                      );
+                                    },
+                                    child: Chip(
+                                      label: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            sub,
                                             style: const TextStyle(
-                                              color: global.labelColor,
-                                              fontSize: 9,
+                                              color: Colors.white,
+                                              fontSize: 11,
                                             ),
                                           ),
-                                        ),
-                                    ],
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                            if (_quizData != null &&
-                                _quizData!['tags'] != null &&
-                                (_quizData!['tags'] as List).isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                "TAGS",
-                                style: GoogleFonts.poppins(
-                                  color: global.labelColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: (_quizData!['tags'] as List).map((t) {
-                                  return Chip(
-                                    label: Text(
-                                      t.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
+                                          if (modTags.isNotEmpty) ...[
+                                            const SizedBox(width: 4),
+                                            const Icon(Icons.info_outline_rounded, size: 10, color: Colors.white70),
+                                          ],
+                                        ],
                                       ),
+                                      backgroundColor:
+                                          global.infoColor.withValues(alpha: 0.2),
+                                      side: BorderSide(
+                                        color: global.infoColor
+                                            .withValues(alpha: 0.3),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: VisualDensity.compact,
                                     ),
-                                    backgroundColor:
-                                        global.primaryAccent.withValues(alpha: 0.2),
-                                    side: BorderSide(
-                                      color: global.primaryAccent
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    visualDensity: VisualDensity.compact,
                                   );
                                 }).toList(),
                               ),

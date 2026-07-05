@@ -3,8 +3,11 @@
   "description": "A comprehensive test suite for automated robo testing, covering all features and question types.",
   "time": 600,
   "perQuestionTime": 30,
-  "examTag": "RoboTest-2024",
+  "examTag": "RoboTest-2025",
   "isAiGenerated": true,
+  "visibility": "scheduled",
+  "activeAt": "2025-01-01T12:00:00Z",
+  "maxAttempts": 5,
   "completeRandomShuffle": false,
   "shuffleModules": true,
   "shuffleQuestionsWithinModules": true,
@@ -13,6 +16,20 @@
   "allowMultipleAttempts": false,
   "isRestricted": true,
   "allowedParticipants": ["tester@example.com", "robo@thinkfast.com"],
+  "timingScheme": {
+    "type": "per_type_per_module",
+    "settings": {
+      "perModuleType": {
+        "Flutter Basics": {
+          "Single Choice": 20,
+          "Multiple Choice": 45
+        },
+        "Logic": {
+          "Integer": 60
+        }
+      }
+    }
+  },
   "attemptLimits": {
     "type": "per_module",
     "perModule": {
