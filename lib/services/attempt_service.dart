@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:thinkfast/services/notification_service.dart';
 
 import 'admin_service.dart';
 
@@ -25,6 +27,7 @@ class AttemptService {
   }) async {
     // 1. Calculate Score
     int score = 0;
+    int maxPossible = 0;
 
     Map<String, int> getMarking(String? type, String qUid) {
       final schemeType = markingScheme['type'] ?? 'default';
@@ -67,6 +70,7 @@ class AttemptService {
       } catch (_) {}
 
       final marking = getMarking(qType, qUid);
+      maxPossible += marking['correct']!;
 
       if (qType == "Integer") {
         final String userVal = selected.isNotEmpty
@@ -96,6 +100,7 @@ class AttemptService {
       'quizId': quizId,
       'quizTitle': quizTitle,
       'score': score,
+      'maxPossible': maxPossible,
       'totalQuestions': totalQuestions,
       'answers': userAnswers,
       'reviewItems': reviewItems ?? [],
@@ -138,6 +143,19 @@ class AttemptService {
     }, SetOptions(merge: true));
 
     await batch.commit();
+
+    // 4. Send Notification
+    try {
+      final percentage = maxPossible > 0 ? (score / maxPossible) * 100 : 0;
+      await NotificationService().sendNotification(
+        userId: userId,
+        title: "Quiz Result: $quizTitle",
+        body:
+            "You scored $score/$maxPossible (${percentage.toStringAsFixed(1)}%). Check your attempt details now!",
+      );
+    } catch (e) {
+      debugPrint("Failed to send submission notification: $e");
+    }
 
     // Log the successful batch
     await AdminService().logAction(

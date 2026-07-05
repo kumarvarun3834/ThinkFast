@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:thinkfast/services/notification_service.dart';
 import '../../utils/global.dart' as global;
 
 import '../admin_service.dart';
@@ -14,7 +16,7 @@ class QAdminDatabaseService {
   Future<void> _ensurePermission(String? flag, {String? userId}) async {
     final flags =
         global.featureFlags ??
-        await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
+            await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
     if (flags?['maintenance_mode'] == true) {
       bool isUserAdmin = false;
@@ -22,7 +24,8 @@ class QAdminDatabaseService {
         isUserAdmin = await _adminService.isAdmin(userId);
       }
       if (!isUserAdmin) {
-        throw Exception("System is currently under maintenance. Please try again later.");
+        throw Exception(
+            "System is currently under maintenance. Please try again later.");
       }
     }
 
@@ -32,15 +35,18 @@ class QAdminDatabaseService {
         isUserAdmin = await _adminService.isAdmin(userId);
       }
       if (!isUserAdmin) {
-        final actionName = flag.replaceFirst('enable_', '').replaceAll('_', ' ');
-        throw Exception("Access Denied: '$actionName' is currently disabled by the administrator.");
+        final actionName = flag.replaceFirst('enable_', '').replaceAll(
+            '_', ' ');
+        throw Exception(
+            "Access Denied: '$actionName' is currently disabled by the administrator.");
       }
     }
   }
 
   Future<void> _ensureAdminPermission(String userId, String permission) async {
     if (!await _adminService.hasPermission(userId, permission)) {
-      throw Exception("Access Denied: Administrative permission '$permission' required.");
+      throw Exception(
+          "Access Denied: Administrative permission '$permission' required.");
     }
   }
 
@@ -65,6 +71,7 @@ class QAdminDatabaseService {
     bool disableModuleSwitchingUntilTimeout = false,
     bool forceWaitUntilTimeout = false,
     int perQuestionTime = 0,
+    DateTime? perQuestionStartTime, // Unused but in signature
     DateTime? activeAt,
     bool isRestricted = false,
     List<String>? allowedParticipants,
@@ -77,9 +84,11 @@ class QAdminDatabaseService {
   }) async {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
-    final transformed = _transformQuizData(data, scheme, moduleOrder: moduleOrder);
+    final transformed = _transformQuizData(
+        data, scheme, moduleOrder: moduleOrder);
     final List modules = transformed['modules'] as List? ?? [];
-    final Set<String> allModules = data.map((q) => q['subject'] as String? ?? 'General').toSet();
+    final Set<String> allModules = data.map((q) =>
+    q['subject'] as String? ?? 'General').toSet();
 
     final String quizId = await _quizService.createQuiz(
       clientToken: clientToken,
@@ -115,10 +124,27 @@ class QAdminDatabaseService {
       examTag: examTag,
     );
 
-    await syncModuleTags(quizId, moduleTags ?? {}, allModules: allModules.toList());
+    await syncModuleTags(
+        quizId, moduleTags ?? {}, allModules: allModules.toList());
 
-    if (examTag != null && examTag.trim().isNotEmpty) {
+    if (examTag != null && examTag
+        .trim()
+        .isNotEmpty) {
       await syncExamTag(quizId, examTag);
+    }
+
+    // Notify all users if it's a new PUBLIC quiz
+    if (visibility == 'public' && !isRestricted && !isPersonal) {
+      try {
+        await NotificationService().broadcastNotification(
+          title: "New Quiz Alert!",
+          body: "$user just published a new quiz: $title. Challenge yourself now!",
+          type: 'new_quiz',
+          targetId: quizId,
+        );
+      } catch (e) {
+        debugPrint("Failed to broadcast new quiz notification: $e");
+      }
     }
 
     return quizId;
@@ -165,18 +191,25 @@ class QAdminDatabaseService {
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
     if (timingScheme != null) updates['timingScheme'] = timingScheme;
-    if (allowMultipleAttempts != null) updates['allowMultipleAttempts'] = allowMultipleAttempts;
-    if (completeRandomShuffle != null) updates['completeRandomShuffle'] = completeRandomShuffle;
+    if (allowMultipleAttempts != null)
+      updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    if (completeRandomShuffle != null)
+      updates['completeRandomShuffle'] = completeRandomShuffle;
     if (shuffleModules != null) updates['shuffleModules'] = shuffleModules;
-    if (shuffleQuestionsWithinModules != null) updates['shuffleQuestionsWithinModules'] = shuffleQuestionsWithinModules;
-    if (disableModuleSwitchingUntilTimeout != null) updates['disableModuleSwitchingUntilTimeout'] = disableModuleSwitchingUntilTimeout;
-    if (forceWaitUntilTimeout != null) updates['forceWaitUntilTimeout'] = forceWaitUntilTimeout;
+    if (shuffleQuestionsWithinModules != null)
+      updates['shuffleQuestionsWithinModules'] = shuffleQuestionsWithinModules;
+    if (disableModuleSwitchingUntilTimeout != null)
+      updates['disableModuleSwitchingUntilTimeout'] =
+          disableModuleSwitchingUntilTimeout;
+    if (forceWaitUntilTimeout != null)
+      updates['forceWaitUntilTimeout'] = forceWaitUntilTimeout;
     if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
     if (markingScheme != null) updates['markingScheme'] = markingScheme;
     if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
     if (activeAt != null) updates['activeAt'] = Timestamp.fromDate(activeAt);
     if (isRestricted != null) updates['isRestricted'] = isRestricted;
-    if (allowedParticipants != null) updates['allowedParticipants'] = allowedParticipants;
+    if (allowedParticipants != null)
+      updates['allowedParticipants'] = allowedParticipants;
     if (tags != null) updates['tags'] = tags;
     if (moduleTags != null) updates['moduleTags'] = moduleTags;
     if (examTag != null) updates['examTag'] = examTag;
@@ -189,7 +222,8 @@ class QAdminDatabaseService {
         scheme = current?['markingScheme'] ?? {'type': 'default'};
       }
 
-      final transformed = _transformQuizData(data, scheme, moduleOrder: moduleOrder);
+      final transformed = _transformQuizData(
+          data, scheme, moduleOrder: moduleOrder);
       updates['modules'] = transformed['modules'];
       updates['totalQuestions'] = data.length;
       updates['moduleCount'] = transformed['modules'].length;
@@ -202,65 +236,92 @@ class QAdminDatabaseService {
         answerKeys: List<Map<String, dynamic>>.from(transformed['answerkeys']),
       );
 
-      final Set<String> allModules = data.map((q) => q['subject'] as String? ?? 'General').toSet();
-      await syncModuleTags(docId, moduleTags ?? {}, allModules: allModules.toList());
+      final Set<String> allModules = data.map((q) =>
+      q['subject'] as String? ?? 'General').toSet();
+      await syncModuleTags(
+          docId, moduleTags ?? {}, allModules: allModules.toList());
     }
 
     if (updates.isNotEmpty) {
-      await _quizService.updateQuiz(quizId: docId, userId: currentUserId, updates: updates);
+      await _quizService.updateQuiz(
+          quizId: docId, userId: currentUserId, updates: updates);
     }
   }
 
-  Future<void> deleteDatabase({required String docId, required String currentUserId}) async {
+  Future<void> deleteDatabase(
+      {required String docId, required String currentUserId}) async {
     await _ensurePermission('enable_delete_quiz', userId: currentUserId);
     return _quizService.deleteQuiz(docId, currentUserId);
   }
 
-  Future<void> restoreDatabase({required String docId, required String currentUserId}) async {
+  Future<void> restoreDatabase(
+      {required String docId, required String currentUserId}) async {
     await _ensurePermission('enable_delete_quiz', userId: currentUserId);
     return _quizService.restoreQuiz(docId, currentUserId);
   }
 
-  Future<void> toggleQuizLock({required String docId, required String currentUserId, required bool isLocked}) async {
+  Future<void> toggleQuizLock(
+      {required String docId, required String currentUserId, required bool isLocked}) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
-    return _quizService.updateQuiz(quizId: docId, userId: currentUserId, updates: {'isLocked': isLocked});
+    return _quizService.updateQuiz(
+        quizId: docId, userId: currentUserId, updates: {'isLocked': isLocked});
   }
 
-  Future<void> grantManagementAccess({required String quizId, required String userId, required Map<String, bool> permissions, required String addedBy}) async {
+  Future<void> grantManagementAccess(
+      {required String quizId, required String userId, required Map<String,
+          bool> permissions, required String addedBy}) async {
     await _ensurePermission('management_features', userId: addedBy);
-    return _adminService.grantQuizManagementAccess(quizId: quizId, userId: userId, permissions: permissions, addedBy: addedBy);
+    return _adminService.grantQuizManagementAccess(quizId: quizId,
+        userId: userId,
+        permissions: permissions,
+        addedBy: addedBy);
   }
 
-  Future<void> removeManagementAccess({required String quizId, required String userId, required String removedBy}) async {
+  Future<void> removeManagementAccess(
+      {required String quizId, required String userId, required String removedBy}) async {
     await _ensurePermission('management_features', userId: removedBy);
-    return _adminService.removeQuizManagementAccess(quizId: quizId, userId: userId, removedBy: removedBy);
+    return _adminService.removeQuizManagementAccess(
+        quizId: quizId, userId: userId, removedBy: removedBy);
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) => _adminService.getQuizManagers(quizId);
-  Stream<List<Map<String, dynamic>>> getQuizParticipants(String quizId) => _adminService.getQuizParticipants(quizId);
+  Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
+      _adminService.getQuizManagers(quizId);
 
-  Future<void> addParticipant({required String quizId, required String userId, required String addedBy}) async {
+  Stream<List<Map<String, dynamic>>> getQuizParticipants(String quizId) =>
+      _adminService.getQuizParticipants(quizId);
+
+  Future<void> addParticipant(
+      {required String quizId, required String userId, required String addedBy}) async {
     await _ensurePermission('management_features', userId: addedBy);
-    return _adminService.addParticipant(quizId: quizId, userId: userId, addedBy: addedBy);
+    return _adminService.addParticipant(
+        quizId: quizId, userId: userId, addedBy: addedBy);
   }
 
-  Future<void> banUser({required String userId, required String quizId, required String reason, required String adminId}) async {
-    return _adminService.banUser(userId: userId, quizId: quizId, reason: reason, adminId: adminId);
+  Future<void> banUser(
+      {required String userId, required String quizId, required String reason, required String adminId}) async {
+    return _adminService.banUser(
+        userId: userId, quizId: quizId, reason: reason, adminId: adminId);
   }
 
-  Future<void> unbanUser({required String userId, required String quizId, required String adminId}) async {
-    return _adminService.unbanUser(userId: userId, quizId: quizId, adminId: adminId);
+  Future<void> unbanUser(
+      {required String userId, required String quizId, required String adminId}) async {
+    return _adminService.unbanUser(
+        userId: userId, quizId: quizId, adminId: adminId);
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizBannedUsers(String quizId) => _adminService.getQuizBannedUsers(quizId);
-  Stream<List<Map<String, dynamic>>> getDeletedQuizzes() => _adminService.getDeletedQuizzes();
+  Stream<List<Map<String, dynamic>>> getQuizBannedUsers(String quizId) =>
+      _adminService.getQuizBannedUsers(quizId);
+
+  Stream<List<Map<String, dynamic>>> getDeletedQuizzes() =>
+      _adminService.getDeletedQuizzes();
 
   Future<Map<String, dynamic>?> getFeatureFlags() =>
       _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
   // --- Tag & Module Management ---
 
-  Future<void> syncModuleTags(String quizId, Map<String, List<String>> moduleTags, {List<String>? allModules}) async {
+  Future<void> syncModuleTags(String quizId,
+      Map<String, List<String>> moduleTags, {List<String>? allModules}) async {
     final batch = FirebaseFirestore.instance.batch();
     final tagsRef = FirebaseFirestore.instance.collection('tags');
     final moduleTagsRef = FirebaseFirestore.instance.collection('module_tags');
@@ -268,11 +329,13 @@ class QAdminDatabaseService {
     // 1. Process explicit module tags
     moduleTags.forEach((moduleName, tags) {
       if (tags.isEmpty) {
-         _addTagToBatch(batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
+        _addTagToBatch(
+            batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
       } else {
         for (var tag in tags) {
           final tagId = tag.toLowerCase().trim();
-          _addTagToBatch(batch, tagsRef, moduleTagsRef, quizId, moduleName, tagId);
+          _addTagToBatch(
+              batch, tagsRef, moduleTagsRef, quizId, moduleName, tagId);
         }
       }
     });
@@ -281,7 +344,8 @@ class QAdminDatabaseService {
     if (allModules != null) {
       for (var moduleName in allModules) {
         if (!moduleTags.containsKey(moduleName)) {
-          _addTagToBatch(batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
+          _addTagToBatch(
+              batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
         }
       }
     }
@@ -289,7 +353,9 @@ class QAdminDatabaseService {
     await batch.commit();
   }
 
-  void _addTagToBatch(WriteBatch batch, CollectionReference tagsRef, CollectionReference moduleTagsRef, String quizId, String moduleName, String tagId) {
+  void _addTagToBatch(WriteBatch batch, CollectionReference tagsRef,
+      CollectionReference moduleTagsRef, String quizId, String moduleName,
+      String tagId) {
     // Platform-wide discovery
     batch.set(tagsRef.doc(tagId), {
       'name': tagId,
@@ -299,7 +365,8 @@ class QAdminDatabaseService {
     }, SetOptions(merge: true));
 
     // Granular module-tag document
-    final String granularDocId = "${quizId}_${moduleName.replaceAll(' ', '_')}_$tagId";
+    final String granularDocId = "${quizId}_${moduleName.replaceAll(
+        ' ', '_')}_$tagId";
     batch.set(moduleTagsRef.doc(granularDocId), {
       'tag': tagId,
       'moduleName': moduleName,
@@ -331,7 +398,9 @@ class QAdminDatabaseService {
   }
 
   Future<void> syncExamTag(String quizId, String examTag) async {
-    if (examTag.trim().isEmpty) return;
+    if (examTag
+        .trim()
+        .isEmpty) return;
 
     final batch = FirebaseFirestore.instance.batch();
     final examTagsRef = FirebaseFirestore.instance.collection('exam_tags');
@@ -348,33 +417,41 @@ class QAdminDatabaseService {
 
   // --- Response Analytics ---
 
-  Future<void> softDeleteResponse({required String responseId, required String quizId, required String actorId, required String reason}) async {
-    return _adminService.softDeleteResponse(responseId: responseId, quizId: quizId, actorId: actorId, reason: reason);
+  Future<void> softDeleteResponse(
+      {required String responseId, required String quizId, required String actorId, required String reason}) async {
+    return _adminService.softDeleteResponse(responseId: responseId,
+        quizId: quizId,
+        actorId: actorId,
+        reason: reason);
   }
 
-  Future<void> restoreResponse({required String responseId, required String quizId}) async {
-    return _adminService.restoreResponse(responseId: responseId, quizId: quizId);
+  Future<void> restoreResponse(
+      {required String responseId, required String quizId}) async {
+    return _adminService.restoreResponse(
+        responseId: responseId, quizId: quizId);
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId, {bool includeDeleted = false}) {
+  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId,
+      {bool includeDeleted = false}) {
     return FirebaseFirestore.instance
         .collection('responses')
         .where('quizId', isEqualTo: quizId)
         .snapshots()
         .map((snapshot) {
-          final docs = snapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return data;
-          }).toList();
-          if (includeDeleted) return docs;
-          return docs.where((doc) => doc['isDeleted'] != true).toList();
-        });
+      final docs = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+      if (includeDeleted) return docs;
+      return docs.where((doc) => doc['isDeleted'] != true).toList();
+    });
   }
 
   // --- Internal Data Helpers ---
 
-  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData, Map<String, dynamic> markingScheme, {List<String>? moduleOrder}) {
+  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData,
+      Map<String, dynamic> markingScheme, {List<String>? moduleOrder}) {
     final Map<String, List<Map<String, dynamic>>> moduleMap = {};
     final List<Map<String, dynamic>> answerKeys = [];
     final Map<String, dynamic> perQuestionMap = {};
@@ -383,16 +460,20 @@ class QAdminDatabaseService {
       final item = inputData[i];
       final String qUid = item['uid']?.toString() ??
           (item['Q'] is Map ? (item['Q'] as Map)['id']?.toString() : null) ??
-          "q_${DateTime.now().microsecondsSinceEpoch}_$i";
+          "q_${DateTime
+              .now()
+              .microsecondsSinceEpoch}_$i";
 
-      final String qText = (item['question'] ?? (item['Q'] is Map ? (item['Q'] as Map)['text'] : '')).toString();
+      final String qText = (item['question'] ??
+          (item['Q'] is Map ? (item['Q'] as Map)['text'] : '')).toString();
       final String qDescription = (item['description'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
       final int qTimer = int.tryParse(item['timer']?.toString() ?? '0') ?? 0;
 
       if (markingScheme['type'] == 'per_question') {
-        perQuestionMap[qUid] = {'correct': item['correct'] ?? 4, 'wrong': item['wrong'] ?? -1};
+        perQuestionMap[qUid] =
+        {'correct': item['correct'] ?? 4, 'wrong': item['wrong'] ?? -1};
       }
 
       final choices = (item['choices'] ?? item['As']) as List? ?? [];
@@ -400,7 +481,8 @@ class QAdminDatabaseService {
       final List<Map<String, String>> optionsWithIds = [];
 
       if (qType == "Integer") {
-        if (answers.isNotEmpty) answerKeys.add({'q': qUid, 'a': answers.first.toString(), 's': qDescription});
+        if (answers.isNotEmpty) answerKeys.add(
+            {'q': qUid, 'a': answers.first.toString(), 's': qDescription});
       } else {
         bool descriptionAdded = false;
         for (int j = 0; j < choices.length; j++) {
@@ -412,7 +494,9 @@ class QAdminDatabaseService {
             optUid = choice['id'].toString();
             optText = choice['text']?.toString() ?? '';
           } else {
-            optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
+            optUid = "opt_${DateTime
+                .now()
+                .microsecondsSinceEpoch}_${i}_$j";
             optText = choice.toString();
           }
 
@@ -443,9 +527,14 @@ class QAdminDatabaseService {
       moduleMap.putIfAbsent(qSubject, () => []).add(questionData);
     }
 
-    if (markingScheme['type'] == 'per_question') markingScheme['perQuestion'] = perQuestionMap;
+    if (markingScheme['type'] == 'per_question')
+      markingScheme['perQuestion'] = perQuestionMap;
 
-    final List<String> typeOrder = ['Single Choice', 'Multiple Choice', 'Integer'];
+    final List<String> typeOrder = [
+      'Single Choice',
+      'Multiple Choice',
+      'Integer'
+    ];
 
     final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) {
       final questions = e.value;

@@ -275,5 +275,15 @@ service cloud.firestore {
       allow read, update: if isAuthenticated() && resource.data.get('userId', '') == request.auth.uid;
       allow create, delete: if isGlobalAdmin();
     }
+
+    match /global_notifications/{notifId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isGlobalAdmin();
+    }
+
+    match /leaderboards/{lbId} {
+      allow read: if true; // Public can see active leaderboards
+      allow write: if hasGlobalPermission('manage_leaderboards');
+    }
   }
 }

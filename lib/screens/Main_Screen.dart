@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/quiz_filter_screen.dart';
+import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
+
+import '../services/notification_service.dart';
 
 class MainScreen extends StatefulWidget {
   final User? creator;
@@ -109,9 +112,15 @@ class _MainScreenState extends State<MainScreen> {
       try {
         for (String id in _selectedQuizIds) {
           if (widget.showTrash) {
-            await global.qDb.restoreDatabase(docId: id, currentUserId: _user!.uid);
+            await global.qDb.restoreDatabase(
+              docId: id,
+              currentUserId: _user!.uid,
+            );
           } else {
-            await global.qDb.deleteDatabase(docId: id, currentUserId: _user!.uid);
+            await global.qDb.deleteDatabase(
+              docId: id,
+              currentUserId: _user!.uid,
+            );
           }
         }
         if (mounted) {
@@ -217,7 +226,8 @@ class _MainScreenState extends State<MainScreen> {
                         color: global.valueColor,
                       ),
                     ),
-                    if (data['examTag'] != null && data['examTag'].toString().isNotEmpty)
+                    if (data['examTag'] != null &&
+                        data['examTag'].toString().isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
@@ -255,9 +265,15 @@ class _MainScreenState extends State<MainScreen> {
                         }),
                         // Module Tags
                         if (data['moduleTags'] != null)
-                          ...(data['moduleTags'] as Map).values.expand((tags) => tags as List).take(3).map((t) {
-                            return _buildMetaChip(t.toString(), isModuleTag: true);
-                          }),
+                          ...(data['moduleTags'] as Map).values
+                              .expand((tags) => tags as List)
+                              .take(3)
+                              .map((t) {
+                                return _buildMetaChip(
+                                  t.toString(),
+                                  isModuleTag: true,
+                                );
+                              }),
                         // Regular Tags
                         ...(data['tags'] as List? ?? []).take(5).map((t) {
                           return _buildMetaChip(t.toString());
@@ -294,7 +310,11 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildMetaChip(String text, {bool isSubject = false, bool isModuleTag = false}) {
+  Widget _buildMetaChip(
+    String text, {
+    bool isSubject = false,
+    bool isModuleTag = false,
+  }) {
     Color chipColor = global.primaryAccent;
     if (isSubject) chipColor = global.infoColor;
     if (isModuleTag) chipColor = global.successColor;
@@ -304,9 +324,7 @@ class _MainScreenState extends State<MainScreen> {
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: chipColor.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: chipColor.withValues(alpha: 0.2)),
       ),
       child: Text(
         text,
@@ -388,13 +406,14 @@ class _MainScreenState extends State<MainScreen> {
       final title = (quiz['title'] ?? "").toString().toLowerCase();
       final matchesSearch = title.contains(_searchQuery);
 
-      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty) return matchesSearch;
+      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty)
+        return matchesSearch;
 
       final quizTags = List<String>.from(quiz['tags'] ?? []);
       final quizSubjects = (quiz['modules'] as List? ?? [])
           .map((m) => m is Map ? m['subject'].toString() : "")
           .toSet();
-      
+
       // Include examTag in quizSubjects for easier filtering
       if (quiz['examTag'] != null && quiz['examTag'].toString().isNotEmpty) {
         quizSubjects.add(quiz['examTag'].toString());
@@ -407,18 +426,26 @@ class _MainScreenState extends State<MainScreen> {
         // Strict: Quiz tags/subjects must be a SUBSET of selected filters
         // i.e., it should only contain selected tags and nothing else.
         if (_selectedTags.isNotEmpty) {
-          matchesTags = quizTags.isNotEmpty && quizTags.every((tag) => _selectedTags.contains(tag));
+          matchesTags =
+              quizTags.isNotEmpty &&
+              quizTags.every((tag) => _selectedTags.contains(tag));
         }
         if (_selectedSubjects.isNotEmpty) {
-          matchesSubjects = quizSubjects.isNotEmpty && quizSubjects.every((sub) => _selectedSubjects.contains(sub));
+          matchesSubjects =
+              quizSubjects.isNotEmpty &&
+              quizSubjects.every((sub) => _selectedSubjects.contains(sub));
         }
       } else {
         // Non-strict: Must match AT LEAST ONE selected item (union across categories)
         final bool hasSelectedTags = _selectedTags.isNotEmpty;
         final bool hasSelectedSubjects = _selectedSubjects.isNotEmpty;
 
-        bool tagMatch = hasSelectedTags && _selectedTags.any((tag) => quizTags.contains(tag));
-        bool subjectMatch = hasSelectedSubjects && _selectedSubjects.any((sub) => quizSubjects.contains(sub));
+        bool tagMatch =
+            hasSelectedTags &&
+            _selectedTags.any((tag) => quizTags.contains(tag));
+        bool subjectMatch =
+            hasSelectedSubjects &&
+            _selectedSubjects.any((sub) => quizSubjects.contains(sub));
 
         if (hasSelectedTags && hasSelectedSubjects) {
           return matchesSearch && (tagMatch || subjectMatch);
@@ -454,6 +481,7 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -525,6 +553,50 @@ class _MainScreenState extends State<MainScreen> {
               ]
             : [
                 if (global.isAdmin) const AdminBadge(),
+                StreamBuilder<int>(
+                  stream: NotificationService().getUnreadCount(
+                    _user?.uid ?? "",
+                  ),
+                  builder: (context, snapshot) {
+                    final int count = snapshot.data ?? 0;
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_none_rounded),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/Notifications'),
+                          tooltip: "Notifications",
+                        ),
+                        if (count > 0)
+                          Positioned(
+                            right: 12,
+                            top: 12,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: global.errorColor,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 14,
+                                minHeight: 14,
+                              ),
+                              child: Text(
+                                count > 9 ? "9+" : "$count",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   onPressed: () => setState(() {}),
@@ -545,14 +617,17 @@ class _MainScreenState extends State<MainScreen> {
                 IconButton(
                   icon: Icon(
                     Icons.filter_list,
-                    color: (_selectedTags.isNotEmpty || _selectedSubjects.isNotEmpty)
+                    color:
+                        (_selectedTags.isNotEmpty ||
+                            _selectedSubjects.isNotEmpty)
                         ? global.primaryAccent
                         : global.valueColor,
                   ),
                   onPressed: () async {
-                    final List<Map<String, dynamic>> allQuizzes = await readDatabases().first;
+                    final List<Map<String, dynamic>> allQuizzes =
+                        await readDatabases().first;
                     if (!mounted) return;
-                    
+
                     final result = await Navigator.push<Map<String, dynamic>>(
                       context,
                       MaterialPageRoute(
@@ -587,35 +662,127 @@ class _MainScreenState extends State<MainScreen> {
             ),
       body: Container(
         color: global.bgColor,
-        child: StreamBuilder<List<Map<String, dynamic>>>(
-          stream: readDatabases(),
-          builder: (context, snapshot) {
-            final allQuizzes = snapshot.data ?? [];
-            return Column(
-              children: [
-                Expanded(
-                  child: snapshot.connectionState == ConnectionState.waiting
-                      ? const Center(
-                          child: CircularProgressIndicator(color: global.primaryAccent),
-                        )
-                      : allQuizzes.isEmpty
-                          ? const Center(
-                              child: Text(
-                                "No quizzes available",
-                                style: TextStyle(color: global.labelColor),
-                              ),
-                            )
-                          : _buildQuizList(allQuizzes),
-                ),
-              ],
-            );
-          },
+        child: Column(
+          children: [
+            if (!widget.showTrash && !widget.showMyQuizzes && !widget.showManagedQuizzes)
+              FutureBuilder<List<Map<String, dynamic>>>(
+                future: LocalCacheService().getRecentQuizzes(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+                  final recent = snapshot.data!;
+                  return Container(
+                    height: 120,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Text(
+                            "RECENTLY VIEWED",
+                            style: GoogleFonts.poppins(
+                              color: global.primaryAccent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: recent.length,
+                            itemBuilder: (context, index) {
+                              final quiz = recent[index];
+                              return GestureDetector(
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  "/Quiz Details",
+                                  arguments: quiz['id'],
+                                ),
+                                child: Container(
+                                  width: 160,
+                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: global.cardColor,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: global.borderColor),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        quiz['title'] ?? 'Untitled',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: global.valueColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        "by ${quiz['user'] ?? 'Anonymous'}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: global.labelColor,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: readDatabases(),
+                builder: (context, snapshot) {
+                  final allQuizzes = snapshot.data ?? [];
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: snapshot.connectionState == ConnectionState.waiting
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                  color: global.primaryAccent,
+                                ),
+                              )
+                            : allQuizzes.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "No quizzes available",
+                                  style: TextStyle(color: global.labelColor),
+                                ),
+                              )
+                            : _buildQuizList(allQuizzes),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton:
           global.featureFlags?['enable_ai'] == true && !_isSelectionMode
           ? FloatingActionButton.extended(
-              onPressed: () => Navigator.pushNamed(context, '/AI Quiz Generator'),
+              onPressed: () =>
+                  Navigator.pushNamed(context, '/AI Quiz Generator'),
               backgroundColor: global.btnColor,
               icon: const Icon(Icons.auto_awesome_rounded),
               label: const Text("AI WIZARD"),

@@ -7,6 +7,8 @@ import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
 import 'package:thinkfast/screens/drawer/privacy_policy.dart';
+import 'package:thinkfast/screens/admin/manage_leaderboards_screen.dart';
+import 'package:thinkfast/screens/notification_screen.dart';
 import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
@@ -175,6 +177,10 @@ class MyApp extends StatelessWidget {
             page = const PrivacyPolicyScreen();
             wrapInGradient = false;
             break;
+          case '/Notifications':
+            page = const NotificationScreen();
+            wrapInGradient = false;
+            break;
           case '/profile':
             page = const ProfileScreen();
             wrapInGradient = false;
@@ -185,6 +191,12 @@ class MyApp extends StatelessWidget {
             break;
           case '/Manage Admins':
             page = const ManageAdminsScreen();
+            wrapInGradient = false;
+            break;
+          case '/Manage Leaderboards':
+            page = ManageLeaderboardsScreen(
+              quizId: settings.arguments as String?,
+            );
             wrapInGradient = false;
             break;
           case '/Quiz Responses':

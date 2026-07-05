@@ -35,4 +35,62 @@ class NotificationService {
   Future<void> markAsRead(String notificationId) async {
     await _notifications.doc(notificationId).update({'read': true});
   }
+
+  /// ✅ Mark all as read
+  Future<void> markAllAsRead(String userId) async {
+    final batch = FirebaseFirestore.instance.batch();
+    final unread = await _notifications
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .get();
+    for (var doc in unread.docs) {
+      batch.update(doc.reference, {'read': true});
+    }
+    await batch.commit();
+  }
+
+  /// ✅ Delete notification
+  Future<void> deleteNotification(String notificationId) async {
+    await _notifications.doc(notificationId).delete();
+  }
+
+  /// ✅ Stream unread count
+  Stream<int> getUnreadCount(String userId) {
+    return _notifications
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  /// ✅ Broadcast a notification to all users (Simulated via global collection)
+  Future<void> broadcastNotification({
+    required String title,
+    required String body,
+    String? type,
+    String? targetId,
+  }) async {
+    await FirebaseFirestore.instance.collection('global_notifications').add({
+      'title': title,
+      'body': body,
+      'type': type,
+      'targetId': targetId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// ✅ Stream global notifications
+  Stream<List<Map<String, dynamic>>> getGlobalNotifications() {
+    return FirebaseFirestore.instance
+        .collection('global_notifications')
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              data['isGlobal'] = true;
+              return data;
+            }).toList());
+  }
 }

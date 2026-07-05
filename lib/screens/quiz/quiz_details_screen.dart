@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 import 'package:thinkfast/screens/quiz/colab/manage_quiz_button.dart';
@@ -60,6 +61,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         _canManage = aggregatedData['canManage'] ?? false;
         _isLoading = false;
       });
+
+      // Save to local cache (Last 10 quizzes)
+      LocalCacheService().saveRecentQuiz(aggregatedData);
     } catch (e) {
       if (mounted) {
         setState(() {

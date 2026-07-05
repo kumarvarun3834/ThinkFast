@@ -92,11 +92,12 @@
 ## 📅 Backlog & Future Enhancements
 
 - [ ] **Leaderboards:** Global and Quiz-specific rankings.
+- [x] **Manual Admin Leaderboards:** Create and update rankings manually.
 - [ ] **Rich Media:** Support for images and diagrams in questions.
 - [ ] **Multiplayer:** Synchronous "Live Room" quiz mode.
 - [ ] **Exporting:** Download participant results as CSV/PDF.
 - [ ] **Advanced AI:** Personalized feedback based on attempt performance.
-- [ ] **Notifications:** Reminders for new public quizzes or attempt results.
+- [x] **Notifications:** Reminders for new public quizzes or attempt results.
 - [ ] **Account Management:**
     - [ ] **Account Deletion:** Self-service "Delete My Account" with data purge (Play Store
       requirement).

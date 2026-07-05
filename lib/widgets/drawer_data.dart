@@ -343,6 +343,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'Manage App Admins',
               onTap: () => _checkAndNavigate(context, "/Manage Admins"),
             ),
+          if (_isAdmin)
+            _drawerItem(
+              icon: Icons.leaderboard_outlined,
+              text: 'Manage Leaderboards',
+              onTap: () => _checkAndNavigate(context, "/Manage Leaderboards"),
+            ),
           if (_isRegisteredAdmin)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

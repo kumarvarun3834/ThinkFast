@@ -8,6 +8,7 @@ import 'responses_action.dart';
 import 'team_action.dart';
 import 'update_action.dart';
 import 'delete_action.dart';
+import 'manage_action_tile.dart';
 
 class ManagementBottomSheet extends StatelessWidget {
   final Map<String, dynamic> quizData;
@@ -97,6 +98,16 @@ class ManagementBottomSheet extends StatelessWidget {
                     quizData: quizData,
                     isAdmin: isAdmin,
                     hasPerm: hasPerm('can_manage_collaborators'),
+                  ),
+                  ManageActionTile(
+                    icon: Icons.leaderboard_rounded,
+                    text: "Manage Leaderboards",
+                    enabled: hasPerm('canModerate'),
+                    isAdmin: isAdmin,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/Manage Leaderboards', arguments: quizId);
+                    },
                   ),
                   if (!(quizData['isPersonal'] == true) || isAdmin) ...[
                     UpdateAction(

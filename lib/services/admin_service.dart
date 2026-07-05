@@ -26,6 +26,8 @@ class AdminService {
   );
   final CollectionReference _quizAttempts = FirebaseFirestore.instance
       .collection('quiz_attempts');
+  final CollectionReference _leaderboards = FirebaseFirestore.instance
+      .collection('leaderboards');
 
   static const List<String> allPermissions = [
     'manage_admins',
@@ -35,6 +37,7 @@ class AdminService {
     'manage_app_settings',
     'bypass_ai_quotas',
     'manage_collaborators',
+    'manage_leaderboards',
   ];
 
   // Safely check if a user is a registered admin
@@ -88,8 +91,9 @@ class AdminService {
     required bool enable,
   }) async {
     final exists = await isRegisteredAdmin(uid);
-    if (!exists)
+    if (!exists) {
       throw Exception("Unauthorized: User is not a registered admin.");
+    }
 
     await _admins.doc(uid).update({
       'isAdminModeEnabled': enable,
@@ -310,7 +314,7 @@ class AdminService {
       action: 'bulk_update_admins',
       targetId: 'multiple',
       details:
-          'Updated ${targetUids.length} admins. Action: grant=$grantPermissions, revoke=$revokePermissions, set=${setPermissions}',
+          'Updated ${targetUids.length} admins. Action: grant=$grantPermissions, revoke=$revokePermissions, set=$setPermissions',
       category: 'admin',
     );
   }
@@ -1278,5 +1282,158 @@ class AdminService {
       userId,
       includeDeleted: includeDeleted,
     );
+  }
+
+  // --- Leaderboard Management ---
+
+  /// ✅ Create or Update a manual leaderboard
+  Future<void> saveLeaderboard({
+    required String adminId,
+    String? leaderboardId,
+    String? quizId, // Link to a specific quiz
+    required String title,
+    required String description,
+    required List<Map<String, dynamic>> entries,
+    bool isPublic = true,
+  }) async {
+    // Permission Check: 
+    // 1. Global Admin with 'manage_leaderboards'
+    // 2. Quiz Owner or Quiz Manager with 'can_moderate' (for quiz-specific boards)
+    bool authorized = await hasPermission(adminId, 'manage_leaderboards');
+    
+    if (!authorized && quizId != null) {
+      authorized = await canManageQuiz(quizId, adminId, permission: 'canModerate');
+    }
+
+    if (!authorized) {
+      throw Exception("Unauthorized: Insufficient permissions to manage leaderboards.");
+    }
+
+    // Enforce Rules: Unique Users and Top 10 Only
+    final Map<String, Map<String, dynamic>> uniqueEntries = {};
+    for (var entry in entries) {
+      final uid = entry['userId']?.toString() ?? "guest_${DateTime.now().microsecondsSinceEpoch}";
+      if (!uniqueEntries.containsKey(uid)) {
+        uniqueEntries[uid] = entry;
+      }
+    }
+
+    final List<Map<String, dynamic>> finalEntries = uniqueEntries.values.toList();
+    finalEntries.sort((a, b) => (b['score'] as num).compareTo(a['score'] as num));
+    
+    final trimmedEntries = finalEntries.take(10).toList();
+
+    final data = {
+      'title': title,
+      'description': description,
+      'quizId': quizId,
+      'entries': trimmedEntries,
+      'isPublic': isPublic,
+      'updatedBy': adminId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (leaderboardId == null) {
+      data['createdAt'] = FieldValue.serverTimestamp();
+      await _leaderboards.add(data);
+    } else {
+      await _leaderboards.doc(leaderboardId).set(data, SetOptions(merge: true));
+    }
+
+    await logAction(
+      actorId: adminId,
+      action: 'save_leaderboard',
+      targetId: leaderboardId ?? 'new',
+      details: 'Admin saved manual leaderboard: $title',
+      category: 'admin',
+    );
+  }
+
+  /// ✅ Delete a leaderboard
+  Future<void> deleteLeaderboard(String leaderboardId, String adminId) async {
+    final doc = await _leaderboards.doc(leaderboardId).get();
+    if (!doc.exists) return;
+    
+    final quizId = (doc.data() as Map?)?['quizId'];
+    
+    bool authorized = await hasPermission(adminId, 'manage_leaderboards');
+    if (!authorized && quizId != null) {
+      authorized = await canManageQuiz(quizId, adminId, permission: 'canModerate');
+    }
+
+    if (!authorized) {
+      throw Exception("Unauthorized: Insufficient permissions to delete leaderboard.");
+    }
+
+    await _leaderboards.doc(leaderboardId).delete();
+
+    await logAction(
+      actorId: adminId,
+      action: 'delete_leaderboard',
+      targetId: leaderboardId,
+      details: 'Admin deleted leaderboard',
+      category: 'admin',
+    );
+  }
+
+  /// ✅ Stream all leaderboards
+  Stream<List<Map<String, dynamic>>> getLeaderboards({bool includePrivate = false, String? quizId}) {
+    Query query = _leaderboards.orderBy('updatedAt', descending: true);
+    if (!includePrivate) {
+      query = query.where('isPublic', isEqualTo: true);
+    }
+    if (quizId != null) {
+      query = query.where('quizId', isEqualTo: quizId);
+    }
+    return query.snapshots().map((snapshot) => snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          return data;
+        }).toList());
+  }
+
+  /// ✅ Helper: Get Potential Leaders (Top 10 First Attempts only)
+  Future<List<Map<String, dynamic>>> getPotentialLeaders(String quizId) async {
+    final snapshot = await _responses
+        .where('quizId', isEqualTo: quizId)
+        .where('isDeleted', isEqualTo: false)
+        .orderBy('timestamp', descending: false) // Earliest attempts first
+        .get();
+
+    final Map<String, Map<String, dynamic>> firstAttempts = {};
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final uid = data['userId'];
+      if (uid != null && !firstAttempts.containsKey(uid)) {
+        // Fetch display name from users collection
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        data['name'] = userDoc.data()?['name'] ?? 'Anonymous';
+        firstAttempts[uid] = data;
+      }
+    }
+
+    final List<Map<String, dynamic>> sorted = firstAttempts.values.toList();
+    // Sort by Score DESC, then Time ASC
+    sorted.sort((a, b) {
+      int scoreA = a['score'] ?? 0;
+      int scoreB = b['score'] ?? 0;
+      if (scoreA != scoreB) return scoreB.compareTo(scoreA);
+      
+      final tA = (a['timestamp'] as dynamic)?.toDate() ?? DateTime.now();
+      final tB = (b['timestamp'] as dynamic)?.toDate() ?? DateTime.now();
+      return tA.compareTo(tB);
+    });
+
+    return sorted.take(10).toList().asMap().entries.map((e) {
+      final idx = e.key;
+      final val = e.value;
+      return {
+        'userId': val['userId'],
+        'name': val['name'],
+        'score': val['score'],
+        'rank': idx + 1,
+      };
+    }).toList();
   }
 }

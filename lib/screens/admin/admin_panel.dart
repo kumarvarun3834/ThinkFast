@@ -55,6 +55,9 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_quiz_creation_rate_limit",
       "enable_form_save_rate_limit",
     ],
+    "Leaderboards": [
+      "enable_leaderboards",
+    ],
     "Security Batch AI Services": [
       "ai_model_main",
       "ai_model_backup_1",
@@ -255,6 +258,13 @@ class _AdminPanelState extends State<AdminPanel> {
                     builder: (context) => const AuditLogsScreen(),
                   ),
                 ),
+              ),
+              _buildManagementTile(
+                icon: Icons.leaderboard_outlined,
+                title: "Manage Leaderboards",
+                subtitle: "Manually create and update leaderboards",
+                enabled: _isMaster || _permissions.contains('manage_leaderboards'),
+                onTap: () => Navigator.pushNamed(context, '/Manage Leaderboards'),
               ),
               const SizedBox(height: 24),
 

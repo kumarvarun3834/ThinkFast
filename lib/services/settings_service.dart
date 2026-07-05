@@ -37,6 +37,8 @@ class SettingsService {
     'log_deletes': 'logs',
     // Collaboration
     'enable_realtime_colab': 'collaboration',
+    // Leaderboards
+    'enable_leaderboards': 'manage_leaderboards',
   };
 
   /// ✅ Fetch App Settings
@@ -93,6 +95,7 @@ class SettingsService {
       },
       'logs': {'log': true, 'log_updates': true, 'log_deletes': true},
       'collaboration': {'enable_realtime_colab': true},
+      'leaderboards': {'enable_leaderboards': true},
     };
 
     final Map<String, dynamic> allFlags = {};
