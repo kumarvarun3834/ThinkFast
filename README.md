@@ -30,13 +30,15 @@ ThinkFast is a high-performance, feature-rich quiz platform built with Flutter a
 *   **Modular Service Layer**: Specialized services for Users, Quizzes, Attempts, Analytics, and Notifications.
 *   **Dual-Layer Permissions**: Hierarchical access control combining global App Admin roles and quiz-specific delegated permissions.
 *   **Secure Firestore Backend**: Production-grade security rules protecting private data, answer keys, and administrative operations.
-*   **Data Integrity**: Automated background sync and "auto-repair" logic for user statistics and attempt counters.
+*   **Data Integrity**: Automated background sync, 7-day auto-purge for unverified accounts, and IP-based brute-force protection.
 
 ## 🚀 Tech Stack
 
 *   **Frontend**: Flutter (Dart)
+*   **State Management**: Reactive Streams (RxDart)
+*   **Local Caching**: Shared Preferences (Last 10 Quizzes)
 *   **Backend**: Firebase (Firestore, Authentication, Storage)
-*   **State Management**: Stateful Architecture with Global Utilities
+*   **Security**: IPify (Public IP Detection)
 *   **Typography**: Google Fonts (Poppins)
 
 ## 📦 Getting Started

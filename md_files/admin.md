@@ -80,3 +80,25 @@ Every administrative action (modifying permissions, toggling modes, deleting qui
 the `audit_logs` collection.
 
 - **Fields**: `actorId`, `action`, `targetId`, `details`, `category`, `timestamp`.
+
+---
+
+## 4. Platform Management & Security (v1.1)
+
+### 4.1 AI Service Orchestration
+The Admin Panel allows granular control over AI reliability:
+- **Active Model Rotation**: Admins can set the `ai_model_index` to shift the starting provider between Main, Backup 1, and Backup 2.
+- **Dynamic Configuration**: Model names can be updated in real-time via feature flags to react to provider changes without an app rebuild.
+
+### 4.2 Security Log Monitoring
+A dedicated view in the Admin Panel provides visibility into `security_logs`:
+- **IP Tracking**: Logs every failed login with its public IP.
+- **Block Management**: View and manually override 1-hour automated IP bans triggered by brute-force protection logic.
+
+### 4.3 Manual Leaderboard Management
+The system now supports **Manual Leaderboards** to ensure ranking high-integrity:
+- **Permission**: Controlled by the `manage_leaderboards` key.
+- **Scoping**: Allows creation of global boards or quiz-specific rankings for collaborators.
+- **Integrity**: Enforces Top 10 unique users only.
+- **Automation**: Features a "Magic Wand" discovery tool that scans responses for the earliest successful attempts per user.
+

@@ -18,6 +18,18 @@
 | `activeQuizExpiry` | Timestamp | Expiration time for the active session. |
 | `updatedAt` | Timestamp | Last document update. |
 
+### 1.2 Protected Sub-collection (`/users/{uid}/protected/details`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `privacyPolicyAccepted` | Boolean | Whether the user has accepted the latest terms. |
+| `optInAiAnalysis` | Boolean | Opt-in flag for PII collection and AI personalization. |
+| `age` | String | User age (null if opted-out or minor). |
+| `class` | String | Grade level (null if opted-out or minor). |
+| `goal` | String | Study objective. |
+| `learningStyle` | String | Preferred pedagogy (Visual, etc.). |
+| `updatedAt` | Timestamp | Last modification time. |
+
+
 ## 2. Quizzes Collection (`/quizzes/{quizId}`)
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -80,7 +92,9 @@
 | `quizTitle` | String | Denormalized quiz title. |
 | `score` | Number | Points earned. |
 | `totalQuestions` | Number | Total questions in quiz. |
+| `maxPossible` | Number | Maximum points achievable. |
 | `answers` | Map | `{questionId: selection}`. |
+
 | `reviewItems` | List<String> | List of question IDs marked for review during the session. |
 | `isDeleted` | Boolean | Soft delete flag. |
 | `deletedByType` | String | Role of the deleter (owner, manager, admin, user). |
@@ -121,6 +135,7 @@
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `actorId` | String | UID of the performer. |
+| `actorName` | String | Name of the performer (cached). |
 | `action` | String | Action type (e.g., `delete_quiz`, `bulk_update_admins`). |
 | `targetId` | String | ID of affected resource. |
 | `category` | String | e.g., `admin`, `quiz`, `moderation`. |
@@ -148,3 +163,56 @@
 ### 6.3 Banned Users (`/banned_users/{banId}`)
 - **Format:** `global_{userId}` or `{quizId}_{userId}`.
 - **Fields:** `userId`, `quizId` (null for global), `reason`, `bannedBy`, `createdAt`.
+
+## 7. Leaderboards (`/leaderboards/{id}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `quizId` | String | Linked quiz (null for global). |
+| `title` | String | Board title. |
+| `description` | String | Board description. |
+| `isPublic` | Boolean | Visibility status. |
+| `entries` | Array | Top 10 unique users: `[{userId, name, score, rank}]`. |
+| `updatedBy` | String | Admin UID. |
+| `updatedAt` | Timestamp | Last update. |
+
+## 8. Compliance & Monitoring
+### 8.1 Content Reports (`/content_reports/{id}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `reporterId` | String | User who flagged content. |
+| `targetType` | String | `quiz` or `question`. |
+| `quizId` | String | Relevant quiz ID. |
+| `questionId` | String | Relevant question UID (optional). |
+| `reason` | String | e.g., "Inaccurate Info", "Offensive". |
+| `status` | String | `pending`, `reviewed`, `dismissed`. |
+| `timestamp` | Timestamp | Creation time. |
+
+
+### 8.2 Security Logs (`/security_logs/{id}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ip` | String | Public IP address. |
+| `action` | String | `failed_login`, `blocked_access`. |
+| `attemptCount` | Number | Current fail counter. |
+| `lastAttempt` | Timestamp | Time of last failure. |
+| `blockedUntil` | Timestamp | Expiration of IP ban. |
+
+## 9. Notifications
+### 9.1 Personal Alerts (`/notifications/{id}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `userId` | String | Recipient UID. |
+| `title` | String | Alert title. |
+| `body` | String | Alert content. |
+| `read` | Boolean | Status. |
+| `createdAt` | Timestamp | Time sent. |
+
+### 9.2 Global Broadcasts (`/global_notifications/{id}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `title` | String | Broadcast title. |
+| `body` | String | Broadcast body. |
+| `type` | String | `new_quiz`, `maintenance`. |
+| `targetId` | String | ID for navigation (e.g., quizId). |
+| `createdAt` | Timestamp | Broadcast time. |
+

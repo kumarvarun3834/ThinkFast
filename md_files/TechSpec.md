@@ -137,3 +137,26 @@ Response/Attempt deletion follows a similar soft-delete pattern, attributing the
 - **Firebase Hosting:** Web version (if applicable).
 - **Firebase Cloud Functions:** (Planned) For server-side validation and automated cleanups.
 - **Analytics:** Firebase Analytics tracks quiz starts, completions, and AI usage.
+
+## 6. Recent Technical Enhancements (v1.1)
+
+### 6.1 Brute-Force & Security
+- **IP Detection**: Integrates with `api.ipify.org` to detect the user's public IP address during sensitive authentication flows.
+- **Rate Limiting**: Tracks failed login attempts in `security_logs`. After 5 consecutive failures from the same IP, an automated 1-hour block is enforced at the service level.
+- **Identity Purge**: Implemented a lifecycle policy that automatically deletes unverified Firebase Auth users and their associated Firestore records if they remain unverified for more than 7 days.
+
+### 6.2 Compliance Engineering
+- **Minor Safety (COPPA)**: The system implements an Age-Gate. If the detected or provided age is < 13, the `optInAiAnalysis` flag is hard-locked to `false`, preventing any collection of demographic or pedagogical preferences from minors.
+- **Consent Persistence**: Privacy policy acceptance is stored in the `protected/details` sub-collection, which is immutable by the user after the initial write to ensure legal auditability.
+
+### 6.3 AI Service Orchestration
+- **Triple-Model sequential Fallback**: To mitigate API outages, `AiService` manages a list of 3 providers (Main, Backup 1, Backup 2). Upon failure of the primary model, the service automatically retries with the next available model in the sequence.
+- **Admin Configuration**: Model names and the active starting index are managed via Global Feature Flags, allowing zero-downtime provider switching.
+
+### 6.4 Real-time Notification Engine
+- **Reactive Merging**: Utilizes `RxDart`'s `combineLatest2` to merge two independent Firestore streams (Personal UID-based alerts and Global system-wide broadcasts) into a single, sorted UI list.
+- **Event Bus Triggers**: Submission success and public publishing events trigger background writes to the notification collections, ensuring low-latency alerts.
+
+### 6.5 Local Caching Strategy
+- **Shared Preferences**: Utilizes `shared_preferences` to maintain a persistent local list of the last 10 quizzes visited. This reduces Firebase read overhead for frequent quiz-takers and improves app responsiveness.
+

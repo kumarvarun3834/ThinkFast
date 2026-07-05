@@ -22,6 +22,9 @@ All colors are centralized in `lib/utils/global.dart` for cross-platform consist
 | **Review** | `purple` | `reviewColor` | Semantic color for questions marked for review. |
 | **Seen** | `blueAccent` | `infoColor` | Indicators for visited but unattempted questions. |
 | **Partial** | `orangeAccent`| `warningColor` | Indicators for limited attempts or pending states. |
+| **AI Accent** | `#A855F7` | - | Purple used for AI-specific containers and compliance highlights. |
+| **Global Alert**| `#FB923C` | - | Orange used for system-wide broadcasts and minor safety notices. |
+
 
 ## 3. Typography
 *   **Primary Font:** `Poppins` (Google Fonts)

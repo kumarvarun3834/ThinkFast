@@ -83,3 +83,13 @@
 - **Real-time Multiplayer:** Synchronized quiz sessions for live classrooms.
 - **Exporting Results:** Allow creators to export participant responses to CSV/PDF.
 - **Advanced AI:** AI-powered feedback on quiz performance for participants.
+
+### 6.1 Recent Enhancements (v1.1)
+- **Brute-Force Protection:** IP-based login rate limiting (5 failed attempts = 1-hour block) to prevent unauthorized access.
+- **Data Retention & Compliance:** Automatic 7-day purge for unverified accounts and tiered Privacy Center for data transparency.
+- **AI Personalization Opt-in:** Explicit consent flow for demographic data collection (Age, Grade) with a "Restricted Mode" for users under 13.
+- **Triple-Model AI Fallback:** Sequential rotation through primary and backup AI models (Main, Backup 1, Backup 2) to ensure service availability.
+- **Integrated Notification System:** Real-time personal alerts for quiz results and global broadcasts for new public content using RxDart.
+- **Manual Leaderboards:** Admin and Manager controlled ranking system with "Magic Wand" discovery for top-10 unique first attempts.
+- **Discovery History:** Local on-device storage of the last 10 recently viewed quizzes for instant home screen access.
+

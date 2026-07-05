@@ -82,3 +82,23 @@ The app uses a consistent dark theme defined in `global.dart`:
 - **Background**: `0xFF0F172A` (Deep Blue/Black)
 - **Cards/Surfaces**: `0xFF1E293B` (Slate)
 - **Primary Accent**: `0xFF3B82F6` (Bright Blue)
+
+---
+
+## 🚀 Recent Architecture Updates (v1.1)
+
+### New Services & Data Handlers
+- **`notification_service.dart`**: Core logic for pushing reactive personal and global alerts using RxDart.
+- **`local_cache_service.dart`**: Manages persistent local history of the last 10 recently viewed quizzes using `shared_preferences`.
+- **`security_logs`**: Background service detecting public IPs and tracking failed login attempts for brute-force prevention.
+
+### Revised Interaction Flow
+1.  **Quiz Discovery**: Users now see a "RECENTLY VIEWED" horizontal list populated by `LocalCacheService`.
+2.  **Taking Quiz**: Every successful quiz entry triggers a local cache update and a background check for active session validity.
+3.  **Submission**:
+    - `AttemptService` calculates scores and pushes an atomic batch to Firestore.
+    - Immediately triggers `NotificationService` to send a personal result alert.
+4.  **Compliance Loop**: 
+    - `profile_screen.dart` serves as the primary controller for mandatory privacy consent and optional AI demographic collection.
+    - Status is synchronized with the user's `protected/details` sub-collection for backend enforcement.
+
