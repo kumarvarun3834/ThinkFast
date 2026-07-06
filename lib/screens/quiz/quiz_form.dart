@@ -53,7 +53,8 @@ class _QuizPageState extends State<QuizPage> {
       shuffleModules = false,
       shuffleQuestionsWithinModules = false,
       disableModuleSwitchingUntilTimeout = false,
-      forceWaitUntilTimeout = false;
+      forceWaitUntilTimeout = false,
+      enableAutoLeaderboard = false;
   DateTime? _scheduledTime;
   bool _isRestricted = false;
 
@@ -381,6 +382,8 @@ class _QuizPageState extends State<QuizPage> {
             disableModuleSwitchingUntilTimeout = v as bool;
           } else if (k == 'forceWaitUntilTimeout') {
             forceWaitUntilTimeout = v as bool;
+          } else if (k == 'enableAutoLeaderboard') {
+            enableAutoLeaderboard = v as bool;
           } else if (k == 'isRestricted') {
             _isRestricted = v as bool;
           } else if (k == 'markingType') {
@@ -459,6 +462,7 @@ class _QuizPageState extends State<QuizPage> {
           disableModuleSwitchingUntilTimeout:
               disableModuleSwitchingUntilTimeout,
           forceWaitUntilTimeout: forceWaitUntilTimeout,
+          enableAutoLeaderboard: enableAutoLeaderboard,
           perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
@@ -491,6 +495,7 @@ class _QuizPageState extends State<QuizPage> {
           disableModuleSwitchingUntilTimeout:
               disableModuleSwitchingUntilTimeout,
           forceWaitUntilTimeout: forceWaitUntilTimeout,
+          enableAutoLeaderboard: enableAutoLeaderboard,
           perQuestionTime: int.tryParse(_perQuestionTimeController.text) ?? 0,
           activeAt: _scheduledTime,
           isRestricted: _isRestricted,
@@ -713,6 +718,9 @@ class _QuizPageState extends State<QuizPage> {
                       forceWaitUntilTimeout: forceWaitUntilTimeout,
                       onForceWaitUntilTimeoutChanged: (v) =>
                           setState(() => forceWaitUntilTimeout = v),
+                      enableAutoLeaderboard: enableAutoLeaderboard,
+                      onEnableAutoLeaderboardChanged: (v) =>
+                          setState(() => enableAutoLeaderboard = v),
                     ),
                     const SizedBox(height: 16),
                     SchedulingPanel(

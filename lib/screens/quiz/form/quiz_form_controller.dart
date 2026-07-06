@@ -58,6 +58,7 @@ class QuizFormController {
     updateState('shuffleQuestionsWithinModules', data['shuffleQuestionsWithinModules'] ?? false);
     updateState('disableModuleSwitchingUntilTimeout', data['disableModuleSwitchingUntilTimeout'] ?? false);
     updateState('forceWaitUntilTimeout', data['forceWaitUntilTimeout'] ?? false);
+    updateState('enableAutoLeaderboard', data['enableAutoLeaderboard'] ?? false);
     updateState('isRestricted', data['isRestricted'] ?? false);
 
     final mTags = data['moduleTags'] as Map? ?? {};

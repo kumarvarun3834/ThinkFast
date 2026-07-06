@@ -288,9 +288,18 @@ service cloud.firestore {
       allow create, update, delete: if isGlobalAdmin();
     }
 
-    match /leaderboards/{lbId} {
-      allow read: if true; // Public can see active leaderboards
-      allow write: if hasGlobalPermission('manage_leaderboards');
+    match /leaderboards/{quizId} {
+      allow read: if (resource == null || resource.data.get('isPublic', true) == true) ||
+                   isGlobalAdmin() ||
+                   isAuthenticated() && (
+                     exists(/databases/$(database)/documents/quiz_access/$(quizId + "_" + request.auth.uid)) ||
+                     isQuizOwner(quizId)
+                   );
+      allow write: if hasGlobalPermission('manage_leaderboards') ||
+                    (isAuthenticated() && (
+                      isQuizOwner(quizId) ||
+                      get(/databases/$(database)/documents/quiz_access/$(quizId + "_" + request.auth.uid)).data.permissions.get('canModerate', false) == true
+                    ));
     }
   }
 }

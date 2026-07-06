@@ -1333,11 +1333,14 @@ class AdminService {
       'updatedAt': FieldValue.serverTimestamp(),
     };
 
-    if (leaderboardId == null) {
+    // Use quizId as the document ID for the primary leaderboard to make fetching easier
+    final String docId = leaderboardId ?? quizId ?? _leaderboards.doc().id;
+    
+    if (leaderboardId == null && quizId == null) {
       data['createdAt'] = FieldValue.serverTimestamp();
       await _leaderboards.add(data);
     } else {
-      await _leaderboards.doc(leaderboardId).set(data, SetOptions(merge: true));
+      await _leaderboards.doc(docId).set(data, SetOptions(merge: true));
     }
 
     await logAction(
@@ -1392,7 +1395,7 @@ class AdminService {
         }).toList());
   }
 
-  /// ✅ Helper: Get Potential Leaders (Top 10 First Attempts only)
+  /// ✅ Helper: Get Potential Leaders (Top 10 First Attempts only, Excluding Admins)
   Future<List<Map<String, dynamic>>> getPotentialLeaders(String quizId) async {
     final snapshot = await _responses
         .where('quizId', isEqualTo: quizId)
@@ -1401,11 +1404,18 @@ class AdminService {
         .get();
 
     final Map<String, Map<String, dynamic>> firstAttempts = {};
+    
+    // Efficient Exclusion: Fetch all admin UIDs first
+    final adminSnapshot = await _admins.get();
+    final Set<String> adminUids = adminSnapshot.docs.map((doc) => doc.id).toSet();
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       final uid = data['userId'];
       if (uid != null && !firstAttempts.containsKey(uid)) {
+        // Exclusion Check: Is this user an admin?
+        if (adminUids.contains(uid)) continue; // Skip admins
+
         // Fetch display name from users collection
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
         data['name'] = userDoc.data()?['name'] ?? 'Anonymous';

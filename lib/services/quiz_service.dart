@@ -42,6 +42,7 @@ class QuizService {
     bool shuffleQuestionsWithinModules = false,
     bool disableModuleSwitchingUntilTimeout = false,
     bool forceWaitUntilTimeout = false,
+    bool enableAutoLeaderboard = false,
     int perQuestionTime = 0,
     Map<String, dynamic>? timingScheme,
     List<String>? tags,
@@ -152,6 +153,7 @@ class QuizService {
       'shuffleQuestionsWithinModules': shuffleQuestionsWithinModules,
       'disableModuleSwitchingUntilTimeout': disableModuleSwitchingUntilTimeout,
       'forceWaitUntilTimeout': forceWaitUntilTimeout,
+      'enableAutoLeaderboard': false, // Default to false
       'timingScheme': timingScheme ?? {'type': 'global'},
       'markingScheme': markingScheme ?? {'type': 'default'},
       'attemptLimits': attemptLimits ?? {'type': 'none'},

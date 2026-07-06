@@ -71,6 +71,7 @@ class QAdminDatabaseService {
     bool shuffleQuestionsWithinModules = false,
     bool disableModuleSwitchingUntilTimeout = false,
     bool forceWaitUntilTimeout = false,
+    bool enableAutoLeaderboard = false,
     int perQuestionTime = 0,
     DateTime? perQuestionStartTime, // Unused but in signature
     DateTime? activeAt,
@@ -111,6 +112,7 @@ class QAdminDatabaseService {
       shuffleQuestionsWithinModules: shuffleQuestionsWithinModules,
       disableModuleSwitchingUntilTimeout: disableModuleSwitchingUntilTimeout,
       forceWaitUntilTimeout: forceWaitUntilTimeout,
+      enableAutoLeaderboard: enableAutoLeaderboard,
       perQuestionTime: perQuestionTime,
       activeAt: activeAt,
       isRestricted: isRestricted,
@@ -167,6 +169,7 @@ class QAdminDatabaseService {
     bool? shuffleQuestionsWithinModules,
     bool? disableModuleSwitchingUntilTimeout,
     bool? forceWaitUntilTimeout,
+    bool? enableAutoLeaderboard,
     int? perQuestionTime,
     int? maxAttempts,
     Map<String, dynamic>? markingScheme,
@@ -207,6 +210,8 @@ class QAdminDatabaseService {
           disableModuleSwitchingUntilTimeout;
     if (forceWaitUntilTimeout != null)
       updates['forceWaitUntilTimeout'] = forceWaitUntilTimeout;
+    if (enableAutoLeaderboard != null)
+      updates['enableAutoLeaderboard'] = enableAutoLeaderboard;
     if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
     if (markingScheme != null) {
       updates['markingScheme'] = markingScheme;

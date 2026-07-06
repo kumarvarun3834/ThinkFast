@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:thinkfast/services/notification_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
@@ -255,6 +256,35 @@ class _SidebarMenuState extends State<SidebarMenu> {
             },
           ),
           if (widget.user != null)
+            StreamBuilder<int>(
+              stream: NotificationService().getUnreadCount(widget.user!.uid),
+              builder: (context, snapshot) {
+                final int count = snapshot.data ?? 0;
+                return _drawerItem(
+                  icon: Icons.notifications_none_rounded,
+                  text: 'Notifications',
+                  trailing: count > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: global.errorColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            count > 9 ? "9+" : "$count",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onTap: () => _checkAndNavigate(context, "/Notifications"),
+                );
+              },
+            ),
+          if (widget.user != null)
             _drawerItem(
               icon: Icons.account_circle_outlined,
               text: 'Profile',
@@ -433,6 +463,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
     required IconData icon,
     required String text,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return ListTile(
       leading: Icon(icon, color: global.primaryAccent),
@@ -440,6 +471,7 @@ class _SidebarMenuState extends State<SidebarMenu> {
         text,
         style: const TextStyle(color: global.valueColor, fontSize: 16),
       ),
+      trailing: trailing,
       onTap: onTap,
     );
   }

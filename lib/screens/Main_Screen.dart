@@ -9,8 +9,6 @@ import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
-import '../services/notification_service.dart';
-
 class MainScreen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
@@ -403,59 +401,65 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildQuizList(List<Map<String, dynamic>> allQuizzes) {
     final filteredQuizzes = allQuizzes.where((quiz) {
       final title = (quiz['title'] ?? "").toString().toLowerCase();
-      final matchesSearch = title.contains(_searchQuery);
 
-      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty)
-        return matchesSearch;
-
+      // Collect ALL metadata for thorough matching (Tags, Subjects, Exam, Subtopics)
       final quizTags = List<String>.from(quiz['tags'] ?? []);
       final quizSubjects = (quiz['modules'] as List? ?? [])
           .map((m) => m is Map ? m['subject'].toString() : "")
           .toSet();
-
-      // Include examTag in quizSubjects for easier filtering
       if (quiz['examTag'] != null && quiz['examTag'].toString().isNotEmpty) {
         quizSubjects.add(quiz['examTag'].toString());
       }
 
-      bool matchesTags = true;
-      bool matchesSubjects = true;
+      final Map<String, dynamic> moduleTagsMap =
+          quiz['moduleTags'] is Map ? quiz['moduleTags'] : {};
+      final allModuleTags = moduleTagsMap.values
+          .expand((tags) => tags is List ? tags : [])
+          .map((t) => t.toString())
+          .toSet();
 
-      if (_isStrictFilter) {
-        // Strict: Quiz tags/subjects must be a SUBSET of selected filters
-        // i.e., it should only contain selected tags and nothing else.
-        if (_selectedTags.isNotEmpty) {
-          matchesTags =
-              quizTags.isNotEmpty &&
-              quizTags.every((tag) => _selectedTags.contains(tag));
-        }
-        if (_selectedSubjects.isNotEmpty) {
-          matchesSubjects =
-              quizSubjects.isNotEmpty &&
-              quizSubjects.every((sub) => _selectedSubjects.contains(sub));
-        }
-      } else {
-        // Non-strict: Must match AT LEAST ONE selected item (union across categories)
-        final bool hasSelectedTags = _selectedTags.isNotEmpty;
-        final bool hasSelectedSubjects = _selectedSubjects.isNotEmpty;
+      // Unified pool for filtering and search
+      final allMetadata = {
+        ...quizTags,
+        ...quizSubjects,
+        ...allModuleTags,
+      };
+      final allMetadataLower = allMetadata.map((m) => m.toLowerCase()).toSet();
 
-        bool tagMatch =
-            hasSelectedTags &&
-            _selectedTags.any((tag) => quizTags.contains(tag));
-        bool subjectMatch =
-            hasSelectedSubjects &&
-            _selectedSubjects.any((sub) => quizSubjects.contains(sub));
-
-        if (hasSelectedTags && hasSelectedSubjects) {
-          return matchesSearch && (tagMatch || subjectMatch);
-        } else if (hasSelectedTags) {
-          return matchesSearch && tagMatch;
-        } else if (hasSelectedSubjects) {
-          return matchesSearch && subjectMatch;
-        }
+      // 1. Search Query Match (Partial match on title or any metadata)
+      bool matchesSearch = true;
+      if (_searchQuery.isNotEmpty) {
+        bool titleMatch = title.contains(_searchQuery);
+        bool metadataMatch = allMetadataLower.any(
+          (m) => m.contains(_searchQuery),
+        );
+        matchesSearch = titleMatch || metadataMatch;
       }
 
-      return matchesSearch && matchesTags && matchesSubjects;
+      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty) {
+        return matchesSearch;
+      }
+
+      // 2. Filter Match (Case-insensitive match on selected chips)
+      final selectedFiltersLower = {
+        ..._selectedTags.map((t) => t.toLowerCase()),
+        ..._selectedSubjects.map((s) => s.toLowerCase()),
+      };
+
+      bool matchesFilter = false;
+      if (_isStrictFilter) {
+        // Strict: ALL selected filters MUST be present in the quiz
+        matchesFilter = selectedFiltersLower.every(
+          (f) => allMetadataLower.contains(f),
+        );
+      } else {
+        // Normal (OR Logic): Quiz must contain AT LEAST ONE selected tag or subject
+        matchesFilter = selectedFiltersLower.any(
+          (f) => allMetadataLower.contains(f),
+        );
+      }
+
+      return matchesSearch && matchesFilter;
     }).toList();
 
     if (filteredQuizzes.isEmpty) {
@@ -551,56 +555,6 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ]
             : [
-                if (global.isAdmin) const AdminBadge(),
-                StreamBuilder<int>(
-                  stream: NotificationService().getUnreadCount(
-                    _user?.uid ?? "",
-                  ),
-                  builder: (context, snapshot) {
-                    final int count = snapshot.data ?? 0;
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_none_rounded),
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/Notifications'),
-                          tooltip: "Notifications",
-                        ),
-                        if (count > 0)
-                          Positioned(
-                            right: 12,
-                            top: 12,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: global.errorColor,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 14,
-                                minHeight: 14,
-                              ),
-                              child: Text(
-                                count > 9 ? "9+" : "$count",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh_rounded),
-                  onPressed: () => setState(() {}),
-                  tooltip: "Refresh Feed",
-                ),
                 IconButton(
                   icon: Icon(_isSearching ? Icons.close : Icons.search),
                   onPressed: () {
@@ -613,44 +567,45 @@ class _MainScreenState extends State<MainScreen> {
                     });
                   },
                 ),
-                IconButton(
-                  icon: Icon(
-                    Icons.filter_list,
-                    color:
-                        (_selectedTags.isNotEmpty ||
-                            _selectedSubjects.isNotEmpty)
-                        ? global.primaryAccent
-                        : global.valueColor,
-                  ),
-                  onPressed: () async {
-                    final List<Map<String, dynamic>> allQuizzes =
-                        await readDatabases().first;
-                    if (!mounted) return;
+                if (_isSearching)
+                  IconButton(
+                    icon: Icon(
+                      Icons.filter_list,
+                      color:
+                          (_selectedTags.isNotEmpty ||
+                              _selectedSubjects.isNotEmpty)
+                          ? global.primaryAccent
+                          : global.valueColor,
+                    ),
+                    onPressed: () async {
+                      final List<Map<String, dynamic>> allQuizzes =
+                          await readDatabases().first;
+                      if (!mounted) return;
 
-                    final result = await Navigator.push<Map<String, dynamic>>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => QuizFilterScreen(
-                          initialTags: _selectedTags,
-                          initialSubjects: _selectedSubjects,
-                          initialStrict: _isStrictFilter,
-                          allQuizzes: allQuizzes,
+                      final result = await Navigator.push<Map<String, dynamic>>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuizFilterScreen(
+                            initialTags: _selectedTags,
+                            initialSubjects: _selectedSubjects,
+                            initialStrict: _isStrictFilter,
+                            allQuizzes: allQuizzes,
+                          ),
                         ),
-                      ),
-                    );
+                      );
 
-                    if (result != null) {
-                      setState(() {
-                        _selectedTags.clear();
-                        _selectedTags.addAll(result['tags']);
-                        _selectedSubjects.clear();
-                        _selectedSubjects.addAll(result['subjects']);
-                        _isStrictFilter = result['isStrict'];
-                      });
-                    }
-                  },
-                  tooltip: "Filters",
-                ),
+                      if (result != null) {
+                        setState(() {
+                          _selectedTags.clear();
+                          _selectedTags.addAll(result['tags']);
+                          _selectedSubjects.clear();
+                          _selectedSubjects.addAll(result['subjects']);
+                          _isStrictFilter = result['isStrict'];
+                        });
+                      }
+                    },
+                    tooltip: "Filters",
+                  ),
               ],
       ),
       drawer: _isSelectionMode
@@ -663,11 +618,14 @@ class _MainScreenState extends State<MainScreen> {
         color: global.bgColor,
         child: Column(
           children: [
-            if (!widget.showTrash && !widget.showMyQuizzes && !widget.showManagedQuizzes)
+            if (!widget.showTrash &&
+                !widget.showMyQuizzes &&
+                !widget.showManagedQuizzes)
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: LocalCacheService().getRecentQuizzes(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+                  if (!snapshot.hasData || snapshot.data!.isEmpty)
+                    return const SizedBox.shrink();
                   final recent = snapshot.data!;
                   return Container(
                     height: 120,
@@ -703,15 +661,20 @@ class _MainScreenState extends State<MainScreen> {
                                 ),
                                 child: Container(
                                   width: 160,
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: global.cardColor,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: global.borderColor),
+                                    border: Border.all(
+                                      color: global.borderColor,
+                                    ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
@@ -754,7 +717,8 @@ class _MainScreenState extends State<MainScreen> {
                   return Column(
                     children: [
                       Expanded(
-                        child: snapshot.connectionState == ConnectionState.waiting
+                        child:
+                            snapshot.connectionState == ConnectionState.waiting
                             ? const Center(
                                 child: CircularProgressIndicator(
                                   color: global.primaryAccent,
@@ -777,16 +741,33 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-      floatingActionButton:
-          global.featureFlags?['enable_ai'] == true && !_isSelectionMode
-          ? FloatingActionButton.extended(
-              onPressed: () =>
-                  Navigator.pushNamed(context, '/AI Quiz Generator'),
-              backgroundColor: global.btnColor,
-              icon: const Icon(Icons.auto_awesome_rounded),
-              label: const Text("AI WIZARD"),
-            )
-          : null,
+      floatingActionButton: _isSelectionMode
+          ? null
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'refresh_btn',
+                  onPressed: () => setState(() {}),
+                  backgroundColor: global.cardColor,
+                  child: const Icon(
+                    Icons.refresh_rounded,
+                    color: global.primaryAccent,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (global.featureFlags?['enable_ai'] == true)
+                  FloatingActionButton.extended(
+                    heroTag: 'ai_wizard_btn',
+                    onPressed: () =>
+                        Navigator.pushNamed(context, '/AI Quiz Generator'),
+                    backgroundColor: global.btnColor,
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                    label: const Text("AI WIZARD"),
+                  ),
+              ],
+            ),
     );
   }
 }

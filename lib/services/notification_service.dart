@@ -20,6 +20,7 @@ class NotificationService {
 
   /// ✅ Stream notifications for a user
   Stream<List<Map<String, dynamic>>> getUserNotifications(String userId) {
+    if (userId.isEmpty) return Stream.value([]);
     return _notifications
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
@@ -56,6 +57,7 @@ class NotificationService {
 
   /// ✅ Stream unread count
   Stream<int> getUnreadCount(String userId) {
+    if (userId.isEmpty) return Stream.value(0);
     return _notifications
         .where('userId', isEqualTo: userId)
         .where('read', isEqualTo: false)

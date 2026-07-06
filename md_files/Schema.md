@@ -49,6 +49,7 @@
 | `deletedBy` | String | UID of the user who deleted the resource. |
 | `deletedByType` | String | Role of the deleter (owner, manager, admin, user). |
 | `isLocked` | Boolean | Prevents new attempts. |
+| `enableAutoLeaderboard` | Boolean | If true, ranks are generated automatically from responses. |
 | `modules` | Array | Ordered modules containing question metadata. |
 | `totalQuestions` | Number | Count of questions. |
 | `tags` | Array | Aggregate list of all tags (module + exam). |

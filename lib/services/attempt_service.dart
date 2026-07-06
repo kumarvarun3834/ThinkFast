@@ -174,6 +174,7 @@ class AttemptService {
     String userId, {
     bool includeDeleted = false,
   }) {
+    if (userId.isEmpty) return Stream.value([]);
     return _responses
         .where('userId', isEqualTo: userId)
         .orderBy('timestamp', descending: true)

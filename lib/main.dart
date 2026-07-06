@@ -19,6 +19,7 @@ import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
+import 'package:thinkfast/screens/quiz/leaderboard_screen.dart';
 import 'package:thinkfast/screens/quiz/questions.dart';
 import 'package:thinkfast/screens/quiz/quiz_collaborators_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
@@ -209,6 +210,14 @@ class _MyAppState extends State<MyApp> {
           case '/Manage Leaderboards':
             page = ManageLeaderboardsScreen(
               quizId: settings.arguments as String?,
+            );
+            wrapInGradient = false;
+            break;
+          case '/Leaderboard':
+            final args = settings.arguments as Map<String, dynamic>;
+            page = LeaderboardScreen(
+              quizId: args['quizId'],
+              quizTitle: args['quizTitle'],
             );
             wrapInGradient = false;
             break;

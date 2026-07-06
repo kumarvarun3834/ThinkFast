@@ -16,6 +16,8 @@ class QuizHeaderSection extends StatelessWidget {
   final ValueChanged<bool> onDisableModuleSwitchingChanged;
   final bool forceWaitUntilTimeout;
   final ValueChanged<bool> onForceWaitUntilTimeoutChanged;
+  final bool enableAutoLeaderboard;
+  final ValueChanged<bool> onEnableAutoLeaderboardChanged;
 
   const QuizHeaderSection({
     super.key,
@@ -31,6 +33,8 @@ class QuizHeaderSection extends StatelessWidget {
     required this.onDisableModuleSwitchingChanged,
     required this.forceWaitUntilTimeout,
     required this.onForceWaitUntilTimeoutChanged,
+    required this.enableAutoLeaderboard,
+    required this.onEnableAutoLeaderboardChanged,
   });
 
   @override
@@ -184,6 +188,15 @@ class QuizHeaderSection extends StatelessWidget {
             value: forceWaitUntilTimeout,
             activeColor: global.primaryAccent,
             onChanged: onForceWaitUntilTimeoutChanged,
+          ),
+          const Divider(color: global.borderColor, height: 1),
+          SwitchListTile(
+            dense: true,
+            title: const Text("Auto Leaderboard", style: TextStyle(color: global.valueColor, fontSize: 13)),
+            subtitle: const Text("Automatically generate rankings (Excludes Admins)", style: TextStyle(color: global.labelColor, fontSize: 11)),
+            value: enableAutoLeaderboard,
+            activeColor: global.primaryAccent,
+            onChanged: onEnableAutoLeaderboardChanged,
           ),
         ],
       ),

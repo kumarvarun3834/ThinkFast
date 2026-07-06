@@ -778,93 +778,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 value: "Restricted (Allowed List Only)",
                                 icon: Icons.lock_person_outlined,
                               ),
-                            if (_quizData != null &&
-                                (_quizData!['modules'] as List? ?? []).isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Text(
-                                "MODULES",
-                                style: GoogleFonts.poppins(
-                                  color: global.labelColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: (_quizData!['modules'] as List).map((m) {
-                                  final sub = m is Map ? m['subject'].toString() : "Unknown";
-                                  final List<String> modTags = (_quizData!['moduleTags'] != null && _quizData!['moduleTags'][sub] != null)
-                                      ? List<String>.from(_quizData!['moduleTags'][sub])
-                                      : [];
-                                  
-                                  return InkWell(
-                                    onTap: modTags.isEmpty ? null : () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          backgroundColor: global.cardColor,
-                                          title: Text(
-                                            "$sub Subtopics",
-                                            style: GoogleFonts.poppins(color: global.valueColor),
-                                          ),
-                                          content: Wrap(
-                                            spacing: 6,
-                                            runSpacing: 6,
-                                            children: modTags.map((t) => Chip(
-                                              label: Text(t, style: const TextStyle(fontSize: 12, color: Colors.white)),
-                                              backgroundColor: global.primaryAccent.withValues(alpha: 0.2),
-                                              side: BorderSide(color: global.primaryAccent.withValues(alpha: 0.3)),
-                                            )).toList(),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(ctx),
-                                              child: const Text("CLOSE"),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    child: Chip(
-                                      label: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            sub,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          if (modTags.isNotEmpty) ...[
-                                            const SizedBox(width: 4),
-                                            const Icon(Icons.info_outline_rounded, size: 10, color: Colors.white70),
-                                          ],
-                                        ],
-                                      ),
-                                      backgroundColor:
-                                          global.infoColor.withValues(alpha: 0.2),
-                                      side: BorderSide(
-                                        color: global.infoColor
-                                            .withValues(alpha: 0.3),
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                            if (_quizData != null &&
-                                (_quizData!['tags'] as List? ?? []).isNotEmpty) ...[
+                            if (_quizData != null) ...[
                               const SizedBox(height: 24),
                               Text(
-                                "TAGS",
+                                "TAGS & TOPICS",
                                 style: GoogleFonts.poppins(
                                   color: global.labelColor,
                                   fontSize: 12,
@@ -876,28 +793,21 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
-                                children: (_quizData!['tags'] as List).map((t) {
-                                  return Chip(
-                                    label: Text(
-                                      t.toString(),
-                                      style: const TextStyle(
-                                        color: global.primaryAccent,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    backgroundColor:
-                                        global.primaryAccent.withValues(alpha: 0.1),
-                                    side: BorderSide(
-                                      color: global.primaryAccent
-                                          .withValues(alpha: 0.2),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    visualDensity: VisualDensity.compact,
-                                  );
-                                }).toList(),
+                                children: [
+                                  // Subjects (Module titles)
+                                  ...(_quizData!['modules'] as List? ?? []).map((m) {
+                                    final sub = m is Map ? m['subject'].toString() : "Unknown";
+                                    final List<String> modTags = (_quizData!['moduleTags'] != null && _quizData!['moduleTags'][sub] != null)
+                                        ? List<String>.from(_quizData!['moduleTags'][sub])
+                                        : [];
+                                    
+                                    return _buildUnifiedTag(sub, modTags, isModule: true);
+                                  }),
+                                  // Regular Tags
+                                  ...(_quizData!['tags'] as List? ?? []).map((t) {
+                                    return _buildUnifiedTag(t.toString(), [], isModule: false);
+                                  }),
+                                ],
                               ),
                             ],
                             const Divider(
@@ -1144,6 +1054,104 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     );
   }
 
+  Widget _buildUnifiedTag(String text, List<String> subtopics, {required bool isModule}) {
+    final bool hasSubtopics = subtopics.isNotEmpty;
+
+    return InkWell(
+      onTap: !hasSubtopics
+          ? null
+          : () {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: global.cardColor,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (ctx) => Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "$text Subtopics",
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: global.valueColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: subtopics
+                          .map(
+                            (t) => Chip(
+                              label: Text(
+                                t,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              backgroundColor: global.primaryAccent.withValues(
+                                alpha: 0.1,
+                              ),
+                              side: BorderSide(
+                                color: global.primaryAccent.withValues(
+                                  alpha: 0.2,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            );
+          },
+      child: Chip(
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                color: isModule ? Colors.white : global.primaryAccent,
+                fontSize: 11,
+                fontWeight: isModule ? FontWeight.normal : FontWeight.bold,
+              ),
+            ),
+            if (hasSubtopics) ...[
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.info_outline_rounded,
+                size: 10,
+                color: Colors.white70,
+              ),
+            ],
+          ],
+        ),
+        backgroundColor:
+            isModule
+                ? global.infoColor.withValues(alpha: 0.2)
+                : global.primaryAccent.withValues(alpha: 0.1),
+        side: BorderSide(
+          color:
+              isModule
+                  ? global.infoColor.withValues(alpha: 0.3)
+                  : global.primaryAccent.withValues(alpha: 0.2),
+        ),
+        padding: EdgeInsets.zero,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
   int _calculateTotalQuestions() {
     if (_quizData == null) return 0;
     final int count = _quizData!['totalQuestions'] ?? 0;
@@ -1273,6 +1281,38 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           icon: Icons.help_outline_rounded,
         ),
         const SizedBox(height: 16),
+        // Simplified Leaderboard Fetch: Check if document exists at /leaderboards/{quizId}
+        StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('leaderboards').doc(widget.quizId).snapshots(),
+          builder: (context, snapshot) {
+            final hasLeaderboard = snapshot.hasData && snapshot.data!.exists;
+            if (!hasLeaderboard) return const SizedBox.shrink();
+
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            final isPublic = data['isPublic'] ?? true;
+            if (!isPublic && !isAdmin) return const SizedBox.shrink();
+
+            return Column(
+              children: [
+                QuizActionButton(
+                  text: "View Leaderboard",
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      "/Leaderboard",
+                      arguments: {
+                        "quizId": widget.quizId,
+                        "quizTitle": _quizData?['title'] ?? 'Quiz',
+                      },
+                    );
+                  },
+                  icon: Icons.leaderboard_rounded,
+                ),
+                const SizedBox(height: 16),
+              ],
+            );
+          },
+        ),
         if (_user != null) ...[
           QuizActionButton(
             text: "View Your Attempts",
