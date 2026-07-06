@@ -13,6 +13,7 @@ import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
+import 'package:thinkfast/screens/drawer/settings_screen.dart';
 import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
 import 'package:thinkfast/screens/moderation/ban_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
@@ -197,6 +198,10 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/profile':
             page = const ProfileScreen();
+            wrapInGradient = false;
+            break;
+          case '/settings':
+            page = const SettingsScreen();
             wrapInGradient = false;
             break;
           case '/Admin Panel':

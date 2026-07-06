@@ -284,15 +284,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 );
               },
             ),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.account_circle_outlined,
-              text: 'Profile',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/profile");
-              },
-            ),
           _drawerItem(
             icon: Icons.qr_code_scanner_rounded,
             text: 'Join Quiz by ID',
@@ -320,23 +311,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'AI Quiz Wizard',
               onTap: () => _checkAndNavigate(context, "/AI Quiz Generator"),
             ),
-          if (widget.user != null && (_canCreateQuiz || _isAdmin))
-            _drawerItem(
-              icon: Icons.sync_rounded,
-              text: 'Refresh AI Model',
-              onTap: () async {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Syncing AI services...")),
-                );
-                await global.db.getFeatureFlags();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("AI Models updated")),
-                  );
-                  Navigator.pop(context);
-                }
-              },
-            ),
           if (widget.user != null)
             _drawerItem(
               icon: Icons.library_books_outlined,
@@ -361,23 +335,19 @@ class _SidebarMenuState extends State<SidebarMenu> {
               text: 'My Attempts',
               onTap: () => _checkAndNavigate(context, "/My Attempts"),
             ),
+          _drawerItem(
+            icon: Icons.settings_outlined,
+            text: 'Settings',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, "/settings");
+            },
+          ),
           if (_isAdmin)
             _drawerItem(
               icon: Icons.admin_panel_settings_outlined,
               text: 'Admin Panel',
               onTap: () => _checkAndNavigate(context, "/Admin Panel"),
-            ),
-          if (_isAdmin && _canManageAdmins)
-            _drawerItem(
-              icon: Icons.supervisor_account_outlined,
-              text: 'Manage App Admins',
-              onTap: () => _checkAndNavigate(context, "/Manage Admins"),
-            ),
-          if (_isAdmin)
-            _drawerItem(
-              icon: Icons.leaderboard_outlined,
-              text: 'Manage Leaderboards',
-              onTap: () => _checkAndNavigate(context, "/Manage Leaderboards"),
             ),
           if (_isRegisteredAdmin)
             Padding(
@@ -438,22 +408,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 if (context.mounted) Navigator.pop(context);
               },
             ),
-          _drawerItem(
-            icon: Icons.info_outline_rounded,
-            text: 'About Us',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/About Us");
-            },
-          ),
-          _drawerItem(
-            icon: Icons.privacy_tip_outlined,
-            text: 'Privacy Policy',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/Privacy Policy");
-            },
-          ),
         ],
       ),
     );

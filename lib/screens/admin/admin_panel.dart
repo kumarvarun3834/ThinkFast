@@ -9,6 +9,7 @@ import 'add_app_admin_screen.dart';
 import 'all_users_screen.dart';
 import 'audit_logs_screen.dart';
 import 'manage_admins_screen.dart';
+import 'reported_content_screen.dart';
 
 class AdminPanel extends StatefulWidget {
   const AdminPanel({super.key});
@@ -75,12 +76,17 @@ class _AdminPanelState extends State<AdminPanel> {
     );
   }
 
-  void _refreshPanel() {
+  void _refreshPanel() async {
     setState(() {
       _featureFlagsStream = _settingsService.streamFeatureFlags(
         isAdmin: global.isAdmin,
       );
     });
+    // Also sync global flags for the rest of the app
+    final newFlags = await _settingsService.getFeatureFlags(
+      isAdmin: global.isAdmin,
+    );
+    global.featureFlags = newFlags;
   }
 
   Future<void> _fetchAdminStatus() async {
@@ -266,6 +272,18 @@ class _AdminPanelState extends State<AdminPanel> {
                 enabled: _isMaster || _permissions.contains('manage_leaderboards'),
                 onTap: () => Navigator.pushNamed(context, '/Manage Leaderboards'),
               ),
+              _buildManagementTile(
+                icon: Icons.report_gmailerrorred_rounded,
+                title: "Reported Content",
+                subtitle: "Review flagged quizzes and questions",
+                enabled: _isMaster || _permissions.contains('moderate_users'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ReportedContentScreen(),
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
 
               ..._flagGroups.entries.map((group) {
@@ -309,6 +327,39 @@ class _AdminPanelState extends State<AdminPanel> {
 
               _buildSectionHeader("Database Maintenance"),
               const SizedBox(height: 12),
+              _buildManagementTile(
+                icon: Icons.sync_rounded,
+                title: "Sync AI Models",
+                subtitle: "Force refresh AI service configurations",
+                enabled: true,
+                onTap: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text("Syncing AI services...")),
+                  );
+                  try {
+                    final newFlags = await _settingsService.getFeatureFlags(
+                      isAdmin: global.isAdmin,
+                    );
+                    global.featureFlags = newFlags;
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text("AI Models updated")),
+                      );
+                      _refreshPanel();
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text("Sync Error: $e"),
+                          backgroundColor: global.errorColor,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
               _buildManagementTile(
                 icon: Icons.cleaning_services_outlined,
                 title: "Cleanup Orphaned Tags",

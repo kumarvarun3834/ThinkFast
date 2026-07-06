@@ -1395,6 +1395,39 @@ class AdminService {
         }).toList());
   }
 
+  /// ✅ Stream all content reports
+  Stream<List<Map<String, dynamic>>> getContentReports() {
+    return FirebaseFirestore.instance
+        .collection('content_reports')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['id'] = doc.id;
+              return data;
+            }).toList());
+  }
+
+  /// ✅ Update report status
+  Future<void> updateReportStatus(String reportId, String status, String adminId) async {
+    await FirebaseFirestore.instance
+        .collection('content_reports')
+        .doc(reportId)
+        .update({
+      'status': status,
+      'resolvedBy': adminId,
+      'resolvedAt': FieldValue.serverTimestamp(),
+    });
+
+    await logAction(
+      actorId: adminId,
+      action: 'update_report_status',
+      targetId: reportId,
+      details: 'Report status updated to: $status',
+      category: 'moderation',
+    );
+  }
+
   /// ✅ Helper: Get Potential Leaders (Top 10 First Attempts only, Excluding Admins)
   Future<List<Map<String, dynamic>>> getPotentialLeaders(String quizId) async {
     final snapshot = await _responses
