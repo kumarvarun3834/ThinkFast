@@ -144,9 +144,14 @@ class AboutUsScreen extends StatelessWidget {
               "Toggle between single or multiple attempts to control how users interact with your content.",
             ),
             _buildFeatureItem(
+              Icons.devices_rounded,
+              "Single Device Security",
+              "Ensures account integrity by allowing only one active session at a time, automatically logging out other devices.",
+            ),
+            _buildFeatureItem(
               Icons.security_update_good_rounded,
               "Active Session Protection",
-              "Prevent multiple simultaneous attempts with our smart auto-expiry and cleanup system.",
+              "Prevent multiple simultaneous quiz attempts with our smart auto-expiry and server-side cleanup system.",
             ),
             _buildFeatureItem(
               Icons.rule_rounded,
@@ -160,6 +165,11 @@ class AboutUsScreen extends StatelessWidget {
               "Track your personal growth with a detailed history of your scores and performance across all quizzes.",
             ),
             _buildFeatureItem(
+              Icons.auto_awesome_rounded,
+              "AI Quiz Wizard",
+              "Generate high-quality quizzes instantly from your PDF documents or text notes using advanced AI models.",
+            ),
+            _buildFeatureItem(
               Icons.analytics_rounded,
               "Creator Analytics",
               "View detailed responses for your quizzes, sorted by attempts and user IDs for precise insights.",
@@ -170,16 +180,11 @@ class AboutUsScreen extends StatelessWidget {
               "Real-time data protection ensuring your private quizzes and personal results remain secure.",
             ),
             const SizedBox(height: 32),
-            _buildSectionTitle("Coming Soon"),
+            _buildSectionTitle("Upcoming Features"),
             _buildFeatureItem(
               Icons.psychology_rounded,
               "AI Personalization",
               "Extended profiles for deep goal tracking, learning interests, and AI-driven personalization.",
-            ),
-            _buildFeatureItem(
-              Icons.auto_awesome_rounded,
-              "AI Quiz Generation",
-              "Generate high-quality quizzes instantly from your PDF documents or text notes using advanced AI.",
             ),
             _buildFeatureItem(
               Icons.leaderboard_rounded,

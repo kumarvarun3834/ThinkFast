@@ -1,13 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:thinkfast/services/device_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final DeviceService _deviceService = DeviceService();
 
   /// ---------------- GET PUBLIC IP ----------------
   Future<String> _getPublicIP() async {
@@ -24,7 +27,7 @@ class AuthService {
   User? get user => _auth.currentUser;
 
   /// ---------------- SIGN UP WITH EMAIL ----------------
-  Future<User?> signUp(String email, String password) async {
+  Future<User?> signUp(String email, String password, {bool force = false}) async {
     try {
       final res = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -52,6 +55,9 @@ class AuthService {
                 'last_verification_resend': FieldValue.serverTimestamp(),
               }, SetOptions(merge: true));
         }
+
+        // Single Device Login: Update active device ID
+        await _deviceService.updateActiveDevice(user.uid);
       }
 
       return user;
@@ -63,7 +69,7 @@ class AuthService {
   }
 
   /// ---------------- LOGIN WITH EMAIL ----------------
-  Future<User?> login(String email, String password) async {
+  Future<User?> login(String email, String password, {bool force = false}) async {
     final ip = await _getPublicIP();
     final ipRef = _db.collection('security_logs').doc('ip_$ip');
 
@@ -76,11 +82,11 @@ class AuthService {
       }
 
       // Auto-unblock after 1 hour (Optional but good for UX)
-      final Timestamp? lastAttempt = data['last_failed_attempt'];
-      if (lastAttempt != null && (data['failed_count'] ?? 0) >= 5) {
+      final Timestamp? lastAttempt = data['lastAttempt'];
+      if (lastAttempt != null && (data['attemptCount'] ?? 0) >= 5) {
         final diff = DateTime.now().difference(lastAttempt.toDate());
         if (diff.inHours >= 1) {
-          await ipRef.update({'failed_count': 0, 'is_blocked': false});
+          await ipRef.update({'attemptCount': 0, 'is_blocked': false});
         } else {
           throw "too_many_attempts_ip_blocked";
         }
@@ -109,30 +115,51 @@ class AuthService {
 
       // Reset on success
       await ipRef.delete();
+
+      if (user != null) {
+        // Single Device Login: Check for conflict
+        final hasConflict = await _deviceService.checkConflict(user.uid);
+        if (hasConflict && !force) {
+          throw "session_conflict";
+        }
+        await _deviceService.updateActiveDevice(user.uid);
+      }
+
       return user;
     } on FirebaseAuthException catch (e) {
       // Increment failed count
       await ipRef.set({
-        'failed_count': FieldValue.increment(1),
-        'last_failed_attempt': FieldValue.serverTimestamp(),
+        'attemptCount': FieldValue.increment(1),
+        'lastAttempt': FieldValue.serverTimestamp(),
         'last_email_tried': email,
+        'ip': ip,
+        'action': 'failed_login',
       }, SetOptions(merge: true));
 
       // Re-fetch to check if we just hit the limit
       final updated = await ipRef.get();
-      if ((updated.data()?['failed_count'] ?? 0) >= 5) {
-        await ipRef.update({'is_blocked': true});
+      if ((updated.data()?['attemptCount'] ?? 0) >= 5) {
+        await ipRef.update({
+          'is_blocked': true,
+          'action': 'blocked_access',
+          'blockedUntil': Timestamp.fromDate(
+            DateTime.now().add(const Duration(hours: 1)),
+          ),
+        });
         throw "too_many_attempts_ip_blocked";
       }
 
       throw e.code;
     } catch (e) {
+      if (e == 'session_conflict' || e == 'account_deleted_unverified' || e == 'too_many_attempts_ip_blocked') {
+        rethrow;
+      }
       throw "login_failed";
     }
   }
 
   /// ---------------- GOOGLE SIGN IN ----------------
-  Future<User?> signInWithGoogle() async {
+  Future<User?> signInWithGoogle({bool force = false}) async {
     try {
       // Trigger the authentication flow
       // Note: In google_sign_in 7.0.0+, you must call initialize() first if using custom config,
@@ -166,16 +193,25 @@ class AuthService {
           name: user.displayName,
           photoUrl: user.photoURL,
         );
+
+        // Single Device Login: Check for conflict
+        final hasConflict = await _deviceService.checkConflict(user.uid);
+        if (hasConflict && !force) {
+          throw "session_conflict";
+        }
+
+        await _deviceService.updateActiveDevice(user.uid);
       }
 
       return user;
     } on FirebaseAuthException catch (e) {
-      print(e.code);
+      debugPrint("Google Auth Error: ${e.code}");
       throw e.code;
     } catch (e) {
       // If user cancelled, authenticate() might throw or return something specific.
       // Based on the source, it rethrows GoogleSignInException.
-      print(e);
+      debugPrint("Google Sign In Error: $e");
+      if (e == 'session_conflict') rethrow;
       throw "google_sign_in_failed: $e";
     }
   }

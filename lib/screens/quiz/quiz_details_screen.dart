@@ -860,6 +860,46 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 }).toList(),
                               ),
                             ],
+                            if (_quizData != null &&
+                                (_quizData!['tags'] as List? ?? []).isNotEmpty) ...[
+                              const SizedBox(height: 24),
+                              Text(
+                                "TAGS",
+                                style: GoogleFonts.poppins(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: (_quizData!['tags'] as List).map((t) {
+                                  return Chip(
+                                    label: Text(
+                                      t.toString(),
+                                      style: const TextStyle(
+                                        color: global.primaryAccent,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    backgroundColor:
+                                        global.primaryAccent.withValues(alpha: 0.1),
+                                    side: BorderSide(
+                                      color: global.primaryAccent
+                                          .withValues(alpha: 0.2),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                  );
+                                }).toList(),
+                              ),
+                            ],
                             const Divider(
                               color: global.borderColor,
                               height: 32,

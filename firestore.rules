@@ -71,6 +71,13 @@ service cloud.firestore {
       match /private/details { allow read, write: if isOwner(userId) || hasGlobalPermission('moderate_users'); }
     }
 
+    match /devices/{userId} {
+      allow read, write: if isOwner(userId) || isGlobalAdmin();
+      match /active_device/{deviceId} {
+        allow read, write: if isOwner(userId) || isGlobalAdmin();
+      }
+    }
+
     match /quizzes/{quizId} {
       allow read: if (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
                    isGlobalAdmin() ||

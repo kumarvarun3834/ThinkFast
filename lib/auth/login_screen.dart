@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void login() async {
+  void login({bool force = false}) async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
       _show("Please fill all fields");
       return;
@@ -41,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await auth.login(
         emailController.text.trim(),
         passwordController.text.trim(),
+        force: force,
       );
 
       if (user != null) {
@@ -63,7 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      if (e == 'user-not-found') {
+      if (e == 'session_conflict') {
+        _showConflictDialog(isGoogle: false);
+      } else if (e == 'user-not-found') {
         _show("User not found");
       } else if (e == 'wrong-password') {
         _show("Wrong password");
@@ -83,10 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void loginWithGoogle() async {
+  void loginWithGoogle({bool force = false}) async {
     setState(() => loading = true);
     try {
-      final user = await auth.signInWithGoogle();
+      final user = await auth.signInWithGoogle(force: force);
       if (user != null) {
         await global.db.initAppData(user.uid);
 
@@ -107,10 +110,50 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
-      _show("Google Sign-In failed: $e");
+      if (e == 'session_conflict') {
+        _showConflictDialog(isGoogle: true);
+      } else {
+        _show("Google Sign-In failed: $e");
+      }
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  void _showConflictDialog({required bool isGoogle}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        title: Text(
+          "Already Logged In",
+          style: GoogleFonts.poppins(color: global.valueColor, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "You are currently logged in on another device. Logging in here will terminate your session there.",
+          style: GoogleFonts.poppins(color: global.labelColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: global.btnColor),
+            onPressed: () {
+              Navigator.pop(context);
+              if (isGoogle) {
+                loginWithGoogle(force: true);
+              } else {
+                login(force: true);
+              }
+            },
+            child: const Text("LOGOUT OTHER & LOGIN", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _show(String msg) {

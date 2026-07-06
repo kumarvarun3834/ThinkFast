@@ -26,6 +26,7 @@ import 'package:thinkfast/screens/quiz/quiz_form.dart';
 import 'package:thinkfast/screens/quiz/quiz_responses_screen.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/screens/splash_screen.dart';
+import 'package:thinkfast/services/session_service.dart';
 import 'package:thinkfast/services/firebase/firebase_options.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -77,8 +78,20 @@ void _handleDeepLink(Uri uri) {
   }
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Start tracking single device login
+    SessionService().startDeviceTracking();
+  }
 
   /// 🎨 Common Background Wrapper
   Widget _wrapWithGradient(Widget child) {

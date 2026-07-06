@@ -267,7 +267,6 @@ class _MainScreenState extends State<MainScreen> {
                         if (data['moduleTags'] != null)
                           ...(data['moduleTags'] as Map).values
                               .expand((tags) => tags as List)
-                              .take(3)
                               .map((t) {
                                 return _buildMetaChip(
                                   t.toString(),
@@ -275,7 +274,7 @@ class _MainScreenState extends State<MainScreen> {
                                 );
                               }),
                         // Regular Tags
-                        ...(data['tags'] as List? ?? []).take(5).map((t) {
+                        ...(data['tags'] as List? ?? []).map((t) {
                           return _buildMetaChip(t.toString());
                         }),
                       ],

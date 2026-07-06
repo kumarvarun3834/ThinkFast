@@ -216,3 +216,15 @@
 | `targetId` | String | ID for navigation (e.g., quizId). |
 | `createdAt` | Timestamp | Broadcast time. |
 
+## 10. Device Management (`/devices/{uid}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `activeDeviceId` | String | ID of the device currently logged in. |
+| `lastLogin` | Timestamp | Time of the most recent login. |
+
+### 10.1 Active Device Details (`/devices/{uid}/active_device/{deviceId}`)
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `lastActive` | Timestamp | Heartbeat for the specific device session. |
+| `deviceInfo` | String | Metadata about the hardware/platform. |
+
