@@ -60,18 +60,26 @@ class InfoRow extends StatelessWidget {
 class VisibilityBadge extends StatelessWidget {
   final String visibility;
   final bool isLocked;
+  final bool isDeleted;
 
   const VisibilityBadge({
     super.key,
     required this.visibility,
     this.isLocked = false,
+    this.isDeleted = false,
   });
 
   @override
   Widget build(BuildContext context) {
     Color color;
-    if (isLocked) {
+    String label = visibility.toUpperCase();
+
+    if (isDeleted) {
       color = global.errorColor;
+      label = "DELETED";
+    } else if (isLocked) {
+      color = global.errorColor;
+      label = "LOCKED";
     } else {
       switch (visibility.toLowerCase()) {
         case 'public':
@@ -105,7 +113,7 @@ class VisibilityBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            isLocked ? "LOCKED" : visibility.toUpperCase(),
+            label,
             style: GoogleFonts.poppins(
               color: color,
               fontSize: 12,

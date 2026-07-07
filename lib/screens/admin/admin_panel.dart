@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,6 +24,7 @@ class _AdminPanelState extends State<AdminPanel> {
   List<String> _permissions = [];
   bool _isMaster = false;
   late Stream<Map<String, dynamic>?> _featureFlagsStream;
+  final Map<String, Timer> _debounceTimers = {};
 
   // Grouped Feature Flags
   final Map<String, List<String>> _flagGroups = {
@@ -60,9 +62,10 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_leaderboards",
     ],
     "Security Batch AI Services": [
-      "ai_model_main",
-      "ai_model_backup_1",
-      "ai_model_backup_2",
+      "primary",
+      "backup1",
+      "backup2",
+      "backup3",
       "ai_model_index",
     ],
   };
@@ -74,6 +77,14 @@ class _AdminPanelState extends State<AdminPanel> {
     _featureFlagsStream = _settingsService.streamFeatureFlags(
       isAdmin: global.isAdmin,
     );
+  }
+
+  @override
+  void dispose() {
+    for (var timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    super.dispose();
   }
 
   void _refreshPanel() async {
@@ -132,8 +143,8 @@ class _AdminPanelState extends State<AdminPanel> {
       'management_features': 'manage_all_quizzes',
 
       // Bypass AI Quotas
-      'enable_ai_quota_bypass': 'bypass_ai_quotas',
-      'ai_daily_generation_limit': 'bypass_ai_quotas',
+      'enable_ai_quota_bypass': 'manage_ai',
+      'ai_daily_generation_limit': 'manage_ai',
 
       // View Audit Logs
       'log': 'view_audit_logs',
@@ -144,10 +155,11 @@ class _AdminPanelState extends State<AdminPanel> {
       'enable_realtime_colab': 'manage_collaborators',
 
       // Security Batch AI Services
-      'ai_model_main': 'manage_app_settings',
-      'ai_model_backup_1': 'manage_app_settings',
-      'ai_model_backup_2': 'manage_app_settings',
-      'ai_model_index': 'manage_app_settings',
+      'primary': 'manage_ai',
+      'backup1': 'manage_ai',
+      'backup2': 'manage_ai',
+      'backup3': 'manage_ai',
+      'ai_model_index': 'manage_ai',
     };
 
     final requiredPerm = keyPermissionMap[key];
@@ -520,25 +532,58 @@ class _AdminPanelState extends State<AdminPanel> {
             ),
           ),
           SizedBox(
-            width: 80,
+            width: 150, // Wider for model names
             child: TextField(
               enabled: canManage,
-              controller: TextEditingController(text: value.toString()),
+              controller: TextEditingController(text: value.toString())
+                ..selection = TextSelection.fromPosition(
+                  TextPosition(offset: value.toString().length),
+                ),
               style: TextStyle(
                 color: canManage
                     ? global.valueColor
                     : global.valueColor.withValues(alpha: 0.4),
+                fontSize: 13,
               ),
-              textAlign: TextAlign.center,
-              decoration: const InputDecoration(isDense: true),
-              onSubmitted: (newVal) async {
-                dynamic typedVal = newVal;
-                if (value is int) typedVal = int.tryParse(newVal);
-                if (value is double) typedVal = double.tryParse(newVal);
-
-                if (typedVal != null) {
-                  await _settingsService.updateFeatureFlag(key, typedVal);
+              textAlign: TextAlign.right,
+              decoration: const InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: "Enter value...",
+                hintStyle: TextStyle(fontSize: 12),
+              ),
+              onChanged: (newVal) {
+                if (_debounceTimers[key]?.isActive ?? false) {
+                  _debounceTimers[key]!.cancel();
                 }
+
+                _debounceTimers[key] = Timer(const Duration(milliseconds: 1500), () async {
+                  dynamic typedVal = newVal;
+                  if (value is int) typedVal = int.tryParse(newVal);
+                  if (value is double) typedVal = double.tryParse(newVal);
+
+                  if (typedVal != null && typedVal != value) {
+                    try {
+                      await _settingsService.updateFeatureFlag(key, typedVal);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("Changes for $displayTitle synced"),
+                            backgroundColor: global.successColor.withValues(alpha: 0.8),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error: $e"), backgroundColor: global.errorColor),
+                        );
+                      }
+                    }
+                  }
+                });
               },
             ),
           ),

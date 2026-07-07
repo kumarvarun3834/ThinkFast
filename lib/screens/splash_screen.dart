@@ -78,7 +78,7 @@ class _MySplashState extends State<MySplash> {
       global.featureFlags ??= {
         'maintenance_mode': false,
         'enable_login': true,
-        'enable_signup': true,
+        'enable_register': true,
         'enable_ai': true,
         'enable_ai_quota_bypass': false,
         'ai_daily_generation_limit': 10,
@@ -87,9 +87,10 @@ class _MySplashState extends State<MySplash> {
         'enable_export': true,
         'enable_take_quiz': true,
         'enable_refresh_limit_bypass': false,
-        'ai_model_main': 'gpt-4o',
-        'ai_model_backup_1': 'gpt-4-turbo',
-        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'primary': 'gemma-4-31b-it',
+        'backup1': 'gemini-3.1-flash-lite',
+        'backup2': 'gemma-4-26b-it',
+        'backup3': 'gemini-2.5-flash',
         'ai_model_index': 0,
       };
 
@@ -119,10 +120,7 @@ class _MySplashState extends State<MySplash> {
           } catch (_) {}
 
           if (mounted) {
-            navigator.pushReplacementNamed(
-              '/banned',
-              arguments: reason,
-            );
+            navigator.pushReplacementNamed('/banned', arguments: reason);
           }
           return;
         }
@@ -142,7 +140,7 @@ class _MySplashState extends State<MySplash> {
       global.featureFlags ??= {
         'maintenance_mode': false,
         'enable_login': true,
-        'enable_signup': true,
+        'enable_register': true,
         'enable_ai': true,
         'enable_ai_quota_bypass': false,
         'ai_daily_generation_limit': 10,
@@ -151,9 +149,10 @@ class _MySplashState extends State<MySplash> {
         'enable_export': true,
         'enable_take_quiz': true,
         'enable_refresh_limit_bypass': false,
-        'ai_model_main': 'gpt-4o',
-        'ai_model_backup_1': 'gpt-4-turbo',
-        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'primary': 'gemma-4-31b-it',
+        'backup1': 'gemini-3.1-flash-lite',
+        'backup2': 'gemma-4-26b-it',
+        'backup3': 'gemini-2.5-flash',
         'ai_model_index': 0,
       };
       if (mounted) {

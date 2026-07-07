@@ -229,6 +229,7 @@ class UserDatabaseService {
     bool showMyQuizzes = false,
     bool showManagedQuizzes = false,
     bool showTrash = false,
+    bool includeDeleted = false,
     String? creatorId,
     String? userId,
   }) {
@@ -240,6 +241,9 @@ class UserDatabaseService {
     if (showTrash && creatorId != null) {
       return _quizService.getMyDeletedQuizzes(creatorId);
     } else if (showMyQuizzes && creatorId != null) {
+      if (includeDeleted) {
+        return _quizService.getUserQuizzesMaster(creatorId);
+      }
       return _quizService.getMyQuizzes(creatorId);
     } else if (showManagedQuizzes && userId != null) {
       return _quizService.getManagedQuizzes(userId);
@@ -251,6 +255,7 @@ class UserDatabaseService {
   Future<Map<String, dynamic>> readDatabase(
     String docId, {
     String? userId,
+    bool skipAdminBypass = false,
   }) async {
     await _ensurePermission(null, userId: userId);
     final quiz = await _quizService.getQuiz(docId);
@@ -282,6 +287,26 @@ class UserDatabaseService {
       final hasAccess = await _quizService.hasAccess(docId, userId);
       if (!hasAccess) {
         throw Exception("Access Denied: This quiz is private.");
+      }
+    }
+
+    // Privacy Restraint: If skipAdminBypass is requested (e.g. by editor),
+    // and the user is an admin but NOT an explicit manager, deny module content.
+    if (skipAdminBypass && isAdminUser) {
+      final bool isExplicitManager = await _adminService.canManageQuiz(
+        docId,
+        userId!,
+        skipAdminCheck: true,
+      );
+      final bool hasPrivacyBypass = await _adminService.hasPermission(
+        userId!,
+        'bypass_quiz_privacy',
+      );
+
+      if (!isExplicitManager && !hasPrivacyBypass) {
+        quiz['modules'] = [];
+        quiz['internalAccessDenied'] = true;
+        return quiz;
       }
     }
 
@@ -363,6 +388,31 @@ class UserDatabaseService {
     if (isDeleted && !isAdminUser) throw Exception("Quiz not found");
 
     final bool isCreator = quiz['creatorId'] == userId;
+
+    // Privacy Restraint: Platform admins cannot see answers in editor unless they are managers or have privacy bypass.
+    if (from == 'quizform') {
+      final bool isExplicitManager = await _adminService.canManageQuiz(
+        docId,
+        userId,
+        skipAdminCheck: true,
+      );
+      final bool hasPrivacyBypass = await _adminService.hasPermission(
+        userId,
+        'bypass_quiz_privacy',
+      );
+
+      if (!isExplicitManager && isAdminUser && !hasPrivacyBypass) {
+        throw Exception(
+          "Access Denied: Platform Administrators cannot access internal answer keys without explicit management permissions or 'bypass_quiz_privacy' enabled.",
+        );
+      }
+      if (!isCreator && !isExplicitManager && !hasPrivacyBypass) {
+        throw Exception(
+          "Only the creator, authorized managers, or admins with privacy bypass can access answers in the editor.",
+        );
+      }
+    }
+
     final keysList = await _quizService.getAnswerKeys(docId);
     if (keysList == null) throw Exception("Answers not found");
 
@@ -378,8 +428,7 @@ class UserDatabaseService {
     }
 
     if (from == 'quizform') {
-      if (!isCreator)
-        throw Exception("Only creator can access answers in editor");
+      // Logic already handled above in Privacy Restraint block
     } else if (userAnswers != null && totalQuestions != null) {
       final questions = await _quizService.getQuizQuestions(docId);
       final List<Map<String, dynamic>> flattenedQuestions = [];

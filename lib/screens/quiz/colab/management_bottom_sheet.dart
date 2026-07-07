@@ -30,11 +30,23 @@ class ManagementBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isOwner = FirebaseAuth.instance.currentUser != null &&
+    final bool isOwner =
+        FirebaseAuth.instance.currentUser != null &&
         quizData['creatorId'] == FirebaseAuth.instance.currentUser!.uid;
     final String quizId = quizData['id'];
 
-    bool hasPerm(String perm) {
+    bool hasPerm(String perm, {bool isContentRestricted = false}) {
+      // Rule: Admins cannot see/edit internal quiz data for quizzes they don't explicitly manage.
+      if (isAdmin && isContentRestricted) {
+        // Only allow if they are owner or have explicit management record or have privacy bypass
+        if (isOwner) return true;
+        final explicitPerms = global.managedQuizzes[quizId];
+        if (explicitPerms?[perm] == true) return true;
+
+        // Optional Bypass: Platform admins can see/edit if they have the specific permission
+        return global.adminPermissions.contains('bypass_quiz_privacy');
+      }
+
       if (isAdmin || isOwner) return true;
       final perms = global.managedQuizzes[quizId];
       return perms?[perm] == true;
@@ -112,13 +124,14 @@ class ManagementBottomSheet extends StatelessWidget {
                   if (!(quizData['isPersonal'] == true) || isAdmin) ...[
                     UpdateAction(
                       isAdmin: isAdmin,
-                      hasPerm: hasPerm('can_update'),
+                      hasPerm: hasPerm('can_update', isContentRestricted: true),
                       onTap: onUpdate,
                     ),
                     DeleteAction(
                       isAdmin: isAdmin,
                       hasPerm: hasPerm('can_delete'),
                       onTap: onDelete,
+                      isDeleted: quizData['isDeleted'] == true,
                     ),
                   ],
                 ],

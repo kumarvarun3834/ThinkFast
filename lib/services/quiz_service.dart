@@ -352,13 +352,13 @@ class QuizService {
     final data = quizDoc.data() as Map<String, dynamic>;
     String deletedByType = 'system';
 
-    // Attribution logic: Prioritize Quiz Permissions
-    if (data['creatorId'] == userId) {
+    // Attribution logic: Prioritize Administrative Actions
+    if (await AdminService().isAdmin(userId)) {
+      deletedByType = 'admin';
+    } else if (data['creatorId'] == userId) {
       deletedByType = 'owner';
     } else if (await AdminService().canManageQuiz(quizId, userId)) {
       deletedByType = 'manager';
-    } else if (await AdminService().isAdmin(userId)) {
-      deletedByType = 'admin';
     }
 
     await _quizzes.doc(quizId).update({
@@ -384,9 +384,17 @@ class QuizService {
     if (!quizDoc.exists) throw Exception("Quiz not found");
     final data = quizDoc.data() as Map<String, dynamic>;
 
-    if (data['creatorId'] != userId) {
-      final isAdmin = await AdminService().isAdmin(userId);
-      if (!isAdmin) throw Exception("Unauthorized to restore this quiz");
+    final bool isAdmin = await AdminService().isAdmin(userId);
+
+    // Rule: Quizzes deleted by an admin can only be restored by an admin.
+    if (data['deletedByType'] == 'admin' && !isAdmin) {
+      throw Exception(
+        "Access Denied: This quiz was deleted by an administrator and cannot be restored by users.",
+      );
+    }
+
+    if (data['creatorId'] != userId && !isAdmin) {
+      throw Exception("Unauthorized to restore this quiz");
     }
 
     final Timestamp? deletedAt = data['deletedAt'];
@@ -510,11 +518,14 @@ class QuizService {
         .orderBy('deletedAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList(),
+          (snapshot) => snapshot.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['id'] = doc.id;
+                return data;
+              })
+              .where((quiz) => quiz['deletedByType'] != 'admin')
+              .toList(),
         );
   }
 

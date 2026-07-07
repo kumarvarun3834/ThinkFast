@@ -123,9 +123,10 @@ class AiService {
 
     // Get models from feature flags
     final List<String> models = [
-      global.featureFlags?['ai_model_main'] ?? 'gpt-4o',
-      global.featureFlags?['ai_model_backup_1'] ?? 'gpt-4-turbo',
-      global.featureFlags?['ai_model_backup_2'] ?? 'gpt-3.5-turbo',
+      global.featureFlags?['primary'] ?? 'gemma-4-31b-it',
+      global.featureFlags?['backup1'] ?? 'gemini-3.1-flash-lite',
+      global.featureFlags?['backup2'] ?? 'gemma-4-26b-it',
+      global.featureFlags?['backup3'] ?? 'gemini-2.5-flash',
     ];
 
     int startIndex = (global.featureFlags?['ai_model_index'] ?? 0) as int;

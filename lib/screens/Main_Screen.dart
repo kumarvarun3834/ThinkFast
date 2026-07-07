@@ -33,6 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+  bool _includeDeleted = false;
 
   // Selection Logic
   final Set<String> _selectedQuizIds = {};
@@ -108,25 +109,38 @@ class _MainScreenState extends State<MainScreen> {
 
     if (confirm == true) {
       try {
+        int processedCount = 0;
+        int restrictedCount = 0;
+
         for (String id in _selectedQuizIds) {
-          if (widget.showTrash) {
-            await global.qDb.restoreDatabase(
-              docId: id,
-              currentUserId: _user!.uid,
-            );
-          } else {
-            await global.qDb.deleteDatabase(
-              docId: id,
-              currentUserId: _user!.uid,
-            );
+          try {
+            if (widget.showTrash) {
+              await global.qDb.restoreDatabase(
+                docId: id,
+                currentUserId: _user!.uid,
+              );
+            } else {
+              await global.qDb.deleteDatabase(
+                docId: id,
+                currentUserId: _user!.uid,
+              );
+            }
+            processedCount++;
+          } catch (e) {
+            if (e.toString().contains("deleted by an administrator")) {
+              restrictedCount++;
+            } else {
+              rethrow;
+            }
           }
         }
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("${_selectedQuizIds.length} quizzes processed"),
-            ),
-          );
+          String msg = "$processedCount quizzes processed";
+          if (restrictedCount > 0) {
+            msg += ". $restrictedCount restricted quizzes skipped.";
+          }
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
           setState(() {
             _selectedQuizIds.clear();
             _isSelectionMode = false;
@@ -148,6 +162,7 @@ class _MainScreenState extends State<MainScreen> {
       showMyQuizzes: widget.showMyQuizzes,
       showManagedQuizzes: widget.showManagedQuizzes,
       showTrash: widget.showTrash,
+      includeDeleted: _includeDeleted,
       creatorId: widget.creator?.uid,
       userId: _user?.uid,
     );
@@ -171,13 +186,14 @@ class _MainScreenState extends State<MainScreen> {
   Widget buildQuizCard(Map<String, dynamic> data) {
     final bool isSelected = _selectedQuizIds.contains(data['id']);
     final bool canSelect = widget.showMyQuizzes || widget.showTrash;
+    final bool deletedByAdmin = data['deletedByType'] == 'admin';
 
     return InkWell(
       onLongPress: canSelect ? () => _toggleSelection(data['id']) : null,
       onTap: () {
         if (_isSelectionMode) {
           _toggleSelection(data['id']);
-        } else if (widget.showTrash) {
+        } else if (widget.showTrash || data['isDeleted'] == true) {
           _showRestoreDialog(data);
         } else {
           Navigator.pushNamed(context, "/Quiz Details", arguments: data['id']);
@@ -196,111 +212,170 @@ class _MainScreenState extends State<MainScreen> {
             width: isSelected ? 2 : 1,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              if (_isSelectionMode)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0),
-                  child: Icon(
-                    isSelected
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    color: isSelected
-                        ? global.primaryAccent
-                        : global.labelColor,
-                  ),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data['title'] ?? 'Untitled',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: global.valueColor,
-                      ),
+        child: Opacity(
+          opacity: (deletedByAdmin && !global.isAdmin) ? 0.6 : 1.0,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                if (_isSelectionMode)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12.0),
+                    child: Icon(
+                      isSelected
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      color: isSelected
+                          ? global.primaryAccent
+                          : global.labelColor,
                     ),
-                    if (data['examTag'] != null &&
-                        data['examTag'].toString().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          "Exam: ${data['examTag']}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: global.primaryAccent,
-                            fontWeight: FontWeight.w600,
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['title'] ?? 'Untitled',
+                        style: GoogleFonts.poppins(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: global.valueColor,
+                        ),
+                      ),
+                      if (data['examTag'] != null &&
+                          data['examTag'].toString().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Text(
+                            "Exam: ${data['examTag']}",
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: global.primaryAccent,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                    const SizedBox(height: 6),
-                    if (widget.showTrash)
-                      _buildTrashSubtitle(data)
-                    else
-                      Text(
-                        "Created by: ${data['user'] ?? 'Anonymous'}",
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: global.labelColor,
-                          letterSpacing: 0.5,
+                      const SizedBox(height: 6),
+                      if (data['isDeleted'] == true)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: global.errorColor.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: global.errorColor),
+                                ),
+                                child: const Text(
+                                  "DELETED",
+                                  style: TextStyle(
+                                    color: global.errorColor,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              if (deletedByAdmin)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6.0),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: global.warningColor.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: global.warningColor,
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "BY ADMIN",
+                                      style: TextStyle(
+                                        color: global.warningColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
+                      if (widget.showTrash || data['isDeleted'] == true)
+                        _buildTrashSubtitle(data)
+                      else
+                        Text(
+                          "Created by: ${data['user'] ?? 'Anonymous'}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: global.labelColor,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      // Show Module Subjects and Tags
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          // Module Subjects
+                          ...(data['modules'] as List? ?? []).map((m) {
+                            final sub = m is Map ? m['subject'].toString() : "";
+                            if (sub.isEmpty) return const SizedBox.shrink();
+                            return _buildMetaChip(sub, isSubject: true);
+                          }),
+                          // Module Tags
+                          if (data['moduleTags'] != null)
+                            ...(data['moduleTags'] as Map).values
+                                .expand((tags) => tags as List)
+                                .map((t) {
+                                  return _buildMetaChip(
+                                    t.toString(),
+                                    isModuleTag: true,
+                                  );
+                                }),
+                          // Regular Tags
+                          ...(data['tags'] as List? ?? []).map((t) {
+                            return _buildMetaChip(t.toString());
+                          }),
+                        ],
                       ),
-                    // Show Module Subjects and Tags
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        // Module Subjects
-                        ...(data['modules'] as List? ?? []).map((m) {
-                          final sub = m is Map ? m['subject'].toString() : "";
-                          if (sub.isEmpty) return const SizedBox.shrink();
-                          return _buildMetaChip(sub, isSubject: true);
-                        }),
-                        // Module Tags
-                        if (data['moduleTags'] != null)
-                          ...(data['moduleTags'] as Map).values
-                              .expand((tags) => tags as List)
-                              .map((t) {
-                                return _buildMetaChip(
-                                  t.toString(),
-                                  isModuleTag: true,
-                                );
-                              }),
-                        // Regular Tags
-                        ...(data['tags'] as List? ?? []).map((t) {
-                          return _buildMetaChip(t.toString());
-                        }),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (!widget.showTrash && !_isSelectionMode)
-                IconButton(
-                  icon: const Icon(
-                    Icons.share_rounded,
-                    color: global.primaryAccent,
-                    size: 20,
+                    ],
                   ),
-                  onPressed: () => _shareQuiz(data['id']),
-                  tooltip: "Share Quiz Link",
                 ),
-              if (!_isSelectionMode)
-                Icon(
-                  widget.showTrash
-                      ? Icons.restore_from_trash_rounded
-                      : Icons.arrow_forward_ios_rounded,
-                  color: widget.showTrash
-                      ? global.successColor
-                      : global.borderColor,
-                  size: 18,
-                ),
-            ],
+                if (!widget.showTrash && !_isSelectionMode)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.share_rounded,
+                      color: global.primaryAccent,
+                      size: 20,
+                    ),
+                    onPressed: () => _shareQuiz(data['id']),
+                    tooltip: "Share Quiz Link",
+                  ),
+                if (!_isSelectionMode)
+                  Icon(
+                    (widget.showTrash || data['isDeleted'] == true)
+                        ? Icons.restore_from_trash_rounded
+                        : Icons.arrow_forward_ios_rounded,
+                    color: (deletedByAdmin && !global.isAdmin)
+                        ? Colors.grey
+                        : ((widget.showTrash || data['isDeleted'] == true)
+                            ? global.successColor
+                            : global.borderColor),
+                    size: 18,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -353,17 +428,62 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _showRestoreDialog(Map<String, dynamic> data) {
+    final bool deletedByAdmin = data['deletedByType'] == 'admin';
+    final bool canRestore = !deletedByAdmin || global.isAdmin;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: global.cardColor,
         title: Text(
-          "Restore Quiz?",
-          style: GoogleFonts.poppins(color: global.valueColor),
+          deletedByAdmin ? "Restricted Restore" : "Restore Quiz?",
+          style: GoogleFonts.poppins(
+            color: deletedByAdmin ? global.warningColor : global.valueColor,
+          ),
         ),
-        content: Text(
-          "Do you want to restore '${data['title']}'? It will be visible to participants again.",
-          style: const TextStyle(color: global.labelColor),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Do you want to restore '${data['title']}'? It will be visible to participants again.",
+              style: const TextStyle(color: global.labelColor),
+            ),
+            if (deletedByAdmin)
+              Padding(
+                padding: const EdgeInsets.only(top: 12.0),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: global.errorColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: global.errorColor.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.admin_panel_settings,
+                        color: global.errorColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "This quiz was deleted by an administrator and requires admin privileges to restore.",
+                          style: TextStyle(
+                            color: global.errorColor.withValues(alpha: 0.9),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
         actions: [
           TextButton(
@@ -372,25 +492,29 @@ class _MainScreenState extends State<MainScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: global.successColor,
+              backgroundColor: canRestore ? global.successColor : Colors.grey,
             ),
-            onPressed: () async {
-              try {
-                await global.qDb.restoreDatabase(
-                  docId: data['id'],
-                  currentUserId: _user!.uid,
-                );
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Quiz restored successfully")),
-                );
-              } catch (e) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Restore error: $e")));
-              }
-            },
+            onPressed: canRestore
+                ? () async {
+                    try {
+                      await global.qDb.restoreDatabase(
+                        docId: data['id'],
+                        currentUserId: _user!.uid,
+                      );
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Quiz restored successfully"),
+                        ),
+                      );
+                    } catch (e) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text("Restore error: $e")));
+                    }
+                  }
+                : null,
             child: const Text("RESTORE", style: TextStyle(color: Colors.black)),
           ),
         ],
@@ -573,9 +697,9 @@ class _MainScreenState extends State<MainScreen> {
                       Icons.filter_list,
                       color:
                           (_selectedTags.isNotEmpty ||
-                              _selectedSubjects.isNotEmpty)
-                          ? global.primaryAccent
-                          : global.valueColor,
+                                  _selectedSubjects.isNotEmpty)
+                              ? global.primaryAccent
+                              : global.valueColor,
                     ),
                     onPressed: () async {
                       final List<Map<String, dynamic>> allQuizzes =
@@ -605,6 +729,21 @@ class _MainScreenState extends State<MainScreen> {
                       }
                     },
                     tooltip: "Filters",
+                  ),
+                if (widget.showMyQuizzes || widget.showManagedQuizzes)
+                  IconButton(
+                    icon: Icon(
+                      _includeDeleted
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded,
+                      color:
+                          _includeDeleted
+                              ? global.primaryAccent
+                              : global.labelColor,
+                    ),
+                    onPressed: () =>
+                        setState(() => _includeDeleted = !_includeDeleted),
+                    tooltip: _includeDeleted ? "Hide Deleted" : "Show Deleted",
                   ),
               ],
       ),

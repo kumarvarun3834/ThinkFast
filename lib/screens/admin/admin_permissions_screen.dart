@@ -33,6 +33,7 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     'manage_all_quizzes': 'Master Quiz Control',
     'view_audit_logs': 'View Audit Logs',
     'manage_app_settings': 'Manage App Settings',
+    'manage_ai': 'Manage AI Services',
     'bypass_ai_quotas': 'Bypass AI Quotas',
     'manage_collaborators': 'Manage Quiz Collaborators',
   };

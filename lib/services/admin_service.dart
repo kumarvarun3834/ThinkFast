@@ -36,6 +36,8 @@ class AdminService {
     'view_audit_logs',
     'manage_app_settings',
     'bypass_ai_quotas',
+    'bypass_quiz_privacy',
+    'manage_ai',
     'manage_collaborators',
     'manage_leaderboards',
   ];
@@ -766,11 +768,14 @@ class AdminService {
     String quizId,
     String userId, {
     String? permission,
+    bool skipAdminCheck = false,
   }) async {
-    // 1. App Admin has global access
-    if (global.isAdmin && userId == FirebaseAuth.instance.currentUser?.uid)
-      return true;
-    if (await isAdmin(userId)) return true;
+    // 1. App Admin has global access (unless skipAdminCheck is true for privacy-restricted operations)
+    if (!skipAdminCheck) {
+      if (global.isAdmin && userId == FirebaseAuth.instance.currentUser?.uid)
+        return true;
+      if (await isAdmin(userId)) return true;
+    }
 
     // 2. Check Local Cache (Fastest)
     if (global.ownedQuizIds.contains(quizId)) return true;

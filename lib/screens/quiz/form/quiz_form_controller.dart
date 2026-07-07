@@ -35,8 +35,16 @@ class QuizFormController {
     required Function updateModuleLimitControllers,
     required Function updateModuleTimingControllers,
   }) async {
-    final data = await global.db.readDatabase(docId, userId: uid);
-    final response = await global.db.getQuizAnswers(docId, uid, from: 'quizform');
+    final data = await global.db.readDatabase(
+      docId,
+      userId: uid,
+      skipAdminBypass: true,
+    );
+    final response = await global.db.getQuizAnswers(
+      docId,
+      uid,
+      from: 'quizform',
+    );
     final Map<String, List<String>> answersMap = response['answers'];
     final Map<String, String> solutionsMap = response['solutions'];
 

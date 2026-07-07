@@ -215,8 +215,4 @@ fix dependencies error
  @aiconnect.dart  > add ai related commands
 things to add > tags (modules > store quiz id ) seperate storage document
 
-visibility type > schedules , private , public
-restrict Quiz > support email address in place of uid as well
-per Q type per module
-per type per module (its per question type per module)
-there is no comtainer for now of attempts for quiz can be taken > you can set 1 or more
+admin cant see or edit quiz data internal

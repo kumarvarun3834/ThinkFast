@@ -13,32 +13,53 @@ class SettingsService {
 
   /// Flag to Document Mapping for granular permissions
   static const Map<String, String> _flagDocMap = {
+    // Public Settings
+    'enable_ai': 'public',
+    'enable_import': 'public',
+    'enable_login': 'public',
+    'enable_register': 'public',
+    'enable_create_quiz': 'public',
+    'enable_edit_quiz': 'public',
+    'enable_delete_quiz': 'public',
+    'enable_take_quiz': 'public',
+    'enable_profile_edit': 'public',
+    'enable_analytics': 'public',
+    'enable_export': 'public',
+    'maintenance_mode': 'public',
+
     // Admin Management
     'admin_refresh_rate_limit_seconds': 'admin',
     'enable_refresh_limit_bypass': 'admin',
+
     // Moderation
     'enable_user_banning': 'moderation',
+
     // Quizzes
     'enable_quiz_creation_rate_limit': 'quizzes',
     'quiz_creation_rate_limit_minutes': 'quizzes',
     'enable_form_save_rate_limit': 'quizzes',
     'form_save_rate_limit_seconds': 'quizzes',
     'management_features': 'quizzes',
+
     // AI
     'enable_ai_quota_bypass': 'ai',
     'ai_daily_generation_limit': 'ai',
-    'ai_model_main': 'ai',
-    'ai_model_backup_1': 'ai',
-    'ai_model_backup_2': 'ai',
+    'primary': 'ai',
+    'backup1': 'ai',
+    'backup2': 'ai',
+    'backup3': 'ai',
     'ai_model_index': 'ai',
+
     // Logs
     'log': 'logs',
     'log_updates': 'logs',
     'log_deletes': 'logs',
+
     // Collaboration
     'enable_realtime_colab': 'collaboration',
+
     // Leaderboards
-    'enable_leaderboards': 'manage_leaderboards',
+    'enable_leaderboards': 'leaderboards',
   };
 
   /// ✅ Fetch App Settings
@@ -81,9 +102,10 @@ class SettingsService {
       'ai': {
         'enable_ai_quota_bypass': false,
         'ai_daily_generation_limit': 10,
-        'ai_model_main': 'gpt-4o',
-        'ai_model_backup_1': 'gpt-4-turbo',
-        'ai_model_backup_2': 'gpt-3.5-turbo',
+        'primary': 'gemma-4-31b-it',
+        'backup1': 'gemini-3.1-flash-lite',
+        'backup2': 'gemma-4-26b-it',
+        'backup3': 'gemini-2.5-flash',
         'ai_model_index': 0,
       },
       'quizzes': {

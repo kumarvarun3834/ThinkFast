@@ -398,16 +398,6 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 ),
               ),
             ),
-          const Divider(color: global.borderColor),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.logout_rounded,
-              text: 'Logout',
-              onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
         ],
       ),
     );

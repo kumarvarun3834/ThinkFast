@@ -186,9 +186,30 @@ class QAdminDatabaseService {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
 
     final quiz = await _quizService.getQuiz(docId);
-    if (quiz != null && quiz['isPersonal'] == true) {
+    if (quiz == null) throw Exception("Quiz not found.");
+
+    if (quiz['isPersonal'] == true) {
       final isAdmin = await _adminService.isAdmin(currentUserId);
       if (!isAdmin) throw Exception("Personal quizzes cannot be edited.");
+    }
+
+    // Privacy Lock: Admins cannot edit internal content (questions/answers) of quizzes they don't explicitly manage.
+    if (data != null) {
+      final bool isExplicitManager = await _adminService.canManageQuiz(
+        docId,
+        currentUserId,
+        skipAdminCheck: true,
+      );
+      final bool hasPrivacyBypass = await _adminService.hasPermission(
+        currentUserId,
+        'bypass_quiz_privacy',
+      );
+
+      if (!isExplicitManager && !hasPrivacyBypass && await _adminService.isAdmin(currentUserId)) {
+        throw Exception(
+          "Access Denied: Platform administrators cannot modify internal quiz content (questions/answers) without explicit management permissions or 'bypass_quiz_privacy' enabled.",
+        );
+      }
     }
 
     final Map<String, dynamic> updates = {};

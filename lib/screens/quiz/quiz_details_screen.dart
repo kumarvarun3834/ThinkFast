@@ -646,6 +646,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                           VisibilityBadge(
                             visibility: _quizData?['visibility'] ?? 'private',
                             isLocked: _quizData?['isLocked'] ?? false,
+                            isDeleted: _quizData?['isDeleted'] ?? false,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -1210,17 +1211,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           Navigator.pushNamed(context, "/Update Quiz");
         },
         onDelete: () async {
+          final bool isDeleted = _quizData!['isDeleted'] == true;
           final bool? confirm = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               backgroundColor: global.cardColor,
-              title: const Text(
-                "Delete Quiz?",
-                style: TextStyle(color: Colors.white),
+              title: Text(
+                isDeleted ? "Recover Quiz?" : "Delete Quiz?",
+                style: const TextStyle(color: Colors.white),
               ),
-              content: const Text(
-                "Are you sure you want to move this quiz to trash?",
-                style: TextStyle(color: Colors.white70),
+              content: Text(
+                isDeleted
+                    ? "Are you sure you want to recover this quiz?"
+                    : "Are you sure you want to move this quiz to trash?",
+                style: const TextStyle(color: Colors.white70),
               ),
               actions: [
                 TextButton(
@@ -1229,12 +1233,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: global.errorColor,
+                    backgroundColor:
+                        isDeleted ? global.successColor : global.errorColor,
                   ),
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text(
-                    "DELETE",
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    isDeleted ? "RECOVER" : "DELETE",
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -1247,21 +1252,37 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             final navigator = Navigator.of(context);
             navigator.pop(); // Close bottom sheet
             try {
-              await global.qDb.deleteDatabase(
-                docId: _quizData!['id'],
-                currentUserId: _user!.uid,
-              );
+              if (isDeleted) {
+                await global.qDb.restoreDatabase(
+                  docId: _quizData!['id'],
+                  currentUserId: _user!.uid,
+                );
+              } else {
+                await global.qDb.deleteDatabase(
+                  docId: _quizData!['id'],
+                  currentUserId: _user!.uid,
+                );
+              }
               if (!mounted) return;
 
               messenger.showSnackBar(
-                const SnackBar(
-                  content: Text("Quiz moved to trash (Soft Delete)"),
+                SnackBar(
+                  content: Text(
+                    isDeleted
+                        ? "Quiz recovered successfully"
+                        : "Quiz moved to trash (Soft Delete)",
+                  ),
                 ),
               );
-              navigator.pop(); // Go back from Details screen
+
+              if (isDeleted) {
+                _fetchQuizDetails(); // Refresh
+              } else {
+                navigator.pop(); // Go back from Details screen
+              }
             } catch (e) {
               if (mounted) {
-                messenger.showSnackBar(SnackBar(content: Text("Delete Error: $e")));
+                messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
               }
             }
           }

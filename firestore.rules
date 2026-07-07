@@ -179,7 +179,7 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read: if true;
       allow write: if (docId == 'admin' && hasGlobalPermission('manage_admins')) ||
-                      (docId == 'ai' && hasGlobalPermission('bypass_ai_quotas')) ||
+                      (docId == 'ai' && hasGlobalPermission('manage_ai')) ||
                       (docId != 'admin' && docId != 'ai' && hasGlobalPermission('manage_app_settings'));
     }
 
@@ -188,7 +188,7 @@ service cloud.firestore {
       allow write: if (docId == 'public' && hasGlobalPermission('manage_app_settings')) ||
                       (docId == 'admin' && hasGlobalPermission('manage_admins')) ||
                       (docId == 'moderation' && hasGlobalPermission('moderate_users')) ||
-                      (docId == 'ai' && hasGlobalPermission('bypass_ai_quotas')) ||
+                      (docId == 'ai' && hasGlobalPermission('manage_ai')) ||
                       (docId == 'quizzes' && hasGlobalPermission('manage_all_quizzes')) ||
                       (docId == 'logs' && hasGlobalPermission('view_audit_logs')) ||
                       (docId == 'collaboration' && hasGlobalPermission('manage_collaborators'));
