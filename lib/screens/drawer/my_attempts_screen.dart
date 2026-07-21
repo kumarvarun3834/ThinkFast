@@ -1,14 +1,16 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/utils/global.dart' as global;
-import 'package:thinkfast/widgets/text_container.dart';
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
+import 'package:thinkfast/widgets/text_container.dart';
 
 class MyAttemptsScreen extends StatefulWidget {
   final String? quizId;
+
   const MyAttemptsScreen({super.key, this.quizId});
 
   @override
@@ -70,7 +72,10 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
               ),
             )
           : StreamBuilder<List<Map<String, dynamic>>>(
-              stream: global.db.getUserAttempts(_user!.uid, includeDeleted: true),
+              stream: global.db.getUserAttempts(
+                _user!.uid,
+                includeDeleted: true,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -101,9 +106,11 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                 }
 
                 final allAttempts = snapshot.data!;
-                final attempts = widget.quizId == null 
-                    ? allAttempts 
-                    : allAttempts.where((a) => a['quizId'] == widget.quizId).toList();
+                final attempts = widget.quizId == null
+                    ? allAttempts
+                    : allAttempts
+                          .where((a) => a['quizId'] == widget.quizId)
+                          .toList();
 
                 if (attempts.isEmpty) {
                   return Center(
@@ -117,7 +124,9 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          widget.quizId == null ? "No attempts found" : "No attempts for this quiz found",
+                          widget.quizId == null
+                              ? "No attempts found"
+                              : "No attempts for this quiz found",
                           style: GoogleFonts.poppins(color: _labelColor),
                         ),
                       ],
@@ -155,7 +164,10 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Padding(
-                              padding: const EdgeInsets.only(left: 8.0, bottom: 16),
+                              padding: const EdgeInsets.only(
+                                left: 8.0,
+                                bottom: 16,
+                              ),
                               child: Text(
                                 "RECENT ATTEMPTS",
                                 style: GoogleFonts.poppins(
@@ -281,7 +293,10 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
           : <String>[];
 
       // Fetch Quiz & Answers
-      final quiz = await global.db.readDatabase(quizId, userId: widget.user.uid);
+      final quiz = await global.db.readDatabase(
+        quizId,
+        userId: widget.user.uid,
+      );
       final response = await global.db.getQuizAnswers(quizId, widget.user.uid);
       final correctAnswers = response['answers'];
       final markingScheme = quiz['markingScheme'] ?? {"type": "default"};
@@ -350,8 +365,8 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
         final selections = userAnswers[qUid] is List
             ? List<String>.from(userAnswers[qUid])
             : (userAnswers[qUid] != null
-                ? [userAnswers[qUid].toString()]
-                : <String>[]);
+                  ? [userAnswers[qUid].toString()]
+                  : <String>[]);
 
         final answers = correctAnswers[qUid] ?? [];
         final String? qType = q['type'];
@@ -365,11 +380,13 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
           bool isCorrect = false;
           if (qType == "Integer") {
             final String userVal = selections.first.trim();
-            final String correctVal =
-                answers.isNotEmpty ? answers.first.trim() : "";
+            final String correctVal = answers.isNotEmpty
+                ? answers.first.trim()
+                : "";
             isCorrect = userVal == correctVal;
           } else {
-            isCorrect = selections.length == answers.length &&
+            isCorrect =
+                selections.length == answers.length &&
                 selections.every((s) => answers.contains(s));
           }
           questionMark = isCorrect ? marking['correct']! : marking['wrong']!;
@@ -405,7 +422,7 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
     final int total = (widget.attempt['totalQuestions'] ?? 0) * 4;
     final int status = widget.attempt['status'] ?? 0;
     final String quizId = widget.attempt['quizId'];
-    
+
     // Check permission: Owner of the quiz OR App Admin
     final bool isOwner = global.ownedQuizIds.contains(quizId);
     final bool canDelete = isOwner || global.isAdmin;
@@ -430,6 +447,7 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
             MaterialPageRoute(
               builder: (context) => ResultScreen(
                 quizId: widget.attempt['quizId'],
+                attemptId: widget.attempt['id'],
                 attemptAnswers:
                     widget.attempt['answers'] as Map<String, dynamic>,
                 attemptReviewItems:
@@ -468,19 +486,13 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                     const StatusBadge(
                       text: "DELETED",
                       color: global.errorColor,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     )
                   else if (status == 1)
                     const StatusBadge(
                       text: "COMPLETED",
                       color: Colors.green,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     ),
                 ],
               ),
@@ -576,20 +588,14 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                   }).toList(),
                 ),
               ],
-              const Divider(
-                color: global.borderColor,
-                height: 24,
-              ),
+              const Divider(color: global.borderColor, height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   if (canDelete)
                     TextButton.icon(
                       onPressed: widget.onDelete,
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        size: 18,
-                      ),
+                      icon: const Icon(Icons.delete_outline, size: 18),
                       label: const Text("Delete"),
                       style: TextButton.styleFrom(
                         foregroundColor: global.errorColor,
@@ -604,21 +610,21 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
                           builder: (context) => ResultScreen(
                             quizId: widget.attempt['quizId'],
                             attemptAnswers:
-                                widget.attempt['answers'] as Map<String, dynamic>,
+                                widget.attempt['answers']
+                                    as Map<String, dynamic>,
                             attemptReviewItems:
                                 widget.attempt['reviewItems'] as List<dynamic>?,
                             attemptQuestionOrder:
-                                widget.attempt['questionOrder'] as List<dynamic>?,
+                                widget.attempt['questionOrder']
+                                    as List<dynamic>?,
                             attemptVisitedItems:
-                                widget.attempt['visitedItems'] as List<dynamic>?,
+                                widget.attempt['visitedItems']
+                                    as List<dynamic>?,
                           ),
                         ),
                       );
                     },
-                    icon: const Icon(
-                      Icons.analytics_outlined,
-                      size: 18,
-                    ),
+                    icon: const Icon(Icons.analytics_outlined, size: 18),
                     label: const Text("Review Attempt"),
                     style: TextButton.styleFrom(
                       foregroundColor: global.primaryAccent,
@@ -704,7 +710,15 @@ class _ModularAttemptCardState extends State<ModularAttemptCard> {
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'N/A';
-    final DateTime date = timestamp.toDate();
+    DateTime? date;
+    if (timestamp is Timestamp) {
+      date = timestamp.toDate();
+    } else if (timestamp is DateTime) {
+      date = timestamp;
+    } else if (timestamp is String) {
+      date = DateTime.tryParse(timestamp);
+    }
+    if (date == null) return 'N/A';
     return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
   }
 }

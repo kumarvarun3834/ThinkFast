@@ -13,6 +13,7 @@ class MainScreen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
   final bool showManagedQuizzes;
+  final bool showAiGenerations;
   final bool showTrash;
 
   const MainScreen({
@@ -20,6 +21,7 @@ class MainScreen extends StatefulWidget {
     this.creator,
     this.showMyQuizzes = false,
     this.showManagedQuizzes = false,
+    this.showAiGenerations = false,
     this.showTrash = false,
   });
 
@@ -41,8 +43,9 @@ class _MainScreenState extends State<MainScreen> {
 
   // Filter Logic
   final Set<String> _selectedTags = {};
-  final Set<String> _selectedSubjects = {}; // Added subject selection
+  final Set<String> _selectedSubjects = {};
   bool _isStrictFilter = false;
+  String _aiSourceFilter = "All"; // 'All', 'AI Only', 'Manual Only'
 
   @override
   void initState() {
@@ -140,7 +143,9 @@ class _MainScreenState extends State<MainScreen> {
           if (restrictedCount > 0) {
             msg += ". $restrictedCount restricted quizzes skipped.";
           }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(msg)));
           setState(() {
             _selectedQuizIds.clear();
             _isSelectionMode = false;
@@ -161,6 +166,7 @@ class _MainScreenState extends State<MainScreen> {
     return global.db.readAllDatabases(
       showMyQuizzes: widget.showMyQuizzes,
       showManagedQuizzes: widget.showManagedQuizzes,
+      showAiGenerations: widget.showAiGenerations,
       showTrash: widget.showTrash,
       includeDeleted: _includeDeleted,
       creatorId: widget.creator?.uid,
@@ -267,7 +273,9 @@ class _MainScreenState extends State<MainScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: global.errorColor.withValues(alpha: 0.2),
+                                  color: global.errorColor.withValues(
+                                    alpha: 0.2,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(color: global.errorColor),
                                 ),
@@ -370,8 +378,8 @@ class _MainScreenState extends State<MainScreen> {
                     color: (deletedByAdmin && !global.isAdmin)
                         ? Colors.grey
                         : ((widget.showTrash || data['isDeleted'] == true)
-                            ? global.successColor
-                            : global.borderColor),
+                              ? global.successColor
+                              : global.borderColor),
                     size: 18,
                   ),
               ],
@@ -509,9 +517,9 @@ class _MainScreenState extends State<MainScreen> {
                       );
                     } catch (e) {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text("Restore error: $e")));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Restore error: $e")),
+                      );
                     }
                   }
                 : null,
@@ -535,22 +543,26 @@ class _MainScreenState extends State<MainScreen> {
         quizSubjects.add(quiz['examTag'].toString());
       }
 
-      final Map<String, dynamic> moduleTagsMap =
-          quiz['moduleTags'] is Map ? quiz['moduleTags'] : {};
+      final Map<String, dynamic> moduleTagsMap = quiz['moduleTags'] is Map
+          ? quiz['moduleTags']
+          : {};
       final allModuleTags = moduleTagsMap.values
           .expand((tags) => tags is List ? tags : [])
           .map((t) => t.toString())
           .toSet();
 
       // Unified pool for filtering and search
-      final allMetadata = {
-        ...quizTags,
-        ...quizSubjects,
-        ...allModuleTags,
-      };
+      final allMetadata = {...quizTags, ...quizSubjects, ...allModuleTags};
       final allMetadataLower = allMetadata.map((m) => m.toLowerCase()).toSet();
 
-      // 1. Search Query Match (Partial match on title or any metadata)
+      // 1. AI Source Match
+      if (_aiSourceFilter != "All") {
+        final bool isAi = quiz['isAiGenerated'] == true;
+        if (_aiSourceFilter == "AI Only" && !isAi) return false;
+        if (_aiSourceFilter == "Manual Only" && isAi) return false;
+      }
+
+      // 2. Search Query Match (Partial match on title or any metadata)
       bool matchesSearch = true;
       if (_searchQuery.isNotEmpty) {
         bool titleMatch = title.contains(_searchQuery);
@@ -564,7 +576,7 @@ class _MainScreenState extends State<MainScreen> {
         return matchesSearch;
       }
 
-      // 2. Filter Match (Case-insensitive match on selected chips)
+      // 3. Filter Match (Case-insensitive match on selected chips)
       final selectedFiltersLower = {
         ..._selectedTags.map((t) => t.toLowerCase()),
         ..._selectedSubjects.map((s) => s.toLowerCase()),
@@ -654,9 +666,11 @@ class _MainScreenState extends State<MainScreen> {
                           ? "RECYCLE BIN"
                           : (widget.showMyQuizzes
                                 ? "MY QUIZZES"
-                                : (widget.showManagedQuizzes
-                                      ? "MANAGED QUIZZES"
-                                      : "THINKFAST")),
+                                : (widget.showAiGenerations
+                                      ? "AI GENERATIONS"
+                                      : (widget.showManagedQuizzes
+                                            ? "MANAGED QUIZZES"
+                                            : "THINKFAST"))),
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         color: global.valueColor,
@@ -697,9 +711,9 @@ class _MainScreenState extends State<MainScreen> {
                       Icons.filter_list,
                       color:
                           (_selectedTags.isNotEmpty ||
-                                  _selectedSubjects.isNotEmpty)
-                              ? global.primaryAccent
-                              : global.valueColor,
+                              _selectedSubjects.isNotEmpty)
+                          ? global.primaryAccent
+                          : global.valueColor,
                     ),
                     onPressed: () async {
                       final List<Map<String, dynamic>> allQuizzes =
@@ -713,6 +727,7 @@ class _MainScreenState extends State<MainScreen> {
                             initialTags: _selectedTags,
                             initialSubjects: _selectedSubjects,
                             initialStrict: _isStrictFilter,
+                            initialAiSource: _aiSourceFilter,
                             allQuizzes: allQuizzes,
                           ),
                         ),
@@ -725,6 +740,7 @@ class _MainScreenState extends State<MainScreen> {
                           _selectedSubjects.clear();
                           _selectedSubjects.addAll(result['subjects']);
                           _isStrictFilter = result['isStrict'];
+                          _aiSourceFilter = result['aiSource'];
                         });
                       }
                     },
@@ -736,10 +752,9 @@ class _MainScreenState extends State<MainScreen> {
                       _includeDeleted
                           ? Icons.visibility_rounded
                           : Icons.visibility_off_rounded,
-                      color:
-                          _includeDeleted
-                              ? global.primaryAccent
-                              : global.labelColor,
+                      color: _includeDeleted
+                          ? global.primaryAccent
+                          : global.labelColor,
                     ),
                     onPressed: () =>
                         setState(() => _includeDeleted = !_includeDeleted),

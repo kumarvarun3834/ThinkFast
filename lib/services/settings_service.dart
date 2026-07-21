@@ -26,6 +26,7 @@ class SettingsService {
     'enable_analytics': 'public',
     'enable_export': 'public',
     'maintenance_mode': 'public',
+    'gemini_api_key': 'public',
 
     // Admin Management
     'admin_refresh_rate_limit_seconds': 'admin',
@@ -44,10 +45,7 @@ class SettingsService {
     // AI
     'enable_ai_quota_bypass': 'ai',
     'ai_daily_generation_limit': 'ai',
-    'primary': 'ai',
-    'backup1': 'ai',
-    'backup2': 'ai',
-    'backup3': 'ai',
+    'ai_models': 'ai',
     'ai_model_index': 'ai',
 
     // Logs
@@ -93,6 +91,7 @@ class SettingsService {
         'enable_analytics': false,
         'enable_export': false,
         'maintenance_mode': false,
+        'gemini_api_key': '',
       },
       'admin': {
         'admin_refresh_rate_limit_seconds': 30,
@@ -102,10 +101,12 @@ class SettingsService {
       'ai': {
         'enable_ai_quota_bypass': false,
         'ai_daily_generation_limit': 10,
-        'primary': 'gemma-4-31b-it',
-        'backup1': 'gemini-3.1-flash-lite',
-        'backup2': 'gemma-4-26b-it',
-        'backup3': 'gemini-2.5-flash',
+        'ai_models': [
+          {'name': 'gemini-3.1-flash-lite', 'priority': 1},
+          {'name': 'gemini-2.5-flash', 'priority': 2},
+          {'name': 'gemma-4-31b-it', 'priority': 3},
+          {'name': 'gemma-4-26b-it', 'priority': 4},
+        ],
         'ai_model_index': 0,
       },
       'quizzes': {

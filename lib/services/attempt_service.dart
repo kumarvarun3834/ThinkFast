@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+import 'package:thinkfast/services/ai_service.dart';
 import 'package:thinkfast/services/notification_service.dart';
+import 'package:thinkfast/utils/global.dart' as global;
 
 import 'admin_service.dart';
 
@@ -144,7 +149,14 @@ class AttemptService {
 
     await batch.commit();
 
-    // 4. Send Notification
+    // 4. Orchestrate post-submission AI analysis and explanation storage
+    _handlePostSubmissionAiAnalysis(
+      userId: userId,
+      quizId: quizId,
+      responseId: responseRef.id,
+    );
+
+    // 5. Send Notification
     try {
       final percentage = maxPossible > 0 ? (score / maxPossible) * 100 : 0;
       await NotificationService().sendNotification(
@@ -167,6 +179,39 @@ class AttemptService {
     );
 
     return responseRef.id;
+  }
+
+  /// 🤖 Post-Submission AI Analysis & Explanation Storage
+  Future<void> _handlePostSubmissionAiAnalysis({
+    required String userId,
+    required String quizId,
+    required String responseId,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final profile = global.currentUserProfile;
+      final bool hasPrivacyAccepted = profile?['optInAiAnalysis'] == true;
+
+      if (!hasPrivacyAccepted) {
+        debugPrint("Skipping post-submission analysis: AI & Personalization policy not accepted.");
+        return;
+      }
+
+      // 1. Trigger AI Analysis (Backend will handle storage in /explanation)
+      await AiService().analyzeAttempt(
+        userId: userId,
+        userName: profile?['name'] ?? 'User',
+        userEmail: profile?['email'] ?? user.email ?? 'unknown',
+        quizId: quizId,
+        responseId: responseId,
+      );
+
+      debugPrint("Post-Submission AI Analysis triggered successfully. Backend handles storage.");
+    } catch (e) {
+      debugPrint("Post-Submission AI Analysis Trigger Error: $e");
+    }
   }
 
   /// ✅ Stream attempts for a specific user (Primary storage)

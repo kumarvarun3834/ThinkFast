@@ -17,7 +17,16 @@
 - [ ] Verify Quiz-level ban prevents entry
 - [ ] Verify Global App ban shows "ACCESS DENIED" screen
 
+## 🤖 AI & Privacy (NEW)
+- [ ] Generate quiz without personalization -> Verify `persona` stripped from payload
+- [ ] Generate quiz with personalization -> Verify reasoning insight appears
+- [ ] Attempt "starred ⭐" item without policy -> Verify dialog block
+- [ ] Submit quiz with personalization -> Verify evaluation exists in `/explanation`
+- [ ] Filter by "AI Only" -> Verify manual quizzes disappear
+- [ ] Update AI quiz via API -> Verify tag added and flag removed
+
 ## 🛠️ System Stability
 - [ ] Maintenance Mode prevents non-admin access
 - [ ] Audit Logs track admin actions
 - [ ] Real-time updates for feature flags
+- [ ] Safe parsing of mixed timestamp types (String/DateTime)

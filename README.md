@@ -16,7 +16,8 @@ ThinkFast is a high-performance, feature-rich quiz platform built with Flutter a
 ### 🎓 For Participants
 *   **Growth Tracking**: Personal attempt history with detailed scores and performance trends across all quizzes.
 *   **Enhanced Review Mode**: Deep-dive into results with color-coded navigators, solution explanations, and correct/incorrect tagging.
-*   **AI-Driven Personalization**: Customizable profiles for goal tracking, learning styles, and personalized recommendations.
+*   **AI-Driven Personalization**: Customizable profiles for goal tracking and learning styles.
+*   **Secure AI Workflow**: Experience tailored learning with AI-generated quizzes that adapt to your profile. Advanced features like "Adaptive Quizzes" and "Deep AI Analysis" are gated by a privacy-first opt-in system.
 *   **Active Session Protection**: Smart auto-expiry and cleanup system prevents multiple simultaneous attempts and handles glitches gracefully.
 *   **Real-time Results**: Instant score calculation based on customizable marking schemes and detailed answer review.
 

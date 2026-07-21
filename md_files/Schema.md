@@ -51,9 +51,13 @@
 | `isLocked` | Boolean | Prevents new attempts. |
 | `enableAutoLeaderboard` | Boolean | If true, ranks are generated automatically from responses. |
 | `modules` | Array | Ordered modules containing question metadata. |
+| `isAiGenerated` | Boolean | Whether the quiz was created by the AI engine. |
 | `totalQuestions` | Number | Count of questions. |
 | `tags` | Array | Aggregate list of all tags (module + exam). |
 | `examTag` | String | Target competitive exam name. |
+
+> [!IMPORTANT]
+> Quizzes marked as `isAiGenerated: true` are write-locked for regular users in Firestore. Updates must be routed through the secure backend `PUT` API.
 
 ## 3. Quiz Content & Keys
 - **Questions (`/quiz_questions/{quizId}`):** Document containing a `modules` array.
@@ -198,8 +202,25 @@
 | `lastAttempt` | Timestamp | Time of last failure. |
 | `blockedUntil` | Timestamp | Expiration of IP ban. |
 
-## 9. Notifications
-### 9.1 Personal Alerts (`/notifications/{id}`)
+## 9. AI Insights & Explanations (`/explanation/{userId}`)
+**Security:** Strictly private. `allow read: if isOwner(userId)`. `allow write: if false` (Backend only).
+
+### 9.1 Generation Insights
+- **Path:** `/explanation/{userId}/gen/{quizId}`
+- **Fields:** `insight` (String), `quizId`, `timestamp`.
+- **Purpose:** Stores "Why this quiz is best for you" reasoning for personalized sessions.
+
+### 9.2 Attempt Analysis
+- **Path:** `/explanation/{userId}/{quizId}/{attemptId}`
+- **Fields:** `analysis` (Map), `traces` (Array), `quizId`, `responseId`, `timestamp`.
+- **Purpose:** Stores deep educational evaluation of user attempts.
+
+### 9.3 Future Recommendations
+- **Path:** `/explanation/{userId}/recommendations/{id}`
+- **Purpose:** Reserved slot for future AI-driven quiz suggestions.
+
+## 10. Notifications
+### 10.1 Personal Alerts (`/notifications/{id}`)
 | Field | Type | Description |
 | :--- | :--- | :--- |
 | `userId` | String | Recipient UID. |

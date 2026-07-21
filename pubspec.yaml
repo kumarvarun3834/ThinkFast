@@ -33,6 +33,7 @@ dependencies:
   firebase_core: ^4.1.0
   firebase_auth: ^6.0.2
   cloud_firestore: ^6.0.3
+
   google_fonts: ^8.1.0
   app_links: ^6.3.2
   http: ^1.2.1
@@ -43,6 +44,9 @@ dependencies:
   google_sign_in: ^7.2.0
   rxdart: ^0.28.0
   shared_preferences: ^2.5.2
+  #  other
+  firebase_performance: ^0.11.4+3
+  firebase_app_check: ^0.4.5
 
 dev_dependencies:
   flutter_test:

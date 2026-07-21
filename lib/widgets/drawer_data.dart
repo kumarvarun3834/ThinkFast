@@ -163,242 +163,253 @@ class _SidebarMenuState extends State<SidebarMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: global.cardColor,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          UserAccountsDrawerHeader(
-            decoration: const BoxDecoration(color: global.bgColor),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: global.cardColor,
-              backgroundImage: _userPhotoUrl != null
-                  ? NetworkImage(_userPhotoUrl!)
-                  : null,
-              child: _userPhotoUrl == null
-                  ? const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: global.primaryAccent,
-                    )
-                  : null,
-            ),
-            accountName: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    _userName ?? (widget.user == null ? "Guest" : "User"),
-                    style: const TextStyle(
-                      color: global.valueColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (_isAdmin)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 8.0),
-                    child: AdminBadge(),
-                  ),
-                if (widget.user != null && !widget.user!.emailVerified)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    margin: const EdgeInsets.only(left: 8),
-                    decoration: BoxDecoration(
-                      color: global.warningColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: global.warningColor),
-                    ),
-                    child: const Text(
-                      "UNVERIFIED",
-                      style: TextStyle(
-                        color: global.warningColor,
-                        fontSize: 10,
+    return SafeArea(
+      child: Material(
+        color: global.cardColor,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: global.bgColor),
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: global.cardColor,
+                backgroundImage: _userPhotoUrl != null
+                    ? NetworkImage(_userPhotoUrl!)
+                    : null,
+                child: _userPhotoUrl == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: global.primaryAccent,
+                      )
+                    : null,
+              ),
+              accountName: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      _userName ?? (widget.user == null ? "Guest" : "User"),
+                      style: const TextStyle(
+                        color: global.valueColor,
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-              ],
-            ),
-            accountEmail: Text(
-              widget.user?.uid ?? "Welcome to ThinkFast",
-              style: const TextStyle(color: global.labelColor),
-            ),
-          ),
-          if (widget.user == null)
-            _drawerItem(
-              icon: Icons.login,
-              text: 'Login',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/login");
-              },
-            ),
-          if (widget.user != null && !widget.user!.emailVerified)
-            _drawerItem(
-              icon: Icons.verified_user_outlined,
-              text: 'Verify Account',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, "/verify");
-              },
-            ),
-          _drawerItem(
-            icon: Icons.home,
-            text: 'Home',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/home");
-            },
-          ),
-          if (widget.user != null)
-            StreamBuilder<int>(
-              stream: NotificationService().getUnreadCount(widget.user!.uid),
-              builder: (context, snapshot) {
-                final int count = snapshot.data ?? 0;
-                return _drawerItem(
-                  icon: Icons.notifications_none_rounded,
-                  text: 'Notifications',
-                  trailing: count > 0
-                      ? Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: global.errorColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            count > 9 ? "9+" : "$count",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : null,
-                  onTap: () => _checkAndNavigate(context, "/Notifications"),
-                );
-              },
-            ),
-          _drawerItem(
-            icon: Icons.qr_code_scanner_rounded,
-            text: 'Join Quiz by ID',
-            onTap: () {
-              if (widget.user == null || !widget.user!.emailVerified) {
-                _checkAndNavigate(
-                  context,
-                  "",
-                ); // This will trigger the verification check
-              } else {
-                Navigator.pop(context);
-                _showJoinByIdDialog(context);
-              }
-            },
-          ),
-          if (widget.user != null && (_canCreateQuiz || _isAdmin))
-            _drawerItem(
-              icon: Icons.add_box_outlined,
-              text: 'Create New Quiz',
-              onTap: () => _checkAndNavigate(context, "/Create Quiz"),
-            ),
-          if (widget.user != null && (_canCreateQuiz || _isAdmin))
-            _drawerItem(
-              icon: Icons.auto_awesome_outlined,
-              text: 'AI Quiz Wizard',
-              onTap: () => _checkAndNavigate(context, "/AI Quiz Generator"),
-            ),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.library_books_outlined,
-              text: 'My Quiz',
-              onTap: () => _checkAndNavigate(context, "/My Quiz"),
-            ),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.delete_outline_rounded,
-              text: 'Recycle Bin',
-              onTap: () => _checkAndNavigate(context, "/Recycle Bin"),
-            ),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.people_outline_rounded,
-              text: 'Managed Quizzes',
-              onTap: () => _checkAndNavigate(context, "/Managed Quizzes"),
-            ),
-          if (widget.user != null)
-            _drawerItem(
-              icon: Icons.history_rounded,
-              text: 'My Attempts',
-              onTap: () => _checkAndNavigate(context, "/My Attempts"),
-            ),
-          _drawerItem(
-            icon: Icons.settings_outlined,
-            text: 'Settings',
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, "/settings");
-            },
-          ),
-          if (_isAdmin)
-            _drawerItem(
-              icon: Icons.admin_panel_settings_outlined,
-              text: 'Admin Panel',
-              onTap: () => _checkAndNavigate(context, "/Admin Panel"),
-            ),
-          if (_isRegisteredAdmin)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: global.bgColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: global.borderColor),
-                ),
-                child: SwitchListTile(
-                  title: const Text(
-                    "Admin Mode",
-                    style: TextStyle(color: global.valueColor, fontSize: 14),
-                  ),
-                  secondary: Icon(
-                    _isAdmin ? Icons.visibility : Icons.visibility_off,
-                    color: global.primaryAccent,
-                  ),
-                  value: _isAdmin,
-                  activeThumbColor: global.primaryAccent,
-                  onChanged: (bool value) async {
-                    try {
-                      await global.adminDb.toggleAdminMode(
-                        uid: widget.user!.uid,
-                        enable: value,
-                      );
-                      global.isAdmin = value;
-                      if (mounted) {
-                        setState(() => _isAdmin = value);
-                        // Refresh features or navigate if needed
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Admin Mode ${value ? 'Enabled' : 'Disabled'}",
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-                      }
-                    }
-                  },
-                ),
+                  if (_isAdmin)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8.0),
+                      child: AdminBadge(),
+                    ),
+                  if (widget.user != null && !widget.user!.emailVerified)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      margin: const EdgeInsets.only(left: 8),
+                      decoration: BoxDecoration(
+                        color: global.warningColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: global.warningColor),
+                      ),
+                      child: const Text(
+                        "UNVERIFIED",
+                        style: TextStyle(
+                          color: global.warningColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              accountEmail: Text(
+                widget.user?.uid ?? "Welcome to ThinkFast",
+                style: const TextStyle(color: global.labelColor),
               ),
             ),
-        ],
+            if (widget.user == null)
+              _drawerItem(
+                icon: Icons.login,
+                text: 'Login',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, "/login");
+                },
+              ),
+            if (widget.user != null && !widget.user!.emailVerified)
+              _drawerItem(
+                icon: Icons.verified_user_outlined,
+                text: 'Verify Account',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, "/verify");
+                },
+              ),
+            _drawerItem(
+              icon: Icons.home,
+              text: 'Home',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/home");
+              },
+            ),
+            if (widget.user != null)
+              StreamBuilder<int>(
+                stream: NotificationService().getUnreadCount(widget.user!.uid),
+                builder: (context, snapshot) {
+                  final int count = snapshot.data ?? 0;
+                  return _drawerItem(
+                    icon: Icons.notifications_none_rounded,
+                    text: 'Notifications',
+                    trailing: count > 0
+                        ? Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: global.errorColor,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              count > 9 ? "9+" : "$count",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : null,
+                    onTap: () => _checkAndNavigate(context, "/Notifications"),
+                  );
+                },
+              ),
+            _drawerItem(
+              icon: Icons.qr_code_scanner_rounded,
+              text: 'Join Quiz by ID',
+              onTap: () {
+                if (widget.user == null || !widget.user!.emailVerified) {
+                  _checkAndNavigate(
+                    context,
+                    "",
+                  ); // This will trigger the verification check
+                } else {
+                  Navigator.pop(context);
+                  _showJoinByIdDialog(context);
+                }
+              },
+            ),
+            if (widget.user != null && (_canCreateQuiz || _isAdmin))
+              _drawerItem(
+                icon: Icons.add_box_outlined,
+                text: 'Create New Quiz',
+                onTap: () => _checkAndNavigate(context, "/Create Quiz"),
+              ),
+            if (widget.user != null && (_canCreateQuiz || _isAdmin))
+              _drawerItem(
+                icon: Icons.auto_awesome_outlined,
+                text: 'AI Quiz Wizard',
+                onTap: () => _checkAndNavigate(context, "/AI Quiz Generator"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.auto_awesome_motion_rounded,
+                text: 'AI Generations',
+                onTap: () => _checkAndNavigate(context, "/AI Generations"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.library_books_outlined,
+                text: 'My Quiz',
+                onTap: () => _checkAndNavigate(context, "/My Quiz"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.delete_outline_rounded,
+                text: 'Recycle Bin',
+                onTap: () => _checkAndNavigate(context, "/Recycle Bin"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.people_outline_rounded,
+                text: 'Managed Quizzes',
+                onTap: () => _checkAndNavigate(context, "/Managed Quizzes"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.history_rounded,
+                text: 'My Attempts',
+                onTap: () => _checkAndNavigate(context, "/My Attempts"),
+              ),
+            _drawerItem(
+              icon: Icons.settings_outlined,
+              text: 'Settings',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, "/settings");
+              },
+            ),
+            if (_isAdmin)
+              _drawerItem(
+                icon: Icons.admin_panel_settings_outlined,
+                text: 'Admin Panel',
+                onTap: () => _checkAndNavigate(context, "/Admin Panel"),
+              ),
+            if (_isRegisteredAdmin)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: global.bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: global.borderColor),
+                  ),
+                  child: SwitchListTile(
+                    title: const Text(
+                      "Admin Mode",
+                      style: TextStyle(color: global.valueColor, fontSize: 14),
+                    ),
+                    secondary: Icon(
+                      _isAdmin ? Icons.visibility : Icons.visibility_off,
+                      color: global.primaryAccent,
+                    ),
+                    value: _isAdmin,
+                    activeThumbColor: global.primaryAccent,
+                    onChanged: (bool value) async {
+                      try {
+                        await global.adminDb.toggleAdminMode(
+                          uid: widget.user!.uid,
+                          enable: value,
+                        );
+                        global.isAdmin = value;
+                        if (mounted) {
+                          setState(() => _isAdmin = value);
+                          // Refresh features or navigate if needed
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Admin Mode ${value ? 'Enabled' : 'Disabled'}",
+                              ),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

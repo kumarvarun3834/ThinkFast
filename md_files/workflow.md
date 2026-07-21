@@ -98,7 +98,15 @@ The app uses a consistent dark theme defined in `global.dart`:
 3.  **Submission**:
     - `AttemptService` calculates scores and pushes an atomic batch to Firestore.
     - Immediately triggers `NotificationService` to send a personal result alert.
+    - **New**: Triggers `AiService.analyzeAttempt` for users with personalization enabled, saving results to `/explanation`.
 4.  **Compliance Loop**: 
     - `profile_screen.dart` serves as the primary controller for mandatory privacy consent and optional AI demographic collection.
     - Status is synchronized with the user's `protected/details` sub-collection for backend enforcement.
+    - **Advanced Gate**: AI Wizard and Result Screen gate "starred ⭐" features and deep analysis based on the `optInAiAnalysis` status.
+
+### AI Lifecycle Flow
+1.  **Generation**: Client calls `/generateQuiz` -> Backend returns `quizId` + `explanation` -> Backend saves insight to `/explanation/{uid}/gen/{quizId}`.
+2.  **Tracking**: Quotas are incremented by the server in `user_usage`.
+3.  **Maintenance**: AI quizzes are updated via `PUT /api/quizzes/:quizId` -> Backend removes AI flag + adds "partial AI" tag + deletes generation log.
+4.  **Analysis**: Result screen triggers `/api/quiz/analyze` -> Backend saves evaluation to `/explanation/{uid}/{quizId}/{attemptId}`.
 

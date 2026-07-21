@@ -14,6 +14,9 @@
 - **Integer Question Logic:** For integer-type questions, always use `.trim()` on both user input and the correct answer before comparison to avoid whitespace issues.
 - **Verification Guard:** Core write features (Creating quizzes, submitting attempts) must be protected by an email verification check.
 - **Private Data:** Sensitive user data (emails, active sessions) must be stored in the `private` or `protected` sub-collections of a user's document, never in the root user document.
+- **AI Write Integrity:** Direct client writes to AI-generated quizzes or the `/explanation` hierarchy are prohibited. Only the secure backend server and App Administrators can modify these resources.
+- **Privacy Gating:** Advanced AI features (Adaptive Quizzes, Analysis) MUST be gated by the `optInAiAnalysis` flag. If a user has not opted into the 2nd Privacy Policy, advanced features must be disabled and PII data stripped from AI requests.
+- **Safe Timestamping:** UI components must safely parse timestamps using `DateTime.tryParse` to handle `Timestamp`, `DateTime`, or `String` variants seamlessly.
 
 ## 3. UI & Design Standards
 - **Theme Consistency:** Do not use hardcoded hex values in widgets. Use the constants defined in `lib/utils/global.dart` (`bgColor`, `primaryAccent`, `cardColor`, etc.).

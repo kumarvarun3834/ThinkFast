@@ -228,6 +228,7 @@ class UserDatabaseService {
   Stream<List<Map<String, dynamic>>> readAllDatabases({
     bool showMyQuizzes = false,
     bool showManagedQuizzes = false,
+    bool showAiGenerations = false,
     bool showTrash = false,
     bool includeDeleted = false,
     String? creatorId,
@@ -240,6 +241,8 @@ class UserDatabaseService {
 
     if (showTrash && creatorId != null) {
       return _quizService.getMyDeletedQuizzes(creatorId);
+    } else if (showAiGenerations && creatorId != null) {
+      return _quizService.getMyAiQuizzes(creatorId);
     } else if (showMyQuizzes && creatorId != null) {
       if (includeDeleted) {
         return _quizService.getUserQuizzesMaster(creatorId);
@@ -427,6 +430,8 @@ class UserDatabaseService {
       if (entry.containsKey('s')) solutions[qUid] = entry['s'].toString();
     }
 
+    Map<String, dynamic>? submissionResult;
+
     if (from == 'quizform') {
       // Logic already handled above in Privacy Restraint block
     } else if (userAnswers != null && totalQuestions != null) {
@@ -439,7 +444,7 @@ class UserDatabaseService {
         }
       }
 
-      await _attemptService.submitAttempt(
+      final String attemptId = await _attemptService.submitAttempt(
         userId: userId,
         quizId: docId,
         quizTitle: quiz['title'] ?? 'Untitled Quiz',
@@ -452,8 +457,14 @@ class UserDatabaseService {
         questionOrder: questionOrder,
         visitedItems: visitedItems,
       );
+
+      submissionResult = {'id': attemptId};
     }
-    return {'answers': correctKey, 'solutions': solutions};
+    return {
+      'answers': correctKey,
+      'solutions': solutions,
+      'submission': ?submissionResult,
+    };
   }
 
   Future<String> submitAttempt({

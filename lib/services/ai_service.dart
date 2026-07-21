@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
 import 'package:thinkfast/utils/global.dart' as global;
 
 import 'admin_service.dart';
 import 'local_cache_service.dart';
-import 'quiz_data_processor.dart';
 import 'settings_service.dart';
 
 class AiService {
@@ -80,264 +82,292 @@ class AiService {
     return usage;
   }
 
-  /// ✅ Create Quiz directly from AI with Validation and Repair Flow
-  Future<String> createAiQuiz({
+  /// ✅ Create Quiz using Dedicated AI Server
+  Future<Map<String, dynamic>> createAiQuiz({
     required String userId,
     required String userName,
     required String prompt,
     bool isPersonal = false,
     List<String>? tags,
     String? examTag,
+    Map<String, dynamic>? additionalConfig,
   }) async {
     await _checkAiEnabled(userId);
 
-    // 1. Generate JSON with specific "System Prompt" instruction
-    final systemPrompt =
-        """
-      Generate a professional quiz JSON for '$prompt'.
-      
-      Dynamic Personalization Rules:
-      - If Accuracy < 50% → 70% Easy, 25% Medium, 5% Hard.
-      - If Accuracy > 80% → 20% Medium, 60% Hard, 20% Challenge.
-      - Otherwise → 50% Easy, 50% Medium.
-      - Wildcard: Always include 1-2 questions of random difficulty.
-
-      Strict JSON Schema:
-      {
-        "title": "string",
-        "description": "string",
-        "questions": [
-          {
-            "type": "Single Choice" | "Multiple Choice" | "Integer",
-            "question": "string",
-            "choices": ["string"],
-            "answers": ["string"],
-            "subject": "string",
-            "description": "string" (explanation)
-          }
-        ]
-      }
-    """;
-
-    final stopwatch = Stopwatch()..start();
-
-    // Get models from feature flags
-    final List<String> models = [
-      global.featureFlags?['primary'] ?? 'gemma-4-31b-it',
-      global.featureFlags?['backup1'] ?? 'gemini-3.1-flash-lite',
-      global.featureFlags?['backup2'] ?? 'gemma-4-26b-it',
-      global.featureFlags?['backup3'] ?? 'gemini-2.5-flash',
-    ];
-
-    int startIndex = (global.featureFlags?['ai_model_index'] ?? 0) as int;
-    String jsonContent = "";
-    String? error;
-    String activeModel = "";
-
-    // Try models in sequence with fallback
-    for (int i = 0; i < models.length; i++) {
-      int currentIndex = (startIndex + i) % models.length;
-      activeModel = models[currentIndex];
-
-      try {
-        debugPrint("AI: Attempting generation with model: $activeModel");
-        jsonContent = await generateQuizJson(
-          "$prompt $systemPrompt",
-          model: activeModel,
-        );
-        error = null;
-        break; // Success
-      } catch (e) {
-        error = e.toString();
-        debugPrint("AI Error with $activeModel: $e");
-        continue; // Try next model
-      }
-    }
-
-    if (jsonContent.isEmpty) {
-      throw "AI Generation failed across all models. Last error: $error";
-    }
-
-    // 2. Schema Validation & Repair Flow
     try {
-      _validateJsonSchema(jsonContent);
-    } catch (e) {
-      debugPrint("Initial AI response malformed. Attempting repair...");
-      jsonContent = await _repairJson(
-        jsonContent,
-        e.toString(),
-        model: activeModel,
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+
+      final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
+        userId: userId,
+        userName: userName,
+        userPrompt: prompt,
+        config: additionalConfig ?? {},
       );
-      _validateJsonSchema(jsonContent); // Final check
-    }
 
-    // 3. Content Quality Checks
-    final result = await QuizDataProcessor.processImportData(jsonContent);
-    _performQualityChecks(result);
+      final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
 
-    // 4. Save to Database
-    final quizId = await global.qDb.createDatabase(
-      creatorId: userId,
-      user: userName,
-      title: result.title ?? "AI: $prompt",
-      description: result.description ?? "Generated based on: $prompt",
-      visibility: isPersonal ? "private" : "public",
-      data: result.questions,
-      time: (result.time ?? 600) ~/ 60,
-      markingScheme: {
-        'type': result.markingType ?? 'default',
-        'passThreshold': result.markingPassThreshold ?? 40,
-        if (result.markingGlobal != null) 'global': result.markingGlobal,
-        if (result.markingPerType != null)
-          'perQuestionType': result.markingPerType,
-        if (result.markingPerQuestion != null)
-          'perQuestion': result.markingPerQuestion,
-      },
-      attemptLimits: {
-        'type': result.attemptLimitType ?? 'none',
-        if (result.globalLimits != null) 'global': result.globalLimits,
-        if (result.perModuleLimits != null) 'perModule': result.perModuleLimits,
-      },
-      allowMultipleAttempts: result.allowMultipleAttempts ?? true,
-      completeRandomShuffle: result.completeRandomShuffle ?? false,
-      shuffleModules: result.shuffleModules ?? false,
-      shuffleQuestionsWithinModules:
-          result.shuffleQuestionsWithinModules ?? false,
-      disableModuleSwitchingUntilTimeout:
-          result.disableModuleSwitchingUntilTimeout ?? false,
-      forceWaitUntilTimeout: result.forceWaitUntilTimeout ?? false,
-      isPersonal: isPersonal,
-      isAiGenerated: true,
-      tags: tags,
-      examTag: examTag,
-    );
+      final Map<String, dynamic> body = {
+        'uuid': effectiveUuid,
+        'email': global.currentUserProfile?['email'] ?? user?.email,
+        'name': userName,
+        'prompt': prompt, // Include prompt at root as per docs
+        'input': inputStatement,
+        'isPersonal': isPersonal,
+        'tags': tags,
+        'examTag': examTag,
+      };
+      developer.log(jsonEncode(body), name: 'AI Generation Payload');
 
-    stopwatch.stop();
+      final response = await http.post(
+        Uri.parse("${global.aiBackendUrl}/generateQuiz"),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      debugPrint("AI Generation: Calling backend -> ${global.aiBackendUrl}/generateQuiz");
 
-    // 5. Log it with Metadata
-    await logGeneration(
-      userId: userId,
-      prompt: prompt,
-      generatedQuizId: quizId,
-      metadata: {
-        'model': activeModel,
-        'generationTimeMs': stopwatch.elapsedMilliseconds,
-        'tokenUsage': jsonContent.length ~/ 4, // Rough estimate
-      },
-    );
+      if (response.statusCode == 200) {
+        developer.log(response.body, name: 'AI Generation Response');
+        final data = jsonDecode(response.body);
+        final String quizId = data['quizId'];
 
-    return quizId;
-  }
+        // Update local usage cache after successful generation
+        final newUsage = await global.aiConnect.getAiUsageToday(userId);
+        await _cache.saveAiUsage(newUsage);
 
-  /// 🛠️ JSON Schema Validator
-  void _validateJsonSchema(String rawJson) {
-    final Map<String, dynamic> data = jsonDecode(rawJson);
-    if (!data.containsKey('title') || data['title'] is! String) {
-      throw "Missing 'title'";
-    }
-    if (!data.containsKey('questions') || data['questions'] is! List) {
-      throw "Missing 'questions' list";
-    }
-
-    for (var q in data['questions']) {
-      if (q['question'] == null || q['type'] == null) {
-        throw "Malformed question object";
+        return {
+          'quizId': quizId,
+          'explanation': data['explanation'] ?? data['reasoning'] ?? '',
+        };
+      } else {
+        developer.log(
+          "AI Server Error: ${response.statusCode} - ${response.body}",
+          name: 'AI Server Error',
+        );
+        throw Exception(
+          "AI Generation failed on the server. Status: ${response.statusCode}",
+        );
       }
-      if (q['type'] != "Integer" &&
-          (q['choices'] == null || (q['choices'] as List).isEmpty)) {
-        throw "Choices missing for ${q['type']} question";
-      }
-      if (q['answers'] == null || (q['answers'] as List).isEmpty) {
-        throw "Answers missing";
-      }
+    } catch (e) {
+      debugPrint("AI Service Error: $e");
+      throw Exception("An unexpected error occurred during AI generation: $e");
     }
   }
 
-  /// 🛠️ Repair Flow
-  Future<String> _repairJson(
-    String malformedJson,
-    String error, {
-    String model = 'gpt-4o',
+  /// ✅ Generate Quiz from PDF using Dedicated AI Server (Base64)
+  Future<String> generateQuizFromPDF({
+    required String userId,
+    required String pdfName,
+    required int pdfSize,
+    required String pdfData,
+    bool isPersonal = false,
   }) async {
-    final repairPrompt =
-        "The following JSON is invalid: $error. Please fix the structure and return ONLY the corrected JSON: $malformedJson";
-    return await generateQuizJson(repairPrompt, model: model);
-  }
+    await _checkAiEnabled(userId);
 
-  /// 🛠️ Content Quality Checks
-  void _performQualityChecks(dynamic result) {
-    final questions = result.questions;
-    if (questions.isEmpty) throw "AI generated an empty quiz";
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
 
-    final seenQuestions = <String>{};
-    for (var q in questions) {
-      final text = q['question'].toString().toLowerCase().trim();
-      if (seenQuestions.contains(text)) {
-        throw "Duplicate question detected: $text";
+      final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
+        userId: userId,
+        userName: global.currentUserProfile?['name'] ?? 'User',
+        userPrompt: "Generate a quiz from the uploaded PDF document: $pdfName",
+        config: {'source': 'pdf', 'pdfName': pdfName, 'pdfSize': pdfSize},
+      );
+
+      final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
+
+      final Map<String, dynamic> body = {
+        'uuid': effectiveUuid,
+        'email': global.currentUserProfile?['email'] ?? user?.email,
+        'name': global.currentUserProfile?['name'] ?? 'User',
+        'pdfName': pdfName,
+        'pdfSize': pdfSize,
+        'pdfData': pdfData,
+        'input': inputStatement,
+        'isPersonal': isPersonal,
+      };
+      developer.log(jsonEncode(body), name: 'PDF Generation Payload');
+
+      final response = await http.post(
+        Uri.parse("${global.aiBackendUrl}/generateQuizFromPDF"),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      );
+      debugPrint("PDF Generation: Calling backend -> ${global.aiBackendUrl}/generateQuizFromPDF");
+
+      if (response.statusCode == 200) {
+        developer.log(response.body, name: 'PDF Recognition Response');
+        final data = jsonDecode(response.body);
+
+        // Update local usage cache after successful generation
+        final newUsage = await global.aiConnect.getAiUsageToday(userId);
+        await _cache.saveAiUsage(newUsage);
+
+        return data['quizId'];
+      } else {
+        developer.log(
+          "PDF Server Error: ${response.statusCode} - ${response.body}",
+          name: 'PDF Server Error',
+        );
+        throw Exception(
+          "PDF Recognition failed on the server. Status: ${response.statusCode}",
+        );
       }
-      seenQuestions.add(text);
-
-      if (q['description'] == null ||
-          q['description'].toString().trim().isEmpty) {
-        throw "Empty explanation detected for question: ${q['question']}";
-      }
+    } catch (e) {
+      debugPrint("PDF Service Error: $e");
+      throw Exception("An error occurred during PDF processing: $e");
     }
   }
 
-  /// ✅ Mock AI Generation (Should be replaced with actual API call)
-  Future<String> generateQuizJson(
-    String prompt, {
-    String model = 'gpt-4o',
+  /// ✅ Analyze Quiz Attempt for Reasoning and Improvements
+  Future<Map<String, dynamic>> analyzeAttempt({
+    required String userId,
+    required String userName,
+    required String userEmail,
+    required String quizId,
+    required String responseId,
   }) async {
-    // In a real app, this would call OpenAI/Gemini with the prompt and model
-    await Future.delayed(const Duration(seconds: 2));
+    await _checkAiEnabled(userId);
 
-    // For testing fallback, you could simulate an error:
-    // if (model == 'gpt-4o') throw Exception("Simulated failure for $model");
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final token = await user?.getIdToken();
+      final url = "${global.aiBackendUrl}/api/quiz/analyze";
+      debugPrint("AI Analysis: Calling backend -> $url");
 
-    // Returning a more diverse template
-    return jsonEncode({
-      "title": "ThinkFast AI: Topic Exploration ($model)",
-      "description":
-          "Comprehensive quiz generated using $model for your request.",
-      "time": 900,
-      "markingScheme": {
-        "type": "per_question_type",
-        "passThreshold": 50,
-        "perQuestionType": {
-          "Single Choice": {"correct": 4, "wrong": -1},
-          "Multiple Choice": {"correct": 6, "wrong": -2},
-          "Integer": {"correct": 10, "wrong": 0},
+      final Map<String, dynamic> body = {
+        'uuid': userId,
+        'email': userEmail,
+        'name': userName,
+        'quizId': quizId,
+        'responseId': responseId,
+      };
+      developer.log(jsonEncode(body), name: 'AI Analysis Payload');
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200) {
+        developer.log(response.body, name: 'AI Analysis Response');
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else {
+        final errorBody = jsonDecode(response.body);
+        throw Exception(errorBody['error'] ?? "AI Analysis failed. Status: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("AI Analysis Error: $e");
+      throw Exception(e.toString());
+    }
+  }
+
+  /// 🛠️ Helper to build a structured JSON "Input Statement" for the AI
+  Map<String, dynamic> _buildJsonInputStatement({
+    required String userId,
+    required String userName,
+    required String userPrompt,
+    required Map<String, dynamic> config,
+  }) {
+    final profile = global.currentUserProfile ?? {};
+
+    final String? subject = config['subject'];
+    final String? topic = config['topic'];
+    String clearStatement = userPrompt;
+    if (subject != null && topic != null) {
+      clearStatement = "Generate a quiz for $subject > $topic. $userPrompt";
+    }
+
+    final bool isExtendedProfileEnabled = profile['optInAiAnalysis'] == true;
+    final bool isPersonalizationRequested =
+        config['personalization'] != '❌ Ignore history' ||
+        config['difficulty'] == 'Adaptive AI ⭐' ||
+        config['coverage'] == 'Previous Mistakes ⭐';
+
+    final Map<String, dynamic> userPayload = {
+      "uid": userId,
+      "name": userName,
+      "email": profile['email'] ?? FirebaseAuth.instance.currentUser?.email,
+    };
+
+    if (isExtendedProfileEnabled) {
+      // Persona is sent if Extended Profile is active
+      userPayload["persona"] = {
+        "class": profile['class'],
+        "goal": profile['goal'],
+        "targetExam": profile['targetExam'],
+        "learningStyle": profile['learningStyle'],
+        "interests": profile['interests'],
+        "language": profile['preferredLanguage'] ?? 'English'
+      };
+
+      // Performance is ONLY sent if BOTH Extended Profile is active AND personalization is requested
+      if (isPersonalizationRequested) {
+        userPayload["performance"] = {
+          "attemptCount": profile['attemptCount'],
+          "quizCount": profile['quizCount'],
+          "avgScore": profile['avgScore'] ?? '0%',
+          "timeSpentPerQ": profile['timeSpentPerQ'] ?? 'Auto',
+          "commonMistakes": profile['commonMistakes'] ?? [],
+          "weakTopics": profile['weakTopics'] ?? [],
+          "strongTopics": profile['strongTopics'] ?? [],
+          "topicPerformance": profile['topicPerformance'] ?? {},
+          "recentlyStudiedTopics": profile['lastQuizTopics'] ?? [],
+          "learningStyle": profile['learningStyle'] ?? 'Adaptive',
+          "preferredDifficulty": profile['preferredDifficulty'] ?? 'Medium'
+        };
+      }
+    }
+
+    return {
+      "system": {
+        "role": "Quiz Wiz - Professional Educational Content Developer",
+        "project": global.projectContext,
+        "instructions": [
+          "Generate professional, pedagogical quiz content.",
+          "Ensure high personalization based on the provided user profile.",
+          "Prioritize weak topics if difficulty is set to 'Adaptive'.",
+          "Return ONLY valid JSON matching the requested schema."
+        ]
       },
-      "questions": [
-        {
-          "question": "Which of these are primary colors?",
-          "choices": ["Red", "Green", "Blue", "Yellow"],
-          "answers": ["Red", "Blue", "Yellow"],
-          "type": "Multiple Choice",
-          "subject": "Basics",
-          "description":
-              "Primary colors are those that cannot be created by mixing other colors.",
+      "user": userPayload,
+      "request": {
+        "user_input": userPrompt,
+        "clear_statement": clearStatement,
+        "hierarchy": {
+          "subject": subject,
+          "topic": topic
         },
-        {
-          "question": "What is 25 * 4?",
-          "choices": [],
-          "answers": ["100"],
-          "type": "Integer",
-          "subject": "Arithmetic",
-          "description": "25 times 4 equals exactly 100.",
-        },
-        {
-          "question": "What is the capital of France?",
-          "choices": ["London", "Berlin", "Paris", "Madrid"],
-          "answers": ["Paris"],
-          "type": "Single Choice",
-          "subject": "Geography",
-          "description":
-              "Paris is the capital and most populous city of France.",
-        },
-      ],
-    });
+        "config": config,
+        "output_format": {
+          "type": "json",
+          "schema": {
+            "title": "string",
+            "description": "string",
+            "questions": [
+              {
+                "type": "Single Choice | Multiple Choice | Integer",
+                "question": "string",
+                "choices": ["string"],
+                "answers": ["string"],
+                "subject": "string",
+                "explanation": "string"
+              }
+            ]
+          }
+        }
+      }
+    };
   }
 }

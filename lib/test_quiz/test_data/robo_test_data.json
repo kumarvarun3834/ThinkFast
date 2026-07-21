@@ -2,9 +2,9 @@
   "title": "Robo Testing Comprehensive Quiz",
   "description": "A comprehensive test suite for automated robo testing, covering all features and question types.",
   "time": 600,
-  "perQuestionTime": 30,
-  "examTag": "RoboTest-2025",
   "isAiGenerated": true,
+  "examTag": "RoboTest-2025",
+  "perQuestionTime": 30,
   "visibility": "scheduled",
   "activeAt": "2025-01-01T12:00:00Z",
   "maxAttempts": 5,
@@ -15,7 +15,10 @@
   "forceWaitUntilTimeout": false,
   "allowMultipleAttempts": false,
   "isRestricted": true,
-  "allowedParticipants": ["tester@example.com", "robo@thinkfast.com"],
+  "allowedParticipants": [
+    "tester@example.com",
+    "robo@thinkfast.com"
+  ],
   "timingScheme": {
     "type": "per_type_per_module",
     "settings": {
@@ -48,171 +51,309 @@
   "markingScheme": {
     "type": "per_question_type",
     "perQuestionType": {
-      "Single Choice": { "correct": 4, "wrong": -1 },
-      "Multiple Choice": { "correct": 5, "wrong": -2 },
-      "Integer": { "correct": 10, "wrong": 0 }
+      "Single Choice": {
+        "correct": 4,
+        "wrong": -1
+      },
+      "Multiple Choice": {
+        "correct": 5,
+        "wrong": -2
+      },
+      "Integer": {
+        "correct": 10,
+        "wrong": 0
+      }
     }
   },
   "moduleTags": {
-    "Flutter Basics": ["flutter", "dart", "ui"],
-    "Firebase": ["backend", "nosql", "auth"],
-    "Logic": ["math", "reasoning"]
+    "Flutter Basics": [
+      "flutter",
+      "dart",
+      "ui"
+    ],
+    "Firebase": [
+      "backend",
+      "nosql",
+      "auth"
+    ],
+    "Logic": [
+      "math",
+      "reasoning"
+    ]
   },
-  "moduleOrder": ["Flutter Basics", "Firebase", "Logic"],
+  "moduleOrder": [
+    "Flutter Basics",
+    "Firebase",
+    "Logic"
+  ],
   "questions": [
     {
       "question": "Which programming language is used to write Flutter apps?",
-      "choices": ["Java", "Kotlin", "Dart", "Swift"],
-      "answers": ["Dart"],
+      "choices": [
+        "Java",
+        "Kotlin",
+        "Dart",
+        "Swift"
+      ],
+      "answers": [
+        "Dart"
+      ],
       "type": "Single Choice",
       "subject": "Flutter Basics",
-      "description": "Flutter uses the Dart programming language developed by Google."
+      "explanation": "Flutter uses the Dart programming language developed by Google."
     },
     {
       "question": "What is the command to create a new Flutter project?",
-      "choices": ["flutter start", "flutter create", "flutter init", "flutter new"],
-      "answers": ["flutter create"],
+      "choices": [
+        "flutter start",
+        "flutter create",
+        "flutter init",
+        "flutter new"
+      ],
+      "answers": [
+        "flutter create"
+      ],
       "type": "Single Choice",
       "subject": "Flutter Basics",
-      "description": "The 'flutter create' command initializes a new project directory."
+      "explanation": "The 'flutter create' command initializes a new project directory."
     },
     {
       "question": "Which of these are Flutter layout widgets?",
-      "choices": ["Column", "Row", "Stack", "Service"],
-      "answers": ["Column", "Row", "Stack"],
+      "choices": [
+        "Column",
+        "Row",
+        "Stack",
+        "Service"
+      ],
+      "answers": [
+        "Column",
+        "Row",
+        "Stack"
+      ],
       "type": "Multiple Choice",
       "subject": "Flutter Basics",
-      "description": "Column, Row, and Stack are fundamental layout widgets. Service is not a widget."
+      "explanation": "Column, Row, and Stack are fundamental layout widgets. Service is not a widget."
     },
     {
       "question": "What is the default port for Firebase Hosting local emulator?",
-      "choices": ["3000", "5000", "8080", "9000"],
-      "answers": ["5000"],
+      "choices": [
+        "3000",
+        "5000",
+        "8080",
+        "9000"
+      ],
+      "answers": [
+        "5000"
+      ],
       "type": "Single Choice",
       "subject": "Firebase",
-      "description": "Firebase Hosting emulator typically runs on port 5000 by default."
+      "explanation": "Firebase Hosting emulator typically runs on port 5000 by default."
     },
     {
       "question": "Which Firebase services are used for authentication?",
-      "choices": ["Firebase Auth", "Firestore", "Google Sign-In", "Realtime Database"],
-      "answers": ["Firebase Auth", "Google Sign-In"],
+      "choices": [
+        "Firebase Auth",
+        "Firestore",
+        "Google Sign-In",
+        "Realtime Database"
+      ],
+      "answers": [
+        "Firebase Auth",
+        "Google Sign-In"
+      ],
       "type": "Multiple Choice",
       "subject": "Firebase",
-      "description": "Firebase Auth handles the core logic, while Google Sign-In is a supported provider."
+      "explanation": "Firebase Auth handles the core logic, while Google Sign-In is a supported provider."
     },
     {
       "question": "Cloud Firestore is what type of database?",
-      "choices": ["Relational", "NoSQL Document", "Key-Value", "Graph"],
-      "answers": ["NoSQL Document"],
+      "choices": [
+        "Relational",
+        "NoSQL Document",
+        "Key-Value",
+        "Graph"
+      ],
+      "answers": [
+        "NoSQL Document"
+      ],
       "type": "Single Choice",
       "subject": "Firebase",
-      "description": "Firestore is a flexible, scalable NoSQL cloud database."
+      "explanation": "Firestore is a flexible, scalable NoSQL cloud database."
     },
     {
       "question": "What is 12 x 12?",
-      "answers": ["144"],
+      "answers": [
+        "144"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "12 squared is 144."
+      "explanation": "12 squared is 144."
     },
     {
       "question": "If a train travels 60 miles in 1 hour, how many miles does it travel in 2.5 hours?",
-      "answers": ["150"],
+      "answers": [
+        "150"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "60 * 2.5 = 150."
+      "explanation": "60 * 2.5 = 150."
     },
     {
       "question": "Which of these are Dart collection types?",
-      "choices": ["List", "Set", "Map", "Dictionary"],
-      "answers": ["List", "Set", "Map"],
+      "choices": [
+        "List",
+        "Set",
+        "Map",
+        "Dictionary"
+      ],
+      "answers": [
+        "List",
+        "Set",
+        "Map"
+      ],
       "type": "Multiple Choice",
       "subject": "Flutter Basics",
-      "description": "Dart has List, Set, and Map. Dictionary is the name in other languages like Python."
+      "explanation": "Dart has List, Set, and Map. Dictionary is the name in other languages like Python."
     },
     {
       "question": "Does Firestore support offline data persistence?",
-      "choices": ["Yes", "No"],
-      "answers": ["Yes"],
+      "choices": [
+        "Yes",
+        "No"
+      ],
+      "answers": [
+        "Yes"
+      ],
       "type": "Single Choice",
       "subject": "Firebase",
-      "description": "Firestore can cache data locally for offline access."
+      "explanation": "Firestore can cache data locally for offline access."
     },
     {
       "question": "What is the result of 2 + 2 * 2?",
-      "answers": ["6"],
+      "answers": [
+        "6"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "Following BODMAS: 2 * 2 = 4; 4 + 2 = 6."
+      "explanation": "Following BODMAS: 2 * 2 = 4; 4 + 2 = 6."
     },
     {
       "question": "Which widget is used for repeated items in a scrollable list?",
-      "choices": ["ListView", "Column", "GridView", "SingleChildScrollView"],
-      "answers": ["ListView", "GridView"],
+      "choices": [
+        "ListView",
+        "Column",
+        "GridView",
+        "SingleChildScrollView"
+      ],
+      "answers": [
+        "ListView",
+        "GridView"
+      ],
       "type": "Multiple Choice",
       "subject": "Flutter Basics",
-      "description": "ListView and GridView are commonly used for scrollable lists/grids of items."
+      "explanation": "ListView and GridView are commonly used for scrollable lists/grids of items."
     },
     {
       "question": "How many bits are in a byte?",
-      "answers": ["8"],
+      "answers": [
+        "8"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "One byte consists of 8 bits."
+      "explanation": "One byte consists of 8 bits."
     },
     {
       "question": "Is 'StatelessWidget' immutable?",
-      "choices": ["Yes", "No"],
-      "answers": ["Yes"],
+      "choices": [
+        "Yes",
+        "No"
+      ],
+      "answers": [
+        "Yes"
+      ],
       "type": "Single Choice",
       "subject": "Flutter Basics",
-      "description": "Stateless widgets are immutable, meaning their properties cannot change."
+      "explanation": "Stateless widgets are immutable, meaning their properties cannot change."
     },
     {
       "question": "What is the primary key in Firestore called?",
-      "choices": ["Document ID", "Row ID", "Object ID", "Key"],
-      "answers": ["Document ID"],
+      "choices": [
+        "Document ID",
+        "Row ID",
+        "Object ID",
+        "Key"
+      ],
+      "answers": [
+        "Document ID"
+      ],
       "type": "Single Choice",
       "subject": "Firebase",
-      "description": "Each document in a collection is uniquely identified by its Document ID."
+      "explanation": "Each document in a collection is uniquely identified by its Document ID."
     },
     {
       "question": "Select the even numbers:",
-      "choices": ["1", "2", "3", "4", "5", "6"],
-      "answers": ["2", "4", "6"],
+      "choices": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "answers": [
+        "2",
+        "4",
+        "6"
+      ],
       "type": "Multiple Choice",
       "subject": "Logic",
-      "description": "Even numbers are divisible by 2."
+      "explanation": "Even numbers are divisible by 2."
     },
     {
       "question": "What is the square root of 81?",
-      "answers": ["9"],
+      "answers": [
+        "9"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "9 * 9 = 81."
+      "explanation": "9 * 9 = 81."
     },
     {
       "question": "Which command is used to add a dependency to pubspec.yaml?",
-      "choices": ["flutter pub add", "flutter install", "dart add", "pub get"],
-      "answers": ["flutter pub add"],
+      "choices": [
+        "flutter pub add",
+        "flutter install",
+        "dart add",
+        "pub get"
+      ],
+      "answers": [
+        "flutter pub add"
+      ],
       "type": "Single Choice",
       "subject": "Flutter Basics",
-      "description": "'flutter pub add' automates adding packages to your project."
+      "explanation": "'flutter pub add' automates adding packages to your project."
     },
     {
       "question": "Can Firebase Cloud Functions be written in Python?",
-      "choices": ["Yes", "No"],
-      "answers": ["Yes"],
+      "choices": [
+        "Yes",
+        "No"
+      ],
+      "answers": [
+        "Yes"
+      ],
       "type": "Single Choice",
       "subject": "Firebase",
-      "description": "Firebase Cloud Functions support Node.js, Python, and Go."
+      "explanation": "Firebase Cloud Functions support Node.js, Python, and Go."
     },
     {
       "question": "Sum of first 5 natural numbers?",
-      "answers": ["15"],
+      "answers": [
+        "15"
+      ],
       "type": "Integer",
       "subject": "Logic",
-      "description": "1 + 2 + 3 + 4 + 5 = 15."
+      "explanation": "1 + 2 + 3 + 4 + 5 = 15."
     }
   ]
 }

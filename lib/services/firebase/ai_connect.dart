@@ -49,48 +49,24 @@ class AiDatabaseService {
     }
   }
 
-  /// ✅ Log AI Generation to Firestore
+  /// ✅ Log AI Generation (No-op on client, handled by backend)
   Future<void> logGeneration({
     required String userId,
     required String prompt,
     required String generatedQuizId,
     Map<String, dynamic>? metadata,
   }) async {
-    await _ensurePermission('enable_ai', userId: userId);
-    await _generations.add({
-      'userId': userId,
-      'prompt': prompt,
-      'generatedQuizId': generatedQuizId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'metadata': metadata,
-    });
-
-    // Update usage
-    await _usage.doc(userId).set({
-      'aiGenerationsToday': FieldValue.increment(1),
-      'lastReset': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    // Audit logging is now handled automatically by the secure backend
+    // to ensure metrics integrity and prevent insecure client writes.
+    debugPrint("AI Generation Log: Handled by server for quiz $generatedQuizId");
   }
 
-  /// ✅ Get AI usage count for today from Firestore (with Initial Setup)
+  /// ✅ Get AI usage count for today (Read-only on client)
   Future<int> getAiUsageToday(String userId) async {
-    await _ensurePermission('enable_ai', userId: userId);
     try {
       final doc = await _usage.doc(userId).get();
 
-      if (!doc.exists) {
-        // Initial setup for the user usage document to prevent null errors
-        final initialData = {
-          'aiGenerationsToday': 0,
-          'lastReset': FieldValue.serverTimestamp(),
-        };
-        try {
-          await _usage.doc(userId).set(initialData);
-        } catch (e) {
-          debugPrint("Warning: Could not initialize AI usage document ($e)");
-        }
-        return 0;
-      }
+      if (!doc.exists) return 0;
 
       final data = doc.data() as Map<String, dynamic>;
       final Timestamp? lastReset = data['lastReset'];
@@ -101,18 +77,10 @@ class AiDatabaseService {
         if (lastDate.day != now.day ||
             lastDate.month != now.month ||
             lastDate.year != now.year) {
-          // Reset count if it's a new day
-          await _usage.doc(userId).update({
-            'aiGenerationsToday': 0,
-            'lastReset': FieldValue.serverTimestamp(),
-          });
+          // If it's a new day, we assume the backend will reset it on the next AI request.
+          // We return 0 locally to reflect that the quota has effectively reset.
           return 0;
         }
-      } else {
-        // Sync missing field
-        await _usage.doc(userId).update({
-          'lastReset': FieldValue.serverTimestamp(),
-        });
       }
 
       return data['aiGenerationsToday'] ?? 0;
@@ -157,6 +125,26 @@ class AiDatabaseService {
             return data;
           }).toList(),
         );
+  }
+
+  /// ✅ Fetch AI Generation Insight for a specific quiz
+  Future<String?> getGenerationInsight(String userId, String quizId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('explanation')
+          .doc(userId)
+          .collection('gen')
+          .doc(quizId)
+          .get();
+      
+      if (doc.exists) {
+        return doc.data()?['insight'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching AI insight: $e");
+      return null;
+    }
   }
 
   Future<Map<String, dynamic>?> getFeatureFlags() =>

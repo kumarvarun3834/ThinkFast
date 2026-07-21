@@ -1,15 +1,19 @@
 import 'package:app_links/app_links.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_performance/firebase_performance.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
 import 'package:thinkfast/screens/drawer/privacy_policy.dart';
+import 'package:thinkfast/screens/admin/admin_dashboard_screen.dart';
 import 'package:thinkfast/screens/admin/manage_leaderboards_screen.dart';
 import 'package:thinkfast/screens/notification_screen.dart';
-import 'package:thinkfast/screens/main_screen.dart';
+import 'package:thinkfast/screens/Main_Screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
@@ -39,6 +43,15 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Firebase App Check
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+  );
+
+  // Initialize Firebase Performance
+  await FirebasePerformance.instance.setPerformanceCollectionEnabled(!kDebugMode);
 
   // Initialize AppLinks handling
   final appLinks = AppLinks();
@@ -149,6 +162,13 @@ class _MyAppState extends State<MyApp> {
             page = MainScreen(showManagedQuizzes: true);
             wrapInGradient = false;
             break;
+          case '/AI Generations':
+            page = MainScreen(
+              showAiGenerations: true,
+              creator: FirebaseAuth.instance.currentUser,
+            );
+            wrapInGradient = false;
+            break;
           case '/Recycle Bin':
             page = MainScreen(
               showTrash: true,
@@ -210,6 +230,15 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/Manage Admins':
             page = const ManageAdminsScreen();
+            wrapInGradient = false;
+            break;
+          case '/dashboard':
+            // Super Admin or Dashboard Permission Gate
+            if (global.isAdmin && (global.adminLevel == 0 || global.adminPermissions.contains('access_dashboard'))) {
+              page = const AdminDashboardScreen();
+            } else {
+              page = const MainScreen(showMyQuizzes: false);
+            }
             wrapInGradient = false;
             break;
           case '/Manage Leaderboards':

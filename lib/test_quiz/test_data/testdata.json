@@ -2,6 +2,8 @@
   "title": "ThinkFast Technical Test",
   "description": "A comprehensive test covering Dart, Flutter, and complex marking schemes with attempt limits.",
   "time": 900,
+  "isAiGenerated": false,
+  "examTag": "Dart-Pro-2024",
   "markingScheme": {
     "type": "per_question_type",
     "perQuestionType": {
@@ -32,7 +34,7 @@
       "answers": ["Map"],
       "type": "Single Choice",
       "subject": "Dart Basics",
-      "description": "Dart has three core collection types: List, Set, and Map. 'Dictionary' and 'HashMap' are terms from other languages or specific implementations (though HashMap exists in dart:collection)."
+      "explanation": "Dart has three core collection types: List, Set, and Map. 'Dictionary' and 'HashMap' are terms from other languages or specific implementations (though HashMap exists in dart:collection)."
     },
     {
       "question": "Select all keywords used for asynchronous programming in Dart.",
@@ -40,7 +42,7 @@
       "answers": ["async", "await", "yield"],
       "type": "Multiple Choice",
       "subject": "Dart Basics",
-      "description": "async and await are for Futures; yield is for Streams. 'future' is a class, not a keyword, and 'defer' is not used in Dart."
+      "explanation": "async and await are for Futures; yield is for Streams. 'future' is a class, not a keyword, and 'defer' is not used in Dart."
     },
     {
       "question": "What is the result of '5 ~/ 2' in Dart?",
@@ -48,7 +50,7 @@
       "answers": ["2"],
       "type": "Integer",
       "subject": "Dart Basics",
-      "description": "The ~/ operator performs integer division (truncating division) in Dart."
+      "explanation": "The ~/ operator performs integer division (truncating division) in Dart."
     },
     {
       "question": "Which widget is used for repeating content in a scrollable list?",
@@ -56,7 +58,7 @@
       "answers": ["ListView"],
       "type": "Single Choice",
       "subject": "Flutter UI",
-      "description": "ListView is the most commonly used scrolling widget for linear arrays of children."
+      "explanation": "ListView is the most commonly used scrolling widget for linear arrays of children."
     },
     {
       "question": "How many widgets can a 'Center' widget have as its direct child?",
@@ -64,7 +66,7 @@
       "answers": ["1"],
       "type": "Integer",
       "subject": "Flutter UI",
-      "description": "Center is a SingleChildRenderObjectWidget, meaning it can only take one child."
+      "explanation": "Center is a SingleChildRenderObjectWidget, meaning it can only take one child."
     },
     {
       "question": "Select the widgets that support multiple children.",
@@ -72,7 +74,7 @@
       "answers": ["Row", "Column", "Stack"],
       "type": "Multiple Choice",
       "subject": "Flutter UI",
-      "description": "Row, Column, and Stack are MultiChildRenderObjectWidgets. SizedBox and Padding only accept a single child."
+      "explanation": "Row, Column, and Stack are MultiChildRenderObjectWidgets. SizedBox and Padding only accept a single child."
     },
     {
       "question": "Which command is used to check for environment errors?",
@@ -80,7 +82,7 @@
       "answers": ["flutter doctor"],
       "type": "Single Choice",
       "subject": "Flutter UI",
-      "description": "The 'flutter doctor' command diagnostics your environment and reports the status of your Flutter installation."
+      "explanation": "The 'flutter doctor' command diagnostics your environment and reports the status of your Flutter installation."
     }
   ]
 }

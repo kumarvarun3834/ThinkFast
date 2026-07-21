@@ -189,30 +189,38 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                 final dynamic timestamp = log['timestamp'];
                 String dateStr = 'N/A';
                 if (timestamp != null) {
-                  final DateTime dt = timestamp is Timestamp
-                      ? timestamp.toDate()
-                      : timestamp as DateTime;
-                  // Manual formatting to avoid intl dependency
-                  final day = dt.day.toString().padLeft(2, '0');
-                  final months = [
-                    'Jan',
-                    'Feb',
-                    'Mar',
-                    'Apr',
-                    'May',
-                    'Jun',
-                    'Jul',
-                    'Aug',
-                    'Sep',
-                    'Oct',
-                    'Nov',
-                    'Dec'
-                  ];
-                  final month = months[dt.month - 1];
-                  final hour = dt.hour.toString().padLeft(2, '0');
-                  final minute = dt.minute.toString().padLeft(2, '0');
-                  final second = dt.second.toString().padLeft(2, '0');
-                  dateStr = "$day $month, $hour:$minute:$second";
+                  DateTime? dt;
+                  if (timestamp is Timestamp) {
+                    dt = timestamp.toDate();
+                  } else if (timestamp is DateTime) {
+                    dt = timestamp;
+                  } else if (timestamp is String) {
+                    dt = DateTime.tryParse(timestamp);
+                  }
+
+                  if (dt != null) {
+                    // Manual formatting to avoid intl dependency
+                    final day = dt.day.toString().padLeft(2, '0');
+                    final months = [
+                      'Jan',
+                      'Feb',
+                      'Mar',
+                      'Apr',
+                      'May',
+                      'Jun',
+                      'Jul',
+                      'Aug',
+                      'Sep',
+                      'Oct',
+                      'Nov',
+                      'Dec'
+                    ];
+                    final month = months[dt.month - 1];
+                    final hour = dt.hour.toString().padLeft(2, '0');
+                    final minute = dt.minute.toString().padLeft(2, '0');
+                    final second = dt.second.toString().padLeft(2, '0');
+                    dateStr = "$day $month, $hour:$minute:$second";
+                  }
                 }
 
                 return Card(

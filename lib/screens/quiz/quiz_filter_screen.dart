@@ -7,6 +7,7 @@ class QuizFilterScreen extends StatefulWidget {
   final Set<String> initialTags;
   final Set<String> initialSubjects;
   final bool initialStrict;
+  final String initialAiSource; // 'All', 'AI Only', 'Manual Only'
   final List<Map<String, dynamic>> allQuizzes;
 
   const QuizFilterScreen({
@@ -14,6 +15,7 @@ class QuizFilterScreen extends StatefulWidget {
     required this.initialTags,
     required this.initialSubjects,
     required this.initialStrict,
+    required this.initialAiSource,
     required this.allQuizzes,
   });
 
@@ -25,6 +27,7 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
   late Set<String> _selectedTags;
   late Set<String> _selectedSubjects;
   late bool _isStrict;
+  late String _aiSource;
   final Set<String> _availableModules = {};
   final Set<String> _availableExams = {};
 
@@ -34,6 +37,7 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
     _selectedTags = Set.from(widget.initialTags);
     _selectedSubjects = Set.from(widget.initialSubjects);
     _isStrict = widget.initialStrict;
+    _aiSource = widget.initialAiSource;
 
     for (var quiz in widget.allQuizzes) {
       final modules = quiz['modules'] as List? ?? [];
@@ -80,6 +84,8 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildToggleSection(),
+                  const SizedBox(height: 24),
+                  _buildAiSourceSection(),
                   const SizedBox(height: 24),
                   if (_availableExams.isNotEmpty) ...[
                     _buildSectionTitle("EXAMS"),
@@ -239,6 +245,51 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
     );
   }
 
+  Widget _buildAiSourceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("AI CONTENT SOURCE"),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _sourceChip("All", _aiSource == "All")),
+            const SizedBox(width: 8),
+            Expanded(child: _sourceChip("AI Only", _aiSource == "AI Only")),
+            const SizedBox(width: 8),
+            Expanded(child: _sourceChip("Manual Only", _aiSource == "Manual Only")),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _sourceChip(String label, bool isSelected) {
+    return InkWell(
+      onTap: () => setState(() => _aiSource = label),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? global.primaryAccent : global.cardColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? global.primaryAccent : global.borderColor,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.black : global.valueColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildApplyButton() {
     return SafeArea(
       child: Padding(
@@ -252,6 +303,7 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
                 'tags': _selectedTags,
                 'subjects': _selectedSubjects,
                 'isStrict': _isStrict,
+                'aiSource': _aiSource,
               });
             },
             style: ElevatedButton.styleFrom(

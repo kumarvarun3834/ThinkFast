@@ -1301,31 +1301,42 @@ class AdminService {
     required List<Map<String, dynamic>> entries,
     bool isPublic = true,
   }) async {
-    // Permission Check: 
+    // Permission Check:
     // 1. Global Admin with 'manage_leaderboards'
     // 2. Quiz Owner or Quiz Manager with 'can_moderate' (for quiz-specific boards)
     bool authorized = await hasPermission(adminId, 'manage_leaderboards');
-    
+
     if (!authorized && quizId != null) {
-      authorized = await canManageQuiz(quizId, adminId, permission: 'canModerate');
+      authorized = await canManageQuiz(
+        quizId,
+        adminId,
+        permission: 'canModerate',
+      );
     }
 
     if (!authorized) {
-      throw Exception("Unauthorized: Insufficient permissions to manage leaderboards.");
+      throw Exception(
+        "Unauthorized: Insufficient permissions to manage leaderboards.",
+      );
     }
 
     // Enforce Rules: Unique Users and Top 10 Only
     final Map<String, Map<String, dynamic>> uniqueEntries = {};
     for (var entry in entries) {
-      final uid = entry['userId']?.toString() ?? "guest_${DateTime.now().microsecondsSinceEpoch}";
+      final uid =
+          entry['userId']?.toString() ??
+          "guest_${DateTime.now().microsecondsSinceEpoch}";
       if (!uniqueEntries.containsKey(uid)) {
         uniqueEntries[uid] = entry;
       }
     }
 
-    final List<Map<String, dynamic>> finalEntries = uniqueEntries.values.toList();
-    finalEntries.sort((a, b) => (b['score'] as num).compareTo(a['score'] as num));
-    
+    final List<Map<String, dynamic>> finalEntries = uniqueEntries.values
+        .toList();
+    finalEntries.sort(
+      (a, b) => (b['score'] as num).compareTo(a['score'] as num),
+    );
+
     final trimmedEntries = finalEntries.take(10).toList();
 
     final data = {
@@ -1340,7 +1351,7 @@ class AdminService {
 
     // Use quizId as the document ID for the primary leaderboard to make fetching easier
     final String docId = leaderboardId ?? quizId ?? _leaderboards.doc().id;
-    
+
     if (leaderboardId == null && quizId == null) {
       data['createdAt'] = FieldValue.serverTimestamp();
       await _leaderboards.add(data);
@@ -1361,16 +1372,22 @@ class AdminService {
   Future<void> deleteLeaderboard(String leaderboardId, String adminId) async {
     final doc = await _leaderboards.doc(leaderboardId).get();
     if (!doc.exists) return;
-    
+
     final quizId = (doc.data() as Map?)?['quizId'];
-    
+
     bool authorized = await hasPermission(adminId, 'manage_leaderboards');
     if (!authorized && quizId != null) {
-      authorized = await canManageQuiz(quizId, adminId, permission: 'canModerate');
+      authorized = await canManageQuiz(
+        quizId,
+        adminId,
+        permission: 'canModerate',
+      );
     }
 
     if (!authorized) {
-      throw Exception("Unauthorized: Insufficient permissions to delete leaderboard.");
+      throw Exception(
+        "Unauthorized: Insufficient permissions to delete leaderboard.",
+      );
     }
 
     await _leaderboards.doc(leaderboardId).delete();
@@ -1385,7 +1402,10 @@ class AdminService {
   }
 
   /// ✅ Stream all leaderboards
-  Stream<List<Map<String, dynamic>>> getLeaderboards({bool includePrivate = false, String? quizId}) {
+  Stream<List<Map<String, dynamic>>> getLeaderboards({
+    bool includePrivate = false,
+    String? quizId,
+  }) {
     Query query = _leaderboards.orderBy('updatedAt', descending: true);
     if (!includePrivate) {
       query = query.where('isPublic', isEqualTo: true);
@@ -1393,11 +1413,13 @@ class AdminService {
     if (quizId != null) {
       query = query.where('quizId', isEqualTo: quizId);
     }
-    return query.snapshots().map((snapshot) => snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          data['id'] = doc.id;
-          return data;
-        }).toList());
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return data;
+      }).toList(),
+    );
   }
 
   /// ✅ Stream all content reports
@@ -1406,23 +1428,29 @@ class AdminService {
         .collection('content_reports')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            }).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
   }
 
   /// ✅ Update report status
-  Future<void> updateReportStatus(String reportId, String status, String adminId) async {
+  Future<void> updateReportStatus(
+    String reportId,
+    String status,
+    String adminId,
+  ) async {
     await FirebaseFirestore.instance
         .collection('content_reports')
         .doc(reportId)
         .update({
-      'status': status,
-      'resolvedBy': adminId,
-      'resolvedAt': FieldValue.serverTimestamp(),
-    });
+          'status': status,
+          'resolvedBy': adminId,
+          'resolvedAt': FieldValue.serverTimestamp(),
+        });
 
     await logAction(
       actorId: adminId,
@@ -1442,10 +1470,12 @@ class AdminService {
         .get();
 
     final Map<String, Map<String, dynamic>> firstAttempts = {};
-    
+
     // Efficient Exclusion: Fetch all admin UIDs first
     final adminSnapshot = await _admins.get();
-    final Set<String> adminUids = adminSnapshot.docs.map((doc) => doc.id).toSet();
+    final Set<String> adminUids = adminSnapshot.docs
+        .map((doc) => doc.id)
+        .toSet();
 
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
@@ -1455,7 +1485,10 @@ class AdminService {
         if (adminUids.contains(uid)) continue; // Skip admins
 
         // Fetch display name from users collection
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get();
         data['name'] = userDoc.data()?['name'] ?? 'Anonymous';
         firstAttempts[uid] = data;
       }
@@ -1467,7 +1500,7 @@ class AdminService {
       int scoreA = a['score'] ?? 0;
       int scoreB = b['score'] ?? 0;
       if (scoreA != scoreB) return scoreB.compareTo(scoreA);
-      
+
       final tA = (a['timestamp'] as dynamic)?.toDate() ?? DateTime.now();
       final tB = (b['timestamp'] as dynamic)?.toDate() ?? DateTime.now();
       return tA.compareTo(tB);

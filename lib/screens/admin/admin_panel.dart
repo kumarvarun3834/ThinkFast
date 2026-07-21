@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/settings_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
-// import 'user_details_screen.dart';
 import 'add_app_admin_screen.dart';
 import 'all_users_screen.dart';
 import 'audit_logs_screen.dart';
@@ -30,6 +29,7 @@ class _AdminPanelState extends State<AdminPanel> {
   final Map<String, List<String>> _flagGroups = {
     "System Control": [
       "maintenance_mode",
+      "enable_admin_dashboard",
       "enable_refresh_limit_bypass",
       "log",
       "log_updates",
@@ -60,13 +60,6 @@ class _AdminPanelState extends State<AdminPanel> {
     ],
     "Leaderboards": [
       "enable_leaderboards",
-    ],
-    "Security Batch AI Services": [
-      "primary",
-      "backup1",
-      "backup2",
-      "backup3",
-      "ai_model_index",
     ],
   };
 
@@ -127,6 +120,7 @@ class _AdminPanelState extends State<AdminPanel> {
       'enable_analytics': 'manage_app_settings',
       'enable_export': 'manage_app_settings',
       'maintenance_mode': 'manage_app_settings',
+      'enable_admin_dashboard': 'manage_app_settings',
       'enable_refresh_limit_bypass': 'manage_admins',
 
       // Manage Admins
@@ -153,13 +147,6 @@ class _AdminPanelState extends State<AdminPanel> {
 
       // Manage Collaborators
       'enable_realtime_colab': 'manage_collaborators',
-
-      // Security Batch AI Services
-      'primary': 'manage_ai',
-      'backup1': 'manage_ai',
-      'backup2': 'manage_ai',
-      'backup3': 'manage_ai',
-      'ai_model_index': 'manage_ai',
     };
 
     final requiredPerm = keyPermissionMap[key];
@@ -218,6 +205,11 @@ class _AdminPanelState extends State<AdminPanel> {
           groupedKeys.add('form_save_rate_limit_seconds');
           groupedKeys.add('ai_daily_generation_limit');
           groupedKeys.add('admin_refresh_rate_limit_seconds');
+          
+          // Legacy flags to hide
+          groupedKeys.add('ai_models');
+          groupedKeys.add('ai_model_index');
+          groupedKeys.add('gemini_api_key');
 
           // Find any flags in Firestore that are NOT in our groups
           final otherKeys = flags.keys
@@ -296,6 +288,13 @@ class _AdminPanelState extends State<AdminPanel> {
                   ),
                 ),
               ),
+              _buildManagementTile(
+                icon: Icons.dashboard_customize_outlined,
+                title: "API & Server Dashboard",
+                subtitle: "Monitor and test backend endpoints",
+                enabled: _isMaster || _permissions.contains('access_dashboard'),
+                onTap: () => Navigator.pushNamed(context, '/dashboard'),
+              ),
               const SizedBox(height: 24),
 
               ..._flagGroups.entries.map((group) {
@@ -310,8 +309,12 @@ class _AdminPanelState extends State<AdminPanel> {
                     _buildSectionHeader(group.key),
                     const SizedBox(height: 12),
                     ...groupFlags.map((key) {
-                      final bool value = flags[key] == true;
-                      return _buildFlagToggle(key, value);
+                      final value = flags[key];
+                      if (value is bool) {
+                        return _buildFlagToggle(key, value);
+                      } else {
+                        return _buildGenericField(key, value, flags);
+                      }
                     }),
                     const SizedBox(height: 24),
                   ],
@@ -338,40 +341,6 @@ class _AdminPanelState extends State<AdminPanel> {
               const SizedBox(height: 24),
 
               _buildSectionHeader("Database Maintenance"),
-              const SizedBox(height: 12),
-              _buildManagementTile(
-                icon: Icons.sync_rounded,
-                title: "Sync AI Models",
-                subtitle: "Force refresh AI service configurations",
-                enabled: true,
-                onTap: () async {
-                  final messenger = ScaffoldMessenger.of(context);
-                  messenger.showSnackBar(
-                    const SnackBar(content: Text("Syncing AI services...")),
-                  );
-                  try {
-                    final newFlags = await _settingsService.getFeatureFlags(
-                      isAdmin: global.isAdmin,
-                    );
-                    global.featureFlags = newFlags;
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text("AI Models updated")),
-                      );
-                      _refreshPanel();
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text("Sync Error: $e"),
-                          backgroundColor: global.errorColor,
-                        ),
-                      );
-                    }
-                  }
-                },
-              ),
               _buildManagementTile(
                 icon: Icons.cleaning_services_outlined,
                 title: "Cleanup Orphaned Tags",

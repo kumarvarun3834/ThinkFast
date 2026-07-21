@@ -30,6 +30,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
   bool _hasError = false;
   String _errorMessage = "";
   Map<String, dynamic>? _quizData;
+  String? _aiInsight;
 
   @override
   void initState() {
@@ -61,6 +62,16 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         _canManage = aggregatedData['canManage'] ?? false;
         _isLoading = false;
       });
+
+      // Fetch AI Insight if applicable
+      if (_user != null) {
+        final insight = await global.aiConnect.getGenerationInsight(_user!.uid, widget.quizId);
+        if (mounted) {
+          setState(() {
+            _aiInsight = insight;
+          });
+        }
+      }
 
       // Save to local cache (Last 10 quizzes)
       LocalCacheService().saveRecentQuiz(aggregatedData);
@@ -735,7 +746,34 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InfoRow(label: "Description", value: description),
+                            // 💎 Prominent Description & Insight Section
+                            if (description.isNotEmpty && description != 'null') ...[
+                              Text(
+                                "ABOUT THIS QUIZ",
+                                style: GoogleFonts.poppins(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                description,
+                                style: GoogleFonts.poppins(
+                                  color: global.valueColor,
+                                  fontSize: 15,
+                                  height: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+
+                            if (_aiInsight != null && _aiInsight!.isNotEmpty) ...[
+                              _buildAiInsightCard(_aiInsight!),
+                              const SizedBox(height: 24),
+                            ],
+
                             if (_quizData != null &&
                                 _quizData!['examTag'] != null &&
                                 _quizData!['examTag'].toString().isNotEmpty)
@@ -1654,6 +1692,51 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           ManageQuizButton(onPressed: _showManageBottomSheet),
         ],
       ],
+    );
+  }
+
+  Widget _buildAiInsightCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: global.infoColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: global.infoColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: global.infoColor,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                "AI INSIGHT",
+                style: GoogleFonts.poppins(
+                  color: global.infoColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: global.valueColor,
+              fontSize: 14,
+              height: 1.5,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

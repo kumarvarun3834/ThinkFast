@@ -73,6 +73,7 @@ class UserService {
         }
       }
 
+      data['uid'] = uid; // Ensure UID is always present in the profile map
       return data;
     } catch (e) {
       debugPrint("Error fetching user profile: $e");

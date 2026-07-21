@@ -114,10 +114,31 @@ A time-based rate limit is enforced on quiz creation. Users must wait a configur
 Using the `app_links` package, the app handles URLs like `thinkfast.app/quiz?id=XYZ`.
 - **Logic:** `_handleDeepLink` in `main.dart` extracts the `quizId` and navigates the user to the `QuizDetailsScreen` via the `navigatorKey`.
 
-### 3.5 AI Usage Quotas
-The `AiService` tracks daily generations per user. Before invoking AI generation, the system checks `aiGenerationsToday` against a quota to manage costs and prevent abuse.
+### 3.5 AI Workflow & Usage Tracking
+The `AiService` orchestrates interaction with the dedicated backend for secure generation and analysis.
+
+**Secure AI Generation:**
+1.  **Request Identity**: Every AI request (`/generateQuiz`, `/generateQuizFromPDF`) includes `uuid`, `email`, and `name` at the root for server-side verification.
+2.  **Privacy Gate**: The `persona` and `performance` data blocks are stripped if the user hasn't opted into the "Extended Profile System" (`optInAiAnalysis: true`).
+3.  **Automatic Insight**: The backend returns a reasoning string ("Why this is best for you"), which is displayed in the UI and automatically stored in the private `/explanation/{uid}/gen/` collection.
+
+**Secure Quiz Updates (`PUT /api/quizzes/:quizId`)**:
+AI-generated quizzes are write-locked in Firestore for regular users. Updates must go through this API, which automatically:
+- Removes the `isAiGenerated` flag. Full ownership is handed to the user.
+- Deletes the corresponding generation audit log.
+
+**Multimodal PDF Support**:
+PDF generation sends raw base64 data (`pdfData`), filename, and size directly to the backend for zero-latency processing.
+
+### 3.6 Automated Attempt Analysis
+Immediately after a successful user-handled submission to Firestore, the client triggers the AI Analysis API. 
+- **Storage**: Results are saved by the backend to `/explanation/{userId}/{quizId}/{attemptId}`.
+- **Access**: Users can view these deep evaluations on the Result Screen, provided they have accepted the 2nd Privacy Policy.
 
 ## 4. Security Rules
+- **AI Lockdown**: `/quizzes`, `/quiz_questions`, and `/answer_keys` block direct client writes if `isAiGenerated: true`.
+- **Log Protection**: `/user_usage` and `/ai_generations` are strictly write-locked for users; the backend manages all quota and audit trail updates.
+- **Private Explanations**: The `/explanation` hierarchy is read-only for owners and completely blocked for writes from the client.
 - **Admin Overrides:** Designated administrators with `isAdminMode` enabled bypass standard ownership and rate-limiting checks. The platform uses a granular permission system (e.g., `manage_admins`, `moderate_users`) to authorize specific administrative actions.
 - **Private Data:** Sensitive user information is stored in sub-collections with restricted read access.
 - **Global Permission Guards:** Every database operation in `DatabaseService` is guarded by a feature flag check. If a feature (e.g., `enable_create_quiz`) is toggled off in `feature_flags`, only administrators can perform that action.

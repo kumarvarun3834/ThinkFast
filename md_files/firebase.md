@@ -370,7 +370,7 @@ User-facing system and activity notifications.
 
 ## 18. Collection: `ai_generations`
 
-History and logging for AI-driven quiz creation.
+History and logging for AI-driven quiz creation. **Locked: Writes handled by backend.**
 
 ### Document Fields
 
@@ -385,7 +385,7 @@ History and logging for AI-driven quiz creation.
 
 ## 19. Collection: `user_usage`
 
-Quota management and rate limiting (especially for expensive AI features).
+Quota management and rate limiting. **Locked: Writes handled by backend.**
 
 ### Document ID: `{userId}`
 
@@ -393,6 +393,17 @@ Quota management and rate limiting (especially for expensive AI features).
 |:---------------------|:------------|:---------------------------------------|
 | `aiGenerationsToday` | `number`    | Usage counter for the current window.  |
 | `lastReset`          | `timestamp` | Last time the usage counter was reset. |
+
+---
+
+## 20. Collection: `explanation` (NEW)
+
+Private evaluations and generation insights. **Locked: Writes handled by backend.**
+
+### Hierarchy
+- `explanation/{userId}/{quizId}/{attemptId}` (Attempts)
+- `explanation/{userId}/gen/{quizId}` (Generation Reasoning)
+- `explanation/{userId}/recommendations/{id}` (Future slot)
 
 ---
 
@@ -417,6 +428,7 @@ Quota management and rate limiting (especially for expensive AI features).
 17. `leaderboards` (Precomputed Rankings)
 18. `ai_generations` (AI Request Log)
 19. `user_usage` (Quota Management)
+20. `explanation` (AI Evaluation & Insights)
 
 ---
 

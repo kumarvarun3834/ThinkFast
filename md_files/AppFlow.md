@@ -58,7 +58,7 @@ Participants join quizzes and complete them within the set time limits.
    explanations, and performance-based navigator colors (Green: Correct, Red: Wrong).
 6. **History:** Access **My Attempts** to view past performance and re-enter Review Mode for any
    previous attempt.
-Flow
+   Flow
 
 The entry point of the application ensures that users are authenticated and verified before
 accessing core features.
@@ -103,6 +103,7 @@ Participants join quizzes and complete them within the set time limits.
     * **Quiz ID:** Enter a unique ID provided by a creator.
     * **Deep Link:** Click a link (e.g., `thinkfast.app/quiz?id=...`) to open the app directly to a
       quiz.
+    * **AI Generations:** View a dedicated list of quizzes created specifically for the user by AI.
 2. **Quiz Details:** View title, description, and rules before starting.
 3. **Quiz Experience (Questions Screen):**
     * Countdown timer starts.
@@ -110,8 +111,9 @@ Participants join quizzes and complete them within the set time limits.
       Review).
     * Observe attempt limits per section.
     * Submit answers before the timer expires.
-4. **Result Screen:** View the final score summary. Tap **"SEE ATTEMPT DETAILS"** to enter Review
-   Mode.
+4. **Result Screen:** View the final score summary.
+    * **AI Analysis:** Trigger deep educational evaluation (requires 2nd Privacy Policy).
+    * Tap **"SEE ATTEMPT DETAILS"** to enter Review Mode.
 5. **Review Mode:** Re-uses the Quiz module with tagged correct/incorrect options, solution
    explanations, and performance-based navigator colors (Green: Correct, Red: Wrong).
 6. **History:** Access **My Attempts** to view past performance and re-enter Review Mode for any
@@ -124,99 +126,129 @@ Administrators have elevated access to maintain platform health.
 1. **Admin Panel:** Accessible only to users with the `admin` role.
 2. **Feature Flags:** Toggle global settings (e.g., enabling/disabling quiz creation).
 3. **Moderation:** View and restrict quizzes that violate policies.
-4. **Admin Mode:** Toggle "Admin Mode" to see the app as a regular user while retaining elevated
+4. **Audit Logs:** Full access to system-wide activity logs (managed by backend).
+5. **Admin Mode:** Toggle "Admin Mode" to see the app as a regular user while retaining elevated
    permissions in the background.
 
 ## 5. Navigation Structure (Routes)
 
-| Route Name        | Screen Component      | Purpose                                      |
-|:------------------|:----------------------|:---------------------------------------------|
-| `/`               | `MySplash`            | App initialization.                          |
-| `/login`          | `LoginScreen`         | User authentication.                         |
-| `/signup`         | `SignupScreen`        | User registration.                           |
-| `/verify`         | `VerificationScreen`  | Email verification check.                    |
-| `/home`           | `MainScreen`          | Main dashboard & public quizzes.             |
-| `/My Quiz`        | `MainScreen`          | Filtered view for creator's own quizzes.     |
-| `/Create Quiz`    | `QuizPage`            | Create a new quiz.                           |
-| `/Update Quiz`    | `QuizPage`            | Edit an existing quiz.                       |
-| `/Quiz`           | `Questions`           | The active quiz session.                     |
-| `/Quiz Result`    | `ResultScreen`        | Post-quiz summary.                           |
-| `/Quiz Details`   | `QuizDetailsScreen`   | Pre-quiz landing page.                       |
-| `/My Attempts`    | `MyAttemptsScreen`    | User's personal attempt history.             |
-| `/Quiz Responses` | `QuizResponsesScreen` | Detailed participant analytics for creators. |
-| `/profile`        | `ProfileScreen`       | User account management.                     |
-| `/Admin Panel`    | `AdminPanel`          | Platform administration.                     |
-| `/Manage Admins`  | `ManageAdminsScreen`  | Bulk permission updates for staff.           |
-| `/Add Admins`     | `AddAppAdminScreen`   | Multi-user staff promotion flow.             |
-| `/Blocked Users`  | `QuizModerationScreen`| Quiz-specific bans and data recovery.        |
-| `/maintenance`    | `MaintenanceScreen`   | Global maintenance landing page.             |
-| `/Notifications`  | `NotificationScreen`  | Personal and Global activity alerts.         |
-| `/Privacy Policy` | `PrivacyPolicyScreen` | Tiered data policy hub.                      |
-| `/Manage Leaderboards` | `ManageLeaderboardsScreen` | Manual top-10 ranking editor.      |
+| Route Name             | Screen Component           | Purpose                                        |
+|:-----------------------|:---------------------------|:-----------------------------------------------|
+| `/`                    | `MySplash`                 | App initialization.                            |
+| `/login`               | `LoginScreen`              | User authentication.                           |
+| `/signup`              | `SignupScreen`             | User registration.                             |
+| `/verify`              | `VerificationScreen`       | Email verification check.                      |
+| `/home`                | `MainScreen`               | Main dashboard & public quizzes.               |
+| `/My Quiz`             | `MainScreen`               | Filtered view for creator's own quizzes.       |
+| `/AI Generations`      | `MainScreen`               | View showing only user's AI-generated quizzes. |
+| `/Create Quiz`         | `QuizPage`                 | Create a new quiz.                             |
+| `/Update Quiz`         | `QuizPage`                 | Edit an existing quiz.                         |
+| `/Quiz`                | `Questions`                | The active quiz session.                       |
+| `/Quiz Result`         | `ResultScreen`             | Post-quiz summary.                             |
+| `/Quiz Details`        | `QuizDetailsScreen`        | Pre-quiz landing page.                         |
+| `/My Attempts`         | `MyAttemptsScreen`         | User's personal attempt history.               |
+| `/Quiz Responses`      | `QuizResponsesScreen`      | Detailed participant analytics for creators.   |
+| `/profile`             | `ProfileScreen`            | User account management.                       |
+| `/Admin Panel`         | `AdminPanel`               | Platform administration.                       |
+| `/Manage Admins`       | `ManageAdminsScreen`       | Bulk permission updates for staff.             |
+| `/Add Admins`          | `AddAppAdminScreen`        | Multi-user staff promotion flow.               |
+| `/Blocked Users`       | `QuizModerationScreen`     | Quiz-specific bans and data recovery.          |
+| `/maintenance`         | `MaintenanceScreen`        | Global maintenance landing page.               |
+| `/Notifications`       | `NotificationScreen`       | Personal and Global activity alerts.           |
+| `/Privacy Policy`      | `PrivacyPolicyScreen`      | Tiered data policy hub.                        |
+| `/Manage Leaderboards` | `ManageLeaderboardsScreen` | Manual top-10 ranking editor.                  |
 
 ## 6. Enhanced Security & Lifecycle Flows
 
 ### 6.1 Authentication Hardening
+
 - **IP Detection**: App detects public IP on login/signup.
 - **Fail Cooldown**: After 5 failed logins from one IP, a 1-hour ban is issued via `security_logs`.
-- **Identity Integrity**: Unverified accounts are automatically purged after 7 days during app startup or login.
+- **Identity Integrity**: Unverified accounts are automatically purged after 7 days during app
+  startup or login.
 
 ### 6.2 Data Privacy & Compliance
+
 - **Consent Hub**: Users must accept the Privacy Policy before signup.
 - **AI Opt-in**: Granular toggle to allow/disallow demographic analysis for personalization.
-- **Restricted Mode**: Users under 13 cannot enable AI analysis, ensuring no PII collection from minors.
+- **Restricted Mode**: Users under 13 cannot enable AI analysis, ensuring no PII collection from
+  minors.
 
 ### 6.3 Notification Ecosystem
+
 - **Instant Results**: Score summaries are pushed to the user's device immediately after submission.
 - **Public Alerts**: system-wide broadcasts are triggered when a new public quiz is published.
-- **Reactive Merging**: Uses RxDart to combine personal and global notification streams in real-time.
+- **Reactive Merging**: Uses RxDart to combine personal and global notification streams in
+  real-time.
 
 ### 6.4 Manual Ranking
+
 - **Magic Wand Discovery**: Managers can scan for the "earliest first attempt" for all participants.
-- **Manual Publishing**: Admins review and publish top-10 unique user boards manually to ensure ranking integrity.
-| Route Name        | Screen Component      | Purpose                                      |
-|:------------------|:----------------------|:---------------------------------------------|
-| `/`               | `MySplash`            | App initialization.                          |
-| `/login`          | `LoginScreen`         | User authentication.                         |
-| `/signup`         | `SignupScreen`        | User registration.                           |
-| `/verify`         | `VerificationScreen`  | Email verification check.                    |
-| `/home`           | `MainScreen`          | Main dashboard & public quizzes.             |
-| `/My Quiz`        | `MainScreen`          | Filtered view for creator's own quizzes.     |
-| `/Create Quiz`    | `QuizPage`            | Create a new quiz.                           |
-| `/Update Quiz`    | `QuizPage`            | Edit an existing quiz.                       |
-| `/Quiz`           | `Questions`           | The active quiz session.                     |
-| `/Quiz Result`    | `ResultScreen`        | Post-quiz summary.                           |
-| `/Quiz Details`   | `QuizDetailsScreen`   | Pre-quiz landing page.                       |
-| `/My Attempts`    | `MyAttemptsScreen`    | User's personal attempt history.             |
-| `/Quiz Responses` | `QuizResponsesScreen` | Detailed participant analytics for creators. |
-| `/profile`        | `ProfileScreen`       | User account management.                     |
-| `/Admin Panel`    | `AdminPanel`          | Platform administration.                     |
-| `/Manage Admins`  | `ManageAdminsScreen`  | Bulk permission updates for staff.           |
-| `/Add Admins`     | `AddAppAdminScreen`   | Multi-user staff promotion flow.             |
-| `/Blocked Users`  | `QuizModerationScreen`| Quiz-specific bans and data recovery.        |
-| `/maintenance`    | `MaintenanceScreen`   | Global maintenance landing page.             |
-| `/Notifications`  | `NotificationScreen`  | Personal and Global activity alerts.         |
-| `/Privacy Policy` | `PrivacyPolicyScreen` | Tiered data policy hub.                      |
-| `/Manage Leaderboards` | `ManageLeaderboardsScreen` | Manual top-10 ranking editor.      |
+- **Manual Publishing**: Admins review and publish top-10 unique user boards manually to ensure
+  ranking integrity.
+  | Route Name | Screen Component | Purpose |
+  |:------------------|:----------------------|:---------------------------------------------|
+  | `/`               | `MySplash`            | App initialization. |
+  | `/login`          | `LoginScreen`         | User authentication. |
+  | `/signup`         | `SignupScreen`        | User registration. |
+  | `/verify`         | `VerificationScreen`  | Email verification check. |
+  | `/home`           | `MainScreen`          | Main dashboard & public quizzes. |
+  | `/My Quiz`        | `MainScreen`          | Filtered view for creator's own quizzes. |
+  | `/Create Quiz`    | `QuizPage`            | Create a new quiz. |
+  | `/Update Quiz`    | `QuizPage`            | Edit an existing quiz. |
+  | `/Quiz`           | `Questions`           | The active quiz session. |
+  | `/Quiz Result`    | `ResultScreen`        | Post-quiz summary. |
+  | `/Quiz Details`   | `QuizDetailsScreen`   | Pre-quiz landing page. |
+  | `/My Attempts`    | `MyAttemptsScreen`    | User's personal attempt history. |
+  | `/Quiz Responses` | `QuizResponsesScreen` | Detailed participant analytics for creators. |
+  | `/profile`        | `ProfileScreen`       | User account management. |
+  | `/Admin Panel`    | `AdminPanel`          | Platform administration. |
+  | `/Manage Admins`  | `ManageAdminsScreen`  | Bulk permission updates for staff. |
+  | `/Add Admins`     | `AddAppAdminScreen`   | Multi-user staff promotion flow. |
+  | `/Blocked Users`  | `QuizModerationScreen`| Quiz-specific bans and data recovery. |
+  | `/maintenance`    | `MaintenanceScreen`   | Global maintenance landing page. |
+  | `/Notifications`  | `NotificationScreen`  | Personal and Global activity alerts. |
+  | `/Privacy Policy` | `PrivacyPolicyScreen` | Tiered data policy hub. |
+  | `/Manage Leaderboards` | `ManageLeaderboardsScreen` | Manual top-10 ranking editor. |
 
 ## 6. Enhanced Security & Lifecycle Flows
 
 ### 6.1 Authentication Hardening
+
 - **IP Detection**: App detects public IP on login/signup.
 - **Fail Cooldown**: After 5 failed logins from one IP, a 1-hour ban is issued via `security_logs`.
-- **Identity Integrity**: Unverified accounts are automatically purged after 7 days during app startup or login.
+- **Identity Integrity**: Unverified accounts are automatically purged after 7 days during app
+  startup or login.
 
 ### 6.2 Data Privacy & Compliance
+
 - **Consent Hub**: Users must accept the Privacy Policy before signup.
 - **AI Opt-in**: Granular toggle to allow/disallow demographic analysis for personalization.
-- **Restricted Mode**: Users under 13 cannot enable AI analysis, ensuring no PII collection from minors.
+- **Restricted Mode**: Users under 13 cannot enable AI analysis, ensuring no PII collection from
+  minors.
+- **Privacy Gating**: Advanced AI features (Adaptive Quizzes, Analysis) are disabled until the AI &
+  Personalization policy is accepted.
 
-### 6.3 Notification Ecosystem
+### 6.3 AI & Explanation Ecosystem
+
+- **Secure Generation**: Backend manages generation metrics and stores insights to
+  `/explanation/{uid}/gen`.
+- **Automated Analysis**: Results screen triggers evaluations stored at
+  `/explanation/{uid}/{quizId}/{attemptId}`.
+- **Selective Payloads**: Identity data (`uuid`, `email`, `name`) included in root; `persona` and
+  `performance` strictly conditional on opt-in.
+- **Ownership Transfer**: AI quizzes updated via API automatically remove the `isAiGenerated` flag,
+  handing full control to the user without secondary AI tags.
+
+### 6.4 Notification Ecosystem
+
 - **Instant Results**: Score summaries are pushed to the user's device immediately after submission.
 - **Public Alerts**: system-wide broadcasts are triggered when a new public quiz is published.
-- **Reactive Merging**: Uses RxDart to combine personal and global notification streams in real-time.
+- **Reactive Merging**: Uses RxDart to combine personal and global notification streams in
+  real-time.
 
-### 6.4 Manual Ranking
+### 6.5 Manual Ranking
+
 - **Magic Wand Discovery**: Managers can scan for the "earliest first attempt" for all participants.
-- **Manual Publishing**: Admins review and publish top-10 unique user boards manually to ensure ranking integrity.
-
+- **Manual Publishing**: Admins review and publish top-10 unique user boards manually to ensure
+  ranking integrity.

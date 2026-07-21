@@ -22,19 +22,18 @@ Key packages used in the implementation:
 - **Firebase:** `firebase_core`, `firebase_auth`, `cloud_firestore`, `firebase_storage`.
 - **Navigation & Deep Linking:** `app_links` for handling `/quiz?id=...` URLs.
 - **UI & Styling:** `google_fonts` (Poppins), `flutter_svg`.
-- **Utilities:** `http` for AI API calls (if external), `intl` for date formatting.
+- **Utilities:** `http` for AI API calls, `intl` for date formatting, `dart:developer` for large payload logging.
 
 ## 3. Service Layer Architecture
 ThinkFast uses a **Facade Pattern** combined with **Domain Services**.
 
 ### 3.1 Domain Services
 Located in `lib/services/`, these services handle specific collections or logic:
-- `QuizService`: Manages the `quizzes`, `quiz_questions`, and `answer_keys` collections.
+- `QuizService`: Manages the `quizzes`, `quiz_questions`, and `answer_keys` collections. Implements smart routing for updates (API for AI quizzes, Firestore for Manual).
 - `UserService`: Manages user profiles and sensitive data in sub-collections.
-- `AttemptService`: Handles scoring logic and the `responses` collection.
-- `AiService`: Manages AI generation logs and quotas.
-- `AnalyticsService`: Tracks quiz-level and question-level performance statistics.
-- `AdminService`: Handles audit logging and platform-wide configurations.
+- `AttemptService`: Handles scoring logic and orchestrates post-submission AI analysis.
+- `AiService`: Manages AI backend communication, PDF multimodal processing, and privacy gating.
+- `AdminService`: Handles audit logging and platform-wide staff configurations.
 
 ### 3.2 The Unified Database Service (`DatabaseService`)
 Located in `lib/services/firebase_direct_commands.dart`, this class acts as a central hub. Instead of UI code interacting with multiple services, it calls `DatabaseService`, which coordinates the necessary domain services. This simplifies the UI-to-Logic interface.
@@ -44,31 +43,28 @@ Located in `lib/services/firebase_direct_commands.dart`, this class acts as a ce
 ### 4.1 Quiz Data Transformation
 Quizzes are stored in a normalized way to optimize for quiz-taking performance and security:
 - **Metadata** is stored in the `quizzes` collection.
-- **Questions** (without answers) are stored in `quiz_questions`.
-- **Answers** are stored separately in `answer_keys` to prevent cheating via client-side inspection of the questions document.
-- **Service-Level Enforcement:** `DatabaseService` proactively strips any answer data from question documents before they reach the UI layer. This acts as a second layer of defense.
-- The `_transformQuizData` method in `DatabaseService` handles converting the editor's flat list into this multi-collection structure.
+- **Questions** (without answers) are stored in `quiz_questions`. Supports `explanation` as an alias for `description`.
+- **Answers** are stored separately in `answer_keys` to prevent cheating.
+- **Service-Level Enforcement:** `DatabaseService` proactively strips any answer data from question documents before they reach the UI layer.
 
 ### 4.2 Scoring Engine
-Scoring is performed by the `AttemptService` and mirrored in the `ResultScreen` UI for immediate feedback. It supports:
+Scoring is performed by the `AttemptService` and mirrored in the `ResultScreen` UI. It supports:
 - **Single Choice:** Equality check on option IDs.
-- **Multiple Choice:** Set-based comparison (all correct must be selected, no wrong ones).
+- **Multiple Choice:** Set-based comparison.
 - **Integer:** Trimmed string comparison.
-- **Marking Schemes:** The engine dynamically pulls point values from the quiz's `markingScheme` map, supporting global, per-type, and per-question configurations.
+- **Marking Schemes:** Supports global, per-type, and per-question configurations.
 
 ### 4.3 Deep Link Routing
-In `main.dart`, the `AppLinks` stream is initialized at startup. When a link is detected:
-1. The URI is parsed to extract the `id`.
-2. The `navigatorKey` is used to push the `/Quiz Details` route regardless of the current screen.
-3. A slight delay is used to ensure the Navigator is ready if the app was cold-booted.
+In `main.dart`, the `AppLinks` stream handles incoming URIs, extracting the quiz ID and navigating to the details screen using a global `navigatorKey`.
 
 ## 5. State Management
-For this phase, the app primarily uses:
-- **StatefulWidgets:** For screen-level local state (e.g., current question index, form inputs).
-- **Global Variables:** `lib/utils/global.dart` holds app-wide constants (colors) and temporary session data (current user profile).
-- **Streams:** `StreamBuilder` is heavily used to provide real-time updates for quiz lists and attempt history.
+- **StatefulWidgets:** For screen-level local state.
+- **Global Variables:** `lib/utils/global.dart` holds app-wide constants and cached profile data.
+- **Streams:** `StreamBuilder` provides real-time updates for quiz feeds and attempt history.
 
-## 6. Security Implementation
-- **Firestore Rules:** Enforce that only the `creatorId` can modify a quiz.
-- **Email Verification:** A guard in the `main.dart` router or splash screen ensures `FirebaseAuth.instance.currentUser?.emailVerified` is true before allowing access to `/home`.
-- **Admin Role:** The `AdminService` checks for a boolean flag or role string in the user's Firestore document to grant elevated UI access.
+## 6. Security & Privacy Implementation
+- **AI Backend Orchestration**: All AI-related writes (Generation, Analysis) are offloaded to a secure server.
+- **Firestore Lockdown**: AI-generated quizzes and the `/explanation` hierarchy are write-locked for regular users.
+- **Privacy Gating**: Advanced features and PII-heavy payloads are restricted based on the `optInAiAnalysis` (2nd Privacy Policy) status.
+- **Safe Timestamping**: UI components parse timestamps using `DateTime.tryParse` to handle `Timestamp`, `DateTime`, or `String` variants safely.
+- **Data Traces**: Large payloads are logged via `developer.log()` to bypass console truncation.

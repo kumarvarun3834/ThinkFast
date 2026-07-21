@@ -26,7 +26,7 @@ application functionality.
 | `management_features`              | `bool`      | `true`  | Enables admin management UI tools.             |
 | `enable_quiz_creation_rate_limit`  | `bool`      | `true`  | Toggles the creation cooldown for users.       |
 | `quiz_creation_rate_limit_minutes` | `number`    | `5`     | Minutes required between quiz creations.       |
-| `admin_refresh_rate_limit_seconds` | `number`    | `30`    | Cooldown between manual data refreshes in UI. |
+| `admin_refresh_rate_limit_seconds` | `number`    | `30`    | Cooldown between manual data refreshes in UI.  |
 | `updatedAt`                        | `timestamp` | -       | Last modification time.                        |
 
 ---
@@ -66,39 +66,44 @@ toggled **ON** in the sidebar to activate these privileges.
 
 ### Authorization Logic
 
-- **Super Admin (`level: 0`)**: Automatically possesses all permissions and can manage other Super Admins.
+- **Super Admin (`level: 0`)**: Automatically possesses all permissions and can manage other Super
+  Admins.
 - **Admin Mode Requirement**: To perform any administrative action, the user must have the relevant
   document in the `admins` collection AND have `isAdminModeEnabled` set to `true`.
 - **Permission Check**: Features check for specific keys in the `permissions` array.
-- **Bulk Updates**: Admins with `manage_admins` can perform collective updates (Grant/Revoke/Set) on multiple admin accounts simultaneously.
+- **Bulk Updates**: Admins with `manage_admins` can perform collective updates (Grant/Revoke/Set) on
+  multiple admin accounts simultaneously.
 
 ---
 
-## 3. Audit Logs
+## 3. Audit Logs & Generation Logs
 
-Every administrative action (modifying permissions, toggling modes, deleting quizzes) is recorded in
-the `audit_logs` collection.
+Critical system events are recorded in dedicated collections managed primarily by the backend.
 
-- **Fields**: `actorId`, `action`, `targetId`, `details`, `category`, `timestamp`.
+- **Audit Logs**: Records staff actions (permissions, deletions). Fields: `actorId`, `actorName`, `action`, `targetId`, `category`, `timestamp`.
+- **AI Generation Logs**: Tracks user generation metrics (model, latency, tokens). Managed by the backend to prevent client-side manipulation.
 
 ---
 
-## 4. Platform Management & Security (v1.1)
+## 4. Platform Management & Security (v1.2)
 
 ### 4.1 AI Service Orchestration
-The Admin Panel allows granular control over AI reliability:
-- **Active Model Rotation**: Admins can set the `ai_model_index` to shift the starting provider between Main, Backup 1, and Backup 2.
-- **Dynamic Configuration**: Model names can be updated in real-time via feature flags to react to provider changes without an app rebuild.
+The AI workflow is now centralized through the backend API (`PUT /api/quizzes/:quizId`).
+- **Log Cleanup**: Backend automatically deletes corresponding generation logs when a quiz is updated.
+- **Ownership Transfer**: Backend removes the AI flag to signify the quiz is now user-controlled. No secondary AI tags are attached, giving users full control.
+- **Privacy Enforcement**: Admins can oversee the `optInAiAnalysis` status to ensure compliance.
 
 ### 4.2 Security Log Monitoring
 A dedicated view in the Admin Panel provides visibility into `security_logs`:
 - **IP Tracking**: Logs every failed login with its public IP.
-- **Block Management**: View and manually override 1-hour automated IP bans triggered by brute-force protection logic.
+- **Block Management**: View and manually override 1-hour automated IP bans.
 
 ### 4.3 Manual Leaderboard Management
-The system now supports **Manual Leaderboards** to ensure ranking high-integrity:
+The system supports **Manual Leaderboards** to ensure ranking high-integrity:
 - **Permission**: Controlled by the `manage_leaderboards` key.
-- **Scoping**: Allows creation of global boards or quiz-specific rankings for collaborators.
-- **Integrity**: Enforces Top 10 unique users only.
-- **Automation**: Features a "Magic Wand" discovery tool that scans responses for the earliest successful attempts per user.
+- **Scoping**: Allows creation of global boards or quiz-specific rankings.
+- **Automation**: "Magic Wand" scans responses for earliest successful attempts.
+- **Admin Direct Write**: Admins retain direct Firestore write access to bypass AI-related lockdowns for manual corrections.
 
+### 4.4 Advanced Hierarchy Override
+Admins can bypass the `/explanation` write-lock using the Admin SDK or direct console access to perform data corrections for user evaluates.

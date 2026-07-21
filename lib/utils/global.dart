@@ -63,3 +63,7 @@ const Color errorColor = Colors.redAccent;
 const Color warningColor = Colors.orangeAccent;
 const Color reviewColor = Colors.purple;
 const Color infoColor = Colors.blueAccent;
+
+// AI Backend Configuration
+const String aiBackendUrl = "https://thinkfast.ai.studio";
+const String projectContext = "ThinkFast: A secure, AI-powered quiz platform with professional-grade delegated management and real-time administrative control.";

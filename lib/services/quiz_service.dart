@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
 import '../utils/global.dart' as global;
 
 import 'admin_service.dart';
@@ -55,7 +59,8 @@ class QuizService {
     int? moduleCount,
     String? markingType,
     String? attemptLimitType,
-    Map<String, List<String>>? moduleTags, String? examTag,
+    Map<String, List<String>>? moduleTags,
+    String? examTag,
   }) async {
     // 1. Idempotency Check
     if (clientToken != null) {
@@ -73,8 +78,9 @@ class QuizService {
     // 2. Fetch Feature Flags and Admin Status
     final bool isUserAdmin = await AdminService().isAdmin(creatorId);
     final flags = await SettingsService().getFeatureFlags(isAdmin: isUserAdmin);
-    
-    final bool canBypassLimits = isUserAdmin && 
+
+    final bool canBypassLimits =
+        isUserAdmin &&
         await AdminService().hasPermission(creatorId, 'manage_all_quizzes');
 
     // Check if quiz creation is globally disabled
@@ -216,7 +222,7 @@ class QuizService {
     return targetQuizId;
   }
 
-  /// ✅ Update Quiz Metadata
+  /// ✅ Update Quiz (Conditional: API for AI Quizzes, Firestore for Manual)
   Future<void> updateQuiz({
     required String quizId,
     required String userId,
@@ -224,15 +230,65 @@ class QuizService {
   }) async {
     if (updates == null || updates.isEmpty) return;
 
-    // 1. Rate Limit Check for Form Save
-    final bool isUserAdmin = await AdminService().isAdmin(userId);
-    final flags = await SettingsService().getFeatureFlags(isAdmin: isUserAdmin);
-    final bool canBypassLimits = isUserAdmin &&
-        await AdminService().hasPermission(userId, 'manage_all_quizzes');
+    // 1. Fetch current quiz status if not in updates
+    final currentQuizDoc = await _quizzes.doc(quizId).get();
+    final Map<String, dynamic> quizData = currentQuizDoc.data() as Map<String, dynamic>? ?? {};
+    final bool isAiGenerated = updates['isAiGenerated'] ?? quizData['isAiGenerated'] ?? false;
+    final bool isAdmin = await AdminService().isAdmin(userId);
 
+    // 2. Conditional Logic: Secure API for AI Generated quizzes (Non-Admins only)
+    if (isAiGenerated && !isAdmin) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        final token = await user?.getIdToken();
+        final url = "${global.aiBackendUrl}/api/quizzes/$quizId";
+
+        debugPrint("Secure AI Quiz Update: Calling backend -> $url");
+
+        final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
+
+        final Map<String, dynamic> payload = {
+          'uuid': effectiveUuid,
+          'email': global.currentUserProfile?['email'] ?? user?.email,
+          'name': global.currentUserProfile?['name'] ?? 'User',
+          ...updates,
+        };
+
+        final response = await http.put(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          debugPrint("AI Quiz updated successfully via secure API.");
+          developer.log(response.body, name: 'AI Update Response');
+          await AdminService().logAction(
+            actorId: userId,
+            action: 'update_quiz_secure',
+            targetId: quizId,
+            details: 'Updated AI quiz via API: ${updates.keys.toList()}',
+            category: 'quiz',
+          );
+          return; // Success, exit
+        } else {
+          final errorBody = jsonDecode(response.body);
+          throw Exception(errorBody['error'] ?? "Failed to update AI quiz via API. Status: ${response.statusCode}");
+        }
+      } catch (e) {
+        debugPrint("Secure AI Update Error: $e");
+        rethrow;
+      }
+    }
+
+    // 3. Rate Limit Check for Direct Firestore Save (Admins exempt)
+    final bool canBypassLimits = isAdmin && await AdminService().hasPermission(userId, 'manage_all_quizzes');
+    final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
     final bool rateLimitEnabled = flags?['enable_form_save_rate_limit'] ?? true;
-    final int rateLimitSeconds =
-        (flags?['form_save_rate_limit_seconds'] ?? 30).toInt();
+    final int rateLimitSeconds = (flags?['form_save_rate_limit_seconds'] ?? 30).toInt();
 
     if (rateLimitEnabled && !canBypassLimits) {
       final userDoc = await _users.doc(userId).get();
@@ -247,26 +303,20 @@ class QuizService {
 
           if (difference.inSeconds < rateLimitSeconds) {
             final waitTime = rateLimitSeconds - difference.inSeconds;
-            throw Exception(
-              "Please wait $waitTime seconds before saving again.",
-            );
+            throw Exception("Please wait $waitTime seconds before saving again.");
           }
         }
       }
     }
 
     bool modulesUpdated = false;
-    Map<String, dynamic>? cachedQuizData;
+    Map<String, dynamic>? cachedQuizData = quizData;
 
     if (updates.containsKey('modules')) {
       modulesUpdated = true;
       final questionsData = updates.remove('modules');
 
-      // 2. Fetch current quiz for merging tags
-      final currentQuizDoc = await _quizzes.doc(quizId).get();
-      cachedQuizData = currentQuizDoc.data() as Map<String, dynamic>? ?? {};
-      final List<String> existingTags =
-          List<String>.from(cachedQuizData['tags'] ?? []);
+      final List<String> existingTags = List<String>.from(cachedQuizData['tags'] ?? []);
 
       // Derive tags from modules if being updated
       final Set<String> moduleDerivedTags = {};
@@ -299,10 +349,6 @@ class QuizService {
       if (updates.containsKey('examTag')) {
         final String? et = updates['examTag'];
         if (et != null && et.trim().isNotEmpty) {
-          if (cachedQuizData == null) {
-            final doc = await _quizzes.doc(quizId).get();
-            cachedQuizData = doc.data() as Map<String, dynamic>? ?? {};
-          }
           final List<String> currentTags = List<String>.from(
             updates['tags'] ?? cachedQuizData['tags'] ?? [],
           );
@@ -323,7 +369,7 @@ class QuizService {
           }, SetOptions(merge: true));
         }
       }
-      
+
       if (updates.isNotEmpty) {
         updates['updatedAt'] = FieldValue.serverTimestamp();
         await _quizzes.doc(quizId).update(updates);
@@ -529,6 +575,23 @@ class QuizService {
         );
   }
 
+  /// ✅ Fetch My AI-Generated Quizzes
+  Stream<List<Map<String, dynamic>>> getMyAiQuizzes(String creatorId) {
+    return _quizzes
+        .where('creatorId', isEqualTo: creatorId)
+        .where('isAiGenerated', isEqualTo: true)
+        .where('isDeleted', isEqualTo: false)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList(),
+        );
+  }
+
   /// ✅ Master control: Get all quizzes for a user (Admin only)
   Stream<List<Map<String, dynamic>>> getUserQuizzesMaster(String userId) {
     return _quizzes
@@ -572,12 +635,64 @@ class QuizService {
     return access.exists;
   }
 
-  /// ✅ Update Answer Keys
+  /// ✅ Update Answer Keys (Conditional: API for AI Quizzes, Firestore for Manual)
   Future<void> updateAnswerKeys({
     required String quizId,
     required String userId,
     required List<Map<String, dynamic>> answerKeys,
   }) async {
+    final quizDoc = await _quizzes.doc(quizId).get();
+    final data = quizDoc.data() as Map<String, dynamic>? ?? {};
+    final bool isAiGenerated = data['isAiGenerated'] ?? false;
+    final bool isAdmin = await AdminService().isAdmin(userId);
+
+    if (isAiGenerated && !isAdmin) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        final token = await user?.getIdToken();
+        final url = "${global.aiBackendUrl}/api/quizzes/$quizId";
+
+        debugPrint("Secure AI Answer Key Update: Calling backend -> $url");
+
+        final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
+
+        final Map<String, dynamic> payload = {
+          'uuid': effectiveUuid,
+          'email': global.currentUserProfile?['email'] ?? user?.email,
+          'name': global.currentUserProfile?['name'] ?? 'User',
+          'answerKeys': answerKeys,
+        };
+
+        final response = await http.put(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          debugPrint("AI Answer keys updated successfully via secure API.");
+          developer.log(response.body, name: 'AI Answer Key Update Response');
+          await AdminService().logAction(
+            actorId: userId,
+            action: 'update_answer_keys_secure',
+            targetId: quizId,
+            details: 'Updated AI answer keys via API',
+            category: 'quiz',
+          );
+          return;
+        } else {
+          final errorBody = jsonDecode(response.body);
+          throw Exception(errorBody['error'] ?? "Failed to update AI answer keys via API. Status: ${response.statusCode}");
+        }
+      } catch (e) {
+        debugPrint("Secure AI Answer Key Update Error: $e");
+        rethrow;
+      }
+    }
+
     await _answerKeys.doc(quizId).update({
       'answerkeys': answerKeys,
       'updatedAt': FieldValue.serverTimestamp(),

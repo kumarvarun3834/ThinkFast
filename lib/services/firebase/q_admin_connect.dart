@@ -501,7 +501,7 @@ class QAdminDatabaseService {
 
       final String qText = (item['question'] ??
           (item['Q'] is Map ? (item['Q'] as Map)['text'] : '')).toString();
-      final String qDescription = (item['description'] ?? '').toString();
+      final String qDescription = (item['explanation'] ?? item['description'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
       final int qTimer = int.tryParse(item['timer']?.toString() ?? '0') ?? 0;
