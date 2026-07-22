@@ -3,7 +3,8 @@ import 'dart:developer' as developer;
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 import 'admin_service.dart';
@@ -95,9 +96,6 @@ class AiService {
     await _checkAiEnabled(userId);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-
       final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
         userId: userId,
         userName: userName,
@@ -105,33 +103,28 @@ class AiService {
         config: additionalConfig ?? {},
       );
 
-      final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
-
-      final Map<String, dynamic> body = {
-        'uuid': effectiveUuid,
-        'email': global.currentUserProfile?['email'] ?? user?.email,
-        'name': userName,
-        'prompt': prompt, // Include prompt at root as per docs
+      final Map<String, dynamic> requestBody = {
         'input': inputStatement,
         'isPersonal': isPersonal,
         'tags': tags,
         'examTag': examTag,
       };
-      developer.log(jsonEncode(body), name: 'AI Generation Payload');
 
-      final response = await http.post(
-        Uri.parse("${global.aiBackendUrl}/generateQuiz"),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
+      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+      developer.log(jsonEncode(hardenedPayload), name: 'AI Generation Payload');
+
+      final url = "${global.aiBackendUrl}/generateQuiz";
+      debugPrint("AI Generation: Calling backend -> $url");
+
+      final response = await ApiClient.instance.post(
+        url,
+        data: hardenedPayload,
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
-      debugPrint("AI Generation: Calling backend -> ${global.aiBackendUrl}/generateQuiz");
 
       if (response.statusCode == 200) {
-        developer.log(response.body, name: 'AI Generation Response');
-        final data = jsonDecode(response.body);
+        developer.log(jsonEncode(response.data), name: 'AI Generation Response');
+        final data = response.data;
         final String quizId = data['quizId'];
 
         // Update local usage cache after successful generation
@@ -139,12 +132,15 @@ class AiService {
         await _cache.saveAiUsage(newUsage);
 
         return {
-          'quizId': quizId,
+          'quizId': data['quizId'],
+          'status': data['status'] ?? 'completed',
+          'message': data['message'] ?? '',
+          'traces': data['traces'] ?? [],
           'explanation': data['explanation'] ?? data['reasoning'] ?? '',
         };
       } else {
         developer.log(
-          "AI Server Error: ${response.statusCode} - ${response.body}",
+          "AI Server Error: ${response.statusCode} - ${response.data}",
           name: 'AI Server Error',
         );
         throw Exception(
@@ -168,9 +164,6 @@ class AiService {
     await _checkAiEnabled(userId);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-
       final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
         userId: userId,
         userName: global.currentUserProfile?['name'] ?? 'User',
@@ -178,33 +171,29 @@ class AiService {
         config: {'source': 'pdf', 'pdfName': pdfName, 'pdfSize': pdfSize},
       );
 
-      final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
-
-      final Map<String, dynamic> body = {
-        'uuid': effectiveUuid,
-        'email': global.currentUserProfile?['email'] ?? user?.email,
-        'name': global.currentUserProfile?['name'] ?? 'User',
+      final Map<String, dynamic> requestBody = {
         'pdfName': pdfName,
         'pdfSize': pdfSize,
         'pdfData': pdfData,
         'input': inputStatement,
         'isPersonal': isPersonal,
       };
-      developer.log(jsonEncode(body), name: 'PDF Generation Payload');
 
-      final response = await http.post(
-        Uri.parse("${global.aiBackendUrl}/generateQuizFromPDF"),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
+      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+      developer.log(jsonEncode(hardenedPayload), name: 'PDF Generation Payload');
+
+      final url = "${global.aiBackendUrl}/generateQuizFromPDF";
+      debugPrint("PDF Generation: Calling backend -> $url");
+
+      final response = await ApiClient.instance.post(
+        url,
+        data: hardenedPayload,
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
-      debugPrint("PDF Generation: Calling backend -> ${global.aiBackendUrl}/generateQuizFromPDF");
 
       if (response.statusCode == 200) {
-        developer.log(response.body, name: 'PDF Recognition Response');
-        final data = jsonDecode(response.body);
+        developer.log(jsonEncode(response.data), name: 'PDF Recognition Response');
+        final data = response.data;
 
         // Update local usage cache after successful generation
         final newUsage = await global.aiConnect.getAiUsageToday(userId);
@@ -213,7 +202,7 @@ class AiService {
         return data['quizId'];
       } else {
         developer.log(
-          "PDF Server Error: ${response.statusCode} - ${response.body}",
+          "PDF Server Error: ${response.statusCode} - ${response.data}",
           name: 'PDF Server Error',
         );
         throw Exception(
@@ -237,39 +226,80 @@ class AiService {
     await _checkAiEnabled(userId);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-      final url = "${global.aiBackendUrl}/api/quiz/analyze";
-      debugPrint("AI Analysis: Calling backend -> $url");
-
-      final Map<String, dynamic> body = {
-        'uuid': userId,
-        'email': userEmail,
-        'name': userName,
+      final Map<String, dynamic> requestBody = {
         'quizId': quizId,
         'responseId': responseId,
       };
-      developer.log(jsonEncode(body), name: 'AI Analysis Payload');
 
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
+      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+      developer.log(jsonEncode(hardenedPayload), name: 'AI Analysis Payload');
+
+      final url = "${global.aiBackendUrl}/api/quiz/analyze";
+      debugPrint("AI Analysis: Calling backend -> $url");
+
+      final response = await ApiClient.instance.post(
+        url,
+        data: hardenedPayload,
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
       if (response.statusCode == 200) {
-        developer.log(response.body, name: 'AI Analysis Response');
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        developer.log(jsonEncode(response.data), name: 'AI Analysis Response');
+        return response.data as Map<String, dynamic>;
       } else {
-        final errorBody = jsonDecode(response.body);
+        final errorBody = response.data;
         throw Exception(errorBody['error'] ?? "AI Analysis failed. Status: ${response.statusCode}");
       }
     } catch (e) {
       debugPrint("AI Analysis Error: $e");
       throw Exception(e.toString());
+    }
+  }
+
+  /// ✅ Get Quiz Status from API (Checking memory/Firestore)
+  Future<Map<String, dynamic>> getQuizStatus(String quizId) async {
+    try {
+      final url = "${global.aiBackendUrl}/api/quiz-status/$quizId";
+      debugPrint("AI Status: Polling -> $url");
+
+      final response = await ApiClient.instance.get(
+        url,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception("Failed to fetch status: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("AI Status Error: $e");
+      throw Exception("An error occurred while checking quiz status: $e");
+    }
+  }
+
+  /// ✅ Manually Process Quiz Queue (Admin Only)
+  Future<Map<String, dynamic>> processQuizQueue() async {
+    try {
+      final url = "${global.aiBackendUrl}/api/admin/queue/process";
+      debugPrint("AI Queue: Triggering manual flush -> $url");
+
+      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload({});
+      
+      final response = await ApiClient.instance.post(
+        url,
+        data: hardenedPayload,
+        options: Options(headers: {'Content-Type': 'application/json'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception("Queue processing failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("AI Queue Error: $e");
+      throw Exception("An error occurred during queue processing: $e");
     }
   }
 

@@ -20,7 +20,9 @@
 
 10. /Quiz Result: Final Score and Summary Screen
 
-11. /Managed Quizzes: Quizzes where the user is a collaborator
+11. /AI Generation Status: Tracking hub for async quiz generation (with Trace viewer)
+
+12. /Managed Quizzes: Quizzes where the user is a collaborator
 
 12. /My Attempts: Personal attempt history
 
@@ -30,4 +32,10 @@
 
 15. /Admin Panel: Global platform settings (Admin only)
 
-16. /maintenance: Landing page for system-wide maintenance
+16. /dashboard: Super Admin Dashboard (System health, API metrics, Queue control)
+
+17. /Manage Admins: UI to configure App Administrators and permissions
+
+18. /Manage Leaderboards: Manual leaderboard creator and rank manager
+
+19. /maintenance: Landing page for system-wide maintenance

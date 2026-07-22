@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:thinkfast/services/ai_service.dart';
+import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/services/notification_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 

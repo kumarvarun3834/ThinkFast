@@ -43,25 +43,25 @@ The generation process begins in the `AiQuizGenerator` screen, which utilizes a 
 
 ## 2. Backend Orchestration (`AiService`)
 
-Once the user hits "Generate Quiz", the `AiService` takes over the orchestration.
+Once the user hits "Generate Quiz", the `AiService` initiates a **Background Generation Task**.
 
-### 2.1 Pre-flight Checks
+### 2.1 Pre-flight Checks & Task Queuing
 *   **Feature Flag Check**: Verifies if AI generation is globally enabled.
-*   **Quota Management**: Checks the `user_usage` collection to see if the user has remaining daily generations. Admins with `bypass_ai_limits` are exempt.
+*   **Quota Management**: Checks the `user_usage` collection to see if the user has remaining daily generations.
+*   **Asynchronous Response**: Instead of waiting for the LLM, the server immediately returns a `status: "queued"` response with a unique `quizId`.
+*   **Immediate Redirection**: The app UI receives this `quizId` and immediately navigates the user to the **AI Generation Status** screen.
 
-### 2.2 Prompt Construction
-The service constructs a comprehensive prompt by merging user inputs and profile analytics into a strict system prompt.
+### 2.2 Background Processing
+The actual LLM call and database persistence occur in the background:
+*   **Worker Logic**: A specialized worker processes the `quiz_queue`.
+*   **Validation Pipeline**: Strict verification against the ThinkFast Quiz Schema (Type checks, array bounds).
+*   **Batch Write**: Questions, Metadata, and Answer Keys are written to Firestore as an atomic batch.
 
-### 2.3 Generation & Validation Flow
-To ensure data integrity, the service follows a multi-stage validation pipeline:
-
-1.  **AI Output**: AI Model returns a JSON string.
-2.  **JSON Schema Validation**: Strict verification against the ThinkFast Quiz Schema (Type checks, array bounds, required fields).
-3.  **Retry/Repair Flow**: If parsing fails or the JSON is malformed, a "Repair Prompt" is automatically sent for one re-generation attempt.
-4.  **Content Quality Checks**:
-    *   **Duplicate Detection**: Ensures no identical questions or choices.
-    *   **Answer Integrity**: Verifies that every question has at least one valid answer and that the solution/explanation field is not empty.
-    *   **Logical Consistency**: Ensures answer IDs match choice IDs.
+### 2.3 Status Tracking (UX)
+The `AiGenerationStatusScreen` implements a **Hybrid Tracking** logic:
+1.  **Firestore Stream**: Listens for real-time updates once the document is created.
+2.  **API Polling**: Calls `GET /api/quiz-status/:id` to check the server's memory state if the document isn't in Firestore yet.
+3.  **Real-time Traces**: Shows live backend logs (TraceID) for visibility into validation and security steps.
 
 ---
 
@@ -77,8 +77,10 @@ Every generation stores technical metadata for analytics and debugging:
 `DatabaseService.createDatabase` is called to perform a batch write to Firestore (Metadata, Questions, and Answer Keys).
 
 ### 3.3 Status Tracking (UX)
-For a smooth experience, the generation state is tracked and displayed to the user:
+For a smooth experience, the generation state is tracked and displayed via the **Generation Status Screen**:
 `Queued` → `Generating` → `Validating` → `Saving` → `Completed`.
+
+Users can also manually track a status using a **Quiz ID** if they disconnect during the process.
 
 ---
 

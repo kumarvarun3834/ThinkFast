@@ -320,6 +320,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
               ),
             if (widget.user != null)
               _drawerItem(
+                icon: Icons.track_changes_rounded,
+                text: 'Track AI Status',
+                onTap: () => _checkAndNavigate(context, "/AI Generation Status"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
                 icon: Icons.library_books_outlined,
                 text: 'My Quiz',
                 onTap: () => _checkAndNavigate(context, "/My Quiz"),
@@ -362,49 +368,53 @@ class _SidebarMenuState extends State<SidebarMenu> {
                   horizontal: 16,
                   vertical: 8,
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: global.bgColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: global.borderColor),
-                  ),
-                  child: SwitchListTile(
-                    title: const Text(
-                      "Admin Mode",
-                      style: TextStyle(color: global.valueColor, fontSize: 14),
+                child: Material(
+                  color: global.bgColor,
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: global.borderColor),
                     ),
-                    secondary: Icon(
-                      _isAdmin ? Icons.visibility : Icons.visibility_off,
-                      color: global.primaryAccent,
-                    ),
-                    value: _isAdmin,
-                    activeThumbColor: global.primaryAccent,
-                    onChanged: (bool value) async {
-                      try {
-                        await global.adminDb.toggleAdminMode(
-                          uid: widget.user!.uid,
-                          enable: value,
-                        );
-                        global.isAdmin = value;
-                        if (mounted) {
-                          setState(() => _isAdmin = value);
-                          // Refresh features or navigate if needed
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "Admin Mode ${value ? 'Enabled' : 'Disabled'}",
-                              ),
-                            ),
+                    child: SwitchListTile(
+                      title: const Text(
+                        "Admin Mode",
+                        style: TextStyle(color: global.valueColor, fontSize: 14),
+                      ),
+                      secondary: Icon(
+                        _isAdmin ? Icons.visibility : Icons.visibility_off,
+                        color: global.primaryAccent,
+                      ),
+                      value: _isAdmin,
+                      activeThumbColor: global.primaryAccent,
+                      onChanged: (bool value) async {
+                        try {
+                          await global.adminDb.toggleAdminMode(
+                            uid: widget.user!.uid,
+                            enable: value,
                           );
+                          global.isAdmin = value;
+                          if (mounted) {
+                            setState(() => _isAdmin = value);
+                            // Refresh features or navigate if needed
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Admin Mode ${value ? 'Enabled' : 'Disabled'}",
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                          }
                         }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text("Error: $e")));
-                        }
-                      }
-                    },
+                      },
+                    ),
                   ),
                 ),
               ),

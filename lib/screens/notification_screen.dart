@@ -136,79 +136,85 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 : global.primaryAccent.withValues(alpha: 0.5)),
                     ),
                   ),
-                  child: ListTile(
-                    onTap: () {
-                      if (!isRead && !isGlobal)
-                        _notificationService.markAsRead(n['id']);
-                      if (n['type'] == 'new_quiz' && n['targetId'] != null) {
-                        Navigator.pushNamed(
-                          context,
-                          '/Quiz Details',
-                          arguments: n['targetId'],
-                        );
-                      }
-                    },
-                    leading: Icon(
-                      isGlobal
-                          ? Icons.campaign_rounded
-                          : Icons.notifications_rounded,
-                      color: isGlobal
-                          ? Colors.orangeAccent
-                          : (isRead ? global.labelColor : global.primaryAccent),
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            n['title'] ?? 'Notification',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      onTap: () {
+                        if (!isRead && !isGlobal) {
+                          _notificationService.markAsRead(n['id']);
+                        }
+                        if (n['type'] == 'new_quiz' && n['targetId'] != null) {
+                          Navigator.pushNamed(
+                            context,
+                            '/Quiz Details',
+                            arguments: n['targetId'],
+                          );
+                        }
+                      },
+                      leading: Icon(
+                        isGlobal
+                            ? Icons.campaign_rounded
+                            : Icons.notifications_rounded,
+                        color: isGlobal
+                            ? Colors.orangeAccent
+                            : (isRead
+                                  ? global.labelColor
+                                  : global.primaryAccent),
+                      ),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              n['title'] ?? 'Notification',
+                              style: GoogleFonts.poppins(
+                                color: global.valueColor,
+                                fontWeight: isRead
+                                    ? FontWeight.normal
+                                    : FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          if (isGlobal)
+                            const StatusBadge(
+                              text: "GLOBAL",
+                              color: Colors.orangeAccent,
+                              fontSize: 8,
+                            ),
+                        ],
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            n['body'] ?? '',
                             style: GoogleFonts.poppins(
-                              color: global.valueColor,
-                              fontWeight: isRead
-                                  ? FontWeight.normal
-                                  : FontWeight.bold,
-                              fontSize: 14,
+                              color: global.labelColor,
+                              fontSize: 12,
                             ),
                           ),
-                        ),
-                        if (isGlobal)
-                          const StatusBadge(
-                            text: "GLOBAL",
-                            color: Colors.orangeAccent,
-                            fontSize: 8,
-                          ),
-                      ],
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          n['body'] ?? '',
-                          style: GoogleFonts.poppins(
-                            color: global.labelColor,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _formatTime(n['createdAt']),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: (!isRead && !isGlobal)
-                        ? Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: global.primaryAccent,
-                              shape: BoxShape.circle,
+                          const SizedBox(height: 8),
+                          Text(
+                            _formatTime(n['createdAt']),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
                             ),
-                          )
-                        : null,
+                          ),
+                        ],
+                      ),
+                      trailing: (!isRead && !isGlobal)
+                          ? Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: global.primaryAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : null,
+                    ),
                   ),
                 ),
               );

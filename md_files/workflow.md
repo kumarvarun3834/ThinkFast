@@ -16,6 +16,7 @@ ThinkFast is a Flutter-based quiz application that allows users to create, parti
 ### 3. Core Screens (`lib/screens/`)
 - **`splash_screen.dart`**: Initial loading screen that checks authentication status.
 - **`start_screen.dart`**: The main dashboard. Users can browse available quizzes, see "My Quizzes," or search for specific quiz IDs.
+- **`ai_generation_status_screen.dart`**: Tracking hub for asynchronous generation requests with real-time trace viewing and history.
 - **`quiz_details_screen.dart`**: Displays information about a selected quiz (title, description, time limit) before starting.
 - **`quesations.dart`**: The main quiz-taking engine.
     - **Shuffling Logic**: Groups by subject/module, shuffles subjects, then orders questions by type: **Single Choice -> Multiple Choice -> Integer**. Questions are shuffled internally within each type group, and options are shuffled for each question.
@@ -105,8 +106,9 @@ The app uses a consistent dark theme defined in `global.dart`:
     - **Advanced Gate**: AI Wizard and Result Screen gate "starred ⭐" features and deep analysis based on the `optInAiAnalysis` status.
 
 ### AI Lifecycle Flow
-1.  **Generation**: Client calls `/generateQuiz` -> Backend returns `quizId` + `explanation` -> Backend saves insight to `/explanation/{uid}/gen/{quizId}`.
-2.  **Tracking**: Quotas are incremented by the server in `user_usage`.
-3.  **Maintenance**: AI quizzes are updated via `PUT /api/quizzes/:quizId` -> Backend removes AI flag + adds "partial AI" tag + deletes generation log.
-4.  **Analysis**: Result screen triggers `/api/quiz/analyze` -> Backend saves evaluation to `/explanation/{uid}/{quizId}/{attemptId}`.
+1.  **Generation**: Client calls `/generateQuiz` -> Server validates quota -> Returns `quizId` + `status: "queued"`.
+2.  **Tracking**: User redirects to `/AI Generation Status`. App polls `/api/quiz-status/:id` and listens to Firestore.
+3.  **Completion**: Once status is `completed`, the status screen automatically navigates to **Quiz Details**.
+4.  **Maintenance**: AI quizzes are updated via `PUT /api/quizzes/:quizId` -> Backend removes AI flag + adds "partial AI" tag + deletes generation log.
+5.  **Analysis**: Result screen triggers `/api/quiz/analyze` -> Backend saves evaluation to `/explanation/{uid}/{quizId}/{attemptId}`.
 

@@ -93,10 +93,11 @@ The AI workflow is now centralized through the backend API (`PUT /api/quizzes/:q
 - **Ownership Transfer**: Backend removes the AI flag to signify the quiz is now user-controlled. No secondary AI tags are attached, giving users full control.
 - **Privacy Enforcement**: Admins can oversee the `optInAiAnalysis` status to ensure compliance.
 
-### 4.2 Security Log Monitoring
-A dedicated view in the Admin Panel provides visibility into `security_logs`:
+### 4.2 Security & Performance Dashboard
+A dedicated view in the Admin Panel provides visibility into `security_logs` and backend operations:
 - **IP Tracking**: Logs every failed login with its public IP.
-- **Block Management**: View and manually override 1-hour automated IP bans.
+- **Manual Queue Control**: Admins can trigger the `quiz_queue` worker immediately via the "API Generation Tester" panel.
+- **Core Execution Traces**: View live backend logs and clear trace history for security auditing.
 
 ### 4.3 Manual Leaderboard Management
 The system supports **Manual Leaderboards** to ensure ranking high-integrity:

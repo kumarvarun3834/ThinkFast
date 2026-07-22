@@ -23,6 +23,7 @@ import 'package:thinkfast/screens/moderation/ban_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
+import 'package:thinkfast/screens/quiz/ai_generation_status_screen.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
 import 'package:thinkfast/screens/quiz/leaderboard_screen.dart';
 import 'package:thinkfast/screens/quiz/questions.dart';
@@ -49,6 +50,17 @@ Future<void> main() async {
     androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
     appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
   );
+
+  if (kDebugMode) {
+    // In debug mode, print the App Check token to help register it in Firebase Console
+    FirebaseAppCheck.instance.getToken().then((token) {
+      debugPrint("--- FIREBASE APP CHECK DEBUG TOKEN ---");
+      debugPrint(token);
+      debugPrint("---------------------------------------");
+    }).catchError((e) {
+      debugPrint("Failed to get App Check token: $e");
+    });
+  }
 
   // Initialize Firebase Performance
   await FirebasePerformance.instance.setPerformanceCollectionEnabled(!kDebugMode);
@@ -194,6 +206,10 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/Quiz Result':
             page = const ResultScreen();
+            wrapInGradient = false;
+            break;
+          case '/AI Generation Status':
+            page = AiGenerationStatusScreen(initialQuizId: settings.arguments as String?);
             wrapInGradient = false;
             break;
           case '/Quiz Details':

@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:thinkfast/services/api_client.dart';
 
 class QuizImportResult {
   final String? title;
@@ -63,9 +64,9 @@ class QuizDataProcessor {
   static Future<QuizImportResult> processImportData(String input) async {
     String jsonContent = input;
     if (input.startsWith("http")) {
-      final response = await http.get(Uri.parse(input));
+      final response = await ApiClient.instance.get(input);
       if (response.statusCode == 200) {
-        jsonContent = response.body;
+        jsonContent = response.data.toString();
       } else {
         throw Exception("Failed to fetch data from link");
       }

@@ -223,15 +223,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     final String? name = admin['name'];
                     final String? photoUrl = admin['photoUrl'];
 
-                    return Card(
-                      color: isSelected ? global.primaryAccent.withOpacity(0.1) : global.cardColor,
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
+                      decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: isSelected ? global.primaryAccent : global.borderColor),
+                        border: Border.all(color: isSelected ? global.primaryAccent : global.borderColor),
                       ),
                       child: Material(
-                        color: Colors.transparent,
+                        color: isSelected ? global.primaryAccent.withOpacity(0.1) : global.cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           onLongPress: () => _toggleSelection(uid),
                           onTap: _isSelectionMode

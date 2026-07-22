@@ -127,6 +127,15 @@ class AiDatabaseService {
         );
   }
 
+  Stream<Map<String, dynamic>?> listenToGenerationStatus(String quizId) {
+    return _generations.doc(quizId).snapshots().map((snapshot) {
+      if (!snapshot.exists) return null;
+      final data = snapshot.data() as Map<String, dynamic>;
+      data['id'] = snapshot.id;
+      return data;
+    });
+  }
+
   /// ✅ Fetch AI Generation Insight for a specific quiz
   Future<String?> getGenerationInsight(String userId, String quizId) async {
     try {

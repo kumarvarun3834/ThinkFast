@@ -125,21 +125,14 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         'id': 'formats',
         'question': 'Preferred question formats?',
         'type': 'choice',
-        'options': [
-          'Single Choice',
-          'Multiple Choice',
-          'Integer',
-          'Assertion & Reason',
-          'Match the Following',
-          'Mixed',
-        ],
+        'options': ['Single Choice', 'Multiple Choice', 'Integer', 'Mixed'],
         'phase': 2,
       },
       {
         'id': 'difficulty',
         'question': 'Select the challenge level:',
         'type': 'choice',
-        'options': ['Easy', 'Medium', 'Hard', 'Adaptive AI ⭐'],
+        'options': ['Easy', 'Medium', 'Hard', 'Random', 'Adaptive AI ⭐'],
         'phase': 2,
       },
       {
@@ -195,13 +188,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         'id': 'explanation_style',
         'question': 'Explanation Style:',
         'type': 'choice',
-        'options': [
-          'Detailed',
-          'Concise',
-          'Hints Only',
-          'After Submission',
-          'No Explanation',
-        ],
+        'options': ['Detailed', 'Concise', 'Hints Only', 'No Explanation'],
         'phase': 4,
       },
     ];
@@ -294,7 +281,8 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
 
     // Privacy Guard for "starred ⭐" features
     if (value.contains("⭐")) {
-      final bool hasPrivacyAccepted = global.currentUserProfile?['optInAiAnalysis'] == true;
+      final bool hasPrivacyAccepted =
+          global.currentUserProfile?['optInAiAnalysis'] == true;
       if (!hasPrivacyAccepted) {
         _showPrivacyRequirementDialog();
         return;
@@ -352,7 +340,9 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: global.primaryAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () {
               Navigator.pop(context);
@@ -360,7 +350,10 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
             },
             child: const Text(
               "GO TO PROFILE",
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -391,8 +384,8 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
 
       // Condition Check
       if (step.containsKey('condition')) {
-        final bool Function() condition = step['condition'] as bool Function();
-        if (!condition()) {
+        final dynamic condition = step['condition'];
+        if (condition is Function && condition() != true) {
           _currentStep++;
           continue;
         }
@@ -460,12 +453,10 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       );
 
       final String quizId = result['quizId'];
+      final String status = result['status'] ?? 'completed';
       final String explanation = result['explanation'] ?? '';
 
       setState(() => _generationStatus = "Saving");
-
-      // AI Generation Insight is handled by the backend server for security and consistency.
-      // The backend saves the explanation to explanation/{userId}/gen/{quizId} automatically.
 
       if (_updateProfileOnFirebase) {
         await global.db.updateProtectedDetails(
@@ -479,13 +470,28 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         );
       }
 
+      if (status == 'queued') {
+        setState(() => _generationStatus = "Queued");
+        if (mounted) {
+          Navigator.pushReplacementNamed(
+            context,
+            '/AI Generation Status',
+            arguments: quizId,
+          );
+        }
+        return;
+      }
+
       setState(() => _generationStatus = "Completed");
       _typingTimer?.cancel();
 
       if (mounted) {
         // If personalization is active, show the insight before navigating
-        if (explanation.isNotEmpty && global.currentUserProfile?['optInAiAnalysis'] == true) {
-          _addAiMessage("Generation complete! Here is why this quiz is a great fit for you:");
+        if (explanation.isNotEmpty &&
+            global.currentUserProfile?['optInAiAnalysis'] == true) {
+          _addAiMessage(
+            "Generation complete! Here is why this quiz is a great fit for you:",
+          );
           setState(() {
             _messages.add({
               'sender': 'ai',
@@ -494,7 +500,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
             });
           });
           _scrollToBottom();
-          
+
           // Give user a moment to read before navigating
           await Future.delayed(const Duration(seconds: 5));
         }
@@ -513,9 +519,9 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error generating quiz: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error generating quiz: $e")));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -806,7 +812,14 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
               ),
               Switch(
                 value: _updateProfileOnFirebase,
-                onChanged: (v) => setState(() => _updateProfileOnFirebase = v),
+                onChanged: (v) {
+                  if (v == true &&
+                      global.currentUserProfile?['optInAiAnalysis'] != true) {
+                    _showPrivacyRequirementDialog();
+                  } else {
+                    setState(() => _updateProfileOnFirebase = v);
+                  }
+                },
                 activeColor: global.primaryAccent,
               ),
             ],
@@ -853,7 +866,11 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_rounded, color: global.infoColor, size: 20),
+              const Icon(
+                Icons.lightbulb_rounded,
+                color: global.infoColor,
+                size: 20,
+              ),
               const SizedBox(width: 12),
               Text(
                 "Personalization Insight",

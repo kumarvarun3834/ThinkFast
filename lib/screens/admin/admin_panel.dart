@@ -594,7 +594,6 @@ class _AdminPanelState extends State<AdminPanel> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: canManage
@@ -603,7 +602,9 @@ class _AdminPanelState extends State<AdminPanel> {
         ),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
         child: SwitchListTile(
           title: Text(
             displayTitle,

@@ -61,10 +61,9 @@ class SettingsScreen extends StatelessWidget {
               onTap: () async {
                 await FirebaseAuth.instance.signOut();
                 if (context.mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil(
-                    '/login',
-                    (route) => false,
-                  );
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/login', (route) => false);
                 }
               },
             ),
@@ -99,28 +98,32 @@ class SettingsScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: global.borderColor),
       ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Icon(icon, color: global.primaryAccent),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: textColor ?? global.valueColor,
-            fontWeight: FontWeight.bold,
+      child: Material(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: onTap,
+          leading: Icon(icon, color: global.primaryAccent),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: textColor ?? global.valueColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(color: global.labelColor, fontSize: 12),
-        ),
-        trailing: const Icon(
-          Icons.arrow_forward_ios,
-          size: 14,
-          color: global.labelColor,
+          subtitle: Text(
+            subtitle,
+            style: const TextStyle(color: global.labelColor, fontSize: 12),
+          ),
+          trailing: const Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: global.labelColor,
+          ),
         ),
       ),
     );

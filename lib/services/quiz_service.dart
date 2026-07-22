@@ -3,7 +3,8 @@ import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:thinkfast/services/api_client.dart';
 import '../utils/global.dart' as global;
 
 import 'admin_service.dart';
@@ -239,33 +240,21 @@ class QuizService {
     // 2. Conditional Logic: Secure API for AI Generated quizzes (Non-Admins only)
     if (isAiGenerated && !isAdmin) {
       try {
-        final user = FirebaseAuth.instance.currentUser;
-        final token = await user?.getIdToken();
         final url = "${global.aiBackendUrl}/api/quizzes/$quizId";
 
         debugPrint("Secure AI Quiz Update: Calling backend -> $url");
 
-        final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
+        final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(updates!);
 
-        final Map<String, dynamic> payload = {
-          'uuid': effectiveUuid,
-          'email': global.currentUserProfile?['email'] ?? user?.email,
-          'name': global.currentUserProfile?['name'] ?? 'User',
-          ...updates,
-        };
-
-        final response = await http.put(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            if (token != null) 'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(payload),
+        final response = await ApiClient.instance.put(
+          url,
+          data: hardenedPayload,
+          options: Options(headers: {'Content-Type': 'application/json'}),
         );
 
         if (response.statusCode == 200) {
           debugPrint("AI Quiz updated successfully via secure API.");
-          developer.log(response.body, name: 'AI Update Response');
+          developer.log(jsonEncode(response.data), name: 'AI Update Response');
           await AdminService().logAction(
             actorId: userId,
             action: 'update_quiz_secure',
@@ -275,7 +264,7 @@ class QuizService {
           );
           return; // Success, exit
         } else {
-          final errorBody = jsonDecode(response.body);
+          final errorBody = response.data;
           throw Exception(errorBody['error'] ?? "Failed to update AI quiz via API. Status: ${response.statusCode}");
         }
       } catch (e) {
@@ -648,33 +637,22 @@ class QuizService {
 
     if (isAiGenerated && !isAdmin) {
       try {
-        final user = FirebaseAuth.instance.currentUser;
-        final token = await user?.getIdToken();
         final url = "${global.aiBackendUrl}/api/quizzes/$quizId";
 
         debugPrint("Secure AI Answer Key Update: Calling backend -> $url");
 
-        final String effectiveUuid = userId.isNotEmpty ? userId : (user?.uid ?? '');
+        final Map<String, dynamic> requestBody = {'answerKeys': answerKeys};
+        final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
 
-        final Map<String, dynamic> payload = {
-          'uuid': effectiveUuid,
-          'email': global.currentUserProfile?['email'] ?? user?.email,
-          'name': global.currentUserProfile?['name'] ?? 'User',
-          'answerKeys': answerKeys,
-        };
-
-        final response = await http.put(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            if (token != null) 'Authorization': 'Bearer $token',
-          },
-          body: jsonEncode(payload),
+        final response = await ApiClient.instance.put(
+          url,
+          data: hardenedPayload,
+          options: Options(headers: {'Content-Type': 'application/json'}),
         );
 
         if (response.statusCode == 200) {
           debugPrint("AI Answer keys updated successfully via secure API.");
-          developer.log(response.body, name: 'AI Answer Key Update Response');
+          developer.log(jsonEncode(response.data), name: 'AI Answer Key Update Response');
           await AdminService().logAction(
             actorId: userId,
             action: 'update_answer_keys_secure',
@@ -684,7 +662,7 @@ class QuizService {
           );
           return;
         } else {
-          final errorBody = jsonDecode(response.body);
+          final errorBody = response.data;
           throw Exception(errorBody['error'] ?? "Failed to update AI answer keys via API. Status: ${response.statusCode}");
         }
       } catch (e) {

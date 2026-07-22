@@ -14,6 +14,7 @@ Admin permissions are stored as a Map of booleans in the `admins` collection:
 | `manage_app_settings`  | Manage App Settings       | Editing `feature_flags/public` and `settings/app`       |
 | `bypass_ai_quotas`     | Bypass AI Quotas          | Bypassing platform-wide AI generation limits            |
 | `manage_collaborators` | Manage Quiz Collaborators | Managing quiz-level access (`quiz_access`)              |
+| `access_dashboard`     | Access Admin Dashboard    | View Super Admin Metrics and Manual Queue controls      |
 
 ### ⚙️ Settings & Feature Flags (Granular Isolation)
 

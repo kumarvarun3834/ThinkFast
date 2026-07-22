@@ -52,7 +52,10 @@ to instruct an AI to generate specific quiz types.
 
 ---
 
-## ⏱️ 4. Advanced Timing Options (`timingScheme`)
+## ⏱️ 4. Advanced Timing & Explanations
+
+> [!NOTE]
+> AI-generated explanations and deep analysis are performed **automatically after submission**.
 
 | Type                       | JSON Structure                                                                                                                                                                                                     |
 |:---------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

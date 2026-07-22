@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/services/device_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -15,9 +16,9 @@ class AuthService {
   /// ---------------- GET PUBLIC IP ----------------
   Future<String> _getPublicIP() async {
     try {
-      final response = await http.get(Uri.parse('https://api64.ipify.org'));
+      final response = await ApiClient.instance.get('https://api64.ipify.org');
       if (response.statusCode == 200) {
-        return response.body.trim();
+        return response.data.toString().trim();
       }
     } catch (_) {}
     return "unknown_ip";
@@ -275,6 +276,10 @@ class AuthService {
   /// ---------------- LOGOUT ----------------
   Future<void> logout() async {
     try {
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) {
+        await _deviceService.clearActiveDevice(uid);
+      }
       await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {

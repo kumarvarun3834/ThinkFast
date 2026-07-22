@@ -327,7 +327,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 24),
                         Container(
                           decoration: BoxDecoration(
-                            color: global.bgColor.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: _privacyPolicyAccepted
@@ -335,7 +334,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : global.errorColor.withValues(alpha: 0.5),
                             ),
                           ),
-                          child: CheckboxListTile(
+                          child: Material(
+                            color: global.bgColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            clipBehavior: Clip.antiAlias,
+                            child: CheckboxListTile(
                             title: GestureDetector(
                               onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
                               child: Text(
@@ -353,6 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             controlAffinity: ListTileControlAffinity.leading,
                           ),
                         ),
+                      ),
                         if (!_privacyPolicyAccepted)
                           Padding(
                             padding: const EdgeInsets.only(left: 12, top: 4),
@@ -394,11 +398,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 12),
                         Container(
                           decoration: BoxDecoration(
-                            color: global.bgColor.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: global.borderColor),
                           ),
-                          child: SwitchListTile(
+                          child: Material(
+                            color: global.bgColor.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                            clipBehavior: Clip.antiAlias,
+                            child: SwitchListTile(
                             title: Text(
                               "Opt-in for AI Analysis",
                               style: GoogleFonts.poppins(
@@ -421,12 +428,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                             value: _optInAiAnalysis,
-                            activeColor: global.primaryAccent,
+                            activeThumbColor: global.primaryAccent,
                             onChanged: (int.tryParse(_ageController.text) ?? 13) < 13
                                 ? null
                                 : (v) => setState(() => _optInAiAnalysis = v),
                           ),
                         ),
+                      ),
 
                         if (_optInAiAnalysis) ...[
                           const SizedBox(height: 24),

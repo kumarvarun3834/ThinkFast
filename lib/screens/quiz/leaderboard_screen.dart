@@ -7,14 +7,17 @@ class LeaderboardScreen extends StatefulWidget {
   final String quizId;
   final String quizTitle;
 
-  const LeaderboardScreen({super.key, required this.quizId, required this.quizTitle});
+  const LeaderboardScreen({
+    super.key,
+    required this.quizId,
+    required this.quizTitle,
+  });
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
 class _LeaderboardScreenState extends State<LeaderboardScreen> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,18 +32,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         centerTitle: true,
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('leaderboards').doc(widget.quizId).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('leaderboards')
+            .doc(widget.quizId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (!snapshot.hasData || !snapshot.data!.exists) {
             return _buildEmptyState("No rankings generated yet.");
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          final entries = List<Map<String, dynamic>>.from(data['entries'] ?? []);
+          final entries = List<Map<String, dynamic>>.from(
+            data['entries'] ?? [],
+          );
           final isPublic = data['isPublic'] ?? true;
 
           if (!isPublic && !global.isAdmin) {
@@ -74,13 +82,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (data['description'] != null && data['description'].toString().isNotEmpty)
+                if (data['description'] != null &&
+                    data['description'].toString().isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       data['description'],
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: global.labelColor, fontSize: 13),
+                      style: const TextStyle(
+                        color: global.labelColor,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 32),
@@ -89,7 +101,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Center(
                   child: Text(
                     "Last Updated: ${_formatTimestamp(data['updatedAt'])}",
-                    style: const TextStyle(color: global.hintColor, fontSize: 11),
+                    style: const TextStyle(
+                      color: global.hintColor,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               ],
@@ -109,60 +124,75 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _buildLeaderboardList(List<Map<String, dynamic>> entries) {
     return Container(
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: global.borderColor),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: entries.length,
-        separatorBuilder: (context, index) => const Divider(color: global.borderColor, height: 1),
-        itemBuilder: (context, index) {
-          final entry = entries[index];
-          final rank = entry['rank'] ?? (index + 1);
-          final isTop3 = rank <= 3;
+      child: Material(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
+        child: ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: entries.length,
+          separatorBuilder: (context, index) =>
+              const Divider(color: global.borderColor, height: 1),
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            final rank = entry['rank'] ?? (index + 1);
+            final isTop3 = rank <= 3;
 
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isTop3 
-                  ? (rank == 1 ? Colors.amber : (rank == 2 ? Colors.grey : Colors.brown)).withValues(alpha: 0.2)
-                  : global.bgColor,
-                shape: BoxShape.circle,
+            return ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 4,
               ),
-              child: Center(
-                child: Text(
-                  "#$rank",
-                  style: TextStyle(
-                    color: isTop3 
-                      ? (rank == 1 ? Colors.amber : (rank == 2 ? Colors.white70 : Colors.brown[300]))
-                      : global.labelColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isTop3
+                      ? (rank == 1
+                                ? Colors.amber
+                                : (rank == 2 ? Colors.grey : Colors.brown))
+                            .withValues(alpha: 0.2)
+                      : global.bgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    "#$rank",
+                    style: TextStyle(
+                      color: isTop3
+                          ? (rank == 1
+                                ? Colors.amber
+                                : (rank == 2
+                                      ? Colors.white70
+                                      : Colors.brown[300]))
+                          : global.labelColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
-            ),
-            title: Text(
-              entry['name'] ?? 'Anonymous',
-              style: GoogleFonts.poppins(
-                color: global.valueColor,
-                fontWeight: isTop3 ? FontWeight.bold : FontWeight.normal,
+              title: Text(
+                entry['name'] ?? 'Anonymous',
+                style: GoogleFonts.poppins(
+                  color: global.valueColor,
+                  fontWeight: isTop3 ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
-            ),
-            trailing: Text(
-              "${entry['score']} pts",
-              style: GoogleFonts.poppins(
-                color: global.successColor,
-                fontWeight: FontWeight.bold,
+              trailing: Text(
+                "${entry['score']} pts",
+                style: GoogleFonts.poppins(
+                  color: global.successColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -173,7 +203,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            const Icon(Icons.leaderboard_outlined, size: 48, color: global.borderColor),
+            const Icon(
+              Icons.leaderboard_outlined,
+              size: 48,
+              color: global.borderColor,
+            ),
             const SizedBox(height: 16),
             Text(
               msg,

@@ -63,8 +63,10 @@ In `main.dart`, the `AppLinks` stream handles incoming URIs, extracting the quiz
 - **Streams:** `StreamBuilder` provides real-time updates for quiz feeds and attempt history.
 
 ## 6. Security & Privacy Implementation
-- **AI Backend Orchestration**: All AI-related writes (Generation, Analysis) are offloaded to a secure server.
+- **AI Backend Orchestration**: All AI-related writes (Generation, Analysis) are offloaded to a secure server using an asynchronous worker pattern.
+- **Security Payload Hardening**: Every AI request is bundled with a forced-refresh Firebase ID Token and an App Check attestation for origin verification.
 - **Firestore Lockdown**: AI-generated quizzes and the `/explanation` hierarchy are write-locked for regular users.
+- **Performance Optimization**: Uses `MemoizedFirestoreReader` for batched reads in `initAppData` and `fetchAggregatedQuizDetails` to reduce sequential Firestore calls.
 - **Privacy Gating**: Advanced features and PII-heavy payloads are restricted based on the `optInAiAnalysis` (2nd Privacy Policy) status.
 - **Safe Timestamping**: UI components parse timestamps using `DateTime.tryParse` to handle `Timestamp`, `DateTime`, or `String` variants safely.
 - **Data Traces**: Large payloads are logged via `developer.log()` to bypass console truncation.

@@ -87,7 +87,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
             ],
             _buildSectionHeader("Permissions"),
             const SizedBox(height: 12),
-            ..._availablePermissions.entries.map((entry) => _buildPermissionTile(entry)),
+            ..._availablePermissions.entries.map(
+              (entry) => _buildPermissionTile(entry),
+            ),
             const SizedBox(height: 40),
             _buildApplyButton(),
             SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
@@ -109,13 +111,23 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.targetUids.length == 1 ? "Target User" : "Target Users (${widget.targetUids.length})",
-            style: const TextStyle(color: global.labelColor, fontSize: 12, fontWeight: FontWeight.bold),
+            widget.targetUids.length == 1
+                ? "Target User"
+                : "Target Users (${widget.targetUids.length})",
+            style: const TextStyle(
+              color: global.labelColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             widget.targetUids.join(", "),
-            style: const TextStyle(color: global.valueColor, fontSize: 13, fontFamily: 'monospace'),
+            style: const TextStyle(
+              color: global.valueColor,
+              fontSize: 13,
+              fontFamily: 'monospace',
+            ),
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
@@ -185,18 +197,28 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: global.borderColor),
       ),
-      child: SwitchListTile(
-        title: const Text("Super Admin", style: TextStyle(color: global.valueColor)),
-        subtitle: const Text("Grant full system-wide access", style: TextStyle(color: global.labelColor, fontSize: 12)),
-        value: _isSuper,
-        activeColor: global.primaryAccent,
-        onChanged: (val) => setState(() => _isSuper = val),
+      child: Material(
+        color: Colors.transparent,
+        child: SwitchListTile(
+          title: const Text(
+            "Super Admin",
+            style: TextStyle(color: global.valueColor),
+          ),
+          subtitle: const Text(
+            "Grant full system-wide access",
+            style: TextStyle(color: global.labelColor, fontSize: 12),
+          ),
+          value: _isSuper,
+          activeColor: global.primaryAccent,
+          onChanged: (val) => setState(() => _isSuper = val),
+        ),
       ),
     );
   }
 
   Widget _buildPermissionTile(MapEntry<String, String> entry) {
-    final bool hasPermissionToGrant = global.adminLevel == 0 || _myPermissions.contains(entry.key);
+    final bool hasPermissionToGrant =
+        global.adminLevel == 0 || _myPermissions.contains(entry.key);
     final isSelected = _isSuper || _selectedPermissions.contains(entry.key);
 
     return Opacity(
@@ -207,24 +229,32 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           color: global.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? global.primaryAccent.withOpacity(0.5) : global.borderColor,
+            color: isSelected
+                ? global.primaryAccent.withOpacity(0.5)
+                : global.borderColor,
           ),
         ),
-        child: CheckboxListTile(
-          title: Text(entry.value, style: const TextStyle(color: global.valueColor, fontSize: 14)),
-          value: isSelected,
-          activeColor: global.primaryAccent,
-          onChanged: (_isSuper || !hasPermissionToGrant)
-              ? null
-              : (bool? value) {
-                  setState(() {
-                    if (value == true) {
-                      _selectedPermissions.add(entry.key);
-                    } else {
-                      _selectedPermissions.remove(entry.key);
-                    }
-                  });
-                },
+        child: Material(
+          color: Colors.transparent,
+          child: CheckboxListTile(
+            title: Text(
+              entry.value,
+              style: const TextStyle(color: global.valueColor, fontSize: 14),
+            ),
+            value: isSelected,
+            activeColor: global.primaryAccent,
+            onChanged: (_isSuper || !hasPermissionToGrant)
+                ? null
+                : (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        _selectedPermissions.add(entry.key);
+                      } else {
+                        _selectedPermissions.remove(entry.key);
+                      }
+                    });
+                  },
+          ),
         ),
       ),
     );
@@ -237,12 +267,18 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: global.primaryAccent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         onPressed: _applyChanges,
         child: Text(
           "APPLY TO ${widget.targetUids.length} USERS",
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+          ),
         ),
       ),
     );
@@ -256,7 +292,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         // Use standard single update if only one user and in SET mode
         await _adminService.addOrUpdateAdmin(
           targetUid: widget.targetUids.first,
-          selectedPermissions: _isSuper ? AdminService.allPermissions : _selectedPermissions,
+          selectedPermissions: _isSuper
+              ? AdminService.allPermissions
+              : _selectedPermissions,
           actorUid: actorUid,
           makeSuper: _isSuper,
         );
@@ -265,7 +303,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
         await _adminService.bulkUpdateAdminPermissions(
           targetUids: widget.targetUids,
           actorUid: actorUid,
-          setPermissions: _mode == "SET" ? (_isSuper ? AdminService.allPermissions : _selectedPermissions) : null,
+          setPermissions: _mode == "SET"
+              ? (_isSuper ? AdminService.allPermissions : _selectedPermissions)
+              : null,
           grantPermissions: _mode == "GRANT" ? _selectedPermissions : null,
           revokePermissions: _mode == "REVOKE" ? _selectedPermissions : null,
           makeSuper: _isSuper,
@@ -281,7 +321,10 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e"), backgroundColor: global.errorColor),
+          SnackBar(
+            content: Text("Error: $e"),
+            backgroundColor: global.errorColor,
+          ),
         );
       }
     }

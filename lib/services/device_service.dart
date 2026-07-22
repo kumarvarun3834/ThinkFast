@@ -61,6 +61,25 @@ class DeviceService {
         }, SetOptions(merge: true));
   }
 
+  /// ✅ Clear the active device ID in Firestore (on Logout)
+  /// This method is called during the sign-out process.
+  Future<void> clearActiveDevice(String userId) async {
+    final deviceId = await getDeviceId();
+
+    // 1. Remove the master pointer
+    await _db.collection('devices').doc(userId).update({
+      'activeDeviceId': FieldValue.delete(),
+    });
+
+    // 2. Remove the specific device document
+    await _db
+        .collection('devices')
+        .doc(userId)
+        .collection('active_device')
+        .doc(deviceId)
+        .delete();
+  }
+
   /// Listen for changes in the active device ID
   Stream<String?> watchActiveDevice(String userId) {
     return _db.collection('devices').doc(userId).snapshots().map((snapshot) {
