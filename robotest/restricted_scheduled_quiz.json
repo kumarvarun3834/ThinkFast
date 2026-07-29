@@ -1,5 +1,6 @@
 {
   "title": "Restricted Access (20Q)",
+  "AI_description": "AI generated summary for Restricted Access (20Q)",
   "description": "Tests isRestricted and allowedParticipants with 20 questions.",
   "time": 20,
   "visibility": "scheduled",

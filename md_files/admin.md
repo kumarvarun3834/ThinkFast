@@ -8,26 +8,21 @@ the ThinkFast project.
 Feature flags are stored in the `feature_flags` collection and provide global control over
 application functionality.
 
-### Primary Document
+### Granular Document Structure
 
-- **Path**: `feature_flags/production`
-- **Purpose**: Centralized control for production features and rate limits.
+Feature flags are partitioned into specialized documents to allow for fine-grained security rules and administrative delegation.
 
-| Field Name                         | Type        | Default | Description                                    |
-|:-----------------------------------|:------------|:--------|:-----------------------------------------------|
-| `enable_create_quiz`               | `bool`      | `true`  | Allows regular users to create new quizzes.    |
-| `enable_ai`                        | `bool`      | `true`  | Enables AI-driven features (generation, etc.). |
-| `enable_import`                    | `bool`      | `false` | Enables JSON/URL import in the Quiz Editor.    |
-| `enable_login`                     | `bool`      | `true`  | Controls user sign-in availability.            |
-| `enable_register`                  | `bool`      | `true`  | Controls new user registration.                |
-| `maintenance_mode`                 | `bool`      | `false` | Blocks app access for maintenance.             |
-| `random_quiz_generator`            | `bool`      | `true`  | Enables random quiz selection features.        |
-| `user_action_logging`              | `bool`      | `true`  | Enables server-side audit logging of actions.  |
-| `management_features`              | `bool`      | `true`  | Enables admin management UI tools.             |
-| `enable_quiz_creation_rate_limit`  | `bool`      | `true`  | Toggles the creation cooldown for users.       |
-| `quiz_creation_rate_limit_minutes` | `number`    | `5`     | Minutes required between quiz creations.       |
-| `admin_refresh_rate_limit_seconds` | `number`    | `30`    | Cooldown between manual data refreshes in UI.  |
-| `updatedAt`                        | `timestamp` | -       | Last modification time.                        |
+- **Path**: `feature_flags/{category}`
+- **Categories**: `public`, `admin`, `moderation`, `ai`, `quizzes`, `logs`, `collaboration`, `leaderboards`.
+
+| Document       | Key Example                        | Manageable Features                                    |
+|:---------------|:-----------------------------------|:-------------------------------------------------------|
+| `public`       | `enable_ai`, `maintenance_mode`    | Core app toggles accessible to all users.              |
+| `ai`           | `ai_daily_generation_limit`        | Quotas and AI model configurations.                    |
+| `quizzes`      | `enable_quiz_creation_rate_limit`  | Throttling and management logic for quiz creation.     |
+| `admin`        | `admin_refresh_rate_limit_seconds` | Cooldowns for administrative data fetching.            |
+| `logs`         | `log`, `log_updates`               | Audit trail persistence toggles.                       |
+| `moderation`   | `enable_user_banning`              | Global user restriction controls.                      |
 
 ---
 
@@ -43,7 +38,7 @@ Administrators are stored in the `admins` collection, indexed by their Firebase 
 | Field Name           | Type            | Description                                                                         |
 |:---------------------|:----------------|:------------------------------------------------------------------------------------|
 | `permissions`        | `array<string>` | List of specific keys defining what the admin can do.                               |
-| `level`              | `number`        | Account hierarchy. `0` represents a **Super Admin** with full access.               |
+| `level`              | `number`        | Hierarchy flag. `0` represents a **Super Admin** with absolute full access.         |
 | `isAdminModeEnabled` | `bool`          | Toggle for "Admin Mode" UI experience. If `false`, the user acts as a regular user. |
 | `addedBy`            | `string`        | The UID of the admin who granted this user administrative rights.                   |
 | `updatedAt`          | `timestamp`     | Last update to the admin status or permissions.                                     |
@@ -66,8 +61,8 @@ toggled **ON** in the sidebar to activate these privileges.
 
 ### Authorization Logic
 
-- **Super Admin (`level: 0`)**: Automatically possesses all permissions and can manage other Super
-  Admins.
+- **Super Admin (`level: 0`)**: Automatically bypasses all permission checks and possesses all rights
+  on the platform.
 - **Admin Mode Requirement**: To perform any administrative action, the user must have the relevant
   document in the `admins` collection AND have `isAdminModeEnabled` set to `true`.
 - **Permission Check**: Features check for specific keys in the `permissions` array.

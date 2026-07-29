@@ -1,10 +1,16 @@
 {
   "title": "Minimalist Quiz",
+  "AI_description": "AI generated summary for Minimalist Quiz",
   "questions": [
     {
       "question": "Is this a simple test?",
-      "choices": ["Yes", "No"],
-      "answers": ["Yes"]
+      "choices": [
+        "Yes",
+        "No"
+      ],
+      "answers": [
+        "Yes"
+      ]
     }
   ]
 }

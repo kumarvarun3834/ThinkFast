@@ -1,5 +1,6 @@
 {
   "title": "Pro Exam Simulation v2",
+  "AI_description": "AI generated summary for Pro Exam Simulation v2",
   "description": "Exercises Scheduled visibility, email-based restrictions, and granular timing.",
   "visibility": "scheduled",
   "activeAt": "2024-12-31T09:00:00Z",

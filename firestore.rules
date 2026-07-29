@@ -296,9 +296,12 @@ service cloud.firestore {
       allow write: if isGlobalAdmin();
     }
 
-    match /notifications/{notifId} {
-      allow read, update: if isAuthenticated() && resource.data.get('userId', '') == request.auth.uid;
-      allow create, delete: if isGlobalAdmin();
+    match /notifications/{userId} {
+      allow read: if isOwner(userId) || isGlobalAdmin();
+      match /user_notifications/{notifId} {
+        allow read, update, delete: if isOwner(userId) || isGlobalAdmin();
+        allow create: if isOwner(userId) || isGlobalAdmin();
+      }
     }
 
     match /global_notifications/{notifId} {

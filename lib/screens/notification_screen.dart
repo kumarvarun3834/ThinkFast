@@ -113,7 +113,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 onDismissed: isGlobal
                     ? null
                     : (direction) {
-                        _notificationService.deleteNotification(n['id']);
+                        _notificationService.deleteNotification(_uid!, n['id']);
                       },
                 background: Container(
                   alignment: Alignment.centerRight,
@@ -141,7 +141,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     child: ListTile(
                       onTap: () {
                         if (!isRead && !isGlobal) {
-                          _notificationService.markAsRead(n['id']);
+                          _notificationService.markAsRead(_uid!, n['id']);
                         }
                         if (n['type'] == 'new_quiz' && n['targetId'] != null) {
                           Navigator.pushNamed(

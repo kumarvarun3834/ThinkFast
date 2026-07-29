@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 The ThinkFast notification system handles two types of alerts:
-1.  **Personal Notifications**: Score results, personal feedback, and account updates. Stored in the `notifications` collection keyed by `userId`.
+1.  **Personal Notifications**: Score results, personal feedback, and account updates. Stored in nested user sub-collections: `/notifications/{userId}/user_notifications/{id}`.
 2.  **Global Notifications**: System-wide broadcasts like new public quizzes or maintenance alerts. Stored in the `global_notifications` collection.
 
 ---
@@ -58,8 +58,8 @@ The ThinkFast notification system handles two types of alerts:
 ## 🔒 Firestore Rules Verification
 Ensure your `firestore.rules` includes:
 ```javascript
-match /notifications/{notifId} {
-  allow read, update: if isAuthenticated() && resource.data.get('userId', '') == request.auth.uid;
+match /notifications/{userId}/user_notifications/{notifId} {
+  allow read, update: if isAuthenticated() && userId == request.auth.uid;
   allow create, delete: if isGlobalAdmin();
 }
 match /global_notifications/{notifId} {

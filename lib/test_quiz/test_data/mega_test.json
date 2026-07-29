@@ -1,5 +1,6 @@
 {
   "title": "ThinkFast Mega Configuration Test",
+  "AI_description": "AI generated summary for ThinkFast Mega Configuration Test",
   "description": "The ultimate test case: Multiple modules, every question type, mixed marking schemes, and strict attempt limits.",
   "visibility": "public",
   "maxAttempts": 3,

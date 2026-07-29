@@ -1,5 +1,6 @@
 {
   "title": "Strict Limits 20Q Test",
+  "AI_description": "AI generated summary for Strict Limits 20Q Test",
   "description": "Tests attempt limits and navigation constraints with 20 questions.",
   "time": 20,
   "disableModuleSwitchingUntilTimeout": true,

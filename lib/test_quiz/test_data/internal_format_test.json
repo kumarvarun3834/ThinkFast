@@ -1,5 +1,6 @@
 {
   "title": "Legacy Schema Compatibility",
+  "AI_description": "AI generated summary for Legacy Schema Compatibility",
   "description": "Tests the importer's ability to handle the internal Q and As structure.",
   "questions": [
     {

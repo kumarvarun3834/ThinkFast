@@ -21,22 +21,28 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
   String? _trackingId;
   bool _isNavigating = false;
   Timer? _pollingTimer;
+  StreamSubscription? _statusSubscription;
   Map<String, dynamic>? _apiStatus;
   bool _isPolling = false;
+
+  // Premium Shell State
+  final List<Map<String, dynamic>> _shellLogs = [];
+  String? _lastStatus;
+  final Set<String> _recordedTraceIds = {};
 
   @override
   void initState() {
     super.initState();
     if (widget.initialQuizId != null) {
-      _trackingId = widget.initialQuizId;
-      _idController.text = _trackingId!;
-      _startPolling();
+      _idController.text = widget.initialQuizId!;
+      _startTracking();
     }
   }
 
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _statusSubscription?.cancel();
     _idController.dispose();
     super.dispose();
   }
@@ -44,10 +50,32 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
   void _startTracking() {
     final id = _idController.text.trim();
     if (id.isEmpty) return;
+
+    _pollingTimer?.cancel();
+    _statusSubscription?.cancel();
+
     setState(() {
       _trackingId = id;
+      _shellLogs.clear();
+      _recordedTraceIds.clear();
+      _lastStatus = null;
+      _apiStatus = null;
+      _isNavigating = false;
     });
+
+    _logToShell("Watcher initialized for session ID: $id", type: 'info', module: 'SYS');
     _startPolling();
+    _startStream(id);
+  }
+
+  void _startStream(String id) {
+    _statusSubscription = global.aiConnect.listenToGenerationStatus(id).listen((data) {
+      if (mounted) {
+        setState(() {
+          _processIncomingData(data);
+        });
+      }
+    });
   }
 
   void _startPolling() {
@@ -55,9 +83,50 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
     if (_trackingId == null) return;
 
     _fetchStatus();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    // Optimized Polling: 30 seconds for premium slow-track feel and reliability
+    _pollingTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _fetchStatus();
     });
+  }
+
+  void _logToShell(String message, {String type = 'info', String module = 'SYS'}) {
+    _shellLogs.add({
+      'type': type,
+      'module': module,
+      'message': message,
+      'timestamp': DateTime.now(),
+    });
+  }
+
+  void _processIncomingData(Map<String, dynamic>? data) {
+    if (data == null) return;
+
+    final String status = data['status'] ?? 'Queued';
+    if (status != _lastStatus) {
+      _logToShell("Transitioning state to ${status.toUpperCase()}...", type: 'success', module: 'CORE');
+      _lastStatus = status;
+    }
+
+    final List<dynamic> traces = data['traces'] ?? [];
+    for (var trace in traces) {
+      final String? tid = trace['id'];
+      // Use Trace ID if available, otherwise fallback to message content hash
+      final String uniqueKey = tid ?? trace['message']?.hashCode.toString() ?? '';
+      
+      if (uniqueKey.isNotEmpty && !_recordedTraceIds.contains(uniqueKey)) {
+        _recordedTraceIds.add(uniqueKey);
+        _shellLogs.add({
+          'type': trace['type'] ?? 'info',
+          'module': trace['module'] ?? 'SYSTEM',
+          'message': trace['message'] ?? '',
+          'timestamp': DateTime.now(),
+        });
+      }
+    }
+
+    if (status == 'completed' && !_isNavigating) {
+      _navigateToQuiz();
+    }
   }
 
   Future<void> _fetchStatus() async {
@@ -69,15 +138,15 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
       if (mounted) {
         setState(() {
           _apiStatus = statusData;
+          _processIncomingData(statusData);
           _isPolling = false;
         });
-
-        if (statusData['status'] == 'completed') {
-          _navigateToQuiz();
-        }
       }
     } catch (e) {
-      if (mounted) setState(() => _isPolling = false);
+      if (mounted) {
+        setState(() => _isPolling = false);
+        _logToShell("Network error during polling: $e", type: 'error', module: 'WATCHER');
+      }
     }
   }
 
@@ -114,9 +183,11 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
               icon: const Icon(Icons.search_rounded),
               onPressed: () {
                 _pollingTimer?.cancel();
+                _statusSubscription?.cancel();
                 setState(() {
                   _trackingId = null;
                   _apiStatus = null;
+                  _shellLogs.clear();
                 });
               },
               tooltip: "Track another ID",
@@ -135,13 +206,17 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
               _buildJoinExistingQuizPrompt(),
             ] else ...[
               _buildStatusTracker(_trackingId!),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              _buildExecutionShell(),
+              const SizedBox(height: 40),
               TextButton.icon(
                 onPressed: () {
                   _pollingTimer?.cancel();
+                  _statusSubscription?.cancel();
                   setState(() {
                     _trackingId = null;
                     _apiStatus = null;
+                    _shellLogs.clear();
                   });
                 },
                 icon: const Icon(Icons.search_rounded),
@@ -379,18 +454,25 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
           if (snapshot.connectionState == ConnectionState.waiting && !_isPolling) {
             return const Center(child: CircularProgressIndicator());
           }
-          return _buildErrorState("No active generation found for this ID. It might have expired or doesn't exist.");
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: global.cardColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: global.borderColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              "No active generation found for this ID. It might have expired or doesn't exist.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(color: global.labelColor, fontSize: 13),
+            ),
+          );
         }
 
         final String status = data['status'] ?? 'Queued';
         final String? error = data['error'];
         final int progress = (data['progress'] ?? 0).toInt();
-        final List<dynamic> traces = data['traces'] ?? [];
         final String? prompt = data['prompt'];
-
-        if (status == 'completed' && !_isNavigating) {
-          _navigateToQuiz();
-        }
 
         return Container(
           padding: const EdgeInsets.all(24),
@@ -471,18 +553,16 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
                     ),
                   ),
               ],
-              if (traces.isNotEmpty) ...[
-                const SizedBox(height: 32),
-                _buildTraceSection(traces),
-              ],
               if (status == 'failed') ...[
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
                     _pollingTimer?.cancel();
+                    _statusSubscription?.cancel();
                     setState(() {
                       _trackingId = null;
                       _apiStatus = null;
+                      _shellLogs.clear();
                     });
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: global.borderColor),
@@ -496,16 +576,16 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
     );
   }
 
-  Widget _buildTraceSection(List<dynamic> traces) {
+  Widget _buildExecutionShell() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(Icons.analytics_outlined, size: 14, color: global.primaryAccent),
+            const Icon(Icons.terminal_rounded, size: 14, color: global.primaryAccent),
             const SizedBox(width: 8),
             Text(
-              "EXECUTION TRACES",
+              "EXECUTION SHELL",
               style: GoogleFonts.poppins(
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
@@ -513,81 +593,61 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
                 letterSpacing: 1.1,
               ),
             ),
+            const Spacer(),
+            if (_isPolling)
+              const SizedBox(
+                width: 10,
+                height: 10,
+                child: CircularProgressIndicator(strokeWidth: 1, color: global.primaryAccent),
+              ),
           ],
         ),
         const SizedBox(height: 12),
         Container(
-          constraints: const BoxConstraints(maxHeight: 250),
+          width: double.infinity,
+          height: 220,
           decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: global.borderColor.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: const EdgeInsets.all(12),
-            itemCount: traces.length,
-            separatorBuilder: (context, index) => const Divider(color: global.borderColor, height: 16),
-            itemBuilder: (context, index) {
-              final trace = traces[index];
-              final type = trace['type'] ?? 'info';
-              final module = trace['module'] ?? 'SYSTEM';
-              final message = trace['message'] ?? '';
-
-              Color typeColor;
-              IconData typeIcon;
-
-              switch (type) {
-                case 'success':
-                  typeColor = global.successColor;
-                  typeIcon = Icons.check_circle_rounded;
-                  break;
-                case 'warning':
-                  typeColor = global.warningColor;
-                  typeIcon = Icons.warning_rounded;
-                  break;
-                case 'error':
-                  typeColor = global.errorColor;
-                  typeIcon = Icons.error_rounded;
-                  break;
-                default:
-                  typeColor = global.infoColor;
-                  typeIcon = Icons.info_rounded;
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(typeIcon, size: 14, color: typeColor),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          module,
-                          style: GoogleFonts.poppins(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: typeColor.withValues(alpha: 0.8),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          message,
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: global.valueColor.withValues(alpha: 0.9),
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
+          child: _shellLogs.isEmpty
+              ? Center(
+                  child: Text(
+                    "Waiting for system output...",
+                    style: GoogleFonts.firaCode(color: global.hintColor, fontSize: 11),
                   ),
-                ],
-              );
-            },
-          ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _shellLogs.length,
+                  itemBuilder: (context, index) {
+                    final log = _shellLogs[index];
+                    final Color color = _getStatusColor(log['type']);
+                    
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.firaCode(fontSize: 11, height: 1.4),
+                          children: [
+                            TextSpan(
+                              text: "[${log['module']}] ",
+                              style: TextStyle(color: color.withValues(alpha: 0.8), fontWeight: FontWeight.bold),
+                            ),
+                            TextSpan(
+                              text: log['message'],
+                              style: TextStyle(color: global.valueColor.withValues(alpha: 0.9)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 {
   "title": "Timing & Discovery Stress (20Q)",
+  "AI_description": "AI generated summary for Timing & Discovery Stress (20Q)",
   "description": "Tests Module-specific timing and explicit module ordering with heavy tagging.",
   "time": 60,
   "examTag": "DISCOVERY-PRO",

@@ -7,7 +7,7 @@ Admin permissions are stored as a Map of booleans in the `admins` collection:
 
 | Key                    | UI Label                  | Required For                                            |
 |:-----------------------|:--------------------------|:--------------------------------------------------------|
-| `manage_admins`        | Manage App Admins         | Managing admins, levels, and `settings/admin`           |
+| `manage_admins`        | Manage App Admins         | Managing admin privileges and `feature_flags/admin`     |
 | `moderate_users`       | Global User Moderation    | Banning users, editing user docs, deleting any response |
 | `manage_all_quizzes`   | Master Quiz Control       | Global CRUD for all quizzes, questions, and keys        |
 | `view_audit_logs`      | View Audit Logs           | Reading the `audit_logs` collection                     |
@@ -54,11 +54,7 @@ Admin permissions are stored as a Map of booleans in the `admins` collection:
 /settings/
 ├── app (Doc) - [Read: All, Write: `manage_app_settings`]
 ├── exam_configs (Doc) - [Read: All, Write: `manage_app_settings`]
-├── admin (Doc) - [Read: Admin, Write: `manage_admins`]
-│ ├── super_admin_level: 10
-│ └── min_level_to_manage_admins: 5
-└── ai (Doc) - [Read: Admin, Write: `bypass_ai_quotas`]
-└── ai_daily_generation_limit: 10
+└── admin (Doc) - [Read: Admin, Write: `manage_admins`]
 
 ### 📝 Quizzes & Content
 
@@ -152,6 +148,24 @@ wrong": -1 } } }
 ├── permissions: { "can_update": true, "can_moderate": true, ... }
 └── updatedAt: ServerTimestamp
 
+/quiz_access/
+└── {quizId}_{userId} (Document)
+├── quizId: "{quizId}"
+├── userId: "{userId}"
+├── addedBy: "{adminId}"
+├── role: "manager" | "participant"
+├── permissions: { "can_update": true, "can_moderate": true, ... }
+└── updatedAt: ServerTimestamp
+
+### 🛡️ Administrative & Team Access
+
+/admins/
+└── {userId} (Document)
+├── permissions: Map<String, Boolean>
+├── level: 0 (Super User flag) | Field Omitted (Standard Admin)
+├── isAdminModeEnabled: Boolean
+└── addedBy: "{adminId}"
+
 /banned_users/
 └── {banId} (global_{userId} or {quizId}_{userId})
 ├── userId: "{userId}"
@@ -199,3 +213,22 @@ wrong": -1 } } }
 ├── details: "Updated title and tags"
 ├── category: "quiz" | "admin" | "moderation"
 └── timestamp: ServerTimestamp
+
+### 🔔 Notifications
+
+/notifications/
+└── {userId} (Document)
+└── user_notifications (Collection)
+└── {notificationId} (Document)
+├── title: "Quiz Result"
+├── body: "You scored 90% in..."
+├── read: false
+└── createdAt: ServerTimestamp
+
+/global_notifications/
+└── {id} (Document)
+├── title: "New Quiz Alert"
+├── body: "A new public quiz on Flutter is out!"
+├── type: "new_quiz"
+├── targetId: "quiz_123"
+└── createdAt: ServerTimestamp

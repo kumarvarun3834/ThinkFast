@@ -1,7 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationService {
-  final CollectionReference _notifications = FirebaseFirestore.instance.collection('notifications');
+  /// 🛠️ Internal helper for nested path: /notifications/{userId}/user_notifications
+  CollectionReference _userNotifs(String userId) => FirebaseFirestore.instance
+      .collection('notifications')
+      .doc(userId)
+      .collection('user_notifications');
 
   /// ✅ Send a notification to a user
   Future<void> sendNotification({
@@ -9,8 +13,7 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    await _notifications.add({
-      'userId': userId,
+    await _userNotifs(userId).add({
       'title': title,
       'body': body,
       'read': false,
@@ -21,8 +24,7 @@ class NotificationService {
   /// ✅ Stream notifications for a user
   Stream<List<Map<String, dynamic>>> getUserNotifications(String userId) {
     if (userId.isEmpty) return Stream.value([]);
-    return _notifications
-        .where('userId', isEqualTo: userId)
+    return _userNotifs(userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) {
@@ -33,17 +35,15 @@ class NotificationService {
   }
 
   /// ✅ Mark notification as read
-  Future<void> markAsRead(String notificationId) async {
-    await _notifications.doc(notificationId).update({'read': true});
+  Future<void> markAsRead(String userId, String notificationId) async {
+    await _userNotifs(userId).doc(notificationId).update({'read': true});
   }
 
   /// ✅ Mark all as read
   Future<void> markAllAsRead(String userId) async {
     final batch = FirebaseFirestore.instance.batch();
-    final unread = await _notifications
-        .where('userId', isEqualTo: userId)
-        .where('read', isEqualTo: false)
-        .get();
+    final unread = await _userNotifs(userId).where('read', isEqualTo: false).get();
+    
     for (var doc in unread.docs) {
       batch.update(doc.reference, {'read': true});
     }
@@ -51,21 +51,20 @@ class NotificationService {
   }
 
   /// ✅ Delete notification
-  Future<void> deleteNotification(String notificationId) async {
-    await _notifications.doc(notificationId).delete();
+  Future<void> deleteNotification(String userId, String notificationId) async {
+    await _userNotifs(userId).doc(notificationId).delete();
   }
 
   /// ✅ Stream unread count
   Stream<int> getUnreadCount(String userId) {
     if (userId.isEmpty) return Stream.value(0);
-    return _notifications
-        .where('userId', isEqualTo: userId)
+    return _userNotifs(userId)
         .where('read', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }
 
-  /// ✅ Broadcast a notification to all users (Simulated via global collection)
+  /// ✅ Broadcast a notification to all users (System-wide broadcasts)
   Future<void> broadcastNotification({
     required String title,
     required String body,

@@ -1,5 +1,6 @@
 {
   "title": "Strict Navigation (20Q)",
+  "AI_description": "AI generated summary for Strict Navigation (20Q)",
   "description": "Tests disableModuleSwitchingUntilTimeout with 20 questions.",
   "time": 5,
   "disableModuleSwitchingUntilTimeout": true,

@@ -1,6 +1,7 @@
 {
   "title": "Interactive Demo Quiz",
   "description": "A sample quiz to demonstrate ThinkFast features.",
+  "AI_description": "AI generated summary for Interactive Demo Quiz",
   "time": 5,
   "examTag": "Demo-2024",
   "completeRandomShuffle": true,

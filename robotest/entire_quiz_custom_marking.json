@@ -1,5 +1,6 @@
 {
   "title": "Custom Global Marking (20Q)",
+  "AI_description": "AI generated summary for Custom Global Marking (20Q)",
   "description": "Tests 'entire_quiz' marking scheme (+5, -2) with 20 questions.",
   "time": 25,
   "markingScheme": {

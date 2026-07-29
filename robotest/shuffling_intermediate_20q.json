@@ -1,5 +1,6 @@
 {
   "title": "Intermediate Shuffling (20Q)",
+  "AI_description": "AI generated summary for Intermediate Shuffling (20Q)",
   "description": "Tests module-level and question-level shuffling without mixing subjects entirely.",
   "time": 20,
   "completeRandomShuffle": false,

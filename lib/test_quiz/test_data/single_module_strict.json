@@ -1,5 +1,6 @@
 {
   "title": "Solo Module Challenge",
+  "AI_description": "AI generated summary for Solo Module Challenge",
   "description": "High-stakes single module test with varying scores per question and no timer.",
   "time": 0,
   "markingScheme": { "type": "per_question" },

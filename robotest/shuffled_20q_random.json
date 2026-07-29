@@ -1,5 +1,6 @@
 {
   "title": "Random Shuffle 20Q Test",
+  "AI_description": "AI generated summary for Random Shuffle 20Q Test",
   "description": "Tests complete random shuffle across modules with 20 questions.",
   "time": 15,
   "completeRandomShuffle": true,

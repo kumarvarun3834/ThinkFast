@@ -56,6 +56,7 @@
 | `modules`               | Array     | Ordered modules containing question metadata.                   |
 | `isAiGenerated`         | Boolean   | Whether the quiz was created by the AI engine.                  |
 | `totalQuestions`        | Number    | Count of questions.                                             |
+| `AI_description`       | String    | Overall AI-generated description of the quiz content.           |
 | `tags`                  | Array     | Aggregate list of all tags (module + exam).                     |
 | `examTag`               | String    | Target competitive exam name.                                   |
 
@@ -171,7 +172,7 @@
 | Field                | Type         | Description                              |
 |:---------------------|:-------------|:-----------------------------------------|
 | `permissions`        | List<String> | Active platform permissions.             |
-| `level`              | Number       | `0` for Super User, `1+` for sub-admins. |
+| `level`              | Number       | Hierarchy flag. `0` for Super User.      |
 | `isAdminModeEnabled` | Boolean      | UI experience toggle.                    |
 | `addedBy`            | String       | Granting admin UID.                      |
 | `updatedAt`          | Timestamp    | Last record update.                      |
@@ -251,11 +252,10 @@ only).
 
 ## 10. Notifications
 
-### 10.1 Personal Alerts (`/notifications/{id}`)
+### 10.1 Personal Alerts (`/notifications/{userId}/user_notifications/{id}`)
 
 | Field       | Type      | Description    |
 |:------------|:----------|:---------------|
-| `userId`    | String    | Recipient UID. |
 | `title`     | String    | Alert title.   |
 | `body`      | String    | Alert content. |
 | `read`      | Boolean   | Status.        |

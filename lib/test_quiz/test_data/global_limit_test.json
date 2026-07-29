@@ -1,5 +1,6 @@
 {
   "title": "Global Constraint Test",
+  "AI_description": "AI generated summary for Global Constraint Test",
   "description": "Tests attempt limits that apply across the entire quiz regardless of module.",
   "time": 0,
   "attemptLimits": {

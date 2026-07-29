@@ -769,6 +769,11 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               const SizedBox(height: 24),
                             ],
 
+                            if (_quizData?['AI_description'] != null && _quizData!['AI_description'].toString().isNotEmpty) ...[
+                              _buildAiDescriptionCard(_quizData!['AI_description']),
+                              const SizedBox(height: 24),
+                            ],
+
                             if (_aiInsight != null && _aiInsight!.isNotEmpty) ...[
                               _buildAiInsightCard(_aiInsight!),
                               const SizedBox(height: 24),
@@ -1692,6 +1697,50 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           ManageQuizButton(onPressed: _showManageBottomSheet),
         ],
       ],
+    );
+  }
+
+  Widget _buildAiDescriptionCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: global.primaryAccent.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: global.primaryAccent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: global.primaryAccent,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                "AI SUMMARY",
+                style: GoogleFonts.poppins(
+                  color: global.primaryAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              color: global.valueColor,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
