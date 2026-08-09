@@ -1,0 +1,186 @@
+{
+  "title": "Module Limits Test",
+  "description": "Limits on questions per module and type.",
+  "time": 40,
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Science": {
+        "Single Choice": 5,
+        "Integer": 2
+      },
+      "History": {
+        "Single Choice": 5
+      }
+    }
+  },
+  "questions": [
+    {
+      "question": "S1: Symbol of Iron?",
+      "choices": ["Fe", "Ir", "In", "I"],
+      "answers": ["Fe"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S2: Symbol of Silver?",
+      "choices": ["Ag", "Au", "Si", "Sl"],
+      "answers": ["Ag"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S3: Symbol of Copper?",
+      "choices": ["Cu", "Co", "Cp", "Cr"],
+      "answers": ["Cu"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S4: Symbol of Lead?",
+      "choices": ["Pb", "Ld", "Le", "Pl"],
+      "answers": ["Pb"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S5: Symbol of Tin?",
+      "choices": ["Sn", "Ti", "Tn", "Tl"],
+      "answers": ["Sn"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S6: Symbol of Mercury? (Limit SC=5)",
+      "choices": ["Hg", "Me", "Mc", "My"],
+      "answers": ["Hg"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "SI1: Atomic number of He?",
+      "answers": ["2"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "SI2: Atomic number of Li?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "SI3: Atomic number of Be? (Limit INT=2)",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "H1: French Revolution year?",
+      "choices": ["1789", "1776", "1812", "1848"],
+      "answers": ["1789"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H2: Magna Carta year?",
+      "choices": ["1215", "1066", "1415", "1588"],
+      "answers": ["1215"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H3: Battle of Hastings year?",
+      "choices": ["1066", "1016", "1086", "1096"],
+      "answers": ["1066"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H4: Fall of Berlin Wall?",
+      "choices": ["1989", "1991", "1985", "1987"],
+      "answers": ["1989"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H5: Moon Landing year?",
+      "choices": ["1969", "1965", "1971", "1975"],
+      "answers": ["1969"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H6: Columbus Voyage? (Limit SC=5)",
+      "choices": ["1492", "1488", "1500", "1510"],
+      "answers": ["1492"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "M1: 10 + 20?",
+      "answers": ["30"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "M2: 50 - 15?",
+      "answers": ["35"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "M3: 8 * 7?",
+      "answers": ["56"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "M4: 81 / 9?",
+      "answers": ["9"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "M5: 12 * 5?",
+      "answers": ["60"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "G1: Capital of Turkey?",
+      "choices": ["Ankara", "Istanbul", "Izmir", "Bursa"],
+      "answers": ["Ankara"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "G2: Capital of Canada?",
+      "choices": ["Ottawa", "Toronto", "Montreal", "Vancouver"],
+      "answers": ["Ottawa"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "G3: Capital of Australia?",
+      "choices": ["Canberra", "Sydney", "Melbourne", "Perth"],
+      "answers": ["Canberra"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "G4: Capital of Brazil?",
+      "choices": ["Brasilia", "Rio", "Sao Paulo", "Salvador"],
+      "answers": ["Brasilia"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "G5: Capital of Vietnam?",
+      "choices": ["Hanoi", "Ho Chi Minh City", "Da Nang", "Hue"],
+      "answers": ["Hanoi"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    }
+  ]
+}

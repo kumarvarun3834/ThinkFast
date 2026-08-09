@@ -1,0 +1,206 @@
+{
+  "title": "Per Type Marking Test",
+  "description": "Scoring varies by question type.",
+  "time": 45,
+  "markingScheme": {
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Multiple Choice": { "correct": 6, "wrong": -2 },
+      "Integer": { "correct": 10, "wrong": 0 }
+    }
+  },
+  "questions": [
+    {
+      "question": "What is the largest ocean on Earth?",
+      "choices": ["Pacific", "Atlantic", "Indian", "Arctic"],
+      "answers": ["Pacific"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "The Pacific Ocean is the largest and deepest ocean."
+    },
+    {
+      "question": "How many days are in a leap year?",
+      "answers": ["366"],
+      "type": "Integer",
+      "subject": "Science",
+      "explanation": "A leap year has 366 days, with an extra day in February."
+    },
+    {
+      "question": "Which of these are primary colors?",
+      "choices": ["Red", "Blue", "Yellow", "Green"],
+      "answers": ["Red", "Blue", "Yellow"],
+      "type": "Multiple Choice",
+      "subject": "Arts",
+      "explanation": "Red, Blue, and Yellow are the traditional RYB primary colors."
+    },
+    {
+      "question": "Who painted the 'Mona Lisa'?",
+      "choices": ["Leonardo da Vinci", "Pablo Picasso", "Vincent van Gogh", "Claude Monet"],
+      "answers": ["Leonardo da Vinci"],
+      "type": "Single Choice",
+      "subject": "Arts",
+      "explanation": "Leonardo da Vinci painted the Mona Lisa in the early 16th century."
+    },
+    {
+      "question": "How many strings does a standard guitar have?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Music",
+      "explanation": "A standard acoustic or electric guitar has 6 strings."
+    },
+    {
+      "question": "Which of these are famous Greek philosophers?",
+      "choices": ["Socrates", "Plato", "Aristotle", "Confucius"],
+      "answers": ["Socrates", "Plato", "Aristotle"],
+      "type": "Multiple Choice",
+      "subject": "Philosophy",
+      "explanation": "Socrates, Plato, and Aristotle were foundational figures in Western philosophy."
+    },
+    {
+      "question": "Who was the first female Prime Minister of the UK?",
+      "choices": ["Margaret Thatcher", "Theresa May", "Angela Merkel", "Indira Gandhi"],
+      "answers": ["Margaret Thatcher"],
+      "type": "Single Choice",
+      "subject": "Politics",
+      "explanation": "Margaret Thatcher served as Prime Minister from 1979 to 1990."
+    },
+    {
+      "question": "How many Senators are in the US Senate?",
+      "answers": ["100"],
+      "type": "Integer",
+      "subject": "Politics",
+      "explanation": "Each state has two senators, totaling 100."
+    },
+    {
+      "question": "Which countries are permanent members of the UN Security Council?",
+      "choices": ["USA", "UK", "France", "Russia", "China", "Germany"],
+      "answers": ["USA", "UK", "France", "Russia", "China"],
+      "type": "Multiple Choice",
+      "subject": "Politics",
+      "explanation": "The P5 members are the USA, UK, France, Russia, and China."
+    },
+    {
+      "question": "Who directed the movie 'Inception'?",
+      "choices": ["Christopher Nolan", "Steven Spielberg", "Quentin Tarantino", "Martin Scorsese"],
+      "answers": ["Christopher Nolan"],
+      "type": "Single Choice",
+      "subject": "Movies",
+      "explanation": "Nolan directed and wrote 'Inception', released in 2010."
+    },
+    {
+      "question": "How many Oscars did the movie 'Titanic' win?",
+      "answers": ["11"],
+      "type": "Integer",
+      "subject": "Movies",
+      "explanation": "Titanic (1997) won 11 Academy Awards."
+    },
+    {
+      "question": "Which of these are films in the original Star Wars trilogy?",
+      "choices": ["A New Hope", "The Empire Strikes Back", "Return of the Jedi", "The Phantom Menace"],
+      "answers": ["A New Hope", "The Empire Strikes Back", "Return of the Jedi"],
+      "type": "Multiple Choice",
+      "subject": "Movies",
+      "explanation": "The original trilogy consists of episodes IV, V, and VI."
+    },
+    {
+      "question": "What is the square root of 225?",
+      "answers": ["15"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "15 * 15 = 225."
+    },
+    {
+      "question": "Which of these are even numbers?",
+      "choices": ["2", "4", "5", "8", "11"],
+      "answers": ["2", "4", "8"],
+      "type": "Multiple Choice",
+      "subject": "Math",
+      "explanation": "Even numbers are divisible by 2."
+    },
+    {
+      "question": "What is the largest planet in our solar system?",
+      "choices": ["Jupiter", "Saturn", "Neptune", "Earth"],
+      "answers": ["Jupiter"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Jupiter is a gas giant and the largest planet."
+    },
+    {
+      "question": "How many players are on a standard soccer team on the field?",
+      "answers": ["11"],
+      "type": "Integer",
+      "subject": "Sports",
+      "explanation": "Each team plays with 11 players."
+    },
+    {
+      "question": "Which of these are Grand Slam tennis tournaments?",
+      "choices": ["Wimbledon", "US Open", "French Open", "Australian Open", "Miami Open"],
+      "answers": ["Wimbledon", "US Open", "French Open", "Australian Open"],
+      "type": "Multiple Choice",
+      "subject": "Sports",
+      "explanation": "There are four Grand Slam events annually."
+    },
+    {
+      "question": "Who said 'I think, therefore I am'?",
+      "choices": ["René Descartes", "Immanuel Kant", "Friedrich Nietzsche", "David Hume"],
+      "answers": ["René Descartes"],
+      "type": "Single Choice",
+      "subject": "Philosophy",
+      "explanation": "Descartes formulated this in his 'Discourse on the Method'."
+    },
+    {
+      "question": "How many keys are on a standard piano?",
+      "answers": ["88"],
+      "type": "Integer",
+      "subject": "Music",
+      "explanation": "A standard modern piano has 88 keys (52 white, 36 black)."
+    },
+    {
+      "question": "Which of these are characters in 'The Lord of the Rings'?",
+      "choices": ["Frodo", "Gandalf", "Harry Potter", "Aragorn"],
+      "answers": ["Frodo", "Gandalf", "Aragorn"],
+      "type": "Multiple Choice",
+      "subject": "Literature",
+      "explanation": "Frodo, Gandalf, and Aragorn are main characters in LOTR."
+    },
+    {
+      "question": "What is the boiling point of water in Celsius?",
+      "answers": ["100"],
+      "type": "Integer",
+      "subject": "Science",
+      "explanation": "Water boils at 100 degrees Celsius at sea level."
+    },
+    {
+      "question": "Which continent is the Sahara Desert located on?",
+      "choices": ["Africa", "Asia", "South America", "Australia"],
+      "answers": ["Africa"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "The Sahara is the largest hot desert in the world, located in Africa."
+    },
+    {
+      "question": "Which of these are programming paradigms?",
+      "choices": ["Object-Oriented", "Functional", "Procedural", "Mechanical"],
+      "answers": ["Object-Oriented", "Functional", "Procedural"],
+      "type": "Multiple Choice",
+      "subject": "Tech",
+      "explanation": "Common paradigms include OOP, functional, and procedural programming."
+    },
+    {
+      "question": "How many bits are in a byte?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Tech",
+      "explanation": "Standard definition of a byte is 8 bits."
+    },
+    {
+      "question": "What is the smallest prime number?",
+      "choices": ["1", "2", "3", "0"],
+      "answers": ["2"],
+      "type": "Single Choice",
+      "subject": "Math",
+      "explanation": "2 is the only even prime and the smallest prime."
+    }
+  ]
+}

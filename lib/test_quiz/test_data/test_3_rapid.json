@@ -1,0 +1,14 @@
+{
+  "title": "15-Second Challenge",
+  "perQuestionTime": 15,
+  "completeRandomShuffle": true,
+  "isAiGenerated": true,
+  "questions": [
+    {
+      "question": "Quick! 12 * 12?",
+      "answers": ["144"],
+      "type": "Integer",
+      "subject": "Mental Math"
+    }
+  ]
+}

@@ -1,0 +1,251 @@
+{
+  "title": "Per Question Marking Test",
+  "description": "Each question has its own point value.",
+  "time": 60,
+  "markingScheme": {
+    "type": "per_question"
+  },
+  "questions": [
+    {
+      "question": "What is the capital of Italy?",
+      "choices": ["Rome", "Milan", "Venice", "Florence"],
+      "answers": ["Rome"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Rome is the capital and largest city of Italy.",
+      "correct": 5,
+      "wrong": -2
+    },
+    {
+      "question": "How many states are in the USA?",
+      "answers": ["50"],
+      "type": "Integer",
+      "subject": "Politics",
+      "explanation": "There are 50 states in the union.",
+      "correct": 10,
+      "wrong": 0
+    },
+    {
+      "question": "Which of these are European countries?",
+      "choices": ["France", "Spain", "Germany", "Brazil"],
+      "answers": ["France", "Spain", "Germany"],
+      "type": "Multiple Choice",
+      "subject": "Geography",
+      "explanation": "France, Spain, and Germany are in Europe. Brazil is in South America.",
+      "correct": 8,
+      "wrong": -4
+    },
+    {
+      "question": "What is 7 squared?",
+      "answers": ["49"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "7 * 7 = 49.",
+      "correct": 2,
+      "wrong": -1
+    },
+    {
+      "question": "Who developed the theory of relativity?",
+      "choices": ["Albert Einstein", "Isaac Newton", "Marie Curie", "Nikola Tesla"],
+      "answers": ["Albert Einstein"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "Einstein published the special and general theories of relativity.",
+      "correct": 5,
+      "wrong": -2
+    },
+    {
+      "question": "Which of these are mammals?",
+      "choices": ["Whale", "Dolphin", "Shark", "Bat"],
+      "answers": ["Whale", "Dolphin", "Bat"],
+      "type": "Multiple Choice",
+      "subject": "Biology",
+      "explanation": "Whales, dolphins, and bats are mammals. Sharks are fish.",
+      "correct": 12,
+      "wrong": -6
+    },
+    {
+      "question": "How many minutes are in an hour?",
+      "answers": ["60"],
+      "type": "Integer",
+      "subject": "General",
+      "explanation": "There are 60 minutes in one hour.",
+      "correct": 1,
+      "wrong": 0
+    },
+    {
+      "question": "What is the largest land animal?",
+      "choices": ["African Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
+      "answers": ["African Elephant"],
+      "type": "Single Choice",
+      "subject": "Biology",
+      "explanation": "The African bush elephant is the largest living land animal.",
+      "correct": 4,
+      "wrong": -1
+    },
+    {
+      "question": "Which of these are fruits?",
+      "choices": ["Apple", "Carrot", "Banana", "Tomato"],
+      "answers": ["Apple", "Banana", "Tomato"],
+      "type": "Multiple Choice",
+      "subject": "Biology",
+      "explanation": "Botanically, tomatoes are fruits.",
+      "correct": 7,
+      "wrong": -3
+    },
+    {
+      "question": "How many edges does a cube have?",
+      "answers": ["12"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "A cube has 12 edges.",
+      "correct": 6,
+      "wrong": -2
+    },
+    {
+      "question": "Who was known as the 'Maid of Orleans'?",
+      "choices": ["Joan of Arc", "Marie Antoinette", "Catherine de' Medici", "Elizabeth I"],
+      "answers": ["Joan of Arc"],
+      "type": "Single Choice",
+      "subject": "History",
+      "explanation": "Joan of Arc is a heroine of France for her role during the Lancastrian phase of the Hundred Years' War.",
+      "correct": 5,
+      "wrong": -2
+    },
+    {
+      "question": "Which of these are chemical elements?",
+      "choices": ["Iron", "Plastic", "Oxygen", "Water"],
+      "answers": ["Iron", "Oxygen"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry",
+      "explanation": "Iron and Oxygen are elements. Plastic is a polymer, and Water is a compound.",
+      "correct": 6,
+      "wrong": -3
+    },
+    {
+      "question": "How many players are in a basketball team on court?",
+      "answers": ["5"],
+      "type": "Integer",
+      "subject": "Sports",
+      "explanation": "Basketball is played with 5 players per team on the court.",
+      "correct": 3,
+      "wrong": -1
+    },
+    {
+      "question": "What is the currency of Japan?",
+      "choices": ["Yen", "Yuan", "Won", "Baht"],
+      "answers": ["Yen"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "The Japanese yen is the official currency of Japan.",
+      "correct": 4,
+      "wrong": -1
+    },
+    {
+      "question": "Which of these were written by George Orwell?",
+      "choices": ["1984", "Animal Farm", "Brave New World", "The Road to Wigan Pier"],
+      "answers": ["1984", "Animal Farm", "The Road to Wigan Pier"],
+      "type": "Multiple Choice",
+      "subject": "Literature",
+      "explanation": "1984 and Animal Farm are his most famous works.",
+      "correct": 15,
+      "wrong": -5
+    },
+    {
+      "question": "What is the value of Pi to two decimal places?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "Actually, the integer part is 3. (Instruction asks for Integer type).",
+      "correct": 1,
+      "wrong": 0
+    },
+    {
+      "question": "Who is the god of the sea in Greek mythology?",
+      "choices": ["Poseidon", "Zeus", "Hades", "Apollo"],
+      "answers": ["Poseidon"],
+      "type": "Single Choice",
+      "subject": "History",
+      "explanation": "Poseidon is the god of the sea, earthquakes, and horses.",
+      "correct": 5,
+      "wrong": -2
+    },
+    {
+      "question": "Which of these are noble metals?",
+      "choices": ["Gold", "Silver", "Platinum", "Iron"],
+      "answers": ["Gold", "Silver", "Platinum"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry",
+      "explanation": "Noble metals resist corrosion and oxidation.",
+      "correct": 10,
+      "wrong": -5
+    },
+    {
+      "question": "How many hearts does an octopus have?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Biology",
+      "explanation": "Octopuses have three hearts.",
+      "correct": 20,
+      "wrong": 0
+    },
+    {
+      "question": "What is the largest country in the world by land area?",
+      "choices": ["Russia", "Canada", "China", "USA"],
+      "answers": ["Russia"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Russia is the largest country, spanning Eastern Europe and Northern Asia.",
+      "correct": 3,
+      "wrong": -1
+    },
+    {
+      "question": "Which of these are planets?",
+      "choices": ["Mars", "Venus", "Moon", "Sun"],
+      "answers": ["Mars", "Venus"],
+      "type": "Multiple Choice",
+      "subject": "Science",
+      "explanation": "Mars and Venus are planets. The Moon is a satellite and the Sun is a star.",
+      "correct": 4,
+      "wrong": -2
+    },
+    {
+      "question": "How many colors are in a rainbow?",
+      "answers": ["7"],
+      "type": "Integer",
+      "subject": "Science",
+      "explanation": "Traditional sequence is Red, Orange, Yellow, Green, Blue, Indigo, Violet.",
+      "correct": 2,
+      "wrong": 0
+    },
+    {
+      "question": "What is the capital of Australia?",
+      "choices": ["Canberra", "Sydney", "Melbourne", "Perth"],
+      "answers": ["Canberra"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Canberra is the capital city of Australia.",
+      "correct": 6,
+      "wrong": -3
+    },
+    {
+      "question": "Which of these are operating systems?",
+      "choices": ["Windows", "Linux", "macOS", "Word"],
+      "answers": ["Windows", "Linux", "macOS"],
+      "type": "Multiple Choice",
+      "subject": "Tech",
+      "explanation": "Windows, Linux, and macOS are OSs. Word is an application.",
+      "correct": 5,
+      "wrong": -2
+    },
+    {
+      "question": "What is the atomic number of Hydrogen?",
+      "answers": ["1"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "Hydrogen is the first element in the periodic table.",
+      "correct": 1,
+      "wrong": 0
+    }
+  ]
+}

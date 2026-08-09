@@ -1,4 +1,7 @@
 pluginManagement {
+    // Force clear property to fix com.android.prefs.AndroidLocationsException
+    System.clearProperty("ANDROID_PREFS_ROOT")
+
     val flutterSdkPath = run {
         val properties = java.util.Properties()
         file("local.properties").inputStream().use { properties.load(it) }

@@ -1,0 +1,202 @@
+{
+  "title": "Default Global Test",
+  "description": "Standard marking and global timing test.",
+  "time": 30,
+  "markingScheme": {
+    "type": "default"
+  },
+  "questions": [
+    {
+      "question": "What is the chemical symbol for Gold?",
+      "choices": ["Au", "Ag", "Fe", "Hg"],
+      "answers": ["Au"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Au is derived from the Latin word 'Aurum'."
+    },
+    {
+      "question": "How many planets are in our solar system?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Science",
+      "explanation": "The eight planets are Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune."
+    },
+    {
+      "question": "Which of these are noble gases?",
+      "choices": ["Neon", "Oxygen", "Argon", "Nitrogen"],
+      "answers": ["Neon", "Argon"],
+      "type": "Multiple Choice",
+      "subject": "Science",
+      "explanation": "Noble gases are inert gases like Neon, Argon, Xenon, etc."
+    },
+    {
+      "question": "In what year did World War II end?",
+      "answers": ["1945"],
+      "type": "Integer",
+      "subject": "History",
+      "explanation": "WWII ended in 1945 with the surrender of Japan."
+    },
+    {
+      "question": "Who was the first President of the United States?",
+      "choices": ["George Washington", "Thomas Jefferson", "Abraham Lincoln", "John Adams"],
+      "answers": ["George Washington"],
+      "type": "Single Choice",
+      "subject": "History",
+      "explanation": "George Washington served from 1789 to 1797."
+    },
+    {
+      "question": "Which countries were members of the Axis powers?",
+      "choices": ["Germany", "Italy", "Japan", "France"],
+      "answers": ["Germany", "Italy", "Japan"],
+      "type": "Multiple Choice",
+      "subject": "History",
+      "explanation": "The main Axis powers were Germany, Italy, and Japan."
+    },
+    {
+      "question": "What is 12 multiplied by 12?",
+      "answers": ["144"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "12^2 = 144."
+    },
+    {
+      "question": "Which of these are prime numbers less than 10?",
+      "choices": ["2", "3", "4", "5", "6", "7", "8", "9"],
+      "answers": ["2", "3", "5", "7"],
+      "type": "Multiple Choice",
+      "subject": "Math",
+      "explanation": "Prime numbers have only two divisors: 1 and themselves."
+    },
+    {
+      "question": "What does RAM stand for?",
+      "choices": ["Random Access Memory", "Read Access Memory", "Rapid Access Module", "Remote Access Memory"],
+      "answers": ["Random Access Memory"],
+      "type": "Single Choice",
+      "subject": "Tech",
+      "explanation": "RAM is the short-term memory of a computer."
+    },
+    {
+      "question": "In what year was the Java programming language first released?",
+      "answers": ["1995"],
+      "type": "Integer",
+      "subject": "Tech",
+      "explanation": "Java was released by Sun Microsystems in 1995."
+    },
+    {
+      "question": "Which of these are major cloud computing providers?",
+      "choices": ["AWS", "GCP", "Azure", "Oracle Cloud"],
+      "answers": ["AWS", "GCP", "Azure", "Oracle Cloud"],
+      "type": "Multiple Choice",
+      "subject": "Tech",
+      "explanation": "All four are prominent cloud infrastructure providers."
+    },
+    {
+      "question": "What is the capital of France?",
+      "choices": ["Paris", "Lyon", "Marseille", "Nice"],
+      "answers": ["Paris"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Paris is the capital and largest city of France."
+    },
+    {
+      "question": "Which of these are Great Lakes of North America?",
+      "choices": ["Superior", "Michigan", "Huron", "Victoria", "Erie", "Ontario"],
+      "answers": ["Superior", "Michigan", "Huron", "Erie", "Ontario"],
+      "type": "Multiple Choice",
+      "subject": "Geography",
+      "explanation": "The five Great Lakes are Superior, Michigan, Huron, Erie, and Ontario."
+    },
+    {
+      "question": "How many continents are there on Earth?",
+      "answers": ["7"],
+      "type": "Integer",
+      "subject": "Geography",
+      "explanation": "The seven continents are Asia, Africa, North America, South America, Antarctica, Europe, and Australia."
+    },
+    {
+      "question": "Who wrote 'Romeo and Juliet'?",
+      "choices": ["William Shakespeare", "Charles Dickens", "Mark Twain", "Jane Austen"],
+      "answers": ["William Shakespeare"],
+      "type": "Single Choice",
+      "subject": "Literature",
+      "explanation": "Shakespeare wrote this famous tragedy early in his career."
+    },
+    {
+      "question": "Which of these are Hogwarts houses in Harry Potter?",
+      "choices": ["Gryffindor", "Slytherin", "Hufflepuff", "Ravenclaw", "Dormer"],
+      "answers": ["Gryffindor", "Slytherin", "Hufflepuff", "Ravenclaw"],
+      "type": "Multiple Choice",
+      "subject": "Literature",
+      "explanation": "The four houses are Gryffindor, Hufflepuff, Ravenclaw, and Slytherin."
+    },
+    {
+      "question": "How many bones are in an adult human body?",
+      "answers": ["206"],
+      "type": "Integer",
+      "subject": "Biology",
+      "explanation": "Adults typically have 206 bones."
+    },
+    {
+      "question": "What is known as the powerhouse of the cell?",
+      "choices": ["Mitochondria", "Nucleus", "Ribosome", "Golgi Body"],
+      "answers": ["Mitochondria"],
+      "type": "Single Choice",
+      "subject": "Biology",
+      "explanation": "Mitochondria generate most of the cell's supply of ATP."
+    },
+    {
+      "question": "Which of these are the four nucleobases in DNA?",
+      "choices": ["Adenine", "Thymine", "Cytosine", "Guanine", "Uracil"],
+      "answers": ["Adenine", "Thymine", "Cytosine", "Guanine"],
+      "type": "Multiple Choice",
+      "subject": "Biology",
+      "explanation": "DNA contains A, T, C, G. RNA contains Uracil instead of Thymine."
+    },
+    {
+      "question": "What is the approximate speed of light in meters per second?",
+      "answers": ["300000000"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "The speed of light is roughly 299,792,458 m/s."
+    },
+    {
+      "question": "What is the SI unit of force?",
+      "choices": ["Newton", "Joule", "Watt", "Pascal"],
+      "answers": ["Newton"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "Force is measured in Newtons (kg m/s^2)."
+    },
+    {
+      "question": "What are the four fundamental forces of nature?",
+      "choices": ["Gravity", "Electromagnetism", "Strong Nuclear", "Weak Nuclear", "Centrifugal"],
+      "answers": ["Gravity", "Electromagnetism", "Strong Nuclear", "Weak Nuclear"],
+      "type": "Multiple Choice",
+      "subject": "Physics",
+      "explanation": "The four fundamental interactions are gravity, electromagnetism, and the strong and weak nuclear forces."
+    },
+    {
+      "question": "What is the atomic number of Carbon?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "Carbon is the 6th element in the periodic table."
+    },
+    {
+      "question": "What is the pH of pure water?",
+      "choices": ["0", "7", "14", "1"],
+      "answers": ["7"],
+      "type": "Single Choice",
+      "subject": "Chemistry",
+      "explanation": "Pure water is neutral with a pH of 7."
+    },
+    {
+      "question": "Which of these are halogens?",
+      "choices": ["Fluorine", "Chlorine", "Bromine", "Iodine", "Helium"],
+      "answers": ["Fluorine", "Chlorine", "Bromine", "Iodine"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry",
+      "explanation": "Halogens are elements in Group 17 of the periodic table."
+    }
+  ]
+}

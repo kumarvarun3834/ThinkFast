@@ -1,0 +1,315 @@
+{
+  "title": "Restricted High-Security Exam",
+  "description": "A high-security exam with restricted access and single attempt policy.",
+  "visibility": "protected",
+  "isRestricted": true,
+  "allowedParticipants": [
+    "tester@thinkfast.app",
+    "user_12345"
+  ],
+  "allowMultipleAttempts": false,
+  "time": 30,
+  "isAiGenerated": false,
+  "questions": [
+    {
+      "question": "What does 'RBAC' stand for in access control?",
+      "choices": [
+        "Rule-Based Access Control",
+        "Role-Based Access Control",
+        "Root-Based Access Control",
+        "Remote-Based Access Control"
+      ],
+      "answers": [
+        "Role-Based Access Control"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "RBAC is a method of regulating access to computer or network resources based on the roles of individual users within an enterprise."
+    },
+    {
+      "question": "Which principle states that a user should only have the minimum permissions necessary to perform their job?",
+      "choices": [
+        "Principle of Maximum Exposure",
+        "Principle of Least Privilege",
+        "Principle of Open Access",
+        "Principle of Efficiency"
+      ],
+      "answers": [
+        "Principle of Least Privilege"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "The Principle of Least Privilege (PoLP) minimizes the potential damage from accidents or malicious behavior."
+    },
+    {
+      "question": "What is Multi-Factor Authentication (MFA)?",
+      "choices": [
+        "Using multiple passwords for one account",
+        "Requiring two or more verification factors to gain access",
+        "Authenticating multiple users at once",
+        "Using one password for multiple accounts"
+      ],
+      "answers": [
+        "Requiring two or more verification factors to gain access"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "MFA adds a layer of security by requiring multiple forms of identification."
+    },
+    {
+      "question": "What is a 'Brute Force' attack?",
+      "choices": [
+        "A physical attack on a server room",
+        "An attempt to guess a password by trying all possible combinations",
+        "A social engineering technique",
+        "A type of malware"
+      ],
+      "answers": [
+        "An attempt to guess a password by trying all possible combinations"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Brute force attacks involve systematic guessing of passwords or keys."
+    },
+    {
+      "question": "What is the primary difference between Authentication and Authorization?",
+      "choices": [
+        "They are the same thing",
+        "Authentication is who you are; Authorization is what you can do",
+        "Authorization is who you are; Authentication is what you can do",
+        "Authentication is for networks; Authorization is for files"
+      ],
+      "answers": [
+        "Authentication is who you are; Authorization is what you can do"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Authentication verifies identity, while Authorization determines access rights."
+    },
+    {
+      "question": "Which protocol is commonly used for Single Sign-On (SSO)?",
+      "choices": [
+        "HTTP",
+        "SAML",
+        "FTP",
+        "SMTP"
+      ],
+      "answers": [
+        "SAML"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Security Assertion Markup Language (SAML) is an open standard for exchanging authentication and authorization data."
+    },
+    {
+      "question": "What is 'Phishing'?",
+      "choices": [
+        "A method of catching computer bugs",
+        "A fraudulent attempt to obtain sensitive information by disguising as a trustworthy entity",
+        "A type of network scanning",
+        "A way to speed up internet connection"
+      ],
+      "answers": [
+        "A fraudulent attempt to obtain sensitive information by disguising as a trustworthy entity"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Phishing typically involves email or other communication channels."
+    },
+    {
+      "question": "What does the 'Principle of Least Privilege' aim to prevent?",
+      "choices": [
+        "User productivity",
+        "Unauthorized access and lateral movement",
+        "Network speed",
+        "Software updates"
+      ],
+      "answers": [
+        "Unauthorized access and lateral movement"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "By limiting permissions, an attacker's ability to move through a system is restricted."
+    },
+    {
+      "question": "What is a 'Firewall'?",
+      "choices": [
+        "A literal wall that protects servers from fire",
+        "A network security system that monitors and controls incoming and outgoing network traffic",
+        "A type of antivirus software",
+        "A hardware component that increases CPU speed"
+      ],
+      "answers": [
+        "A network security system that monitors and controls incoming and outgoing network traffic"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Firewalls establish a barrier between a trusted network and untrusted networks."
+    },
+    {
+      "question": "What is 'Encryption'?",
+      "choices": [
+        "The process of deleting sensitive data",
+        "The process of converting information into a code to prevent unauthorized access",
+        "A way to compress files",
+        "A method for backing up data"
+      ],
+      "answers": [
+        "The process of converting information into a code to prevent unauthorized access"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Encryption ensures that only authorized parties can read the data."
+    },
+    {
+      "question": "What is 'Salting' in the context of password storage?",
+      "choices": [
+        "Adding random data to a password before hashing it",
+        "Storing passwords in plain text",
+        "Sharing passwords with other users",
+        "Changing passwords frequently"
+      ],
+      "answers": [
+        "Adding random data to a password before hashing it"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Salting protects against rainbow table attacks by making each hash unique."
+    },
+    {
+      "question": "What is an 'Intrusion Detection System' (IDS)?",
+      "choices": [
+        "A system that prevents all attacks",
+        "A device or software application that monitors a network or systems for malicious activity",
+        "A type of physical lock",
+        "A tool for debugging code"
+      ],
+      "answers": [
+        "A device or software application that monitors a network or systems for malicious activity"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "An IDS alerts administrators when suspicious activity is detected."
+    },
+    {
+      "question": "What does the 'CIA' triad in information security stand for?",
+      "choices": [
+        "Central Intelligence Agency",
+        "Confidentiality, Integrity, and Availability",
+        "Computer, Internet, and Applications",
+        "Control, Information, and Access"
+      ],
+      "answers": [
+        "Confidentiality, Integrity, and Availability"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "The CIA triad is a model designed to guide policies for information security."
+    },
+    {
+      "question": "What is 'Social Engineering'?",
+      "choices": [
+        "A type of software engineering",
+        "The psychological manipulation of people into performing actions or divulging confidential information",
+        "Building social networks",
+        "Managing employees in a company"
+      ],
+      "answers": [
+        "The psychological manipulation of people into performing actions or divulging confidential information"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Social engineering exploits human error to gain private information."
+    },
+    {
+      "question": "What is a 'Zero Day' vulnerability?",
+      "choices": [
+        "A vulnerability that has been fixed for zero days",
+        "A software vulnerability that is unknown to those who would be interested in mitigating it",
+        "A vulnerability that only exists for 24 hours",
+        "A perfectly secure system"
+      ],
+      "answers": [
+        "A software vulnerability that is unknown to those who would be interested in mitigating it"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Zero-day vulnerabilities are exploited before a patch is available."
+    },
+    {
+      "question": "What is 'MAC' in access control?",
+      "choices": [
+        "Media Access Control",
+        "Mandatory Access Control",
+        "Maximum Access Control",
+        "Minimal Access Control"
+      ],
+      "answers": [
+        "Mandatory Access Control"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "In MAC, the system (and not the user) determines access based on security labels."
+    },
+    {
+      "question": "What is 'DAC' in access control?",
+      "choices": [
+        "Data Access Control",
+        "Discretionary Access Control",
+        "Direct Access Control",
+        "Distributed Access Control"
+      ],
+      "answers": [
+        "Discretionary Access Control"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "In DAC, the owner of an object has the discretion to grant access to others."
+    },
+    {
+      "question": "What is 'Biometric' authentication?",
+      "choices": [
+        "Using a physical key",
+        "Using biological traits like fingerprints or facial recognition for identification",
+        "Using a very long password",
+        "Using a smart card"
+      ],
+      "answers": [
+        "Using biological traits like fingerprints or facial recognition for identification"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "Biometrics rely on unique physical or behavioral characteristics."
+    },
+    {
+      "question": "What is 'TLS'?",
+      "choices": [
+        "Total Layer Security",
+        "Transport Layer Security",
+        "Technical level Security",
+        "Timed Layer Security"
+      ],
+      "answers": [
+        "Transport Layer Security"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "TLS is a cryptographic protocol designed to provide communications security over a computer network."
+    },
+    {
+      "question": "What is a 'VPN'?",
+      "choices": [
+        "Very Private Network",
+        "Virtual Private Network",
+        "Verified Private Network",
+        "Virtual Personal Network"
+      ],
+      "answers": [
+        "Virtual Private Network"
+      ],
+      "type": "Single Choice",
+      "subject": "Security",
+      "explanation": "A VPN extends a private network across a public network, enabling users to send and receive data as if their computing devices were directly connected to the private network."
+    }
+  ]
+}

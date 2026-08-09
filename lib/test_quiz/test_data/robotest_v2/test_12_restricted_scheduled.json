@@ -1,0 +1,177 @@
+{
+  "title": "Restricted Scheduled Test",
+  "description": "Test scheduled for the future and restricted to a specific user.",
+  "time": 30,
+  "visibility": "scheduled",
+  "activeAt": "2026-12-31T09:00:00Z",
+  "isRestricted": true,
+  "allowedParticipants": ["test@example.com"],
+  "questions": [
+    {
+      "question": "What is the capital of Switzerland?",
+      "choices": ["Bern", "Zurich", "Geneva", "Basel"],
+      "answers": ["Bern"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "How many stars are on the flag of China?",
+      "answers": ["5"],
+      "type": "Integer",
+      "subject": "Politics"
+    },
+    {
+      "question": "Which of these are official languages of the UN?",
+      "choices": ["English", "French", "Spanish", "Russian", "Chinese", "Arabic", "German"],
+      "answers": ["English", "French", "Spanish", "Russian", "Chinese", "Arabic"],
+      "type": "Multiple Choice",
+      "subject": "Politics"
+    },
+    {
+      "question": "What is the largest island in the world?",
+      "choices": ["Greenland", "New Guinea", "Borneo", "Madagascar"],
+      "answers": ["Greenland"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "How many time zones does Russia have?",
+      "answers": ["11"],
+      "type": "Integer",
+      "subject": "Geography"
+    },
+    {
+      "question": "Which of these are Great Lakes?",
+      "choices": ["Superior", "Michigan", "Huron", "Erie", "Ontario", "Great Slave"],
+      "answers": ["Superior", "Michigan", "Huron", "Erie", "Ontario"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Who was the first woman to win a Nobel Prize?",
+      "choices": ["Marie Curie", "Mother Teresa", "Jane Addams", "Malala Yousafzai"],
+      "answers": ["Marie Curie"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "In what year did the Titanic sink?",
+      "answers": ["1912"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "Which of these were Allied Powers in WWII?",
+      "choices": ["USA", "UK", "USSR", "France", "Germany"],
+      "answers": ["USA", "UK", "USSR", "France"],
+      "type": "Multiple Choice",
+      "subject": "History"
+    },
+    {
+      "question": "What is the smallest bone in the human body?",
+      "choices": ["Stapes", "Malleus", "Incus", "Femur"],
+      "answers": ["Stapes"],
+      "type": "Single Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "How many chromosomes do humans have?",
+      "answers": ["46"],
+      "type": "Integer",
+      "subject": "Biology"
+    },
+    {
+      "question": "Which of these are parts of the human brain?",
+      "choices": ["Cerebrum", "Cerebellum", "Brainstem", "Ventricle"],
+      "answers": ["Cerebrum", "Cerebellum", "Brainstem"],
+      "type": "Multiple Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "What is the chemical symbol for Potassium?",
+      "choices": ["K", "P", "Po", "Pt"],
+      "answers": ["K"],
+      "type": "Single Choice",
+      "subject": "Chemistry"
+    },
+    {
+      "question": "What is the atomic number of Oxygen?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Chemistry"
+    },
+    {
+      "question": "Which of these are noble gases?",
+      "choices": ["Helium", "Neon", "Argon", "Krypton", "Xenon", "Radon"],
+      "answers": ["Helium", "Neon", "Argon", "Krypton", "Xenon", "Radon"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry"
+    },
+    {
+      "question": "Who wrote 'The Odyssey'?",
+      "choices": ["Homer", "Virgil", "Sophocles", "Euripides"],
+      "answers": ["Homer"],
+      "type": "Single Choice",
+      "subject": "Literature"
+    },
+    {
+      "question": "How many plays did Shakespeare write (approx)?",
+      "answers": ["38"],
+      "type": "Integer",
+      "subject": "Literature"
+    },
+    {
+      "question": "Which of these were written by Charles Dickens?",
+      "choices": ["Oliver Twist", "Great Expectations", "A Tale of Two Cities", "Jane Eyre"],
+      "answers": ["Oliver Twist", "Great Expectations", "A Tale of Two Cities"],
+      "type": "Multiple Choice",
+      "subject": "Literature"
+    },
+    {
+      "question": "What is the unit of electric current?",
+      "choices": ["Ampere", "Volt", "Ohm", "Watt"],
+      "answers": ["Ampere"],
+      "type": "Single Choice",
+      "subject": "Physics"
+    },
+    {
+      "question": "What is the speed of sound in air (approx m/s)?",
+      "answers": ["343"],
+      "type": "Integer",
+      "subject": "Physics"
+    },
+    {
+      "question": "Which of these are Newton's Laws of Motion?",
+      "choices": ["Inertia", "F=ma", "Action/Reaction", "Gravity"],
+      "answers": ["Inertia", "F=ma", "Action/Reaction"],
+      "type": "Multiple Choice",
+      "subject": "Physics"
+    },
+    {
+      "question": "Who is the god of thunder in Norse mythology?",
+      "choices": ["Thor", "Odin", "Loki", "Freyr"],
+      "answers": ["Thor"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "How many days are in a lunar month?",
+      "answers": ["29"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Which of these are continents?",
+      "choices": ["Asia", "Africa", "Europe", "Antarctica", "Oceania"],
+      "answers": ["Asia", "Africa", "Europe", "Antarctica"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "What is 15 * 6?",
+      "answers": ["90"],
+      "type": "Integer",
+      "subject": "Math"
+    }
+  ]
+}

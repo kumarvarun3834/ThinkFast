@@ -1,0 +1,16 @@
+{
+  "title": "Private Scholarship Final",
+  "visibility": "scheduled",
+  "activeAt": "2026-12-31T09:00:00Z",
+  "isRestricted": true,
+  "allowedParticipants": ["student@university.edu", "admin@thinkfast.app"],
+  "questions": [
+    {
+      "question": "Restricted Access Question?",
+      "choices": ["Yes", "No"],
+      "answers": ["Yes"],
+      "type": "Single Choice",
+      "subject": "Finals"
+    }
+  ]
+}

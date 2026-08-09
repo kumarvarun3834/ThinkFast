@@ -1,0 +1,16 @@
+{
+  "title": "General Knowledge Blitz",
+  "description": "Simple test using default scoring and global timing.",
+  "time": 10,
+  "isAiGenerated": false,
+  "questions": [
+    {
+      "question": "Which planet is known as the Red Planet?",
+      "choices": ["Earth", "Mars", "Jupiter", "Venus"],
+      "answers": ["Mars"],
+      "type": "Single Choice",
+      "subject": "Astronomy",
+      "explanation": "Mars is red due to iron oxide on its surface."
+    }
+  ]
+}

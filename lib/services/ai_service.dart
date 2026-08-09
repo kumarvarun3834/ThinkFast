@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:dio/dio.dart';
 import 'package:thinkfast/services/api_client.dart';
@@ -96,36 +95,35 @@ class AiService {
     await _checkAiEnabled(userId);
 
     try {
-      final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
-        userId: userId,
-        userName: userName,
-        userPrompt: prompt,
-        config: additionalConfig ?? {},
-      );
-
       final Map<String, dynamic> requestBody = {
-        'input': inputStatement,
-        'isPersonal': isPersonal,
-        'tags': tags,
-        'examTag': examTag,
+        'type': isPersonal ? 'wizard' : 'ai_text',
+        'config': {...additionalConfig ?? {}, 'tags': tags, 'examTag': examTag},
+        'input': prompt,
       };
 
-      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+      final Map<String, dynamic> hardenedPayload =
+          await ApiClient.buildSecurityPayload(requestBody);
       developer.log(jsonEncode(hardenedPayload), name: 'AI Generation Payload');
 
-      final url = "${global.aiBackendUrl}/generateQuiz";
+      final url =
+          "${global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '')}/api/generate-quiz";
       debugPrint("AI Generation: Calling backend -> $url");
 
       final response = await ApiClient.instance.post(
         url,
         data: hardenedPayload,
-        options: Options(headers: {'Content-Type': 'application/json'}),
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status! < 500,
+        ),
       );
 
       if (response.statusCode == 200) {
-        developer.log(jsonEncode(response.data), name: 'AI Generation Response');
+        developer.log(
+          jsonEncode(response.data),
+          name: 'AI Generation Response',
+        );
         final data = response.data;
-        final String quizId = data['quizId'];
 
         // Update local usage cache after successful generation
         final newUsage = await global.aiConnect.getAiUsageToday(userId);
@@ -133,6 +131,7 @@ class AiService {
 
         return {
           'quizId': data['quizId'],
+          'queueId': data['queueId'], // Support new queue tracking
           'status': data['status'] ?? 'completed',
           'message': data['message'] ?? '',
           'traces': data['traces'] ?? [],
@@ -140,11 +139,11 @@ class AiService {
         };
       } else {
         developer.log(
-          "AI Server Error: ${response.statusCode} - ${response.data}",
+          "AI Server Error [${response.statusCode}]: ${jsonEncode(response.data)}",
           name: 'AI Server Error',
         );
         throw Exception(
-          "AI Generation failed on the server. Status: ${response.statusCode}",
+          "AI Generation failed: ${response.data?['error'] ?? 'Server returned ${response.statusCode}'}",
         );
       }
     } catch (e) {
@@ -164,49 +163,55 @@ class AiService {
     await _checkAiEnabled(userId);
 
     try {
-      final Map<String, dynamic> inputStatement = _buildJsonInputStatement(
-        userId: userId,
-        userName: global.currentUserProfile?['name'] ?? 'User',
-        userPrompt: "Generate a quiz from the uploaded PDF document: $pdfName",
-        config: {'source': 'pdf', 'pdfName': pdfName, 'pdfSize': pdfSize},
-      );
-
       final Map<String, dynamic> requestBody = {
-        'pdfName': pdfName,
-        'pdfSize': pdfSize,
-        'pdfData': pdfData,
-        'input': inputStatement,
-        'isPersonal': isPersonal,
+        'type': 'ai_pdf',
+        'config': {
+          'pdfName': pdfName,
+          'pdfSize': pdfSize,
+          'isPersonal': isPersonal,
+        },
+        'input': pdfData, // Base64
       };
 
-      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
-      developer.log(jsonEncode(hardenedPayload), name: 'PDF Generation Payload');
+      final Map<String, dynamic> hardenedPayload =
+          await ApiClient.buildSecurityPayload(requestBody);
+      developer.log(
+        jsonEncode(hardenedPayload),
+        name: 'PDF Generation Payload',
+      );
 
-      final url = "${global.aiBackendUrl}/generateQuizFromPDF";
+      final url =
+          "${global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '')}/api/generate-quiz-pdf";
       debugPrint("PDF Generation: Calling backend -> $url");
 
       final response = await ApiClient.instance.post(
         url,
         data: hardenedPayload,
-        options: Options(headers: {'Content-Type': 'application/json'}),
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status! < 500,
+        ),
       );
 
       if (response.statusCode == 200) {
-        developer.log(jsonEncode(response.data), name: 'PDF Recognition Response');
+        developer.log(
+          jsonEncode(response.data),
+          name: 'PDF Recognition Response',
+        );
         final data = response.data;
 
         // Update local usage cache after successful generation
         final newUsage = await global.aiConnect.getAiUsageToday(userId);
         await _cache.saveAiUsage(newUsage);
 
-        return data['quizId'];
+        return data['queueId'] ?? data['quizId'];
       } else {
         developer.log(
-          "PDF Server Error: ${response.statusCode} - ${response.data}",
+          "PDF Server Error [${response.statusCode}]: ${jsonEncode(response.data)}",
           name: 'PDF Server Error',
         );
         throw Exception(
-          "PDF Recognition failed on the server. Status: ${response.statusCode}",
+          "PDF Recognition failed: ${response.data?['error'] ?? 'Server returned ${response.statusCode}'}",
         );
       }
     } catch (e) {
@@ -227,14 +232,15 @@ class AiService {
 
     try {
       final Map<String, dynamic> requestBody = {
-        'quizId': quizId,
-        'responseId': responseId,
+        'action': 'analyze',
+        'data': {'quizId': quizId, 'responseId': responseId},
       };
 
-      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+      final Map<String, dynamic> hardenedPayload =
+          await ApiClient.buildSecurityPayload(requestBody);
       developer.log(jsonEncode(hardenedPayload), name: 'AI Analysis Payload');
 
-      final url = "${global.aiBackendUrl}/api/quiz/analyze";
+      final url = "${global.aiBackendUrl}/api/quizzes/$quizId/actions";
       debugPrint("AI Analysis: Calling backend -> $url");
 
       final response = await ApiClient.instance.post(
@@ -248,7 +254,10 @@ class AiService {
         return response.data as Map<String, dynamic>;
       } else {
         final errorBody = response.data;
-        throw Exception(errorBody['error'] ?? "AI Analysis failed. Status: ${response.statusCode}");
+        throw Exception(
+          errorBody['error'] ??
+              "AI Analysis failed. Status: ${response.statusCode}",
+        );
       }
     } catch (e) {
       debugPrint("AI Analysis Error: $e");
@@ -256,36 +265,78 @@ class AiService {
     }
   }
 
-  /// ✅ Get Quiz Status from API (Checking memory/Firestore)
+  /// ✅ Get Quiz Status from API (Polling for async generation)
   Future<Map<String, dynamic>> getQuizStatus(String quizId) async {
     try {
-      final url = "${global.aiBackendUrl}/api/quiz-status/$quizId";
-      debugPrint("AI Status: Polling -> $url");
+      final baseUrl = global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '');
+      final url = "$baseUrl/api/quiz/status/$quizId";
+      debugPrint("AI Status Polling: Calling backend -> $url");
 
       final response = await ApiClient.instance.get(
         url,
-        options: Options(headers: {'Content-Type': 'application/json'}),
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status! < 500,
+        ),
       );
 
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
-      } else {
-        throw Exception("Failed to fetch status: ${response.statusCode}");
+      } else if (response.statusCode == 404) {
+        // Retry with an alias if the primary status isn't found
+        final altUrl = "$baseUrl/api/quiz/progress/$quizId";
+        final altResponse = await ApiClient.instance.get(
+          altUrl,
+          options: Options(
+            headers: {'Content-Type': 'application/json'},
+            validateStatus: (status) => status! < 500,
+          ),
+        );
+        if (altResponse.statusCode == 200) return altResponse.data;
       }
+
+      throw Exception("Failed to fetch status: ${response.statusCode}");
     } catch (e) {
       debugPrint("AI Status Error: $e");
-      throw Exception("An error occurred while checking quiz status: $e");
+      throw Exception("Polling error: $e");
+    }
+  }
+
+  /// ✅ Get Queue Status from API (Polling for async generation)
+  Future<Map<String, dynamic>> getQueueStatus(String queueId) async {
+    try {
+      final baseUrl = global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '');
+      final url = "$baseUrl/api/quiz_queue/$queueId";
+      debugPrint("AI Queue Status Polling: Calling backend -> $url");
+
+      final response = await ApiClient.instance.get(
+        url,
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          validateStatus: (status) => status! < 500,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception("Failed to fetch queue status: ${response.statusCode}");
+    } catch (e) {
+      debugPrint("AI Queue Status Error: $e");
+      throw Exception("Queue polling error: $e");
     }
   }
 
   /// ✅ Manually Process Quiz Queue (Admin Only)
   Future<Map<String, dynamic>> processQuizQueue() async {
     try {
-      final url = "${global.aiBackendUrl}/api/admin/queue/process";
+      final url = "${global.aiBackendUrl}/api/admin/tasks";
       debugPrint("AI Queue: Triggering manual flush -> $url");
 
-      final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload({});
-      
+      final Map<String, dynamic> requestData = {'task': 'flush_queue'};
+      final Map<String, dynamic> hardenedPayload =
+          await ApiClient.buildSecurityPayload(requestData);
+
       final response = await ApiClient.instance.post(
         url,
         data: hardenedPayload,
@@ -301,103 +352,5 @@ class AiService {
       debugPrint("AI Queue Error: $e");
       throw Exception("An error occurred during queue processing: $e");
     }
-  }
-
-  /// 🛠️ Helper to build a structured JSON "Input Statement" for the AI
-  Map<String, dynamic> _buildJsonInputStatement({
-    required String userId,
-    required String userName,
-    required String userPrompt,
-    required Map<String, dynamic> config,
-  }) {
-    final profile = global.currentUserProfile ?? {};
-
-    final String? subject = config['subject'];
-    final String? topic = config['topic'];
-    String clearStatement = userPrompt;
-    if (subject != null && topic != null) {
-      clearStatement = "Generate a quiz for $subject > $topic. $userPrompt";
-    }
-
-    final bool isExtendedProfileEnabled = profile['optInAiAnalysis'] == true;
-    final bool isPersonalizationRequested =
-        config['personalization'] != '❌ Ignore history' ||
-        config['difficulty'] == 'Adaptive AI ⭐' ||
-        config['coverage'] == 'Previous Mistakes ⭐';
-
-    final Map<String, dynamic> userPayload = {
-      "uid": userId,
-      "name": userName,
-      "email": profile['email'] ?? FirebaseAuth.instance.currentUser?.email,
-    };
-
-    if (isExtendedProfileEnabled) {
-      // Persona is sent if Extended Profile is active
-      userPayload["persona"] = {
-        "class": profile['class'],
-        "goal": profile['goal'],
-        "targetExam": profile['targetExam'],
-        "learningStyle": profile['learningStyle'],
-        "interests": profile['interests'],
-        "language": profile['preferredLanguage'] ?? 'English'
-      };
-
-      // Performance is ONLY sent if BOTH Extended Profile is active AND personalization is requested
-      if (isPersonalizationRequested) {
-        userPayload["performance"] = {
-          "attemptCount": profile['attemptCount'],
-          "quizCount": profile['quizCount'],
-          "avgScore": profile['avgScore'] ?? '0%',
-          "timeSpentPerQ": profile['timeSpentPerQ'] ?? 'Auto',
-          "commonMistakes": profile['commonMistakes'] ?? [],
-          "weakTopics": profile['weakTopics'] ?? [],
-          "strongTopics": profile['strongTopics'] ?? [],
-          "topicPerformance": profile['topicPerformance'] ?? {},
-          "recentlyStudiedTopics": profile['lastQuizTopics'] ?? [],
-          "learningStyle": profile['learningStyle'] ?? 'Adaptive',
-          "preferredDifficulty": profile['preferredDifficulty'] ?? 'Medium'
-        };
-      }
-    }
-
-    return {
-      "system": {
-        "role": "Quiz Wiz - Professional Educational Content Developer",
-        "project": global.projectContext,
-        "instructions": [
-          "Generate professional, pedagogical quiz content.",
-          "Ensure high personalization based on the provided user profile.",
-          "Prioritize weak topics if difficulty is set to 'Adaptive'.",
-          "Return ONLY valid JSON matching the requested schema."
-        ]
-      },
-      "user": userPayload,
-      "request": {
-        "user_input": userPrompt,
-        "clear_statement": clearStatement,
-        "hierarchy": {
-          "subject": subject,
-          "topic": topic
-        },
-        "config": config,
-        "output_format": {
-          "type": "json",
-          "schema": {
-            "title": "string",
-            "description": "string",
-            "questions": [
-              {
-                "type": "Single Choice | Multiple Choice | Integer",
-                "question": "string",
-                "choices": ["string"],
-                "answers": ["string"],
-                "subject": "string",
-                "explanation": "string"
-              }
-            ]
-          }
-        }
-      }
-    };
   }
 }

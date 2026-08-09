@@ -1,0 +1,184 @@
+{
+  "title": "Numerical Mastery 25",
+  "description": "25 Integer type questions focused on Mathematics with strict marking (+10/0).",
+  "markingScheme": {
+    "Integer": { "correct": 10, "incorrect": 0 }
+  },
+  "questions": [
+    {
+      "question": "12 * 12",
+      "answers": ["144"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "12 squared is 144."
+    },
+    {
+      "question": "Prime number after 17",
+      "answers": ["19"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "19 is the next prime."
+    },
+    {
+      "question": "Sum of first 5 natural numbers",
+      "answers": ["15"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "1+2+3+4+5 = 15."
+    },
+    {
+      "question": "1000 - 456",
+      "answers": ["544"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "1000 - 456 = 544."
+    },
+    {
+      "question": "Degrees in a circle",
+      "answers": ["360"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "A full rotation is 360 degrees."
+    },
+    {
+      "question": "2^10",
+      "answers": ["1024"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "1024."
+    },
+    {
+      "question": "Number of zeros in one million",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "1,000,000 has 6 zeros."
+    },
+    {
+      "question": "6! / 5!",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "720 / 120 = 6."
+    },
+    {
+      "question": "3x = 81, x = ?",
+      "answers": ["27"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "81 / 3 = 27."
+    },
+    {
+      "question": "Sides in a decagon",
+      "answers": ["10"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Deca means 10."
+    },
+    {
+      "question": "5 cubed",
+      "answers": ["125"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "5 * 5 * 5 = 125."
+    },
+    {
+      "question": "Sqrt(225)",
+      "answers": ["15"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "15 * 15 = 225."
+    },
+    {
+      "question": "Number of primes between 1 and 10",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "2, 3, 5, 7."
+    },
+    {
+      "question": "15% of 200",
+      "answers": ["30"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "0.15 * 200 = 30."
+    },
+    {
+      "question": "Value of x in x/4 = 16",
+      "answers": ["64"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "16 * 4 = 64."
+    },
+    {
+      "question": "Binary 1010 in decimal",
+      "answers": ["10"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "8 + 2 = 10."
+    },
+    {
+      "question": "GCD of 12 and 18",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Largest number that divides both."
+    },
+    {
+      "question": "LCM of 4 and 6",
+      "answers": ["12"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Smallest multiple of both."
+    },
+    {
+      "question": "Interior angle of a square",
+      "answers": ["90"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "All angles are 90 degrees."
+    },
+    {
+      "question": "7 squared + 1",
+      "answers": ["50"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "49 + 1 = 50."
+    },
+    {
+      "question": "Half of a gross (144)",
+      "answers": ["72"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "144 / 2 = 72."
+    },
+    {
+      "question": "Base of the octal system",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Octal is base 8."
+    },
+    {
+      "question": "Digits in a credit card number usually",
+      "answers": ["16"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Standard 16 digits."
+    },
+    {
+      "question": "Seconds in two minutes",
+      "answers": ["120"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "60 * 2 = 120."
+    },
+    {
+      "question": "Sum of 10 and 20 and 30",
+      "answers": ["60"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "10 + 20 + 30 = 60."
+    }
+  ]
+}

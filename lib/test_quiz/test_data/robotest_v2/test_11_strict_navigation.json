@@ -1,0 +1,172 @@
+{
+  "title": "Strict Navigation Test",
+  "description": "Navigation is restricted; modules cannot be switched easily.",
+  "time": 30,
+  "disableModuleSwitchingUntilTimeout": true,
+  "forceWaitUntilTimeout": true,
+  "questions": [
+    {
+      "question": "Q1: Capital of Portugal?",
+      "choices": ["Lisbon", "Porto", "Braga", "Coimbra"],
+      "answers": ["Lisbon"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q2: Capital of Greece?",
+      "choices": ["Athens", "Thessaloniki", "Patras", "Heraklion"],
+      "answers": ["Athens"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q3: Capital of Ireland?",
+      "choices": ["Dublin", "Cork", "Limerick", "Galway"],
+      "answers": ["Dublin"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q4: Capital of Belgium?",
+      "choices": ["Brussels", "Antwerp", "Ghent", "Bruges"],
+      "answers": ["Brussels"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q5: Capital of Netherlands?",
+      "choices": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht"],
+      "answers": ["Amsterdam"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q6: Which are Mediterranean countries?",
+      "choices": ["Italy", "Greece", "Spain", "Norway"],
+      "answers": ["Italy", "Greece", "Spain"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q7: Which are Baltic states?",
+      "choices": ["Estonia", "Latvia", "Lithuania", "Poland"],
+      "answers": ["Estonia", "Latvia", "Lithuania"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q8: Which are Alpine countries?",
+      "choices": ["Switzerland", "Austria", "Italy", "UK"],
+      "answers": ["Switzerland", "Austria", "Italy"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q9: Which are Benelux countries?",
+      "choices": ["Belgium", "Netherlands", "Luxembourg", "France"],
+      "answers": ["Belgium", "Netherlands", "Luxembourg"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q10: Which are Iberian countries?",
+      "choices": ["Spain", "Portugal", "France", "Italy"],
+      "answers": ["Spain", "Portugal"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q11: How many degrees in a circle?",
+      "answers": ["360"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q12: How many degrees in a triangle?",
+      "answers": ["180"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q13: How many degrees in a square?",
+      "answers": ["360"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q14: How many degrees in a pentagon?",
+      "answers": ["540"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q15: How many degrees in a hexagon?",
+      "answers": ["720"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q16: First man on the moon?",
+      "choices": ["Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin", "John Glenn"],
+      "answers": ["Neil Armstrong"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q17: First man in space?",
+      "choices": ["Yuri Gagarin", "Neil Armstrong", "Alan Shepard", "John Glenn"],
+      "answers": ["Yuri Gagarin"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q18: Year of first moon landing?",
+      "answers": ["1969"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "Q19: Year of first space flight?",
+      "answers": ["1961"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "Q20: First satellite launched?",
+      "choices": ["Sputnik 1", "Explorer 1", "Vanguard 1", "Telstar 1"],
+      "answers": ["Sputnik 1"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q21: Boiling point of Neon (K)?",
+      "answers": ["27"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q22: Boiling point of Argon (K)?",
+      "answers": ["87"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q23: Boiling point of Krypton (K)?",
+      "answers": ["120"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q24: Boiling point of Xenon (K)?",
+      "answers": ["165"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q25: Boiling point of Radon (K)?",
+      "answers": ["211"],
+      "type": "Integer",
+      "subject": "Science"
+    }
+  ]
+}

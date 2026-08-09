@@ -1,0 +1,32 @@
+{
+  "title": "Integer Mastery",
+  "description": "A test consisting entirely of integer-type questions.",
+  "time": 30,
+  "questions": [
+    { "question": "1 + 1?", "answers": ["2"], "type": "Integer", "subject": "Math" },
+    { "question": "2 + 2?", "answers": ["4"], "type": "Integer", "subject": "Math" },
+    { "question": "3 + 3?", "answers": ["6"], "type": "Integer", "subject": "Math" },
+    { "question": "4 + 4?", "answers": ["8"], "type": "Integer", "subject": "Math" },
+    { "question": "5 + 5?", "answers": ["10"], "type": "Integer", "subject": "Math" },
+    { "question": "6 + 6?", "answers": ["12"], "type": "Integer", "subject": "Math" },
+    { "question": "7 + 7?", "answers": ["14"], "type": "Integer", "subject": "Math" },
+    { "question": "8 + 8?", "answers": ["16"], "type": "Integer", "subject": "Math" },
+    { "question": "9 + 9?", "answers": ["18"], "type": "Integer", "subject": "Math" },
+    { "question": "10 + 10?", "answers": ["20"], "type": "Integer", "subject": "Math" },
+    { "question": "11 + 11?", "answers": ["22"], "type": "Integer", "subject": "Math" },
+    { "question": "12 + 12?", "answers": ["24"], "type": "Integer", "subject": "Math" },
+    { "question": "13 + 13?", "answers": ["26"], "type": "Integer", "subject": "Math" },
+    { "question": "14 + 14?", "answers": ["28"], "type": "Integer", "subject": "Math" },
+    { "question": "15 + 15?", "answers": ["30"], "type": "Integer", "subject": "Math" },
+    { "question": "16 + 16?", "answers": ["32"], "type": "Integer", "subject": "Math" },
+    { "question": "17 + 17?", "answers": ["34"], "type": "Integer", "subject": "Math" },
+    { "question": "18 + 18?", "answers": ["36"], "type": "Integer", "subject": "Math" },
+    { "question": "19 + 19?", "answers": ["38"], "type": "Integer", "subject": "Math" },
+    { "question": "20 + 20?", "answers": ["40"], "type": "Integer", "subject": "Math" },
+    { "question": "21 + 21?", "answers": ["42"], "type": "Integer", "subject": "Math" },
+    { "question": "22 + 22?", "answers": ["44"], "type": "Integer", "subject": "Math" },
+    { "question": "23 + 23?", "answers": ["46"], "type": "Integer", "subject": "Math" },
+    { "question": "24 + 24?", "answers": ["48"], "type": "Integer", "subject": "Math" },
+    { "question": "25 + 25?", "answers": ["50"], "type": "Integer", "subject": "Math" }
+  ]
+}

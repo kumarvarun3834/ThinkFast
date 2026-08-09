@@ -1,0 +1,181 @@
+{
+  "title": "Per Module Timing Test",
+  "description": "Each module has its own total time limit.",
+  "time": 0,
+  "timingScheme": {
+    "type": "per_module",
+    "settings": {
+      "perModule": {
+        "Science": { "total": 600 },
+        "History": { "total": 300 }
+      }
+    }
+  },
+  "questions": [
+    {
+      "question": "S1: What gas do plants absorb?",
+      "choices": ["CO2", "O2", "N2", "H2"],
+      "answers": ["CO2"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S2: What gas do plants release?",
+      "choices": ["CO2", "O2", "N2", "H2"],
+      "answers": ["O2"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S3: Main component of sun?",
+      "choices": ["Hydrogen", "Helium", "Oxygen", "Carbon"],
+      "answers": ["Hydrogen"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S4: Distance to sun (mil km)?",
+      "answers": ["150"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "S5: Water freezing point (F)?",
+      "answers": ["32"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "S6: Planets with rings?",
+      "choices": ["Saturn", "Jupiter", "Uranus", "Neptune"],
+      "answers": ["Saturn", "Jupiter", "Uranus", "Neptune"],
+      "type": "Multiple Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S7: Noble gases list?",
+      "choices": ["He", "Ne", "Ar", "Kr", "Xe", "Rn"],
+      "answers": ["He", "Ne", "Ar", "Kr", "Xe", "Rn"],
+      "type": "Multiple Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S8: Primary colors of light?",
+      "choices": ["Red", "Green", "Blue", "Yellow"],
+      "answers": ["Red", "Green", "Blue"],
+      "type": "Multiple Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "S9: Atomic weight of H?",
+      "answers": ["1"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "S10: Speed of sound (m/s)?",
+      "answers": ["343"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "H1: Battle of Waterloo year?",
+      "choices": ["1815", "1805", "1825", "1835"],
+      "answers": ["1815"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H2: American Civil War start?",
+      "choices": ["1861", "1865", "1850", "1870"],
+      "answers": ["1861"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H3: Fall of Rome (year)?",
+      "answers": ["476"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "H4: Magna Carta signature?",
+      "answers": ["1215"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "H5: Allies in WWI?",
+      "choices": ["UK", "France", "Russia", "Italy", "USA", "Germany"],
+      "answers": ["UK", "France", "Russia", "Italy", "USA"],
+      "type": "Multiple Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H6: Renaissance artists?",
+      "choices": ["Da Vinci", "Michelangelo", "Raphael", "Donatello", "Picasso"],
+      "answers": ["Da Vinci", "Michelangelo", "Raphael", "Donatello"],
+      "type": "Multiple Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H7: French Kings named Louis?",
+      "answers": ["18"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "H8: Years of Hundred Years War?",
+      "answers": ["116"],
+      "type": "Integer",
+      "subject": "History"
+    },
+    {
+      "question": "H9: Who discovered America?",
+      "choices": ["Columbus", "Vespucci", "Cabot", "Cook"],
+      "answers": ["Columbus"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "H10: Founding fathers of US?",
+      "choices": ["Washington", "Adams", "Jefferson", "Madison", "Hamilton", "Franklin", "Jay"],
+      "answers": ["Washington", "Adams", "Jefferson", "Madison", "Hamilton", "Franklin", "Jay"],
+      "type": "Multiple Choice",
+      "subject": "History"
+    },
+    {
+      "question": "T1: HTTP stands for?",
+      "choices": ["HyperText Transfer Protocol", "High Text Transfer Protocol"],
+      "answers": ["HyperText Transfer Protocol"],
+      "type": "Single Choice",
+      "subject": "Tech"
+    },
+    {
+      "question": "T2: Standard SSH port?",
+      "answers": ["22"],
+      "type": "Integer",
+      "subject": "Tech"
+    },
+    {
+      "question": "T3: OS Kernels?",
+      "choices": ["Linux", "XNU", "NT", "Word"],
+      "answers": ["Linux", "XNU", "NT"],
+      "type": "Multiple Choice",
+      "subject": "Tech"
+    },
+    {
+      "question": "T4: First computer bug?",
+      "choices": ["Moth", "Beetle", "Ant", "Fly"],
+      "answers": ["Moth"],
+      "type": "Single Choice",
+      "subject": "Tech"
+    },
+    {
+      "question": "T5: Bits in a Kilobit?",
+      "answers": ["1000"],
+      "type": "Integer",
+      "subject": "Tech"
+    }
+  ]
+}

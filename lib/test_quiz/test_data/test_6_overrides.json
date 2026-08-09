@@ -1,0 +1,16 @@
+{
+  "title": "The Danger Room",
+  "markingScheme": { "type": "per_question" },
+  "questions": [
+    {
+      "question": "High Stakes: +100 or -50. (Timer: 5s)",
+      "answers": ["Safe"],
+      "choices": ["Safe", "Danger"],
+      "type": "Single Choice",
+      "subject": "Logic",
+      "correct": 100,
+      "wrong": -50,
+      "timer": 5
+    }
+  ]
+}

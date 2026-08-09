@@ -1,0 +1,30 @@
+{
+  "title": "Ordered Learning",
+  "description": "Progresses from Fundamentals to Advanced modules.",
+  "time": 40,
+  "isAiGenerated": true,
+  "moduleOrder": ["Fundamentals", "Advanced"],
+  "shuffleModules": false,
+  "questions": [
+    { "question": "What is 2 + 2?", "choices": ["3", "4", "5", "6"], "answers": ["4"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Basic addition." },
+    { "question": "Capital of the USA?", "choices": ["New York", "Washington D.C.", "Los Angeles", "Chicago"], "answers": ["Washington D.C."], "type": "Single Choice", "subject": "Fundamentals", "explanation": "The capital is a federal district." },
+    { "question": "Color of grass?", "choices": ["Blue", "Red", "Green", "Yellow"], "answers": ["Green"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Chlorophyll makes grass green." },
+    { "question": "Opposite of 'Hot'?", "choices": ["Warm", "Cold", "Dry", "Wet"], "answers": ["Cold"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Basic antonyms." },
+    { "question": "How many legs does a dog have?", "choices": ["2", "3", "4", "5"], "answers": ["4"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Most mammals have 4 legs." },
+    { "question": "What is 10 - 7?", "choices": ["2", "3", "4", "5"], "answers": ["3"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Basic subtraction." },
+    { "question": "Which fruit is yellow?", "choices": ["Apple", "Banana", "Grape", "Berry"], "answers": ["Banana"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Bananas are yellow when ripe." },
+    { "question": "How many hours in a day?", "choices": ["12", "24", "36", "48"], "answers": ["24"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Earth rotates once in 24 hours." },
+    { "question": "What sound does a cat make?", "choices": ["Woof", "Meow", "Moo", "Quack"], "answers": ["Meow"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Cats meow." },
+    { "question": "Which is a vowel?", "choices": ["B", "C", "D", "E"], "answers": ["E"], "type": "Single Choice", "subject": "Fundamentals", "explanation": "Vowels are A, E, I, O, U." },
+    { "question": "Derivative of x^2?", "choices": ["x", "2x", "x^3", "2"], "answers": ["2x"], "type": "Single Choice", "subject": "Advanced", "explanation": "Power rule: d/dx(x^n) = n*x^(n-1)." },
+    { "question": "What is the Schrodinger equation used for?", "choices": ["Relativity", "Quantum Mechanics", "Thermodynamics", "Optics"], "answers": ["Quantum Mechanics"], "type": "Single Choice", "subject": "Advanced", "explanation": "It describes the wave function of a quantum system." },
+    { "question": "Who developed the theory of General Relativity?", "choices": ["Newton", "Einstein", "Hawking", "Bohr"], "answers": ["Einstein"], "type": "Single Choice", "subject": "Advanced", "explanation": "Albert Einstein published it in 1915." },
+    { "question": "Function of a Transformer?", "choices": ["AC to DC", "Change Voltage", "Store Energy", "Filter Noise"], "answers": ["Change Voltage"], "type": "Single Choice", "subject": "Advanced", "explanation": "Transformers step up or step down AC voltage." },
+    { "question": "Which particle has no charge?", "choices": ["Proton", "Electron", "Neutron", "Positron"], "answers": ["Neutron"], "type": "Single Choice", "subject": "Advanced", "explanation": "Neutrons are electrically neutral." },
+    { "question": "What is 0 Kelvin in Celsius?", "choices": ["-273.15", "0", "100", "-100"], "answers": ["-273.15"], "type": "Single Choice", "subject": "Advanced", "explanation": "Absolute zero is -273.15 C." },
+    { "question": "Which organelle is responsible for ATP production?", "choices": ["Ribosome", "Mitochondria", "Golgi", "Nucleus"], "answers": ["Mitochondria"], "type": "Single Choice", "subject": "Advanced", "explanation": "Mitochondria are the powerhouses of the cell." },
+    { "question": "Formula for Glucose?", "choices": ["C6H12O6", "CH4", "CO2", "H2O"], "answers": ["C6H12O6"], "type": "Single Choice", "subject": "Advanced", "explanation": "Glucose is a simple sugar." },
+    { "question": "What is the big-O complexity of Binary Search?", "choices": ["O(n)", "O(log n)", "O(n^2)", "O(1)"], "answers": ["O(log n)"], "type": "Single Choice", "subject": "Advanced", "explanation": "Binary search divides the search space in half." },
+    { "question": "What is the main programming language for Android (modern)?", "choices": ["Java", "Kotlin", "Swift", "C#"], "answers": ["Kotlin"], "type": "Single Choice", "subject": "Advanced", "explanation": "Google announced Kotlin as the preferred language in 2019." }
+  ]
+}

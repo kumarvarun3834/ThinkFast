@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:thinkfast/services/ai_service.dart';
+import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -43,50 +43,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (!silent) setState(() => _isLoading = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-      final headers = {
-        'Content-Type': 'application/json',
-        if (token != null) 'Authorization': 'Bearer $token',
-      };
-
       if (_activeCategory == "Overview" || _activeCategory == "System Health") {
         final responses = await Future.wait([
-          http.get(
-            Uri.parse("${global.aiBackendUrl}/api/health"),
-            headers: headers,
+          ApiClient.instance.get(
+            "${global.aiBackendUrl}/api/health",
+            options: Options(headers: {'Content-Type': 'application/json'}),
           ),
-          http.get(
-            Uri.parse("${global.aiBackendUrl}/api/admin/metrics"),
-            headers: headers,
-          ),
-        ]);
-
-        if (mounted) {
-          setState(() {
-            _dashboardData['health'] = _parseResponse(responses[0]);
-            _dashboardData['metrics'] = _parseResponse(responses[1]);
-          });
-        }
-      }
-
-      if (_activeCategory == "Overview" ||
-          _activeCategory == "Active Monitoring") {
-        final responses = await Future.wait([
-          http.get(
-            Uri.parse("${global.aiBackendUrl}/api/active-quizzes"),
-            headers: headers,
-          ),
-          http.get(
-            Uri.parse("${global.aiBackendUrl}/api/notifications"),
-            headers: headers,
+          ApiClient.instance.get(
+            "${global.aiBackendUrl}/api/admin/metrics",
+            options: Options(headers: {'Content-Type': 'application/json'}),
           ),
         ]);
 
         if (mounted) {
           setState(() {
-            _dashboardData['active_quizzes'] = _parseResponse(responses[0]);
-            _dashboardData['notifications'] = _parseResponse(responses[1]);
+            _dashboardData['health'] = responses[0].data;
+            _dashboardData['metrics'] = responses[1].data;
           });
         }
       }
@@ -95,17 +67,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } finally {
       if (mounted && !silent) setState(() => _isLoading = false);
     }
-  }
-
-  dynamic _parseResponse(http.Response res) {
-    if (res.statusCode == 200) {
-      try {
-        return jsonDecode(res.body);
-      } catch (_) {
-        return res.body;
-      }
-    }
-    return {"error": "Status ${res.statusCode}", "details": res.body};
   }
 
   Future<void> _triggerAction(
@@ -144,19 +105,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (confirm != true) return;
     }
 
+    if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(SnackBar(content: Text("Executing $path...")));
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final token = await user?.getIdToken();
-      final response = await http.post(
-        Uri.parse("${global.aiBackendUrl}$path"),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body ?? {}),
+      final response = await ApiClient.instance.post(
+        "${global.aiBackendUrl}$path",
+        data: body ?? {},
+        options: Options(headers: {'Content-Type': 'application/json'}),
       );
 
       if (mounted) {
@@ -175,9 +132,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         _fetchCategoryData(silent: true);
       }
     } catch (e) {
-      if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text("Action Failed: $e")));
-      }
+      messenger.showSnackBar(SnackBar(content: Text("Action Failed: $e")));
     }
   }
 
@@ -552,7 +507,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildOverview(bool isSmall) {
     final metrics = _dashboardData['metrics'] as Map? ?? {};
     final health = _dashboardData['health'] as Map? ?? {};
-    final quizzes = _getList('active_quizzes');
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -592,39 +546,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               metrics['memory']?.toString() ?? "0 MB",
               Icons.memory_rounded,
             ),
-            _buildInfoTile(
-              "Sessions",
-              quizzes.length.toString(),
-              Icons.bolt_rounded,
-              color: global.primaryAccent,
-            ),
-            _buildInfoTile(
-              "Notifs",
-              _getList('notifications').length.toString(),
-              Icons.notifications_active_rounded,
-            ),
-            _buildInfoTile("DB Mode", "Mock", Icons.storage_rounded),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _buildSectionHeader("Quick Actions"),
-        const SizedBox(height: 16),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildActionButton(
-              onPressed: () =>
-                  _triggerAction("/api/admin/config", body: {"latency": 0}),
-              icon: Icons.speed_rounded,
-              label: "Zero Latency",
-            ),
-            _buildActionButton(
-              onPressed: () =>
-                  _triggerAction("/api/database/simulate-client-write"),
-              icon: Icons.edit_note_rounded,
-              label: "Simulate Write",
-            ),
+            _buildInfoTile("DB Mode", "Production", Icons.storage_rounded),
           ],
         ),
       ],
@@ -672,39 +594,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildMonitoring() {
-    final quizzes = _getList('active_quizzes');
-    final notifications = _getList('notifications');
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        _buildSectionHeader("Active Quiz Sessions (${quizzes.length})"),
-        const SizedBox(height: 16),
-        if (quizzes.isEmpty)
-          const Text(
-            "No active sessions currently.",
-            style: TextStyle(color: global.labelColor),
-          )
-        else
-          ...quizzes.map(
-            (q) => _buildListItem(q.toString(), Icons.quiz_rounded),
-          ),
-        const SizedBox(height: 32),
-        _buildSectionHeader("Notification Queue (${notifications.length})"),
-        const SizedBox(height: 16),
-        if (notifications.isEmpty)
-          const Text(
-            "Notification queue is empty.",
-            style: TextStyle(color: global.labelColor),
-          )
-        else
-          ...notifications.map(
-            (n) => _buildListItem(
-              n.toString(),
-              Icons.notification_important_rounded,
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_graph_rounded, color: global.labelColor, size: 48),
+            SizedBox(height: 16),
+            Text(
+              "Real-time Monitoring Active",
+              style: TextStyle(
+                color: global.valueColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-      ],
+            SizedBox(height: 8),
+            Text(
+              "Active sessions and notifications are monitored directly via Firestore SDK on the main screens.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: global.labelColor, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -716,26 +629,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         const SizedBox(height: 16),
         _buildActionCard(
           "Database Reset",
-          "Wipes all in-memory data and resets the mock database to its initial state.",
+          "Wipes restricted collections and resets the system to its initial state.",
           Icons.refresh_rounded,
-          () => _triggerAction("/api/admin/reset", destructive: true),
+          () => _triggerAction(
+            "/api/admin/tasks",
+            body: {"task": "reset_db"},
+            destructive: true,
+          ),
           isDestructive: true,
         ),
         const SizedBox(height: 16),
         _buildActionCard(
-          "Import Workspace Quizzes",
-          "Triggers a bulk import of quizzes from the predefined workspace context.",
-          Icons.file_download_rounded,
-          () => _triggerAction("/api/database/import-workspace-quizzes"),
-        ),
-        const SizedBox(height: 32),
-        _buildSectionHeader("Security & Logic"),
-        const SizedBox(height: 16),
-        _buildActionCard(
-          "Refresh Security Rules",
-          "Re-evaluates the server-side security rules for Firestore simulation.",
-          Icons.security_rounded,
-          () => _triggerAction("/api/security-rules"),
+          "Flush AI Queue",
+          "Immediately processes all pending asynchronous generation requests.",
+          Icons.bolt_rounded,
+          () =>
+              _triggerAction("/api/admin/tasks", body: {"task": "flush_queue"}),
         ),
       ],
     );

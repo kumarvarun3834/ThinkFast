@@ -1,0 +1,27 @@
+{
+  "title": "Medical Entrance Mock (NEET Style)",
+  "examTag": "NEET 2025",
+  "time": 180,
+  "markingScheme": {
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Integer": { "correct": 4, "wrong": 0 }
+    }
+  },
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Biology": { "Single Choice": 90 },
+      "Physics": { "Integer": 15 }
+    }
+  },
+  "questions": [
+    {
+      "question": "Value of Avogadro's constant (Integer part)?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Chemistry"
+    }
+  ]
+}

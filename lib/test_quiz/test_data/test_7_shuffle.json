@@ -1,0 +1,10 @@
+{
+  "title": "Total Chaos Shuffle",
+  "shuffleModules": true,
+  "shuffleQuestionsWithinModules": true,
+  "attemptLimits": { "type": "global", "global": { "Single Choice": 5 } },
+  "questions": [
+    { "question": "Q1", "answers": ["A"], "choices": ["A", "B"], "type": "Single Choice", "subject": "Mod A" },
+    { "question": "Q2", "answers": ["B"], "choices": ["A", "B"], "type": "Single Choice", "subject": "Mod B" }
+  ]
+}

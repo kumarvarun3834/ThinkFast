@@ -1,0 +1,34 @@
+{
+  "title": "Mixed Dynamics",
+  "description": "Legacy field test with per-question scoring and individual timers.",
+  "time": 30,
+  "isAiGenerated": true,
+  "markingScheme": {
+    "type": "per_question"
+  },
+  "timing": {
+    "type": "global"
+  },
+  "questions": [
+    { "question": "What is the capital of Italy?", "choices": ["Milan", "Venice", "Rome", "Naples"], "answers": ["Rome"], "type": "Single Choice", "subject": "Geography", "correct": 5, "wrong": -2, "timer": 30, "explanation": "Rome is the capital." },
+    { "question": "Who wrote 'Macbeth'?", "choices": ["Shakespeare", "Marlowe", "Jonson", "Webster"], "answers": ["Shakespeare"], "type": "Single Choice", "subject": "Literature", "correct": 10, "wrong": -5, "timer": 45, "explanation": "A tragedy by William Shakespeare." },
+    { "question": "What is 5 * 6?", "choices": ["25", "30", "35", "40"], "answers": ["30"], "type": "Single Choice", "subject": "Math", "correct": 2, "wrong": 0, "timer": 15, "explanation": "Basic multiplication." },
+    { "question": "Largest mammal?", "choices": ["Elephant", "Blue Whale", "Giraffe", "Orca"], "answers": ["Blue Whale"], "type": "Single Choice", "subject": "Biology", "correct": 4, "wrong": -1, "timer": 20, "explanation": "Blue whales can weigh up to 200 tons." },
+    { "question": "Who invented the light bulb?", "choices": ["Tesla", "Edison", "Ford", "Bell"], "answers": ["Edison"], "type": "Single Choice", "subject": "History", "correct": 6, "wrong": -3, "timer": 25, "explanation": "Thomas Edison patented the first practical one." },
+    { "question": "Capital of Russia?", "choices": ["St. Petersburg", "Moscow", "Kiev", "Minsk"], "answers": ["Moscow"], "type": "Single Choice", "subject": "Geography", "correct": 5, "wrong": -2, "timer": 30, "explanation": "Moscow is the largest city in Russia." },
+    { "question": "What is the square root of 49?", "choices": ["6", "7", "8", "9"], "answers": ["7"], "type": "Single Choice", "subject": "Math", "correct": 3, "wrong": -1, "timer": 15, "explanation": "7 * 7 = 49." },
+    { "question": "Smallest unit of life?", "choices": ["Atom", "Cell", "Molecule", "Organ"], "answers": ["Cell"], "type": "Single Choice", "subject": "Biology", "correct": 5, "wrong": -2, "timer": 20, "explanation": "The cell is the basic structural unit." },
+    { "question": "Which planet is closest to the Sun?", "choices": ["Venus", "Mars", "Mercury", "Earth"], "answers": ["Mercury"], "type": "Single Choice", "subject": "Science", "correct": 4, "wrong": -2, "timer": 15, "explanation": "Mercury has a very short orbit." },
+    { "question": "Who is the author of 'Harry Potter'?", "choices": ["Tolkien", "Lewis", "Rowling", "Dahl"], "answers": ["Rowling"], "type": "Single Choice", "subject": "Literature", "correct": 5, "wrong": -1, "timer": 25, "explanation": "J.K. Rowling." },
+    { "question": "Capital of Germany?", "choices": ["Hamburg", "Munich", "Berlin", "Cologne"], "answers": ["Berlin"], "type": "Single Choice", "subject": "Geography", "correct": 5, "wrong": -2, "timer": 20, "explanation": "Berlin is the capital." },
+    { "question": "What is 100 / 5?", "choices": ["10", "15", "20", "25"], "answers": ["20"], "type": "Single Choice", "subject": "Math", "correct": 2, "wrong": 0, "timer": 10, "explanation": "Simple division." },
+    { "question": "Fastest land animal?", "choices": ["Cheetah", "Lion", "Tiger", "Gazelle"], "answers": ["Cheetah"], "type": "Single Choice", "subject": "Biology", "correct": 4, "wrong": -1, "timer": 15, "explanation": "Cheetahs are built for speed." },
+    { "question": "Which ocean is on the East Coast of the USA?", "choices": ["Pacific", "Atlantic", "Indian", "Arctic"], "answers": ["Atlantic"], "type": "Single Choice", "subject": "Geography", "correct": 6, "wrong": -2, "timer": 20, "explanation": "The Atlantic Ocean borders the East Coast." },
+    { "question": "Chemical symbol for Iron?", "choices": ["Ir", "Fe", "In", "Au"], "answers": ["Fe"], "type": "Single Choice", "subject": "Chemistry", "correct": 8, "wrong": -4, "timer": 30, "explanation": "From the Latin 'ferrum'." },
+    { "question": "Who painted the Mona Lisa?", "choices": ["Picasso", "Van Gogh", "Da Vinci", "Rembrandt"], "answers": ["Da Vinci"], "type": "Single Choice", "subject": "Art", "correct": 10, "wrong": -5, "timer": 40, "explanation": "Leonardo da Vinci painted it." },
+    { "question": "How many days in a week?", "choices": ["5", "6", "7", "8"], "answers": ["7"], "type": "Single Choice", "subject": "General", "correct": 1, "wrong": 0, "timer": 5, "explanation": "Standard calendar week." },
+    { "question": "Which gas do we need to breathe?", "choices": ["CO2", "Nitrogen", "Oxygen", "Helium"], "answers": ["Oxygen"], "type": "Single Choice", "subject": "Science", "correct": 5, "wrong": -2, "timer": 15, "explanation": "Oxygen is essential for life." },
+    { "question": "Capital of Spain?", "choices": ["Madrid", "Barcelona", "Seville", "Valencia"], "answers": ["Madrid"], "type": "Single Choice", "subject": "Geography", "correct": 5, "wrong": -2, "timer": 20, "explanation": "Madrid is the capital." },
+    { "question": "What is the currency of the USA?", "choices": ["Euro", "Pound", "Dollar", "Yen"], "answers": ["Dollar"], "type": "Single Choice", "subject": "Economics", "correct": 2, "wrong": 0, "timer": 10, "explanation": "US Dollar." }
+  ]
+}

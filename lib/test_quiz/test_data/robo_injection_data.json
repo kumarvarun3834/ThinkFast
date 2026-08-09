@@ -1,0 +1,82 @@
+{
+  "title": "Robo-Testing Injection Suite",
+  "description": "Comprehensive test suite for direct injection. Tests all question types, mixed timers, specific marking schemes, and strict attempt limits.",
+  "isAiGenerated": true,
+  "examTag": "ROBO-TEST-2026",
+  "time": 30,
+  "perQuestionTime": 60,
+  "completeRandomShuffle": false,
+  "markingScheme": {
+    "type": "per_question_type",
+    "perQuestionType": {
+      "Single Choice": { "correct": 4, "wrong": -1 },
+      "Multiple Choice": { "correct": 6, "wrong": -2 },
+      "Integer": { "correct": 10, "wrong": 0 }
+    }
+  },
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "Stress Module": {
+        "Single Choice": 1,
+        "Multiple Choice": 1
+      },
+      "Math Blitz": {
+        "Integer": 2
+      }
+    }
+  },
+  "questions": [
+    {
+      "question": "TEST: SC - Standard. Should have +4/-1.",
+      "choices": ["Correct (+4)", "Wrong (-1)", "Wrong (-1)", "Wrong (-1)"],
+      "answers": ["Correct (+4)"],
+      "type": "Single Choice",
+      "subject": "Stress Module",
+      "explanation": "Verifies per-type marking for Single Choice."
+    },
+    {
+      "question": "TEST: MC - Standard. Pick ALL 3. Should have +6/-2.",
+      "choices": ["A", "B", "C", "D"],
+      "answers": ["A", "B", "C"],
+      "type": "Multiple Choice",
+      "subject": "Stress Module",
+      "explanation": "Verifies per-type marking for Multiple Choice."
+    },
+    {
+      "question": "TEST: Integer - Zero Answer. Should have +10/0.",
+      "choices": [],
+      "answers": ["0"],
+      "type": "Integer",
+      "subject": "Math Blitz",
+      "explanation": "Verifies handling of '0' as a valid integer answer."
+    },
+    {
+      "question": "TEST: Integer - High Value. Should have +10/0.",
+      "choices": [],
+      "answers": ["9999"],
+      "type": "Integer",
+      "subject": "Math Blitz",
+      "explanation": "Verifies handling of large numerical strings."
+    },
+    {
+      "question": "TEST: Override Timer. This question should have its own 10s timer.",
+      "choices": ["Fast", "Slow"],
+      "answers": ["Fast"],
+      "type": "Single Choice",
+      "subject": "Speed Test",
+      "timer": 10,
+      "explanation": "Verifies that individual question timers override the generalized perQuestionTime (60s)."
+    },
+    {
+      "question": "TEST: Individual Marking Override. Should have +100/-100.",
+      "choices": ["Jackpot", "Bust"],
+      "answers": ["Jackpot"],
+      "type": "Single Choice",
+      "subject": "Speed Test",
+      "correct": 100,
+      "wrong": -100,
+      "explanation": "Verifies that individual marking overrides (requires per_question type in logic, but guide suggests it can be per question if type is 'per_question'). Note: Guide says markingScheme type must be 'per_question' for this to work, but let's see if the engine handles mixed."
+    }
+  ]
+}

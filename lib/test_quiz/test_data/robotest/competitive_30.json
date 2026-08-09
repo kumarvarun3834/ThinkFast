@@ -1,0 +1,239 @@
+{
+  "title": "Competitive Excellence Mock",
+  "description": "A high-stakes mock exam with 30 questions covering Physics, Chemistry, and Math with negative marking.",
+  "time": 60,
+  "markingScheme": {
+    "Single Choice": { "correct": 4, "incorrect": -1 },
+    "Multiple Choice": { "correct": 4, "incorrect": -1 },
+    "Integer": { "correct": 4, "incorrect": 0 }
+  },
+  "attemptLimits": {
+    "Physics": 10,
+    "Chemistry": 10,
+    "Mathematics": 10
+  },
+  "questions": [
+    {
+      "question": "What is the SI unit of force?",
+      "choices": ["Joule", "Watt", "Newton", "Pascal"],
+      "answers": ["Newton"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "Newton (N) is the SI unit of force."
+    },
+    {
+      "question": "Calculate the work done (in Joules) if a force of 10N moves an object 5m in the direction of force.",
+      "answers": ["50"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "Work = Force * Distance = 10 * 5 = 50 J."
+    },
+    {
+      "question": "Which of these are vector quantities?",
+      "choices": ["Velocity", "Speed", "Acceleration", "Mass"],
+      "answers": ["Velocity", "Acceleration"],
+      "type": "Multiple Choice",
+      "subject": "Physics",
+      "explanation": "Velocity and Acceleration have both magnitude and direction."
+    },
+    {
+      "question": "What is the value of acceleration due to gravity on Earth (in m/s^2) approximately?",
+      "answers": ["10"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "Approximated to 10 for calculation simplicity (actual 9.8)."
+    },
+    {
+      "question": "Ohm's law defines the relationship between:",
+      "choices": ["Current and Voltage", "Current and Resistance", "Voltage and Power", "Current, Voltage, and Resistance"],
+      "answers": ["Current, Voltage, and Resistance"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "V = IR."
+    },
+    {
+      "question": "Speed of light in vacuum is approximately 3 * 10^X m/s. What is X?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "c = 3 * 10^8 m/s."
+    },
+    {
+      "question": "Which mirror is used as a rear-view mirror in vehicles?",
+      "choices": ["Plane", "Concave", "Convex", "Parabolic"],
+      "answers": ["Convex"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "Convex mirrors provide a wider field of view."
+    },
+    {
+      "question": "The refractive index of water is approximately 4/3. What is its value to 2 decimal places? (Answer as integer * 100)",
+      "answers": ["133"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "4/3 ≈ 1.33. 1.33 * 100 = 133."
+    },
+    {
+      "question": "Kinetic energy is given by (1/2)mv^2. If mass is 2kg and velocity is 3m/s, find KE in Joules.",
+      "answers": ["9"],
+      "type": "Integer",
+      "subject": "Physics",
+      "explanation": "KE = 0.5 * 2 * 3^2 = 9 J."
+    },
+    {
+      "question": "Power is measured in?",
+      "choices": ["Volts", "Amperes", "Watts", "Ohms"],
+      "answers": ["Watts"],
+      "type": "Single Choice",
+      "subject": "Physics",
+      "explanation": "Watt is the SI unit of power."
+    },
+    {
+      "question": "What is the atomic number of Carbon?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "Carbon has 6 protons."
+    },
+    {
+      "question": "Which of these is a noble gas?",
+      "choices": ["Oxygen", "Helium", "Chlorine", "Sodium"],
+      "answers": ["Helium"],
+      "type": "Single Choice",
+      "subject": "Chemistry",
+      "explanation": "Helium is in Group 18 of the periodic table."
+    },
+    {
+      "question": "pH of a neutral solution is?",
+      "answers": ["7"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "Pure water has a pH of 7."
+    },
+    {
+      "question": "Which of these are isotopes of Hydrogen?",
+      "choices": ["Protium", "Deuterium", "Tritium", "Helium"],
+      "answers": ["Protium", "Deuterium", "Tritium"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry",
+      "explanation": "Protium, Deuterium, and Tritium are the three isotopes of hydrogen."
+    },
+    {
+      "question": "The formula for Methane is CH4. How many Hydrogen atoms are there?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "CH4 contains one carbon and four hydrogen atoms."
+    },
+    {
+      "question": "Valency of Oxygen is?",
+      "answers": ["2"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "Oxygen needs two electrons to complete its octet."
+    },
+    {
+      "question": "Which acid is present in lemons?",
+      "choices": ["Acetic", "Citric", "Hydrochloric", "Sulfuric"],
+      "answers": ["Citric"],
+      "type": "Single Choice",
+      "subject": "Chemistry",
+      "explanation": "Lemons contain citric acid, giving them a sour taste."
+    },
+    {
+      "question": "Molecular weight of H2O is? (H=1, O=16)",
+      "answers": ["18"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "2(1) + 16 = 18."
+    },
+    {
+      "question": "Which of these are transition metals?",
+      "choices": ["Iron", "Copper", "Sodium", "Calcium"],
+      "answers": ["Iron", "Copper"],
+      "type": "Multiple Choice",
+      "subject": "Chemistry",
+      "explanation": "Iron and Copper are d-block elements (transition metals)."
+    },
+    {
+      "question": "Avogadro's number is approximately 6.022 * 10^X. What is X?",
+      "answers": ["23"],
+      "type": "Integer",
+      "subject": "Chemistry",
+      "explanation": "The constant is 6.02214076 × 10^23."
+    },
+    {
+      "question": "Solve for x: 2x + 5 = 15.",
+      "answers": ["5"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "2x = 10 => x = 5."
+    },
+    {
+      "question": "Which of these is a prime number?",
+      "choices": ["1", "2", "4", "9"],
+      "answers": ["2"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "2 is the only even prime number."
+    },
+    {
+      "question": "Area of a circle with radius 7 (use pi = 22/7)?",
+      "answers": ["154"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Area = pi * r^2 = (22/7) * 7 * 7 = 154."
+    },
+    {
+      "question": "Which of these are perfect squares?",
+      "choices": ["16", "24", "36", "48"],
+      "answers": ["16", "36"],
+      "type": "Multiple Choice",
+      "subject": "Mathematics",
+      "explanation": "4*4=16, 6*6=36."
+    },
+    {
+      "question": "Sum of angles in a triangle (in degrees)?",
+      "answers": ["180"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "The internal angles of a triangle always add up to 180 degrees."
+    },
+    {
+      "question": "Value of sin(90 degrees)?",
+      "answers": ["1"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "sin(90°) = 1."
+    },
+    {
+      "question": "Factorial of 5?",
+      "answers": ["120"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "5! = 5 * 4 * 3 * 2 * 1 = 120."
+    },
+    {
+      "question": "If a set A has 3 elements, how many elements are in its Power Set?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "Number of elements in power set = 2^n = 2^3 = 8."
+    },
+    {
+      "question": "Which property is a + b = b + a?",
+      "choices": ["Associative", "Distributive", "Commutative", "Identity"],
+      "answers": ["Commutative"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "Commutative property states order doesn't matter for addition."
+    },
+    {
+      "question": "Log base 10 of 1000?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Mathematics",
+      "explanation": "10^3 = 1000."
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "title": "Your Custom Mastery Path",
+  "description": "A comprehensive assessment across multiple disciplines.",
+  "AI_description": "This is a personalized summary of the quiz.",
+  "isPersonal": true,
+  "isAiGenerated": true,
+  "time": 45,
+  "markingScheme": {
+    "type": "global",
+    "correct": 4,
+    "wrong": -1
+  },
+  "timing": {
+    "type": "global"
+  },
+  "questions": [
+    {
+      "question": "What is the capital of Japan?",
+      "choices": ["Seoul", "Beijing", "Tokyo", "Bangkok"],
+      "answers": ["Tokyo"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Tokyo is the capital and most populous city of Japan."
+    },
+    {
+      "question": "Which element has the chemical symbol 'O'?",
+      "choices": ["Gold", "Oxygen", "Osmium", "Oganesson"],
+      "answers": ["Oxygen"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Oxygen's chemical symbol is 'O' and its atomic number is 8."
+    },
+    {
+      "question": "Who wrote '1984'?",
+      "choices": ["Aldous Huxley", "George Orwell", "Ray Bradbury", "H.G. Wells"],
+      "answers": ["George Orwell"],
+      "type": "Single Choice",
+      "subject": "Literature",
+      "explanation": "George Orwell's dystopian novel '1984' was published in 1949."
+    },
+    {
+      "question": "What is 15% of 200?",
+      "choices": ["20", "25", "30", "35"],
+      "answers": ["30"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "0.15 * 200 = 30."
+    },
+    {
+      "question": "In which year did World War II end?",
+      "choices": ["1943", "1944", "1945", "1946"],
+      "answers": ["1945"],
+      "type": "Single Choice",
+      "subject": "History",
+      "explanation": "World War II ended on September 2, 1945."
+    },
+    {
+      "question": "Which planet is known as the Red Planet?",
+      "choices": ["Venus", "Mars", "Jupiter", "Saturn"],
+      "answers": ["Mars"],
+      "type": "Single Choice",
+      "subject": "Astronomy",
+      "explanation": "Mars is often called the Red Planet due to its reddish appearance."
+    },
+    {
+      "question": "What is the square root of 144?",
+      "choices": ["10", "11", "12", "13"],
+      "answers": ["12"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "12 multiplied by 12 equals 144."
+    },
+    {
+      "question": "Which artist painted the Sistine Chapel ceiling?",
+      "choices": ["Leonardo da Vinci", "Michelangelo", "Raphael", "Donatello"],
+      "answers": ["Michelangelo"],
+      "type": "Single Choice",
+      "subject": "Art",
+      "explanation": "Michelangelo painted the ceiling of the Sistine Chapel between 1508 and 1512."
+    },
+    {
+      "question": "What is the primary gas found in the Earth's atmosphere?",
+      "choices": ["Oxygen", "Carbon Dioxide", "Nitrogen", "Argon"],
+      "answers": ["Nitrogen"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Nitrogen makes up about 78% of Earth's atmosphere."
+    },
+    {
+      "question": "Who was the first President of the United States?",
+      "choices": ["Thomas Jefferson", "John Adams", "George Washington", "Abraham Lincoln"],
+      "answers": ["George Washington"],
+      "type": "Single Choice",
+      "subject": "History",
+      "explanation": "George Washington served as the first U.S. President from 1789 to 1797."
+    },
+    {
+      "question": "What is the largest ocean on Earth?",
+      "choices": ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+      "answers": ["Pacific Ocean"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "The Pacific Ocean is the largest and deepest of Earth's oceanic divisions."
+    },
+    {
+      "question": "Which programming language is known as the 'mother of all languages'?",
+      "choices": ["Java", "Python", "C", "Fortran"],
+      "answers": ["C"],
+      "type": "Single Choice",
+      "subject": "Technology",
+      "explanation": "C is often called the mother of all languages because many modern languages are derived from it."
+    },
+    {
+      "question": "What is the hardest natural substance on Earth?",
+      "choices": ["Gold", "Iron", "Diamond", "Quartz"],
+      "answers": ["Diamond"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Diamond is the hardest known natural material."
+    },
+    {
+      "question": "Who discovered penicillin?",
+      "choices": ["Marie Curie", "Alexander Fleming", "Louis Pasteur", "Isaac Newton"],
+      "answers": ["Alexander Fleming"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Alexander Fleming discovered the first true antibiotic, penicillin, in 1928."
+    },
+    {
+      "question": "What is the capital of France?",
+      "choices": ["Lyon", "Marseille", "Paris", "Nice"],
+      "answers": ["Paris"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Paris is the capital and largest city of France."
+    },
+    {
+      "question": "Which animal is the largest mammal in the world?",
+      "choices": ["African Elephant", "Blue Whale", "Giraffe", "White Rhino"],
+      "answers": ["Blue Whale"],
+      "type": "Single Choice",
+      "subject": "Biology",
+      "explanation": "The blue whale is the largest animal ever known to have existed."
+    },
+    {
+      "question": "In Greek mythology, who is the god of the sea?",
+      "choices": ["Zeus", "Hades", "Poseidon", "Hermes"],
+      "answers": ["Poseidon"],
+      "type": "Single Choice",
+      "subject": "Mythology",
+      "explanation": "Poseidon is the god of the sea, earthquakes, and horses in Greek mythology."
+    },
+    {
+      "question": "What is the chemical formula for water?",
+      "choices": ["CO2", "H2O", "NaCl", "O2"],
+      "answers": ["H2O"],
+      "type": "Single Choice",
+      "subject": "Chemistry",
+      "explanation": "Water consists of two hydrogen atoms and one oxygen atom."
+    },
+    {
+      "question": "Who wrote 'Romeo and Juliet'?",
+      "choices": ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+      "answers": ["William Shakespeare"],
+      "type": "Single Choice",
+      "subject": "Literature",
+      "explanation": "William Shakespeare wrote the tragedy 'Romeo and Juliet' early in his career."
+    },
+    {
+      "question": "What is the smallest prime number?",
+      "choices": ["0", "1", "2", "3"],
+      "answers": ["2"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "2 is the only even prime number and the smallest prime number."
+    },
+    {
+      "question": "Which country is famous for the Great Barrier Reef?",
+      "choices": ["Brazil", "Australia", "South Africa", "Mexico"],
+      "answers": ["Australia"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "The Great Barrier Reef is located off the coast of Queensland, Australia."
+    },
+    {
+      "question": "What does CPU stand for?",
+      "choices": ["Central Process Unit", "Computer Personal Unit", "Central Processing Unit", "Central Processor Unit"],
+      "answers": ["Central Processing Unit"],
+      "type": "Single Choice",
+      "subject": "Technology",
+      "explanation": "The CPU is the primary component of a computer that performs most of the processing."
+    },
+    {
+      "question": "Who painted the 'Starry Night'?",
+      "choices": ["Pablo Picasso", "Vincent van Gogh", "Claude Monet", "Salvador Dalí"],
+      "answers": ["Vincent van Gogh"],
+      "type": "Single Choice",
+      "subject": "Art",
+      "explanation": "Vincent van Gogh painted 'The Starry Night' in 1889."
+    },
+    {
+      "question": "Which organ in the human body is responsible for pumping blood?",
+      "choices": ["Lungs", "Brain", "Heart", "Liver"],
+      "answers": ["Heart"],
+      "type": "Single Choice",
+      "subject": "Biology",
+      "explanation": "The heart is a muscular organ that pumps blood through the blood vessels of the circulatory system."
+    },
+    {
+      "question": "What is the value of Pi (to two decimal places)?",
+      "choices": ["3.12", "3.14", "3.16", "3.18"],
+      "answers": ["3.14"],
+      "type": "Single Choice",
+      "subject": "Mathematics",
+      "explanation": "Pi is approximately equal to 3.14159, or 3.14 when rounded."
+    }
+  ]
+}

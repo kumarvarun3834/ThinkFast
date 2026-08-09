@@ -79,22 +79,21 @@ service cloud.firestore {
     }
 
     match /quizzes/{quizId} {
-      allow read: if (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
-                   isGlobalAdmin() ||
-                   (isAuthenticated() && resource.data.get('creatorId', '') == request.auth.uid) ||
-                   (isAuthenticated() && (
-                     exists(/databases/$(database)/documents/quiz_access/$(quizId + "_" + request.auth.uid)) ||
-                     request.auth.uid in resource.data.get('allowedParticipants', [])
-                   ));
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        (resource.data.get('visibility', 'private') == 'public' && resource.data.get('isDeleted', false) == false) ||
+        isGlobalAdmin() ||
+        resource.data.get('creatorId', '') == request.auth.uid ||
+        exists(/databases/$(database)/documents/quiz_access/$(quizId + "_" + request.auth.uid)) ||
+        request.auth.uid in resource.data.get('allowedParticipants', [])
+      );
       allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
-      allow update: if isGlobalAdmin() || (
-                    resource.data.get('isAiGenerated', false) == false && (
-                      hasGlobalPermission('manage_all_quizzes') ||
-                      (isAuthenticated() && (
-                        resource.data.get('creatorId', '') == request.auth.uid ||
-                        hasQuizPermission(quizId, 'can_update') ||
-                        hasQuizPermission(quizId, 'can_publish')
-                      ))
+      allow update: if isGlobalAdmin() ||
+                    hasGlobalPermission('manage_all_quizzes') ||
+                    (isAuthenticated() && (
+                      resource.data.get('creatorId', '') == request.auth.uid ||
+                      hasQuizPermission(quizId, 'can_update') ||
+                      hasQuizPermission(quizId, 'can_publish')
                     ));
       allow delete: if hasGlobalPermission('manage_all_quizzes') ||
                     (isAuthenticated() && (resource.data.get('creatorId', '') == request.auth.uid || hasQuizPermission(quizId, 'can_delete')));
@@ -178,6 +177,10 @@ service cloud.firestore {
     match /tags/{tagId} {
       allow read: if true;
       allow write: if isAuthenticated();
+      match /{any=**} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
     }
 
     match /module_tags/{docId} {
@@ -192,6 +195,10 @@ service cloud.firestore {
     match /exam_tags/{tagId} {
       allow read: if true;
       allow write: if isAuthenticated();
+      match /{any=**} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
     }
 
     match /settings/{docId} {
@@ -292,7 +299,11 @@ service cloud.firestore {
 
     match /ai_generations/{genId} {
       // AI Generation history
-      allow read: if isGlobalAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        resource.data.get('userId', '') == request.auth.uid ||
+        isGlobalAdmin()
+      );
       allow write: if isGlobalAdmin();
     }
 

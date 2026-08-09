@@ -1,0 +1,178 @@
+{
+  "title": "Per Question Timing Test",
+  "description": "Each question has a fixed timer of 30 seconds.",
+  "time": 0,
+  "perQuestionTime": 30,
+  "timingScheme": {
+    "type": "per_question"
+  },
+  "questions": [
+    {
+      "question": "What is the largest mammal?",
+      "choices": ["Blue Whale", "African Elephant", "Giraffe", "Hippopotamus"],
+      "answers": ["Blue Whale"],
+      "type": "Single Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "Which of these are mammals that can fly?",
+      "choices": ["Bat", "Flying Squirrel", "Eagle", "Pigeon"],
+      "answers": ["Bat"],
+      "type": "Multiple Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "How many legs does a spider have?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Biology"
+    },
+    {
+      "question": "What is the fastest land animal?",
+      "choices": ["Cheetah", "Lion", "Pronghorn", "Springbok"],
+      "answers": ["Cheetah"],
+      "type": "Single Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "How many eyes does a typical caterpillar have?",
+      "answers": ["12"],
+      "type": "Integer",
+      "subject": "Biology"
+    },
+    {
+      "question": "Which of these are flightless birds?",
+      "choices": ["Ostrich", "Penguin", "Kiwi", "Sparrow"],
+      "answers": ["Ostrich", "Penguin", "Kiwi"],
+      "type": "Multiple Choice",
+      "subject": "Biology"
+    },
+    {
+      "question": "What is the capital of South Korea?",
+      "choices": ["Seoul", "Busan", "Incheon", "Daegu"],
+      "answers": ["Seoul"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "How many stars are on the US flag?",
+      "answers": ["50"],
+      "type": "Integer",
+      "subject": "Politics"
+    },
+    {
+      "question": "Which of these are Scandinavian countries?",
+      "choices": ["Norway", "Sweden", "Denmark", "Finland"],
+      "answers": ["Norway", "Sweden", "Denmark"],
+      "type": "Multiple Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "What is the smallest continent?",
+      "choices": ["Australia", "Europe", "Antarctica", "South America"],
+      "answers": ["Australia"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "How many days in April?",
+      "answers": ["30"],
+      "type": "Integer",
+      "subject": "General"
+    },
+    {
+      "question": "Which of these are months with 31 days?",
+      "choices": ["January", "March", "April", "May"],
+      "answers": ["January", "March", "May"],
+      "type": "Multiple Choice",
+      "subject": "General"
+    },
+    {
+      "question": "What is the square root of 64?",
+      "choices": ["6", "7", "8", "9"],
+      "answers": ["8"],
+      "type": "Single Choice",
+      "subject": "Math"
+    },
+    {
+      "question": "How many degrees in a right angle?",
+      "answers": ["90"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Which of these are prime numbers?",
+      "choices": ["11", "13", "15", "17"],
+      "answers": ["11", "13", "17"],
+      "type": "Multiple Choice",
+      "subject": "Math"
+    },
+    {
+      "question": "Who wrote 'Hamlet'?",
+      "choices": ["Shakespeare", "Marlowe", "Jonson", "Webster"],
+      "answers": ["Shakespeare"],
+      "type": "Single Choice",
+      "subject": "Literature"
+    },
+    {
+      "question": "How many years in a millennium?",
+      "answers": ["1000"],
+      "type": "Integer",
+      "subject": "General"
+    },
+    {
+      "question": "Which of these are colors of the rainbow?",
+      "choices": ["Red", "Indigo", "Magenta", "Violet"],
+      "answers": ["Red", "Indigo", "Violet"],
+      "type": "Multiple Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "What is the hardest natural substance?",
+      "choices": ["Diamond", "Ruby", "Sapphire", "Emerald"],
+      "answers": ["Diamond"],
+      "type": "Single Choice",
+      "subject": "Science"
+    },
+    {
+      "question": "How many players in a cricket team?",
+      "answers": ["11"],
+      "type": "Integer",
+      "subject": "Sports"
+    },
+    {
+      "question": "Which of these are chess pieces?",
+      "choices": ["Knight", "Rook", "Pawn", "Check"],
+      "answers": ["Knight", "Rook", "Pawn"],
+      "type": "Multiple Choice",
+      "subject": "Sports"
+    },
+    {
+      "question": "What is the capital of Thailand?",
+      "choices": ["Bangkok", "Phuket", "Chiang Mai", "Pattaya"],
+      "answers": ["Bangkok"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "How many continents start with 'A'?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Geography"
+    },
+    {
+      "question": "Which of these are web browsers?",
+      "choices": ["Chrome", "Firefox", "Safari", "Windows"],
+      "answers": ["Chrome", "Firefox", "Safari"],
+      "type": "Multiple Choice",
+      "subject": "Tech"
+    },
+    {
+      "question": "What is 2 + 2?",
+      "choices": ["3", "4", "5", "6"],
+      "answers": ["4"],
+      "type": "Single Choice",
+      "subject": "Math"
+    }
+  ]
+}

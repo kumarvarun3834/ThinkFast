@@ -1,0 +1,35 @@
+{
+  "title": "High Stakes Marking",
+  "description": "A quiz with custom global marking rules (+10, -5).",
+  "time": 20,
+  "isAiGenerated": true,
+  "markingScheme": {
+    "type": "entire_quiz",
+    "global": {
+      "correct": 10,
+      "wrong": -5
+    }
+  },
+  "questions": [
+    { "question": "Capital of Australia?", "choices": ["Sydney", "Melbourne", "Canberra", "Perth"], "answers": ["Canberra"], "type": "Single Choice", "subject": "Geography", "explanation": "Canberra was chosen as a compromise between Sydney and Melbourne." },
+    { "question": "Largest country by area?", "choices": ["China", "USA", "Canada", "Russia"], "answers": ["Russia"], "type": "Single Choice", "subject": "Geography", "explanation": "Russia spans 11 time zones." },
+    { "question": "Chemical symbol for Silver?", "choices": ["Si", "Ag", "Au", "Sl"], "answers": ["Ag"], "type": "Single Choice", "subject": "Chemistry", "explanation": "Ag comes from the Latin 'argentum'." },
+    { "question": "How many states in the USA?", "choices": ["48", "49", "50", "51"], "answers": ["50"], "type": "Single Choice", "subject": "History", "explanation": "Hawaii was the 50th state." },
+    { "question": "Who painted the Sistine Chapel ceiling?", "choices": ["Da Vinci", "Michelangelo", "Raphael", "Donatello"], "answers": ["Michelangelo"], "type": "Single Choice", "subject": "Art", "explanation": "Michelangelo painted it between 1508 and 1512." },
+    { "question": "What is the boiling point of water in Celsius?", "choices": ["90", "100", "110", "120"], "answers": ["100"], "type": "Single Choice", "subject": "Science", "explanation": "At sea level, water boils at 100 degrees Celsius." },
+    { "question": "Which ocean is the deepest?", "choices": ["Atlantic", "Indian", "Pacific", "Arctic"], "answers": ["Pacific"], "type": "Single Choice", "subject": "Geography", "explanation": "The Mariana Trench is in the Pacific." },
+    { "question": "Author of 'The Great Gatsby'?", "choices": ["Fitzgerald", "Steinbeck", "Faulkner", "Miller"], "answers": ["Fitzgerald"], "type": "Single Choice", "subject": "Literature", "explanation": "F. Scott Fitzgerald published it in 1925." },
+    { "question": "What is the largest organ in the human body?", "choices": ["Heart", "Brain", "Skin", "Liver"], "answers": ["Skin"], "type": "Single Choice", "subject": "Biology", "explanation": "The skin protects our internal organs." },
+    { "question": "Which gas makes up most of Earth's atmosphere?", "choices": ["Oxygen", "Nitrogen", "CO2", "Helium"], "answers": ["Nitrogen"], "type": "Single Choice", "subject": "Science", "explanation": "Nitrogen makes up about 78% of the atmosphere." },
+    { "question": "Inventors of the airplane?", "choices": ["Ford", "Edison", "Wright Brothers", "Tesla"], "answers": ["Wright Brothers"], "type": "Single Choice", "subject": "History", "explanation": "Orville and Wilbur Wright flew the first plane in 1903." },
+    { "question": "What is the capital of Germany?", "choices": ["Munich", "Berlin", "Hamburg", "Frankfurt"], "answers": ["Berlin"], "type": "Single Choice", "subject": "Geography", "explanation": "Berlin was reunited in 1990." },
+    { "question": "How many bones in an adult human body?", "choices": ["204", "206", "208", "210"], "answers": ["206"], "type": "Single Choice", "subject": "Biology", "explanation": "Infants have more bones which fuse as they grow." },
+    { "question": "First element on the periodic table?", "choices": ["Helium", "Hydrogen", "Lithium", "Oxygen"], "answers": ["Hydrogen"], "type": "Single Choice", "subject": "Chemistry", "explanation": "Hydrogen has atomic number 1." },
+    { "question": "What is the currency of Japan?", "choices": ["Yuan", "Won", "Yen", "Baht"], "answers": ["Yen"], "type": "Single Choice", "subject": "Economics", "explanation": "The Japanese Yen is a major global currency." },
+    { "question": "Director of 'Titanic'?", "choices": ["Spielberg", "Cameron", "Scorsese", "Coppola"], "answers": ["Cameron"], "type": "Single Choice", "subject": "Movies", "explanation": "James Cameron directed the 1997 epic." },
+    { "question": "Largest bird in the world?", "choices": ["Emu", "Ostrich", "Eagle", "Penguin"], "answers": ["Ostrich"], "type": "Single Choice", "subject": "Biology", "explanation": "Ostriches can grow up to 9 feet tall." },
+    { "question": "Capital of Canada?", "choices": ["Toronto", "Vancouver", "Ottawa", "Montreal"], "answers": ["Ottawa"], "type": "Single Choice", "subject": "Geography", "explanation": "Ottawa is in Ontario." },
+    { "question": "What is the hardest natural substance on Earth?", "choices": ["Gold", "Iron", "Diamond", "Quartz"], "answers": ["Diamond"], "type": "Single Choice", "subject": "Science", "explanation": "Diamond is composed of pure carbon." },
+    { "question": "Which planet has the most moons?", "choices": ["Jupiter", "Saturn", "Neptune", "Mars"], "answers": ["Saturn"], "type": "Single Choice", "subject": "Astronomy", "explanation": "Saturn recently overtook Jupiter in moon count." }
+  ]
+}

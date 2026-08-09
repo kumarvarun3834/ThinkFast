@@ -1,0 +1,158 @@
+{
+  "title": "Timed Blitz 20",
+  "description": "20 questions, 15 seconds each. Speed is key!",
+  "perQuestionTime": 15,
+  "shuffle": true,
+  "questions": [
+    {
+      "question": "Color of grass?",
+      "choices": ["Blue", "Green", "Red", "Yellow"],
+      "answers": ["Green"],
+      "type": "Single Choice",
+      "subject": "General",
+      "explanation": "Chlorophyll makes grass green."
+    },
+    {
+      "question": "2 + 2?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "Basic addition."
+    },
+    {
+      "question": "Which are vowels?",
+      "choices": ["A", "B", "E", "C", "I"],
+      "answers": ["A", "E", "I"],
+      "type": "Multiple Choice",
+      "subject": "English",
+      "explanation": "A, E, I, O, U are vowels."
+    },
+    {
+      "question": "Days in a week?",
+      "answers": ["7"],
+      "type": "Integer",
+      "subject": "General",
+      "explanation": "Mon-Sun."
+    },
+    {
+      "question": "Opposite of 'Hot'?",
+      "choices": ["Warm", "Cold", "Burning", "Cool"],
+      "answers": ["Cold"],
+      "type": "Single Choice",
+      "subject": "English",
+      "explanation": "Antonym of hot."
+    },
+    {
+      "question": "10 * 10?",
+      "answers": ["100"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "10 squared."
+    },
+    {
+      "question": "Which are planets?",
+      "choices": ["Earth", "Sun", "Mars", "Moon"],
+      "answers": ["Earth", "Mars"],
+      "type": "Multiple Choice",
+      "subject": "Science",
+      "explanation": "Sun is a star, Moon is a satellite."
+    },
+    {
+      "question": "How many legs does a spider have?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Biology",
+      "explanation": "Arachnids have 8 legs."
+    },
+    {
+      "question": "Largest state in USA by area?",
+      "choices": ["Texas", "California", "Alaska", "Florida"],
+      "answers": ["Alaska"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "explanation": "Alaska is the largest."
+    },
+    {
+      "question": "3 * 3 * 3?",
+      "answers": ["27"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "3 cubed."
+    },
+    {
+      "question": "Which are fruits?",
+      "choices": ["Apple", "Carrot", "Banana", "Potato"],
+      "answers": ["Apple", "Banana"],
+      "type": "Multiple Choice",
+      "subject": "General",
+      "explanation": "Carrot and Potato are vegetables (roots/tubers)."
+    },
+    {
+      "question": "Months in a year?",
+      "answers": ["12"],
+      "type": "Integer",
+      "subject": "General",
+      "explanation": "Jan-Dec."
+    },
+    {
+      "question": "Currency of Japan?",
+      "choices": ["Yuan", "Won", "Yen", "Dollar"],
+      "answers": ["Yen"],
+      "type": "Single Choice",
+      "subject": "General",
+      "explanation": "Japanese Yen."
+    },
+    {
+      "question": "50 - 25?",
+      "answers": ["25"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "Half of 50."
+    },
+    {
+      "question": "Which are programming languages?",
+      "choices": ["C++", "Excel", "Swift", "Windows"],
+      "answers": ["C++", "Swift"],
+      "type": "Multiple Choice",
+      "subject": "Tech",
+      "explanation": "Excel is software, Windows is OS."
+    },
+    {
+      "question": "Sides in a triangle?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "Tri- means three."
+    },
+    {
+      "question": "Primary color of the sky?",
+      "choices": ["Green", "Blue", "Red", "Yellow"],
+      "answers": ["Blue"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "explanation": "Rayleigh scattering."
+    },
+    {
+      "question": "100 / 10?",
+      "answers": ["10"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "Basic division."
+    },
+    {
+      "question": "Which are continents?",
+      "choices": ["Africa", "Asia", "India", "Paris"],
+      "answers": ["Africa", "Asia"],
+      "type": "Multiple Choice",
+      "subject": "Geography",
+      "explanation": "India is a country, Paris is a city."
+    },
+    {
+      "question": "Square root of 81?",
+      "answers": ["9"],
+      "type": "Integer",
+      "subject": "Math",
+      "explanation": "9 * 9 = 81."
+    }
+  ]
+}

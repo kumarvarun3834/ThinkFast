@@ -1,0 +1,32 @@
+{
+  "title": "Certification Qualifier",
+  "description": "Quiz with a 75% pass threshold.",
+  "time": 25,
+  "isAiGenerated": true,
+  "markingScheme": {
+    "type": "default",
+    "passThreshold": 75
+  },
+  "questions": [
+    { "question": "What is the speed of sound?", "choices": ["343 m/s", "3e8 m/s", "1000 km/h", "500 mph"], "answers": ["343 m/s"], "type": "Single Choice", "subject": "Science", "explanation": "Sound travels at about 343 m/s in dry air at 20°C." },
+    { "question": "Who was the first woman to win a Nobel Prize?", "choices": ["Marie Curie", "Mother Teresa", "Ada Lovelace", "Jane Goodall"], "answers": ["Marie Curie"], "type": "Single Choice", "subject": "History", "explanation": "Marie Curie won in Physics in 1903." },
+    { "question": "What is the capital of Brazil?", "choices": ["Rio de Janeiro", "Sao Paulo", "Brasilia", "Salvador"], "answers": ["Brasilia"], "type": "Single Choice", "subject": "Geography", "explanation": "Brasilia was inaugurated in 1960." },
+    { "question": "Which company developed the Android OS?", "choices": ["Apple", "Microsoft", "Google", "IBM"], "answers": ["Google"], "type": "Single Choice", "subject": "Tech", "explanation": "Google acquired Android Inc. in 2005." },
+    { "question": "What is the main component of natural gas?", "choices": ["Ethane", "Propane", "Methane", "Butane"], "answers": ["Methane"], "type": "Single Choice", "subject": "Chemistry", "explanation": "Methane makes up 70-90% of natural gas." },
+    { "question": "Who wrote 'The Odyssey'?", "choices": ["Homer", "Virgil", "Socrates", "Plato"], "answers": ["Homer"], "type": "Single Choice", "subject": "Literature", "explanation": "Homer is the legendary author of the Iliad and Odyssey." },
+    { "question": "Which continent is the Sahara desert located in?", "choices": ["Asia", "Africa", "Australia", "South America"], "answers": ["Africa"], "type": "Single Choice", "subject": "Geography", "explanation": "The Sahara covers much of North Africa." },
+    { "question": "Smallest country in the world?", "choices": ["Monaco", "Nauru", "Vatican City", "Tuvalu"], "answers": ["Vatican City"], "type": "Single Choice", "subject": "Geography", "explanation": "Vatican City is an independent city-state." },
+    { "question": "Which organ filters blood in the human body?", "choices": ["Heart", "Lungs", "Kidneys", "Stomach"], "answers": ["Kidneys"], "type": "Single Choice", "subject": "Biology", "explanation": "Kidneys remove waste and extra fluid." },
+    { "question": "What is the capital of Egypt?", "choices": ["Alexandria", "Luxor", "Cairo", "Giza"], "answers": ["Cairo"], "type": "Single Choice", "subject": "Geography", "explanation": "Cairo is the largest city in the Arab world." },
+    { "question": "What is the primary color of a sapphire?", "choices": ["Red", "Green", "Blue", "Yellow"], "answers": ["Blue"], "type": "Single Choice", "subject": "General", "explanation": "Sapphires are typically blue." },
+    { "question": "Which gas is used in light bulbs to prevent oxidation?", "choices": ["Oxygen", "Argon", "Hydrogen", "Carbon Dioxide"], "answers": ["Argon"], "type": "Single Choice", "subject": "Science", "explanation": "Argon is an inert gas." },
+    { "question": "Who is known as the Father of Computers?", "choices": ["Charles Babbage", "Alan Turing", "John von Neumann", "Bill Gates"], "answers": ["Charles Babbage"], "type": "Single Choice", "subject": "Tech", "explanation": "Babbage designed the first mechanical computer." },
+    { "question": "What is the capital of Spain?", "choices": ["Barcelona", "Seville", "Madrid", "Valencia"], "answers": ["Madrid"], "type": "Single Choice", "subject": "Geography", "explanation": "Madrid is the political and cultural center of Spain." },
+    { "question": "What is the largest species of shark?", "choices": ["Great White", "Hammerhead", "Whale Shark", "Tiger Shark"], "answers": ["Whale Shark"], "type": "Single Choice", "subject": "Biology", "explanation": "Whale sharks can grow to 40 feet." },
+    { "question": "Which element has the symbol 'Fe'?", "choices": ["Fluorine", "Iron", "Ferrum", "Fermium"], "answers": ["Iron"], "type": "Single Choice", "subject": "Chemistry", "explanation": "Fe comes from 'ferrum'." },
+    { "question": "Who painted 'The Last Supper'?", "choices": ["Michelangelo", "Raphael", "Leonardo da Vinci", "Donatello"], "answers": ["Leonardo da Vinci"], "type": "Single Choice", "subject": "Art", "explanation": "Da Vinci painted it for the Santa Maria delle Grazie." },
+    { "question": "What is the capital of India?", "choices": ["Mumbai", "New Delhi", "Kolkata", "Chennai"], "answers": ["New Delhi"], "type": "Single Choice", "subject": "Geography", "explanation": "New Delhi was inaugurated in 1931." },
+    { "question": "Which part of the plant conducts photosynthesis?", "choices": ["Root", "Stem", "Leaf", "Flower"], "answers": ["Leaf"], "type": "Single Choice", "subject": "Biology", "explanation": "Leaves contain chlorophyll for the process." },
+    { "question": "How many days in a leap year?", "choices": ["364", "365", "366", "367"], "answers": ["366"], "type": "Single Choice", "subject": "General", "explanation": "An extra day is added in February." }
+  ]
+}

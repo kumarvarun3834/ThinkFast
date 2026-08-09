@@ -1,0 +1,30 @@
+{
+  "title": "Unlimited Practice",
+  "description": "A quiz with no time limit and multiple allowed attempts.",
+  "time": 0,
+  "isAiGenerated": true,
+  "allowMultipleAttempts": true,
+  "maxAttempts": 5,
+  "questions": [
+    { "question": "Which planet is known as the Red Planet?", "choices": ["Earth", "Mars", "Jupiter", "Venus"], "answers": ["Mars"], "type": "Single Choice", "subject": "Science", "explanation": "Mars has iron oxide on its surface." },
+    { "question": "What is the square root of 64?", "choices": ["6", "7", "8", "9"], "answers": ["8"], "type": "Single Choice", "subject": "Math", "explanation": "8 * 8 = 64." },
+    { "question": "Who wrote '1984'?", "choices": ["George Orwell", "Aldous Huxley", "Ray Bradbury", "H.G. Wells"], "answers": ["George Orwell"], "type": "Single Choice", "subject": "Literature", "explanation": "George Orwell published 1984 in 1949." },
+    { "question": "What is the chemical symbol for Water?", "choices": ["CO2", "H2O", "O2", "NaCl"], "answers": ["H2O"], "type": "Single Choice", "subject": "Science", "explanation": "Two hydrogen and one oxygen atoms." },
+    { "question": "Largest ocean on Earth?", "choices": ["Atlantic", "Indian", "Arctic", "Pacific"], "answers": ["Pacific"], "type": "Single Choice", "subject": "Geography", "explanation": "The Pacific Ocean covers about 30% of Earth." },
+    { "question": "Capital of Japan?", "choices": ["Kyoto", "Osaka", "Tokyo", "Nagoya"], "answers": ["Tokyo"], "type": "Single Choice", "subject": "Geography", "explanation": "Tokyo is the seat of the Emperor." },
+    { "question": "Who painted the Starry Night?", "choices": ["Picasso", "Van Gogh", "Monet", "Dali"], "answers": ["Van Gogh"], "type": "Single Choice", "subject": "Art", "explanation": "Vincent van Gogh painted it in 1889." },
+    { "question": "Currency of the UK?", "choices": ["Euro", "Dollar", "Pound", "Yen"], "answers": ["Pound"], "type": "Single Choice", "subject": "Economics", "explanation": "The Pound Sterling is the official currency." },
+    { "question": "Smallest prime number?", "choices": ["0", "1", "2", "3"], "answers": ["2"], "type": "Single Choice", "subject": "Math", "explanation": "2 is the only even prime number." },
+    { "question": "How many continents are there?", "choices": ["5", "6", "7", "8"], "answers": ["7"], "type": "Single Choice", "subject": "Geography", "explanation": "Asia, Africa, N. America, S. America, Antarctica, Europe, Australia." },
+    { "question": "What is 15 + 27?", "choices": ["32", "42", "52", "62"], "answers": ["42"], "type": "Single Choice", "subject": "Math", "explanation": "Simple addition." },
+    { "question": "Who discovered gravity?", "choices": ["Einstein", "Newton", "Tesla", "Curie"], "answers": ["Newton"], "type": "Single Choice", "subject": "Science", "explanation": "Isaac Newton formulated the laws of motion." },
+    { "question": "Fastest land animal?", "choices": ["Lion", "Tiger", "Cheetah", "Leopard"], "answers": ["Cheetah"], "type": "Single Choice", "subject": "Biology", "explanation": "Cheetahs can reach 70 mph." },
+    { "question": "Which gas do plants absorb?", "choices": ["Oxygen", "Carbon Dioxide", "Nitrogen", "Hydrogen"], "answers": ["Carbon Dioxide"], "type": "Single Choice", "subject": "Biology", "explanation": "Plants use CO2 for photosynthesis." },
+    { "question": "First human in space?", "choices": ["Armstrong", "Gagarin", "Aldrin", "Glenn"], "answers": ["Gagarin"], "type": "Single Choice", "subject": "History", "explanation": "Yuri Gagarin orbited the Earth in 1961." },
+    { "question": "What is the capital of Italy?", "choices": ["Milan", "Venice", "Rome", "Florence"], "answers": ["Rome"], "type": "Single Choice", "subject": "Geography", "explanation": "Rome is known as the Eternal City." },
+    { "question": "Element with atomic number 1?", "choices": ["Helium", "Oxygen", "Hydrogen", "Carbon"], "answers": ["Hydrogen"], "type": "Single Choice", "subject": "Chemistry", "explanation": "Hydrogen is the lightest element." },
+    { "question": "Who invented the telephone?", "choices": ["Edison", "Bell", "Ford", "Wright"], "answers": ["Bell"], "type": "Single Choice", "subject": "History", "explanation": "Alexander Graham Bell patented it in 1876." },
+    { "question": "How many sides does a hexagon have?", "choices": ["5", "6", "7", "8"], "answers": ["6"], "type": "Single Choice", "subject": "Math", "explanation": "Hexa- means six." },
+    { "question": "Largest desert in the world?", "choices": ["Sahara", "Gobi", "Antarctic", "Kalahari"], "answers": ["Antarctic"], "type": "Single Choice", "subject": "Geography", "explanation": "Technically, the Antarctic Polar Desert is the largest." }
+  ]
+}

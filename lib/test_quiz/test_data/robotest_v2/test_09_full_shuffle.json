@@ -1,0 +1,173 @@
+{
+  "title": "Full Shuffle Test",
+  "description": "All questions are completely shuffled across modules.",
+  "time": 20,
+  "completeRandomShuffle": true,
+  "questions": [
+    {
+      "question": "Q1: Capital of Norway?",
+      "choices": ["Oslo", "Bergen", "Trondheim", "Stavanger"],
+      "answers": ["Oslo"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q2: Capital of Sweden?",
+      "choices": ["Stockholm", "Gothenburg", "Malmo", "Uppsala"],
+      "answers": ["Stockholm"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q3: Capital of Denmark?",
+      "choices": ["Copenhagen", "Aarhus", "Odense", "Aalborg"],
+      "answers": ["Copenhagen"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q4: Capital of Finland?",
+      "choices": ["Helsinki", "Espoo", "Tampere", "Vantaa"],
+      "answers": ["Helsinki"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q5: Capital of Iceland?",
+      "choices": ["Reykjavik", "Akureyri", "Keflavik", "Hofn"],
+      "answers": ["Reykjavik"],
+      "type": "Single Choice",
+      "subject": "Geography"
+    },
+    {
+      "question": "Q6: 1 + 1?",
+      "answers": ["2"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q7: 2 + 2?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q8: 3 + 3?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q9: 4 + 4?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q10: 5 + 5?",
+      "answers": ["10"],
+      "type": "Integer",
+      "subject": "Math"
+    },
+    {
+      "question": "Q11: Which are primary colors?",
+      "choices": ["Red", "Blue", "Yellow"],
+      "answers": ["Red", "Blue", "Yellow"],
+      "type": "Multiple Choice",
+      "subject": "Arts"
+    },
+    {
+      "question": "Q12: Which are secondary colors?",
+      "choices": ["Orange", "Green", "Purple"],
+      "answers": ["Orange", "Green", "Purple"],
+      "type": "Multiple Choice",
+      "subject": "Arts"
+    },
+    {
+      "question": "Q13: Which are neutral colors?",
+      "choices": ["Black", "White", "Grey"],
+      "answers": ["Black", "White", "Grey"],
+      "type": "Multiple Choice",
+      "subject": "Arts"
+    },
+    {
+      "question": "Q14: Which are warm colors?",
+      "choices": ["Red", "Orange", "Yellow"],
+      "answers": ["Red", "Orange", "Yellow"],
+      "type": "Multiple Choice",
+      "subject": "Arts"
+    },
+    {
+      "question": "Q15: Which are cool colors?",
+      "choices": ["Blue", "Green", "Purple"],
+      "answers": ["Blue", "Green", "Purple"],
+      "type": "Multiple Choice",
+      "subject": "Arts"
+    },
+    {
+      "question": "Q16: First President of US?",
+      "choices": ["Washington", "Adams", "Jefferson", "Madison"],
+      "answers": ["Washington"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q17: Second President of US?",
+      "choices": ["Adams", "Jefferson", "Madison", "Monroe"],
+      "answers": ["Adams"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q18: Third President of US?",
+      "choices": ["Jefferson", "Madison", "Monroe", "Adams"],
+      "answers": ["Jefferson"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q19: Fourth President of US?",
+      "choices": ["Madison", "Monroe", "Adams", "Jackson"],
+      "answers": ["Madison"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q20: Fifth President of US?",
+      "choices": ["Monroe", "Adams", "Jackson", "Van Buren"],
+      "answers": ["Monroe"],
+      "type": "Single Choice",
+      "subject": "History"
+    },
+    {
+      "question": "Q21: Boiling point of water (C)?",
+      "answers": ["100"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q22: Freezing point of water (C)?",
+      "answers": ["0"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q23: Human body temp (C)?",
+      "answers": ["37"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q24: Planets in solar system?",
+      "answers": ["8"],
+      "type": "Integer",
+      "subject": "Science"
+    },
+    {
+      "question": "Q25: Continents on Earth?",
+      "answers": ["7"],
+      "type": "Integer",
+      "subject": "Geography"
+    }
+  ]
+}

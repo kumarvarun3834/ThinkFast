@@ -470,13 +470,14 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         );
       }
 
-      if (status == 'queued') {
+      if (status == 'queued' || status == 'pending' || status == 'processing') {
         setState(() => _generationStatus = "Queued");
+        final trackingId = result['queueId'] ?? quizId;
         if (mounted) {
           Navigator.pushReplacementNamed(
             context,
             '/AI Generation Status',
-            arguments: quizId,
+            arguments: trackingId,
           );
         }
         return;

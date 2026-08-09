@@ -1,0 +1,13 @@
+{
+  "title": "AWS Cloud Practitioner Mock",
+  "markingScheme": { "type": "entire_quiz", "global": { "correct": 10, "wrong": 0 } },
+  "questions": [
+    {
+      "question": "Select ALL AWS compute services.",
+      "choices": ["EC2", "S3", "Lambda", "RDS"],
+      "answers": ["EC2", "Lambda"],
+      "type": "Multiple Choice",
+      "subject": "Cloud Concepts"
+    }
+  ]
+}

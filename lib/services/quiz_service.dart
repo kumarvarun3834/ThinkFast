@@ -235,8 +235,10 @@ class QuizService {
 
     // 1. Fetch current quiz status if not in updates
     final currentQuizDoc = await _quizzes.doc(quizId).get();
-    final Map<String, dynamic> quizData = currentQuizDoc.data() as Map<String, dynamic>? ?? {};
-    final bool isAiGenerated = updates['isAiGenerated'] ?? quizData['isAiGenerated'] ?? false;
+    final Map<String, dynamic> quizData =
+        currentQuizDoc.data() as Map<String, dynamic>? ?? {};
+    final bool isAiGenerated =
+        updates['isAiGenerated'] ?? quizData['isAiGenerated'] ?? false;
     final bool isAdmin = await AdminService().isAdmin(userId);
 
     // 2. Conditional Logic: Secure API for AI Generated quizzes (Non-Admins only)
@@ -246,7 +248,8 @@ class QuizService {
 
         debugPrint("Secure AI Quiz Update: Calling backend -> $url");
 
-        final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(updates!);
+        final Map<String, dynamic> hardenedPayload =
+            await ApiClient.buildSecurityPayload(updates!);
 
         final response = await ApiClient.instance.put(
           url,
@@ -267,7 +270,10 @@ class QuizService {
           return; // Success, exit
         } else {
           final errorBody = response.data;
-          throw Exception(errorBody['error'] ?? "Failed to update AI quiz via API. Status: ${response.statusCode}");
+          throw Exception(
+            errorBody['error'] ??
+                "Failed to update AI quiz via API. Status: ${response.statusCode}",
+          );
         }
       } catch (e) {
         debugPrint("Secure AI Update Error: $e");
@@ -276,10 +282,13 @@ class QuizService {
     }
 
     // 3. Rate Limit Check for Direct Firestore Save (Admins exempt)
-    final bool canBypassLimits = isAdmin && await AdminService().hasPermission(userId, 'manage_all_quizzes');
+    final bool canBypassLimits =
+        isAdmin &&
+        await AdminService().hasPermission(userId, 'manage_all_quizzes');
     final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
     final bool rateLimitEnabled = flags?['enable_form_save_rate_limit'] ?? true;
-    final int rateLimitSeconds = (flags?['form_save_rate_limit_seconds'] ?? 30).toInt();
+    final int rateLimitSeconds = (flags?['form_save_rate_limit_seconds'] ?? 30)
+        .toInt();
 
     if (rateLimitEnabled && !canBypassLimits) {
       final userDoc = await _users.doc(userId).get();
@@ -294,7 +303,9 @@ class QuizService {
 
           if (difference.inSeconds < rateLimitSeconds) {
             final waitTime = rateLimitSeconds - difference.inSeconds;
-            throw Exception("Please wait $waitTime seconds before saving again.");
+            throw Exception(
+              "Please wait $waitTime seconds before saving again.",
+            );
           }
         }
       }
@@ -307,7 +318,9 @@ class QuizService {
       modulesUpdated = true;
       final questionsData = updates.remove('modules');
 
-      final List<String> existingTags = List<String>.from(cachedQuizData['tags'] ?? []);
+      final List<String> existingTags = List<String>.from(
+        cachedQuizData['tags'] ?? [],
+      );
 
       // Derive tags from modules if being updated
       final Set<String> moduleDerivedTags = {};
@@ -644,7 +657,8 @@ class QuizService {
         debugPrint("Secure AI Answer Key Update: Calling backend -> $url");
 
         final Map<String, dynamic> requestBody = {'answerKeys': answerKeys};
-        final Map<String, dynamic> hardenedPayload = await ApiClient.buildSecurityPayload(requestBody);
+        final Map<String, dynamic> hardenedPayload =
+            await ApiClient.buildSecurityPayload(requestBody);
 
         final response = await ApiClient.instance.put(
           url,
@@ -654,7 +668,10 @@ class QuizService {
 
         if (response.statusCode == 200) {
           debugPrint("AI Answer keys updated successfully via secure API.");
-          developer.log(jsonEncode(response.data), name: 'AI Answer Key Update Response');
+          developer.log(
+            jsonEncode(response.data),
+            name: 'AI Answer Key Update Response',
+          );
           await AdminService().logAction(
             actorId: userId,
             action: 'update_answer_keys_secure',
@@ -665,7 +682,10 @@ class QuizService {
           return;
         } else {
           final errorBody = response.data;
-          throw Exception(errorBody['error'] ?? "Failed to update AI answer keys via API. Status: ${response.statusCode}");
+          throw Exception(
+            errorBody['error'] ??
+                "Failed to update AI answer keys via API. Status: ${response.statusCode}",
+          );
         }
       } catch (e) {
         debugPrint("Secure AI Answer Key Update Error: $e");

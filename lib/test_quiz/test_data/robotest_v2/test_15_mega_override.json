@@ -1,0 +1,252 @@
+{
+  "title": "Mega Override Test",
+  "description": "Every question has its own timer and marking configuration.",
+  "time": 0,
+  "markingScheme": {
+    "type": "per_question"
+  },
+  "questions": [
+    {
+      "question": "What is the capital of Iceland?",
+      "choices": ["Reykjavik", "Keflavik", "Akureyri", "Hofn"],
+      "answers": ["Reykjavik"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 15,
+      "correct": 5,
+      "wrong": -1
+    },
+    {
+      "question": "How many players in a polo team?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Sports",
+      "timer": 20,
+      "correct": 10,
+      "wrong": 0
+    },
+    {
+      "question": "Which of these are base SI units?",
+      "choices": ["Meter", "Kilogram", "Second", "Newton"],
+      "answers": ["Meter", "Kilogram", "Second"],
+      "type": "Multiple Choice",
+      "subject": "Physics",
+      "timer": 45,
+      "correct": 15,
+      "wrong": -5
+    },
+    {
+      "question": "What is the capital of Mongolia?",
+      "choices": ["Ulaanbaatar", "Astana", "Tashkent", "Bishkek"],
+      "answers": ["Ulaanbaatar"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 10,
+      "correct": 8,
+      "wrong": -2
+    },
+    {
+      "question": "How many strings on a cello?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Music",
+      "timer": 30,
+      "correct": 5,
+      "wrong": -1
+    },
+    {
+      "question": "Which are the four humors?",
+      "choices": ["Blood", "Phlegm", "Black Bile", "Yellow Bile", "Spit"],
+      "answers": ["Blood", "Phlegm", "Black Bile", "Yellow Bile"],
+      "type": "Multiple Choice",
+      "subject": "History",
+      "timer": 60,
+      "correct": 20,
+      "wrong": -10
+    },
+    {
+      "question": "What is the largest moon of Saturn?",
+      "choices": ["Titan", "Enceladus", "Rhea", "Dione"],
+      "answers": ["Titan"],
+      "type": "Single Choice",
+      "subject": "Science",
+      "timer": 25,
+      "correct": 6,
+      "wrong": -2
+    },
+    {
+      "question": "How many valves in a trumpet?",
+      "answers": ["3"],
+      "type": "Integer",
+      "subject": "Music",
+      "timer": 20,
+      "correct": 4,
+      "wrong": 0
+    },
+    {
+      "question": "Which of these are Scandinavian?",
+      "choices": ["Norway", "Sweden", "Denmark", "Finland", "Iceland"],
+      "answers": ["Norway", "Sweden", "Denmark"],
+      "type": "Multiple Choice",
+      "subject": "Geography",
+      "timer": 40,
+      "correct": 12,
+      "wrong": -4
+    },
+    {
+      "question": "What is the capital of Ethiopia?",
+      "choices": ["Addis Ababa", "Nairobi", "Khartoum", "Asmara"],
+      "answers": ["Addis Ababa"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 15,
+      "correct": 7,
+      "wrong": -3
+    },
+    {
+      "question": "How many legs on a butterfly?",
+      "answers": ["6"],
+      "type": "Integer",
+      "subject": "Biology",
+      "timer": 15,
+      "correct": 3,
+      "wrong": -1
+    },
+    {
+      "question": "Which are the five pillars of Islam?",
+      "choices": ["Shahada", "Salat", "Zakat", "Sawm", "Hajj", "Jihad"],
+      "answers": ["Shahada", "Salat", "Zakat", "Sawm", "Hajj"],
+      "type": "Multiple Choice",
+      "subject": "History",
+      "timer": 50,
+      "correct": 25,
+      "wrong": -5
+    },
+    {
+      "question": "What is the capital of Peru?",
+      "choices": ["Lima", "Cusco", "Arequipa", "Quito"],
+      "answers": ["Lima"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 10,
+      "correct": 5,
+      "wrong": -1
+    },
+    {
+      "question": "How many symphonies did Beethoven write?",
+      "answers": ["9"],
+      "type": "Integer",
+      "subject": "Music",
+      "timer": 20,
+      "correct": 10,
+      "wrong": 0
+    },
+    {
+      "question": "Which of these are great philosophers?",
+      "choices": ["Kant", "Hegel", "Marx", "Smith"],
+      "answers": ["Kant", "Hegel", "Marx"],
+      "type": "Multiple Choice",
+      "subject": "Philosophy",
+      "timer": 45,
+      "correct": 15,
+      "wrong": -5
+    },
+    {
+      "question": "What is the capital of Vietnam?",
+      "choices": ["Hanoi", "Ho Chi Minh City", "Da Nang", "Hue"],
+      "answers": ["Hanoi"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 15,
+      "correct": 6,
+      "wrong": -2
+    },
+    {
+      "question": "How many bits in a nibble?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Tech",
+      "timer": 10,
+      "correct": 4,
+      "wrong": 0
+    },
+    {
+      "question": "Which are the four elements of nature (classical)?",
+      "choices": ["Earth", "Water", "Air", "Fire", "Wood"],
+      "answers": ["Earth", "Water", "Air", "Fire"],
+      "type": "Multiple Choice",
+      "subject": "Philosophy",
+      "timer": 30,
+      "correct": 8,
+      "wrong": -2
+    },
+    {
+      "question": "What is the capital of Morocco?",
+      "choices": ["Rabat", "Casablanca", "Marrakesh", "Fes"],
+      "answers": ["Rabat"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 12,
+      "correct": 5,
+      "wrong": -1
+    },
+    {
+      "question": "How many points on a standard star (US flag)?",
+      "answers": ["5"],
+      "type": "Integer",
+      "subject": "General",
+      "timer": 10,
+      "correct": 2,
+      "wrong": 0
+    },
+    {
+      "question": "Which are the cardinal directions?",
+      "choices": ["North", "South", "East", "West", "Up"],
+      "answers": ["North", "South", "East", "West"],
+      "type": "Multiple Choice",
+      "subject": "Geography",
+      "timer": 20,
+      "correct": 4,
+      "wrong": -4
+    },
+    {
+      "question": "What is the capital of Ukraine?",
+      "choices": ["Kyiv", "Lviv", "Odesa", "Kharkiv"],
+      "answers": ["Kyiv"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 15,
+      "correct": 7,
+      "wrong": -2
+    },
+    {
+      "question": "How many chambers in a human heart?",
+      "answers": ["4"],
+      "type": "Integer",
+      "subject": "Biology",
+      "timer": 15,
+      "correct": 5,
+      "wrong": -1
+    },
+    {
+      "question": "Which are the internal organs?",
+      "choices": ["Liver", "Kidney", "Spleen", "Skin"],
+      "answers": ["Liver", "Kidney", "Spleen"],
+      "type": "Multiple Choice",
+      "subject": "Biology",
+      "timer": 30,
+      "correct": 10,
+      "wrong": -3
+    },
+    {
+      "question": "What is the capital of Malaysia?",
+      "choices": ["Kuala Lumpur", "Putrajaya", "Johor Bahru", "Penang"],
+      "answers": ["Kuala Lumpur"],
+      "type": "Single Choice",
+      "subject": "Geography",
+      "timer": 18,
+      "correct": 6,
+      "wrong": -2
+    }
+  ]
+}

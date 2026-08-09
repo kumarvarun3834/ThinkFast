@@ -1,0 +1,42 @@
+{
+  "title": "Module and Type Timing",
+  "description": "Specific timing based on question type and module.",
+  "time": 30,
+  "isAiGenerated": true,
+  "timingScheme": {
+    "type": "per_type_per_module",
+    "settings": {
+      "perModuleType": {
+        "Math": {
+          "Integer": 120,
+          "Single Choice": 30
+        },
+        "Physics": {
+          "Single Choice": 60
+        }
+      }
+    }
+  },
+  "questions": [
+    { "question": "What is 12 * 12?", "choices": ["124", "144", "164", "184"], "answers": ["144"], "type": "Single Choice", "subject": "Math", "explanation": "12 squared is 144." },
+    { "question": "Value of Pi up to 2 decimal places?", "choices": ["3.12", "3.14", "3.16", "3.18"], "answers": ["3.14"], "type": "Single Choice", "subject": "Math", "explanation": "Pi is approximately 3.14159..." },
+    { "question": "What is 100 / 4?", "choices": ["20", "25", "30", "35"], "answers": ["25"], "type": "Single Choice", "subject": "Math", "explanation": "100 divided by 4 is 25." },
+    { "question": "Square root of 81?", "choices": ["7", "8", "9", "10"], "answers": ["9"], "type": "Single Choice", "subject": "Math", "explanation": "9 * 9 = 81." },
+    { "question": "What is 7 + 8 * 2?", "choices": ["30", "23", "18", "21"], "answers": ["23"], "type": "Single Choice", "subject": "Math", "explanation": "Follow BODMAS: 7 + 16 = 23." },
+    { "question": "Solve for x: 2x = 10", "choices": [], "answers": ["5"], "type": "Integer", "subject": "Math", "explanation": "x = 10 / 2 = 5." },
+    { "question": "What is 15 * 3?", "choices": [], "answers": ["45"], "type": "Integer", "subject": "Math", "explanation": "15 times 3 is 45." },
+    { "question": "Result of 10 squared?", "choices": [], "answers": ["100"], "type": "Integer", "subject": "Math", "explanation": "10 * 10 = 100." },
+    { "question": "Value of 5 factorial (5!)?", "choices": [], "answers": ["120"], "type": "Integer", "subject": "Math", "explanation": "5 * 4 * 3 * 2 * 1 = 120." },
+    { "question": "What is 2 raised to power 5?", "choices": [], "answers": ["32"], "type": "Integer", "subject": "Math", "explanation": "2*2*2*2*2 = 32." },
+    { "question": "Unit of Force?", "choices": ["Joule", "Watt", "Newton", "Pascal"], "answers": ["Newton"], "type": "Single Choice", "subject": "Physics", "explanation": "Force is measured in Newtons." },
+    { "question": "Speed of light in vacuum (approx m/s)?", "choices": ["3e8", "3e6", "3e10", "3e5"], "answers": ["3e8"], "type": "Single Choice", "subject": "Physics", "explanation": "Approx 300,000,000 m/s." },
+    { "question": "Which law states F=ma?", "choices": ["1st", "2nd", "3rd", "Gravitation"], "answers": ["2nd"], "type": "Single Choice", "subject": "Physics", "explanation": "Newton's Second Law." },
+    { "question": "Unit of electrical current?", "choices": ["Volt", "Ampere", "Ohm", "Watt"], "answers": ["Ampere"], "type": "Single Choice", "subject": "Physics", "explanation": "Measured using an ammeter." },
+    { "question": "What is the acceleration due to gravity on Earth (m/s^2)?", "choices": ["8.8", "9.8", "10.8", "7.8"], "answers": ["9.8"], "type": "Single Choice", "subject": "Physics", "explanation": "Standard gravity is 9.80665 m/s^2." },
+    { "question": "Gas we breathe in?", "choices": ["Oxygen", "Nitrogen", "CO2", "Argon"], "answers": ["Oxygen"], "type": "Single Choice", "subject": "Science", "explanation": "Oxygen is vital for respiration." },
+    { "question": "Capital of France?", "choices": ["Berlin", "London", "Paris", "Madrid"], "answers": ["Paris"], "type": "Single Choice", "subject": "Geography", "explanation": "Paris is the capital of France." },
+    { "question": "Smallest planet in solar system?", "choices": ["Venus", "Mars", "Mercury", "Pluto"], "answers": ["Mercury"], "type": "Single Choice", "subject": "Science", "explanation": "Mercury is closest to the Sun." },
+    { "question": "Who wrote 'Hamlet'?", "choices": ["Dickens", "Shakespeare", "Twain", "Hemingway"], "answers": ["Shakespeare"], "type": "Single Choice", "subject": "Literature", "explanation": "William Shakespeare wrote Hamlet." },
+    { "question": "Number of players in a cricket team?", "choices": ["9", "10", "11", "12"], "answers": ["11"], "type": "Single Choice", "subject": "Sports", "explanation": "11 players per side." }
+  ]
+}

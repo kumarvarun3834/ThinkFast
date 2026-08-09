@@ -1,0 +1,38 @@
+{
+  "title": "Robo-Testing: Strict Marking & Selection",
+  "description": "Tests high-stakes individual marking (+100/-50) and strict selection logic (Select exactly 1 from 2).",
+  "time": 15,
+  "markingScheme": {
+    "type": "per_question"
+  },
+  "attemptLimits": {
+    "type": "per_module",
+    "perModule": {
+      "High Stakes": {
+        "Single Choice": 1
+      }
+    }
+  },
+  "questions": [
+    {
+      "uid": "q_high_stakes_1",
+      "question": "Q1: If you get this right, you get +100. Wrong is -50.",
+      "choices": ["Correct", "Wrong"],
+      "answers": ["Correct"],
+      "type": "Single Choice",
+      "subject": "High Stakes",
+      "correct": 100,
+      "wrong": -50,
+      "explanation": "Tests per_question marking in high-stakes scenario."
+    },
+    {
+      "uid": "q_high_stakes_2",
+      "question": "Q2: You can only answer ONE question in this module. If you already answered Q1, this should be disabled.",
+      "choices": ["Choice A", "Choice B"],
+      "answers": ["Choice A"],
+      "type": "Single Choice",
+      "subject": "High Stakes",
+      "explanation": "Tests Select 1 out of 2 logic."
+    }
+  ]
+}
