@@ -2,7 +2,7 @@
   "title": "Mixed Dynamics",
   "description": "Legacy field test with per-question scoring and individual timers.",
   "time": 30,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "markingScheme": {
     "type": "per_question"
   },

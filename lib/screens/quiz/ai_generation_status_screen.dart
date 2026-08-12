@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -495,17 +496,6 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
     return global.primaryAccent;
   }
 
-  IconData _getStatusIcon(String status) {
-    final s = status.toLowerCase();
-    if (s.contains('completed') || s.contains('ready')) {
-      return Icons.check_circle_rounded;
-    }
-    if (s.contains('failed') || s.contains('error')) {
-      return Icons.error_outline_rounded;
-    }
-    return Icons.auto_awesome_rounded;
-  }
-
   Widget _buildIdInput() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -618,6 +608,22 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
             .toLowerCase();
         final String? statusText = data['statusText'] ?? data['message'];
 
+        // Map status to progress if numeric progress is missing or 0
+        int progress = (data['progress'] ?? 0).toInt();
+        if (progress == 0) {
+          if (status.contains('queued')) {
+            progress = 10;
+          } else if (status.contains('generating')) {
+            progress = 40;
+          } else if (status.contains('validating')) {
+            progress = 70;
+          } else if (status.contains('saving')) {
+            progress = 90;
+          } else if (status.contains('completed') || status.contains('ready')) {
+            progress = 100;
+          }
+        }
+
         // Detect if the statusText itself indicates a failure even if status is not 'failed'
         final bool isImplicitFailure =
             statusText != null &&
@@ -625,7 +631,6 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
                 statusText.toLowerCase().contains('error'));
 
         final String? error = isImplicitFailure ? statusText : data['error'];
-        final int progress = (data['progress'] ?? 0).toInt();
         final String? prompt = data['prompt'];
         final int? currentStep = data['currentStep'];
         final int? totalSteps = data['totalSteps'];
@@ -1126,24 +1131,6 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildErrorState(String message) {
-    return Column(
-      children: [
-        const Icon(
-          Icons.search_off_rounded,
-          color: global.labelColor,
-          size: 48,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.poppins(color: global.labelColor),
-        ),
-      ],
     );
   }
 }

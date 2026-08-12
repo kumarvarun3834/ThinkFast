@@ -1,6 +1,7 @@
 {
   "title": "Strict Navigation Test",
   "description": "Navigation is restricted; modules cannot be switched easily.",
+  "isAiGenerated": false,
   "time": 30,
   "disableModuleSwitchingUntilTimeout": true,
   "forceWaitUntilTimeout": true,

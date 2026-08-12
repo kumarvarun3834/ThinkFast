@@ -1,6 +1,7 @@
 {
   "title": "Module Limits Test",
   "description": "Limits on questions per module and type.",
+  "isAiGenerated": false,
   "time": 40,
   "attemptLimits": {
     "type": "per_module",

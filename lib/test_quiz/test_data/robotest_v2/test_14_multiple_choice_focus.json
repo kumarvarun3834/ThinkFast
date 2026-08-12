@@ -1,6 +1,7 @@
 {
   "title": "Multiple Choice Focus",
   "description": "A test consisting entirely of multiple-choice questions.",
+  "isAiGenerated": false,
   "time": 60,
   "questions": [
     { "question": "Colors of French flag?", "choices": ["Blue", "White", "Red", "Yellow"], "answers": ["Blue", "White", "Red"], "type": "Multiple Choice", "subject": "Geography" },

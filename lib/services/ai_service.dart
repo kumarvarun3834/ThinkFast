@@ -13,6 +13,10 @@ import 'settings_service.dart';
 class AiService {
   final LocalCacheService _cache = LocalCacheService();
 
+  // Client-side Debouncing
+  static DateTime? _lastGenerationTime;
+  static const Duration _generationCooldown = Duration(seconds: 10);
+
   Future<void> _checkAiEnabled(String userId) async {
     final bool isAdmin = await AdminService().isAdmin(userId);
     final flags = await SettingsService().getFeatureFlags(isAdmin: isAdmin);
@@ -94,6 +98,17 @@ class AiService {
   }) async {
     await _checkAiEnabled(userId);
 
+    // Debounce check
+    final now = DateTime.now();
+    if (_lastGenerationTime != null &&
+        now.difference(_lastGenerationTime!) < _generationCooldown) {
+      final waitSeconds =
+          _generationCooldown.inSeconds -
+          now.difference(_lastGenerationTime!).inSeconds;
+      throw Exception("Too many requests. Please wait $waitSeconds seconds.");
+    }
+    _lastGenerationTime = now;
+
     try {
       final Map<String, dynamic> requestBody = {
         'type': isPersonal ? 'wizard' : 'ai_text',
@@ -161,6 +176,17 @@ class AiService {
     bool isPersonal = false,
   }) async {
     await _checkAiEnabled(userId);
+
+    // Debounce check
+    final now = DateTime.now();
+    if (_lastGenerationTime != null &&
+        now.difference(_lastGenerationTime!) < _generationCooldown) {
+      final waitSeconds =
+          _generationCooldown.inSeconds -
+          now.difference(_lastGenerationTime!).inSeconds;
+      throw Exception("Too many requests. Please wait $waitSeconds seconds.");
+    }
+    _lastGenerationTime = now;
 
     try {
       final Map<String, dynamic> requestBody = {
@@ -230,39 +256,63 @@ class AiService {
   }) async {
     await _checkAiEnabled(userId);
 
-    try {
-      final Map<String, dynamic> requestBody = {
-        'action': 'analyze',
-        'data': {'quizId': quizId, 'responseId': responseId},
-      };
+    // Add a small delay to ensure Firestore write for response is synced
+    await Future.delayed(const Duration(seconds: 2));
 
-      final Map<String, dynamic> hardenedPayload =
-          await ApiClient.buildSecurityPayload(requestBody);
-      developer.log(jsonEncode(hardenedPayload), name: 'AI Analysis Payload');
+    int retryCount = 0;
+    const int maxRetries = 2;
 
-      final url = "${global.aiBackendUrl}/api/quizzes/$quizId/actions";
-      debugPrint("AI Analysis: Calling backend -> $url");
+    while (retryCount <= maxRetries) {
+      try {
+        final Map<String, dynamic> requestBody = {
+          'action': 'analyze',
+          'data': {'quizId': quizId, 'responseId': responseId},
+        };
 
-      final response = await ApiClient.instance.post(
-        url,
-        data: hardenedPayload,
-        options: Options(headers: {'Content-Type': 'application/json'}),
-      );
+        final Map<String, dynamic> hardenedPayload =
+            await ApiClient.buildSecurityPayload(requestBody);
+        developer.log(jsonEncode(hardenedPayload), name: 'AI Analysis Payload');
 
-      if (response.statusCode == 200) {
-        developer.log(jsonEncode(response.data), name: 'AI Analysis Response');
-        return response.data as Map<String, dynamic>;
-      } else {
-        final errorBody = response.data;
-        throw Exception(
-          errorBody['error'] ??
-              "AI Analysis failed. Status: ${response.statusCode}",
+        final url =
+            "${global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '')}/api/quizzes/$quizId/actions";
+        debugPrint("AI Analysis: Calling backend -> $url (Retry: $retryCount)");
+
+        final response = await ApiClient.instance.post(
+          url,
+          data: hardenedPayload,
+          options: Options(headers: {'Content-Type': 'application/json'}),
         );
+
+        if (response.statusCode == 200) {
+          developer.log(
+            jsonEncode(response.data),
+            name: 'AI Analysis Response',
+          );
+          return response.data as Map<String, dynamic>;
+        } else {
+          final errorBody = response.data;
+          // If response not found, retry after a short delay
+          if (response.statusCode == 404 && retryCount < maxRetries) {
+            retryCount++;
+            await Future.delayed(const Duration(seconds: 3));
+            continue;
+          }
+          throw Exception(
+            errorBody['error'] ??
+                "AI Analysis failed. Status: ${response.statusCode}",
+          );
+        }
+      } catch (e) {
+        if (retryCount < maxRetries) {
+          retryCount++;
+          await Future.delayed(const Duration(seconds: 3));
+          continue;
+        }
+        debugPrint("AI Analysis Error: $e");
+        throw Exception(e.toString());
       }
-    } catch (e) {
-      debugPrint("AI Analysis Error: $e");
-      throw Exception(e.toString());
     }
+    throw Exception("AI Analysis timed out or failed after retries.");
   }
 
   /// ✅ Get Quiz Status from API (Polling for async generation)
@@ -330,7 +380,8 @@ class AiService {
   /// ✅ Manually Process Quiz Queue (Admin Only)
   Future<Map<String, dynamic>> processQuizQueue() async {
     try {
-      final url = "${global.aiBackendUrl}/api/admin/tasks";
+      final url =
+          "${global.aiBackendUrl.replaceAll(RegExp(r'/+$'), '')}/api/admin/tasks";
       debugPrint("AI Queue: Triggering manual flush -> $url");
 
       final Map<String, dynamic> requestData = {'task': 'flush_queue'};

@@ -1,6 +1,7 @@
 {
   "title": "Per Type Marking Test",
   "description": "Scoring varies by question type.",
+  "isAiGenerated": false,
   "time": 45,
   "markingScheme": {
     "type": "per_question_type",

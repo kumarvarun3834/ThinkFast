@@ -1,4 +1,4 @@
-package com.example.thinkfast
+package com.thinkfast.ai
 
 import io.flutter.embedding.android.FlutterActivity
 

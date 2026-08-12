@@ -41,29 +41,40 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize Firebase App Check
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    androidProvider: kDebugMode
+        ? AndroidProvider.debug
+        : AndroidProvider.playIntegrity,
     appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
   );
 
   if (kDebugMode) {
     // In debug mode, print the App Check token to help register it in Firebase Console
-    FirebaseAppCheck.instance.getToken().then((token) {
-      debugPrint("--- FIREBASE APP CHECK DEBUG TOKEN ---");
-      debugPrint(token);
-      debugPrint("---------------------------------------");
-    }).catchError((e) {
-      debugPrint("Failed to get App Check token: $e");
+    // Use a delay to ensure initialization is fully settled
+    Future.delayed(const Duration(seconds: 2), () {
+      FirebaseAppCheck.instance
+          .getToken()
+          .then((token) {
+            debugPrint("--- FIREBASE APP CHECK DEBUG TOKEN ---");
+            debugPrint(token);
+            debugPrint("---------------------------------------");
+          })
+          .catchError((e) {
+            // Suppress "Too many attempts" log clutter in console during rapid dev cycles
+            if (!e.toString().contains("too-many-attempts")) {
+              debugPrint("App Check Debug Token fetch info: $e");
+            }
+          });
     });
   }
 
   // Initialize Firebase Performance
-  await FirebasePerformance.instance.setPerformanceCollectionEnabled(!kDebugMode);
+  await FirebasePerformance.instance.setPerformanceCollectionEnabled(
+    !kDebugMode,
+  );
 
   // Initialize AppLinks handling
   final appLinks = AppLinks();
@@ -209,7 +220,9 @@ class _MyAppState extends State<MyApp> {
             wrapInGradient = false;
             break;
           case '/AI Generation Status':
-            page = AiGenerationStatusScreen(initialQuizId: settings.arguments as String?);
+            page = AiGenerationStatusScreen(
+              initialQuizId: settings.arguments as String?,
+            );
             wrapInGradient = false;
             break;
           case '/Quiz Details':
@@ -250,7 +263,9 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/dashboard':
             // Super Admin or Dashboard Permission Gate
-            if (global.isAdmin && (global.adminLevel == 0 || global.adminPermissions.contains('access_dashboard'))) {
+            if (global.isAdmin &&
+                (global.adminLevel == 0 ||
+                    global.adminPermissions.contains('access_dashboard'))) {
               page = const AdminDashboardScreen();
             } else {
               page = const MainScreen(showMyQuizzes: false);

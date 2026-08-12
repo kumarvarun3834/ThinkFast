@@ -10,6 +10,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 class ApiClient {
   static final Dio _dio = _initDio();
 
+  // Local cache to reduce frequency of App Check attestation requests
+  static String? _cachedAppCheckToken;
+  static DateTime? _lastTokenFetch;
+
   static Dio _initDio() {
     final dio = Dio();
     dio.interceptors.add(
@@ -22,7 +26,7 @@ class ApiClient {
           }
 
           try {
-            final appCheckToken = await FirebaseAppCheck.instance.getToken();
+            final appCheckToken = await _getAppCheckToken();
             if (appCheckToken != null) {
               options.headers['X-Firebase-AppCheck'] = appCheckToken;
             }
@@ -37,6 +41,25 @@ class ApiClient {
 
   static Dio get instance => _dio;
 
+  static Future<String?> _getAppCheckToken() async {
+    final now = DateTime.now();
+    // Use local cache for 5 minutes to prevent "Too many attempts" errors
+    if (_cachedAppCheckToken != null && _lastTokenFetch != null) {
+      if (now.difference(_lastTokenFetch!).inMinutes < 5) {
+        return _cachedAppCheckToken;
+      }
+    }
+
+    try {
+      _cachedAppCheckToken = await FirebaseAppCheck.instance.getToken();
+      _lastTokenFetch = now;
+      return _cachedAppCheckToken;
+    } catch (e) {
+      debugPrint("App Check token error: $e");
+      return _cachedAppCheckToken; // Return last known good token on error
+    }
+  }
+
   /// 🔐 Builds a hardened security payload for AI backend requests
   static Future<Map<String, dynamic>> buildSecurityPayload(
     Map<String, dynamic> requestData,
@@ -47,21 +70,15 @@ class ApiClient {
     String? firebaseIdToken;
     String? appCheckToken;
 
-    // Fetch tokens once (Interceptor will also fetch but App Check caches internally)
+    // Fetch tokens once
     try {
-      // Force refresh both tokens to ensure backend gets a valid cryptographic attestation
-      firebaseIdToken = await user?.getIdToken(true); 
-      
-      appCheckToken = await FirebaseAppCheck.instance.getToken();
-      if (appCheckToken == null) {
-        debugPrint("App Check: Initial fetch returned null, attempting force refresh...");
-        appCheckToken = await FirebaseAppCheck.instance.getToken(true);
-      }
+      firebaseIdToken = await user?.getIdToken();
+      appCheckToken = await _getAppCheckToken();
 
       if (appCheckToken == null) {
-        debugPrint("App Check: Token is still null. Verify Device Check/Play Integrity registration in Firebase.");
+        debugPrint("App Check: Token is null.");
       } else {
-        debugPrint("App Check: Token successfully retrieved.");
+        debugPrint("App Check: Token retrieved.");
       }
     } catch (e) {
       debugPrint("Security token fetch error: $e");

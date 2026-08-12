@@ -1,6 +1,7 @@
 {
   "title": "Integer Mastery",
   "description": "A test consisting entirely of integer-type questions.",
+  "isAiGenerated": false,
   "time": 30,
   "questions": [
     { "question": "1 + 1?", "answers": ["2"], "type": "Integer", "subject": "Math" },

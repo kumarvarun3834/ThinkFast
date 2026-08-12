@@ -1,6 +1,7 @@
 {
   "title": "Standard Proficiency Test",
   "description": "A mixed bag of 25 questions to test general knowledge and logic.",
+  "isAiGenerated": false,
   "time": 30,
   "questions": [
     {

@@ -2,7 +2,7 @@
   "title": "Ordered Learning",
   "description": "Progresses from Fundamentals to Advanced modules.",
   "time": 40,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "moduleOrder": ["Fundamentals", "Advanced"],
   "shuffleModules": false,
   "questions": [

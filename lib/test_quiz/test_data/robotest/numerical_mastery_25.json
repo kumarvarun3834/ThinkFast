@@ -1,6 +1,7 @@
 {
   "title": "Numerical Mastery 25",
   "description": "25 Integer type questions focused on Mathematics with strict marking (+10/0).",
+  "isAiGenerated": false,
   "markingScheme": {
     "Integer": { "correct": 10, "incorrect": 0 }
   },

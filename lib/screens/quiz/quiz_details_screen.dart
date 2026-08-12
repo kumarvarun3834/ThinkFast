@@ -65,7 +65,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
       // Fetch AI Insight if applicable
       if (_user != null) {
-        final insight = await global.aiConnect.getGenerationInsight(_user!.uid, widget.quizId);
+        final insight = await global.aiConnect.getGenerationInsight(
+          _user!.uid,
+          widget.quizId,
+        );
         if (mounted) {
           setState(() {
             _aiInsight = insight;
@@ -222,7 +225,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                         : global.borderColor,
                                   ),
                                   color: isSelected
-                                      ? global.primaryAccent.withValues(alpha: 0.1)
+                                      ? global.primaryAccent.withValues(
+                                          alpha: 0.1,
+                                        )
                                       : Colors.transparent,
                                 ),
                                 child: Text(
@@ -404,7 +409,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         _quizData!['visibility'] = newVisibility;
       });
 
-      messenger.showSnackBar(SnackBar(content: Text("Quiz is now $newVisibility")));
+      messenger.showSnackBar(
+        SnackBar(content: Text("Quiz is now $newVisibility")),
+      );
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
@@ -460,7 +467,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
       "Copyright Violation",
       "Spam",
       "Inaccurate Information",
-      "Other"
+      "Other",
     ];
 
     showDialog(
@@ -470,7 +477,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
           backgroundColor: global.cardColor,
           title: Text(
             questionId == null ? "Report Quiz" : "Report Question",
-            style: GoogleFonts.poppins(color: global.valueColor, fontWeight: FontWeight.bold),
+            style: GoogleFonts.poppins(
+              color: global.valueColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -479,7 +489,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               children: [
                 Text(
                   "Why are you reporting this?",
-                  style: GoogleFonts.poppins(color: global.labelColor, fontSize: 13),
+                  style: GoogleFonts.poppins(
+                    color: global.labelColor,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -495,8 +508,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                       value: selectedReason,
                       dropdownColor: global.cardColor,
                       style: GoogleFonts.poppins(color: global.valueColor),
-                      items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                      onChanged: (v) => setDialogState(() => selectedReason = v!),
+                      items: reasons
+                          .map(
+                            (r) => DropdownMenuItem(value: r, child: Text(r)),
+                          )
+                          .toList(),
+                      onChanged: (v) =>
+                          setDialogState(() => selectedReason = v!),
                     ),
                   ),
                 ),
@@ -507,10 +525,15 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: "Provide more details (optional)...",
-                    hintStyle: TextStyle(color: global.labelColor, fontSize: 12),
+                    hintStyle: TextStyle(
+                      color: global.labelColor,
+                      fontSize: 12,
+                    ),
                     filled: true,
                     fillColor: global.bgColor.withValues(alpha: 0.5),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -522,7 +545,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               child: const Text("CANCEL"),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: global.errorColor),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.errorColor,
+              ),
               onPressed: () async {
                 final messenger = ScaffoldMessenger.of(context);
                 try {
@@ -536,13 +561,20 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   );
                   Navigator.pop(context);
                   messenger.showSnackBar(
-                    const SnackBar(content: Text("Thank you. Your report has been submitted.")),
+                    const SnackBar(
+                      content: Text(
+                        "Thank you. Your report has been submitted.",
+                      ),
+                    ),
                   );
                 } catch (e) {
                   messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
                 }
               },
-              child: const Text("SUBMIT REPORT", style: TextStyle(color: Colors.white)),
+              child: const Text(
+                "SUBMIT REPORT",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -585,11 +617,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             actions: [
               if (!_isLoading && _quizData != null)
                 IconButton(
-                  icon: const Icon(Icons.report_gmailerrorred_rounded, color: global.errorColor),
+                  icon: const Icon(
+                    Icons.report_gmailerrorred_rounded,
+                    color: global.errorColor,
+                  ),
                   onPressed: () => _showReportDialog(),
                   tooltip: "Report Quiz",
                 ),
-              if (_isAdmin) const AdminBadge()
+              if (_isAdmin) const AdminBadge(),
             ],
           ),
           body: _isLoading && _quizData == null
@@ -597,54 +632,54 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                   child: CircularProgressIndicator(color: global.primaryAccent),
                 )
               : _hasError && _quizData == null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error_outline_rounded,
-                              color: global.errorColor,
-                              size: 64,
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              _errorMessage,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                color: global.valueColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 32),
-                            ElevatedButton.icon(
-                              onPressed: _fetchQuizDetails,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: global.btnColor,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(200, 56),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text(
-                                "RETRY LOADING",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("GO BACK"),
-                            ),
-                          ],
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          color: global.errorColor,
+                          size: 64,
                         ),
-                      ),
-                    )
-                  : SingleChildScrollView(
+                        const SizedBox(height: 24),
+                        Text(
+                          _errorMessage,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: global.valueColor,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        ElevatedButton.icon(
+                          onPressed: _fetchQuizDetails,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: global.btnColor,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(200, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text(
+                            "RETRY LOADING",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("GO BACK"),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,
@@ -667,7 +702,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                   : () {
                                       final link =
                                           "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
-                                      final messenger = ScaffoldMessenger.of(context);
+                                      final messenger = ScaffoldMessenger.of(
+                                        context,
+                                      );
                                       Clipboard.setData(
                                         ClipboardData(text: link),
                                       ).then((_) {
@@ -689,10 +726,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.05),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: global.borderColor),
-                              ),
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: global.borderColor),
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -747,7 +784,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // 💎 Prominent Description & Insight Section
-                            if (description.isNotEmpty && description != 'null') ...[
+                            if (description.isNotEmpty &&
+                                description != 'null') ...[
                               Text(
                                 "ABOUT THIS QUIZ",
                                 style: GoogleFonts.poppins(
@@ -769,12 +807,18 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               const SizedBox(height: 24),
                             ],
 
-                            if (_quizData?['AI_description'] != null && _quizData!['AI_description'].toString().isNotEmpty) ...[
-                              _buildAiDescriptionCard(_quizData!['AI_description']),
+                            if (_quizData?['AI_description'] != null &&
+                                _quizData!['AI_description']
+                                    .toString()
+                                    .isNotEmpty) ...[
+                              _buildAiDescriptionCard(
+                                _quizData!['AI_description'],
+                              ),
                               const SizedBox(height: 24),
                             ],
 
-                            if (_aiInsight != null && _aiInsight!.isNotEmpty) ...[
+                            if (_aiInsight != null &&
+                                _aiInsight!.isNotEmpty) ...[
                               _buildAiInsightCard(_aiInsight!),
                               const SizedBox(height: 24),
                             ],
@@ -791,7 +835,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                               color: global.borderColor,
                               height: 32,
                             ),
-                            if (_quizData != null && (_quizData!['time'] ?? 0) > 0)
+                            if (_quizData != null &&
+                                (_quizData!['time'] ?? 0) > 0)
                               InfoRow(
                                 label: "Duration",
                                 value: timeLimit,
@@ -838,19 +883,65 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  // Subjects (Module titles)
-                                  ...(_quizData!['modules'] as List? ?? []).map((m) {
-                                    final sub = m is Map ? m['subject'].toString() : "Unknown";
-                                    final List<String> modTags = (_quizData!['moduleTags'] != null && _quizData!['moduleTags'][sub] != null)
-                                        ? List<String>.from(_quizData!['moduleTags'][sub])
-                                        : [];
-                                    
-                                    return _buildUnifiedTag(sub, modTags, isModule: true);
-                                  }),
-                                  // Regular Tags
-                                  ...(_quizData!['tags'] as List? ?? []).map((t) {
-                                    return _buildUnifiedTag(t.toString(), [], isModule: false);
-                                  }),
+                                  // Logic: Filter out duplicate tags that are already shown as module subjects
+                                  ...(() {
+                                    final List<Widget> unifiedWidgets = [];
+                                    final Set<String> shownTags = {};
+
+                                    // 1. Render Subjects (Module titles) first
+                                    final List modules =
+                                        _quizData!['modules'] as List? ?? [];
+                                    for (var m in modules) {
+                                      final sub = m is Map
+                                          ? m['subject'].toString()
+                                          : "Unknown";
+                                      if (sub.isEmpty || sub == 'null')
+                                        continue;
+
+                                      shownTags.add(sub.toLowerCase().trim());
+
+                                      final List<String> modTags =
+                                          (_quizData!['moduleTags'] != null &&
+                                              _quizData!['moduleTags'][sub] !=
+                                                  null)
+                                          ? List<String>.from(
+                                              _quizData!['moduleTags'][sub],
+                                            )
+                                          : [];
+
+                                      unifiedWidgets.add(
+                                        _buildUnifiedTag(
+                                          sub,
+                                          modTags,
+                                          isModule: true,
+                                        ),
+                                      );
+                                    }
+
+                                    // 2. Render Regular Tags, skipping duplicates
+                                    final List tags =
+                                        _quizData!['tags'] as List? ?? [];
+                                    for (var t in tags) {
+                                      final tagStr = t.toString().trim();
+                                      final normalized = tagStr.toLowerCase();
+
+                                      if (tagStr.isEmpty ||
+                                          tagStr == 'null' ||
+                                          shownTags.contains(normalized))
+                                        continue;
+
+                                      shownTags.add(normalized);
+                                      unifiedWidgets.add(
+                                        _buildUnifiedTag(
+                                          tagStr,
+                                          [],
+                                          isModule: false,
+                                        ),
+                                      );
+                                    }
+
+                                    return unifiedWidgets;
+                                  })(),
                                 ],
                               ),
                             ],
@@ -933,7 +1024,8 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     if (_quizData!['shuffleQuestionsWithinModules'] == true) {
       types.add("Intra-Module Shuffle");
     }
-    if (_quizData!['completeRandomShuffle'] == true) types.add("Global Shuffle");
+    if (_quizData!['completeRandomShuffle'] == true)
+      types.add("Global Shuffle");
     if (_quizData!['disableModuleSwitchingUntilTimeout'] == true && time > 0) {
       types.add("Strict Module Flow");
     }
@@ -1098,65 +1190,68 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
     );
   }
 
-  Widget _buildUnifiedTag(String text, List<String> subtopics, {required bool isModule}) {
+  Widget _buildUnifiedTag(
+    String text,
+    List<String> subtopics, {
+    required bool isModule,
+  }) {
     final bool hasSubtopics = subtopics.isNotEmpty;
 
     return InkWell(
       onTap: !hasSubtopics
           ? null
           : () {
-            showModalBottomSheet(
-              context: context,
-              backgroundColor: global.cardColor,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              builder: (ctx) => Container(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "$text Subtopics",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: global.valueColor,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: subtopics
-                          .map(
-                            (t) => Chip(
-                              label: Text(
-                                t,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              backgroundColor: global.primaryAccent.withValues(
-                                alpha: 0.1,
-                              ),
-                              side: BorderSide(
-                                color: global.primaryAccent.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: global.cardColor,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-              ),
-            );
-          },
+                builder: (ctx) => Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "$text Subtopics",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: global.valueColor,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: subtopics
+                            .map(
+                              (t) => Chip(
+                                label: Text(
+                                  t,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                backgroundColor: global.primaryAccent
+                                    .withValues(alpha: 0.1),
+                                side: BorderSide(
+                                  color: global.primaryAccent.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              );
+            },
       child: Chip(
         label: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1179,15 +1274,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             ],
           ],
         ),
-        backgroundColor:
-            isModule
-                ? global.infoColor.withValues(alpha: 0.2)
-                : global.primaryAccent.withValues(alpha: 0.1),
+        backgroundColor: isModule
+            ? global.infoColor.withValues(alpha: 0.2)
+            : global.primaryAccent.withValues(alpha: 0.1),
         side: BorderSide(
-          color:
-              isModule
-                  ? global.infoColor.withValues(alpha: 0.3)
-                  : global.primaryAccent.withValues(alpha: 0.2),
+          color: isModule
+              ? global.infoColor.withValues(alpha: 0.3)
+              : global.primaryAccent.withValues(alpha: 0.2),
         ),
         padding: EdgeInsets.zero,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1276,8 +1369,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isDeleted ? global.successColor : global.errorColor,
+                    backgroundColor: isDeleted
+                        ? global.successColor
+                        : global.errorColor,
                   ),
                   onPressed: () => Navigator.pop(context, true),
                   child: Text(
@@ -1347,7 +1441,10 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         const SizedBox(height: 16),
         // Simplified Leaderboard Fetch: Check if document exists at /leaderboards/{quizId}
         StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('leaderboards').doc(widget.quizId).snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('leaderboards')
+              .doc(widget.quizId)
+              .snapshots(),
           builder: (context, snapshot) {
             final hasLeaderboard = snapshot.hasData && snapshot.data!.exists;
             if (!hasLeaderboard) return const SizedBox.shrink();
@@ -1479,10 +1576,13 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               if (_quizData!['isRestricted'] == true) {
                 final List<dynamic> allowed =
                     _quizData!['allowedParticipants'] as List? ?? [];
-                
+
                 bool hasAccess = allowed.contains(_user?.uid);
                 if (!hasAccess && _user != null) {
-                  hasAccess = await global.db.hasParticipantAccess(widget.quizId, _user!.uid);
+                  hasAccess = await global.db.hasParticipantAccess(
+                    widget.quizId,
+                    _user!.uid,
+                  );
                 }
 
                 if (!mounted) return;

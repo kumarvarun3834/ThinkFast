@@ -2,7 +2,7 @@
   "title": "Module and Type Timing",
   "description": "Specific timing based on question type and module.",
   "time": 30,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "timingScheme": {
     "type": "per_type_per_module",
     "settings": {

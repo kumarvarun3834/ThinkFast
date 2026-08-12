@@ -1,6 +1,7 @@
 {
   "title": "Per Type Timing Test",
   "description": "Each question type has a different fixed time limit.",
+  "isAiGenerated": false,
   "time": 0,
   "timingScheme": {
     "type": "per_question_type",

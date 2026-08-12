@@ -240,7 +240,7 @@ class _QuizPageState extends State<QuizPage> {
   Future<void> _importQuizData(String input, {bool append = false}) async {
     try {
       final res = await QuizDataProcessor.processImportData(input);
-      setState(() => _isAiGenerated = true);
+      setState(() => _isAiGenerated = res.isAiGenerated ?? false);
       await QuizFormController.importQuizData(
         result: res,
         append: append,

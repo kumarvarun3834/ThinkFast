@@ -1,6 +1,7 @@
 {
   "title": "Default Global Test",
   "description": "Standard marking and global timing test.",
+  "isAiGenerated": false,
   "time": 30,
   "markingScheme": {
     "type": "default"

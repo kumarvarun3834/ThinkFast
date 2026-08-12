@@ -1,6 +1,7 @@
 {
   "title": "Timed Blitz 20",
   "description": "20 questions, 15 seconds each. Speed is key!",
+  "isAiGenerated": false,
   "perQuestionTime": 15,
   "shuffle": true,
   "questions": [

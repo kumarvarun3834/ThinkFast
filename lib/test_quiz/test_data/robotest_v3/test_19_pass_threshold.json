@@ -2,7 +2,7 @@
   "title": "Certification Qualifier",
   "description": "Quiz with a 75% pass threshold.",
   "time": 25,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "markingScheme": {
     "type": "default",
     "passThreshold": 75

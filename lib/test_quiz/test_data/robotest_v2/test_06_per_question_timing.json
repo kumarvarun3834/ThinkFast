@@ -1,6 +1,7 @@
 {
   "title": "Per Question Timing Test",
   "description": "Each question has a fixed timer of 30 seconds.",
+  "isAiGenerated": false,
   "time": 0,
   "perQuestionTime": 30,
   "timingScheme": {

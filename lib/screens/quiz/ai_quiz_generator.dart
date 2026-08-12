@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/ai_service.dart';
@@ -44,6 +45,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
   @override
   void initState() {
     super.initState();
+    _checkVerification();
     _fetchExamConfigs();
     _steps = [
       {
@@ -228,6 +230,27 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     _scrollToBottom();
   }
 
+  Future<void> _checkVerification() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await user.reload();
+      if (!user.emailVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                "Please verify your email address to use the AI Wizard.",
+              ),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/verify');
+        }
+      }
+    }
+  }
+
   Future<void> _fetchExamConfigs() async {
     final settings = SettingsService();
     try {
@@ -248,9 +271,9 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           // Merge and remove duplicates, maintaining order where possible
           final Set<String> allExams = {...defaultExams, ...fetchedExams};
 
-          // Find the exam_type step and update its options
+          // Find the exam step and update its options
           for (var step in _steps) {
-            if (step['id'] == 'exam_type') {
+            if (step['id'] == 'exam') {
               step['options'] = allExams.toList();
               break;
             }
@@ -274,13 +297,26 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     });
   }
 
-  void _handleInput(String value) {
+  void _handleInput(String value) async {
     if (value.trim().isEmpty) return;
 
     final step = _steps[_currentStep];
 
     // Privacy Guard for "starred ⭐" features
     if (value.contains("⭐")) {
+      final user = FirebaseAuth.instance.currentUser;
+      // Force refresh profile if missing
+      if (global.currentUserProfile == null && user != null) {
+        try {
+          global.currentUserProfile = await global.db.getUserProfile(
+            user.uid,
+            actorId: user.uid,
+          );
+        } catch (e) {
+          debugPrint("Profile fetch failed during privacy check: $e");
+        }
+      }
+
       final bool hasPrivacyAccepted =
           global.currentUserProfile?['optInAiAnalysis'] == true;
       if (!hasPrivacyAccepted) {
@@ -292,11 +328,13 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     if (step['id'] == 'count' && value != 'Custom') {
       final int? val = int.tryParse(value);
       if (val != null && (val < 1 || val > 50)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please enter a valid number between 1 and 50"),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Please enter a valid number between 1 and 50"),
+            ),
+          );
+        }
         return;
       }
     }
@@ -821,7 +859,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
                     setState(() => _updateProfileOnFirebase = v);
                   }
                 },
-                activeColor: global.primaryAccent,
+                activeThumbColor: global.primaryAccent,
               ),
             ],
           ),

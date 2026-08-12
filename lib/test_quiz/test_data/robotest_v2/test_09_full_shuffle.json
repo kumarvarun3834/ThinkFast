@@ -1,6 +1,7 @@
 {
   "title": "Full Shuffle Test",
   "description": "All questions are completely shuffled across modules.",
+  "isAiGenerated": false,
   "time": 20,
   "completeRandomShuffle": true,
   "questions": [

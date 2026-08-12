@@ -1,6 +1,7 @@
 {
   "title": "Global Limits Test",
   "description": "Limits on how many questions of each type can be attempted.",
+  "isAiGenerated": false,
   "time": 30,
   "attemptLimits": {
     "type": "global",

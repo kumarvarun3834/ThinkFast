@@ -1,6 +1,7 @@
 {
   "title": "Module Shuffle Test",
   "description": "Modules are shuffled, and questions within them are shuffled.",
+  "isAiGenerated": false,
   "time": 25,
   "shuffleModules": true,
   "shuffleQuestionsWithinModules": true,

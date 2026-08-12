@@ -108,7 +108,8 @@ service cloud.firestore {
                    isQuizOwner(quizId) ||
                    hasQuizPermission(quizId, 'can_view_results') ||
                    hasQuizPermission(quizId, 'can_moderate');
-      allow write: if isGlobalAdmin() || (
+      allow create: if isAuthenticated();
+      allow update, delete: if isGlobalAdmin() || (
                     get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('isAiGenerated', false) == false && (
                       hasGlobalPermission('manage_all_quizzes') || isQuizOwner(quizId) || hasQuizPermission(quizId, 'can_update')
                     ));
@@ -123,7 +124,8 @@ service cloud.firestore {
                    isQuizOwner(quizId) ||
                    hasQuizPermission(quizId, 'can_view_results') ||
                    hasQuizPermission(quizId, 'can_moderate');
-      allow write: if isGlobalAdmin() || (
+      allow create: if isAuthenticated();
+      allow update, delete: if isGlobalAdmin() || (
                     get(/databases/$(database)/documents/quizzes/$(quizId)).data.get('isAiGenerated', false) == false && (
                       hasGlobalPermission('manage_all_quizzes') || isQuizOwner(quizId) || hasQuizPermission(quizId, 'can_update')
                     ));

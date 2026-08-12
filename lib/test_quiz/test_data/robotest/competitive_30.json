@@ -1,6 +1,7 @@
 {
   "title": "Competitive Excellence Mock",
   "description": "A high-stakes mock exam with 30 questions covering Physics, Chemistry, and Math with negative marking.",
+  "isAiGenerated": false,
   "time": 60,
   "markingScheme": {
     "Single Choice": { "correct": 4, "incorrect": -1 },

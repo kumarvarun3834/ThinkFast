@@ -1,6 +1,7 @@
 {
   "title": "Mega Override Test",
   "description": "Every question has its own timer and marking configuration.",
+  "isAiGenerated": false,
   "time": 0,
   "markingScheme": {
     "type": "per_question"

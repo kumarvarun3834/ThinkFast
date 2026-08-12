@@ -346,13 +346,30 @@ class _ResultScreenState extends State<ResultScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // Force refresh profile if it's currently false, to handle the "back from profile" sync case
+    if (global.currentUserProfile?['optInAiAnalysis'] != true) {
+      try {
+        global.currentUserProfile = await global.db.getUserProfile(
+          user.uid,
+          actorId: user.uid,
+        );
+        if (mounted) setState(() {}); // Trigger rebuild with fresh profile data
+      } catch (_) {}
+    }
+
+    if (global.currentUserProfile?['optInAiAnalysis'] != true) {
+      _showPrivacyRequirementDialog();
+      return;
+    }
+
     setState(() => _isAnalyzing = true);
 
     try {
       final response = await AiService().analyzeAttempt(
         userId: user.uid,
         userEmail: user.email ?? 'unknown',
-        userName: global.currentUserProfile?['name'] ?? user.displayName ?? 'User',
+        userName:
+            global.currentUserProfile?['name'] ?? user.displayName ?? 'User',
         quizId: _quizId,
         responseId: _responseId ?? '', // Use captured ID
       );
@@ -375,6 +392,59 @@ class _ResultScreenState extends State<ResultScreen> {
         setState(() => _isAnalyzing = false);
       }
     }
+  }
+
+  void _showPrivacyRequirementDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.privacy_tip_rounded, color: Colors.purpleAccent),
+            const SizedBox(width: 12),
+            Text(
+              "Privacy Required",
+              style: GoogleFonts.poppins(
+                color: global.valueColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "AI performance evaluation and deep analysis require the AI & Personalization policy to be accepted in your profile.",
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CANCEL"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.primaryAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, "/profile");
+            },
+            child: const Text(
+              "GO TO PROFILE",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startReview({int index = 0}) {
@@ -633,35 +703,44 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildAiFeedbackPanel() {
-    final bool hasPrivacyAccepted = global.currentUserProfile?['optInAiAnalysis'] == true;
-
     if (_aiAnalysis == null) {
       return Column(
         children: [
           OutlinedButton.icon(
-            onPressed: (_isAnalyzing || !hasPrivacyAccepted) ? null : _fetchAiAnalysis,
+            onPressed: _isAnalyzing ? null : _fetchAiAnalysis,
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 56),
-              side: BorderSide(color: hasPrivacyAccepted ? global.primaryAccent : global.hintColor),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              side: const BorderSide(color: global.primaryAccent),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             icon: _isAnalyzing
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(Icons.auto_awesome, color: hasPrivacyAccepted ? global.primaryAccent : global.hintColor),
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome, color: global.primaryAccent),
             label: Text(
-              _isAnalyzing ? "ANALYZING PERFORMANCE..." : "DEEP ANALYZE WITH AI",
+              _isAnalyzing
+                  ? "ANALYZING PERFORMANCE..."
+                  : "DEEP ANALYZE WITH AI",
               style: GoogleFonts.poppins(
-                color: hasPrivacyAccepted ? global.primaryAccent : global.hintColor,
+                color: global.primaryAccent,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          if (!hasPrivacyAccepted)
+          if (global.currentUserProfile?['optInAiAnalysis'] != true)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Text(
                 "Accept AI & Personalization policy in Profile to enable deep analysis.",
-                style: GoogleFonts.poppins(color: global.labelColor, fontSize: 10),
+                style: GoogleFonts.poppins(
+                  color: global.labelColor,
+                  fontSize: 10,
+                ),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -670,8 +749,10 @@ class _ResultScreenState extends State<ResultScreen> {
     }
 
     final String rating = _aiAnalysis!['rating'] ?? "Learner";
-    final String commentary = _aiAnalysis!['overallCommentary'] ?? "No commentary provided.";
-    final List<dynamic> subjectPerformance = _aiAnalysis!['subjectPerformance'] ?? [];
+    final String commentary =
+        _aiAnalysis!['overallCommentary'] ?? "No commentary provided.";
+    final List<dynamic> subjectPerformance =
+        _aiAnalysis!['subjectPerformance'] ?? [];
     final List<dynamic> strengths = _aiAnalysis!['strengths'] ?? [];
     final List<dynamic> weaknesses = _aiAnalysis!['weaknesses'] ?? [];
     final List<dynamic> recommendations = _aiAnalysis!['recommendations'] ?? [];
@@ -696,7 +777,11 @@ class _ResultScreenState extends State<ResultScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: global.primaryAccent, size: 24),
+              const Icon(
+                Icons.auto_awesome,
+                color: global.primaryAccent,
+                size: 24,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -711,18 +796,25 @@ class _ResultScreenState extends State<ResultScreen> {
                       ),
                     ),
                     Row(
-                      children: List.generate(5, (index) => const Icon(
-                        Icons.star_rounded,
-                        color: Colors.amber,
-                        size: 16,
-                      )),
+                      children: List.generate(
+                        5,
+                        (index) => const Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
               if (global.adminLevel == 0)
                 IconButton(
-                  icon: const Icon(Icons.info_outline_rounded, color: global.labelColor, size: 20),
+                  icon: const Icon(
+                    Icons.info_outline_rounded,
+                    color: global.labelColor,
+                    size: 20,
+                  ),
                   onPressed: _showTracesDialog,
                   tooltip: "Server Traces",
                 ),
@@ -731,7 +823,11 @@ class _ResultScreenState extends State<ResultScreen> {
           const SizedBox(height: 24),
           Text(
             commentary,
-            style: GoogleFonts.poppins(color: global.valueColor, fontSize: 14, height: 1.6),
+            style: GoogleFonts.poppins(
+              color: global.valueColor,
+              fontSize: 14,
+              height: 1.6,
+            ),
           ),
           if (subjectPerformance.isNotEmpty) ...[
             const SizedBox(height: 24),
@@ -747,8 +843,12 @@ class _ResultScreenState extends State<ResultScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                ...strengths.map((s) => _buildAnalysisChip(s.toString(), global.successColor)),
-                ...weaknesses.map((w) => _buildAnalysisChip(w.toString(), Colors.orangeAccent)),
+                ...strengths.map(
+                  (s) => _buildAnalysisChip(s.toString(), global.successColor),
+                ),
+                ...weaknesses.map(
+                  (w) => _buildAnalysisChip(w.toString(), Colors.orangeAccent),
+                ),
               ],
             ),
           ],
@@ -756,22 +856,31 @@ class _ResultScreenState extends State<ResultScreen> {
             const SizedBox(height: 24),
             _buildSectionLabel("RECOMMENDATIONS"),
             const SizedBox(height: 12),
-            ...recommendations.map((r) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.check_circle_outline_rounded, color: global.primaryAccent, size: 16),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      r.toString(),
-                      style: GoogleFonts.poppins(color: global.valueColor, fontSize: 13),
+            ...recommendations.map(
+              (r) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline_rounded,
+                      color: global.primaryAccent,
+                      size: 16,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        r.toString(),
+                        style: GoogleFonts.poppins(
+                          color: global.valueColor,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ],
       ),
@@ -808,18 +917,30 @@ class _ResultScreenState extends State<ResultScreen> {
             children: [
               Text(
                 s['subject'] ?? "General",
-                style: const TextStyle(color: global.valueColor, fontWeight: FontWeight.bold, fontSize: 14),
+                style: const TextStyle(
+                  color: global.valueColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
               Text(
                 s['accuracy'] ?? "0%",
-                style: const TextStyle(color: global.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                style: const TextStyle(
+                  color: global.primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             s['feedback'] ?? "",
-            style: TextStyle(color: global.labelColor, fontSize: 12, height: 1.4),
+            style: TextStyle(
+              color: global.labelColor,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -836,7 +957,11 @@ class _ResultScreenState extends State<ResultScreen> {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -846,7 +971,13 @@ class _ResultScreenState extends State<ResultScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: global.cardColor,
-        title: Text("Server Execution Traces", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          "Server Execution Traces",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -867,20 +998,31 @@ class _ResultScreenState extends State<ResultScreen> {
                     Row(
                       children: [
                         Text(
-                          trace['source']?.toString().toUpperCase() ?? "UNKNOWN",
-                          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                          trace['source']?.toString().toUpperCase() ??
+                              "UNKNOWN",
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const Spacer(),
                         Text(
                           trace['type']?.toString().toUpperCase() ?? "",
-                          style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 9),
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.7),
+                            fontSize: 9,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       trace['message'] ?? "",
-                      style: GoogleFonts.firaCode(color: Colors.white, fontSize: 11),
+                      style: GoogleFonts.firaCode(
+                        color: Colors.white,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -889,7 +1031,10 @@ class _ResultScreenState extends State<ResultScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CLOSE")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("CLOSE"),
+          ),
         ],
       ),
     );

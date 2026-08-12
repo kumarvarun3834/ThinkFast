@@ -1,6 +1,7 @@
 {
   "title": "Per Question Marking Test",
   "description": "Each question has its own point value.",
+  "isAiGenerated": false,
   "time": 60,
   "markingScheme": {
     "type": "per_question"

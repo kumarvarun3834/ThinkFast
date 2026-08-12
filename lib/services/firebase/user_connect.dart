@@ -337,6 +337,20 @@ class UserDatabaseService {
     String quizId, {
     String? userId,
   }) async {
+    // Force refresh profile if global state is missing but userId is present
+    if (userId != null && global.currentUserProfile == null) {
+      try {
+        global.currentUserProfile = await getUserProfile(
+          userId,
+          actorId: userId,
+        );
+      } catch (e) {
+        debugPrint(
+          "Background profile sync failed in fetchAggregatedQuizDetails: $e",
+        );
+      }
+    }
+
     final results = await Future.wait([
       readDatabase(quizId, userId: userId),
       if (userId != null)
@@ -366,6 +380,7 @@ class UserDatabaseService {
 
     quizData['canManage'] =
         global.ownedQuizIds.contains(quizId) ||
+        quizData['creatorId'] == userId ||
         global.managedQuizzes.containsKey(quizId) ||
         (quizData['isAdmin'] == true);
 

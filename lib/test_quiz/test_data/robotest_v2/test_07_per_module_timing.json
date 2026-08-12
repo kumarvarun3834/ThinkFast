@@ -1,6 +1,7 @@
 {
   "title": "Per Module Timing Test",
   "description": "Each module has its own total time limit.",
+  "isAiGenerated": false,
   "time": 0,
   "timingScheme": {
     "type": "per_module",

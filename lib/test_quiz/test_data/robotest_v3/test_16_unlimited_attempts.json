@@ -2,7 +2,7 @@
   "title": "Unlimited Practice",
   "description": "A quiz with no time limit and multiple allowed attempts.",
   "time": 0,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "allowMultipleAttempts": true,
   "maxAttempts": 5,
   "questions": [

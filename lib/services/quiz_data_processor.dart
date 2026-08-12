@@ -22,6 +22,7 @@ class QuizImportResult {
   final String? attemptLimitType;
   final Map<String, dynamic>? globalLimits;
   final Map<String, dynamic>? perModuleLimits;
+  final bool? isAiGenerated;
   final String? examTag;
   final Map<String, List<String>>? moduleTags;
   final bool? isRestricted;
@@ -48,6 +49,7 @@ class QuizImportResult {
     this.markingPerType,
     this.markingPerQuestion,
     this.attemptLimitType,
+    this.isAiGenerated,
     this.globalLimits,
     this.perModuleLimits,
     this.examTag,
@@ -73,16 +75,19 @@ class QuizDataProcessor {
     }
 
     final dynamic decoded = jsonDecode(jsonContent);
-    final Map<String, dynamic> data =
-        decoded is List ? {"data": decoded} : decoded;
+    final Map<String, dynamic> data = decoded is List
+        ? {"data": decoded}
+        : decoded;
 
     String? title = data['title']?.toString();
+    bool? isAiGenerated = data['isAiGenerated'];
     String? description = data['description']?.toString();
     String? examTag = data['examTag']?.toString();
     Map<String, List<String>>? moduleTags;
     if (data['moduleTags'] != null) {
       moduleTags = (data['moduleTags'] as Map).map(
-        (key, value) => MapEntry(key.toString(), List<String>.from(value as List)),
+        (key, value) =>
+            MapEntry(key.toString(), List<String>.from(value as List)),
       );
     }
 
@@ -92,22 +97,23 @@ class QuizDataProcessor {
           ? data['time']
           : (int.tryParse(data['time'].toString()) ?? 0);
     }
-    int? perQuestionTime = data['perQuestionTime'] != null 
-        ? int.tryParse(data['perQuestionTime'].toString()) 
+    int? perQuestionTime = data['perQuestionTime'] != null
+        ? int.tryParse(data['perQuestionTime'].toString())
         : null;
 
     bool? allowMultipleAttempts = data['allowMultipleAttempts'];
-    int? maxAttempts = data['maxAttempts'] != null 
-        ? int.tryParse(data['maxAttempts'].toString()) 
+    int? maxAttempts = data['maxAttempts'] != null
+        ? int.tryParse(data['maxAttempts'].toString())
         : null;
     bool? completeRandomShuffle = data['completeRandomShuffle'];
     bool? shuffleModules = data['shuffleModules'];
     bool? shuffleQuestionsWithinModules = data['shuffleQuestionsWithinModules'];
-    bool? disableModuleSwitchingUntilTimeout = data['disableModuleSwitchingUntilTimeout'];
+    bool? disableModuleSwitchingUntilTimeout =
+        data['disableModuleSwitchingUntilTimeout'];
     bool? forceWaitUntilTimeout = data['forceWaitUntilTimeout'];
     bool? isRestricted = data['isRestricted'];
-    List<String>? allowedParticipants = data['allowedParticipants'] != null 
-        ? List<String>.from(data['allowedParticipants'] as List) 
+    List<String>? allowedParticipants = data['allowedParticipants'] != null
+        ? List<String>.from(data['allowedParticipants'] as List)
         : null;
 
     Map<String, dynamic>? timingScheme;
@@ -127,16 +133,22 @@ class QuizDataProcessor {
     if (data['markingScheme'] != null) {
       final scheme = data['markingScheme'] as Map;
       markingType = scheme['type']?.toString() ?? 'default';
-      markingPassThreshold = int.tryParse(scheme['passThreshold']?.toString() ?? '40');
-      
+      markingPassThreshold = int.tryParse(
+        scheme['passThreshold']?.toString() ?? '40',
+      );
+
       if (scheme['global'] != null) {
         markingGlobal = Map<String, dynamic>.from(scheme['global'] as Map);
       }
       if (scheme['perQuestionType'] != null) {
-        markingPerType = Map<String, dynamic>.from(scheme['perQuestionType'] as Map);
+        markingPerType = Map<String, dynamic>.from(
+          scheme['perQuestionType'] as Map,
+        );
       }
       if (scheme['perQuestion'] != null) {
-        markingPerQuestion = Map<String, dynamic>.from(scheme['perQuestion'] as Map);
+        markingPerQuestion = Map<String, dynamic>.from(
+          scheme['perQuestion'] as Map,
+        );
       }
     }
 
@@ -147,18 +159,23 @@ class QuizDataProcessor {
       final limits = data['attemptLimits'] as Map;
       attemptLimitType = limits['type'] ?? 'none';
       if (attemptLimitType == 'global') {
-        globalLimits = Map<String, dynamic>.from(limits['global'] as Map? ?? {});
+        globalLimits = Map<String, dynamic>.from(
+          limits['global'] as Map? ?? {},
+        );
       } else if (attemptLimitType == 'per_module') {
-        perModuleLimits = Map<String, dynamic>.from(limits['perModule'] as Map? ?? {});
+        perModuleLimits = Map<String, dynamic>.from(
+          limits['perModule'] as Map? ?? {},
+        );
       }
     }
 
-    List<String>? moduleOrder = data['moduleOrder'] != null 
-        ? List<String>.from(data['moduleOrder'] as List) 
+    List<String>? moduleOrder = data['moduleOrder'] != null
+        ? List<String>.from(data['moduleOrder'] as List)
         : null;
 
     final List<Map<String, Object>> questions = [];
-    final List<dynamic> rawData = (data['data'] ?? data['questions'] ?? []) as List;
+    final List<dynamic> rawData =
+        (data['data'] ?? data['questions'] ?? []) as List;
 
     for (var q in rawData) {
       String subject = q['subject']?.toString() ?? 'General';
@@ -169,8 +186,9 @@ class QuizDataProcessor {
         final qInfo = q['Q'] as Map;
         final qText = qInfo['text'].toString();
         final List<dynamic> opts = q['As'] as List;
-        final List<String> choiceTexts =
-            opts.map((o) => (o as Map)['text'].toString()).toList();
+        final List<String> choiceTexts = opts
+            .map((o) => (o as Map)['text'].toString())
+            .toList();
 
         newQ = {
           "question": qText,
@@ -193,7 +211,8 @@ class QuizDataProcessor {
           "wrong": q['wrong'] ?? -1,
           "subject": subject,
           "timer": q['timer'] ?? 0,
-          "description": q['description'] ?? '',
+          "description": (q['description'] ?? q['explanation'] ?? '')
+              .toString(),
         };
       }
       questions.add(newQ);
@@ -219,6 +238,7 @@ class QuizDataProcessor {
       attemptLimitType: attemptLimitType,
       globalLimits: globalLimits,
       perModuleLimits: perModuleLimits,
+      isAiGenerated: isAiGenerated,
       examTag: examTag,
       moduleTags: moduleTags,
       isRestricted: isRestricted,
@@ -229,7 +249,10 @@ class QuizDataProcessor {
     );
   }
 
-  static bool isQuestionDataSame(Map<String, Object> q1, Map<String, Object> q2) {
+  static bool isQuestionDataSame(
+    Map<String, Object> q1,
+    Map<String, Object> q2,
+  ) {
     if (q1['type'] != q2['type']) return false;
     if (q1['subject'] != q2['subject']) return false;
     if (q1['correct'] != q2['correct']) return false;

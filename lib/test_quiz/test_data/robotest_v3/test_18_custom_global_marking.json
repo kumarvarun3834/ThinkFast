@@ -2,7 +2,7 @@
   "title": "High Stakes Marking",
   "description": "A quiz with custom global marking rules (+10, -5).",
   "time": 20,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "markingScheme": {
     "type": "entire_quiz",
     "global": {

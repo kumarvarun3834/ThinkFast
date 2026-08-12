@@ -3,7 +3,7 @@
   "description": "A comprehensive assessment across multiple disciplines.",
   "AI_description": "This is a personalized summary of the quiz.",
   "isPersonal": true,
-  "isAiGenerated": true,
+  "isAiGenerated": false,
   "time": 45,
   "markingScheme": {
     "type": "global",

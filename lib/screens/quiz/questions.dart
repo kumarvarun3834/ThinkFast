@@ -1959,7 +1959,11 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                         if (global.isReviewMode &&
                             global.solutions.containsKey(
                               question['uid']?.toString() ?? "",
-                            ))
+                            ) &&
+                            global.solutions[question['uid']?.toString()]
+                                    ?.trim()
+                                    .isNotEmpty ==
+                                true)
                           Container(
                             margin: const EdgeInsets.only(top: 20),
                             padding: const EdgeInsets.all(16),

@@ -1,6 +1,7 @@
 {
   "title": "Restricted Scheduled Test",
   "description": "Test scheduled for the future and restricted to a specific user.",
+  "isAiGenerated": false,
   "time": 30,
   "visibility": "scheduled",
   "activeAt": "2026-12-31T09:00:00Z",
