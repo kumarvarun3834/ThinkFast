@@ -453,16 +453,17 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               key: ValueKey(id),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? _primaryAccent : _borderColor,
                 ),
               ),
               child: Material(
-                color: Colors.transparent,
+                color: isSelected
+                    ? _primaryAccent.withValues(alpha: 0.2)
+                    : _cardColor,
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
                   onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
@@ -617,16 +618,17 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               key: ValueKey(id),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? _primaryAccent : _borderColor,
                 ),
               ),
               child: Material(
-                color: Colors.transparent,
+                color: isSelected
+                    ? _primaryAccent.withValues(alpha: 0.2)
+                    : _cardColor,
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
                   onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
@@ -772,16 +774,17 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
               key: ValueKey(id),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: isSelected ? _primaryAccent : _borderColor,
                 ),
               ),
               child: Material(
-                color: Colors.transparent,
+                color: isSelected
+                    ? _primaryAccent.withValues(alpha: 0.2)
+                    : _cardColor,
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   onLongPress: () => _toggleSelection(id),
                   onTap: _isSelectionMode

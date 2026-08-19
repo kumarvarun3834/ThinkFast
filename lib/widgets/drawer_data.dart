@@ -322,7 +322,8 @@ class _SidebarMenuState extends State<SidebarMenu> {
               _drawerItem(
                 icon: Icons.track_changes_rounded,
                 text: 'Track AI Status',
-                onTap: () => _checkAndNavigate(context, "/AI Generation Status"),
+                onTap: () =>
+                    _checkAndNavigate(context, "/AI Generation Status"),
               ),
             if (widget.user != null)
               _drawerItem(
@@ -341,6 +342,12 @@ class _SidebarMenuState extends State<SidebarMenu> {
                 icon: Icons.people_outline_rounded,
                 text: 'Managed Quizzes',
                 onTap: () => _checkAndNavigate(context, "/Managed Quizzes"),
+              ),
+            if (widget.user != null)
+              _drawerItem(
+                icon: Icons.auto_awesome_rounded,
+                text: 'Recommendations',
+                onTap: () => _checkAndNavigate(context, "/Recommendations"),
               ),
             if (widget.user != null)
               _drawerItem(
@@ -380,7 +387,10 @@ class _SidebarMenuState extends State<SidebarMenu> {
                     child: SwitchListTile(
                       title: const Text(
                         "Admin Mode",
-                        style: TextStyle(color: global.valueColor, fontSize: 14),
+                        style: TextStyle(
+                          color: global.valueColor,
+                          fontSize: 14,
+                        ),
                       ),
                       secondary: Icon(
                         _isAdmin ? Icons.visibility : Icons.visibility_off,
@@ -408,9 +418,9 @@ class _SidebarMenuState extends State<SidebarMenu> {
                           }
                         } catch (e) {
                           if (mounted) {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(SnackBar(content: Text("Error: $e")));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error: $e")),
+                            );
                           }
                         }
                       },

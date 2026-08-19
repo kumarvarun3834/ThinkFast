@@ -19,6 +19,7 @@ import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
 import 'package:thinkfast/screens/drawer/settings_screen.dart';
 import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
+import 'package:thinkfast/screens/drawer/recommendation_screen.dart';
 import 'package:thinkfast/screens/moderation/ban_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
@@ -231,6 +232,10 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/My Attempts':
             page = MyAttemptsScreen(quizId: settings.arguments as String?);
+            wrapInGradient = false;
+            break;
+          case '/Recommendations':
+            page = const RecommendationScreen();
             wrapInGradient = false;
             break;
           case '/About Us':

@@ -584,12 +584,13 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 (q) => Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: global.cardColor,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: global.borderColor),
                   ),
                   child: Material(
-                    color: Colors.transparent,
+                    color: global.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    clipBehavior: Clip.antiAlias,
                     child: ListTile(
                       title: Text(
                         q['title'] ?? "Untitled",
@@ -652,9 +653,6 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                 (a) => Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: a['isDeleted'] == true
-                        ? global.errorColor.withValues(alpha: 0.05)
-                        : global.cardColor,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: a['isDeleted'] == true
@@ -663,7 +661,11 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
                     ),
                   ),
                   child: Material(
-                    color: Colors.transparent,
+                    color: a['isDeleted'] == true
+                        ? global.errorColor.withValues(alpha: 0.05)
+                        : global.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    clipBehavior: Clip.antiAlias,
                     child: ListTile(
                       title: Row(
                         children: [

@@ -63,7 +63,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => _notificationService.markAllAsRead(_uid!),
+            onPressed: () => _notificationService.markAllAsRead(_uid),
             child: const Text("Mark all as read"),
           ),
         ],
@@ -113,7 +113,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 onDismissed: isGlobal
                     ? null
                     : (direction) {
-                        _notificationService.deleteNotification(_uid!, n['id']);
+                        _notificationService.deleteNotification(_uid, n['id']);
                       },
                 background: Container(
                   alignment: Alignment.centerRight,
@@ -121,27 +121,30 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   color: global.errorColor,
                   child: const Icon(Icons.delete, color: Colors.white),
                 ),
-                child: Card(
+                child: Material(
                   color: isRead
                       ? global.cardColor
                       : global.cardColor.withValues(alpha: 0.8),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: isGlobal
-                          ? Colors.orangeAccent.withValues(alpha: 0.5)
-                          : (isRead
-                                ? global.borderColor
-                                : global.primaryAccent.withValues(alpha: 0.5)),
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isGlobal
+                            ? Colors.orangeAccent.withValues(alpha: 0.5)
+                            : (isRead
+                                  ? global.borderColor
+                                  : global.primaryAccent.withValues(
+                                      alpha: 0.5,
+                                    )),
+                      ),
                     ),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
                     child: ListTile(
                       onTap: () {
                         if (!isRead && !isGlobal) {
-                          _notificationService.markAsRead(_uid!, n['id']);
+                          _notificationService.markAsRead(_uid, n['id']);
                         }
                         if (n['type'] == 'new_quiz' && n['targetId'] != null) {
                           Navigator.pushNamed(

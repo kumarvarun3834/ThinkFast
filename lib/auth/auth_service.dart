@@ -28,7 +28,11 @@ class AuthService {
   User? get user => _auth.currentUser;
 
   /// ---------------- SIGN UP WITH EMAIL ----------------
-  Future<User?> signUp(String email, String password, {bool force = false}) async {
+  Future<User?> signUp(
+    String email,
+    String password, {
+    bool force = false,
+  }) async {
     try {
       final res = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -70,7 +74,11 @@ class AuthService {
   }
 
   /// ---------------- LOGIN WITH EMAIL ----------------
-  Future<User?> login(String email, String password, {bool force = false}) async {
+  Future<User?> login(
+    String email,
+    String password, {
+    bool force = false,
+  }) async {
     final ip = await _getPublicIP();
     final ipRef = _db.collection('security_logs').doc('ip_$ip');
 
@@ -152,7 +160,9 @@ class AuthService {
 
       throw e.code;
     } catch (e) {
-      if (e == 'session_conflict' || e == 'account_deleted_unverified' || e == 'too_many_attempts_ip_blocked') {
+      if (e == 'session_conflict' ||
+          e == 'account_deleted_unverified' ||
+          e == 'too_many_attempts_ip_blocked') {
         rethrow;
       }
       throw "login_failed";
@@ -270,6 +280,17 @@ class AuthService {
       await _auth.currentUser?.reload();
     } catch (e) {
       throw "reload_failed";
+    }
+  }
+
+  /// ---------------- PASSWORD RESET ----------------
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "reset_failed";
     }
   }
 

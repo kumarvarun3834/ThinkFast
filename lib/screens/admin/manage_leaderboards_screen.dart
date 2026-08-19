@@ -76,25 +76,29 @@ class _ManageLeaderboardsScreenState extends State<ManageLeaderboardsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: global.cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: global.borderColor),
                 ),
-                child: SwitchListTile(
-                  title: const Text(
-                    "Auto-Generate Leaderboard",
-                    style: TextStyle(
-                      color: global.valueColor,
-                      fontWeight: FontWeight.bold,
+                child: Material(
+                  color: global.cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: SwitchListTile(
+                    title: const Text(
+                      "Auto-Generate Leaderboard",
+                      style: TextStyle(
+                        color: global.valueColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    subtitle: const Text(
+                      "Automatically rank users (Excludes Admins)",
+                      style: TextStyle(color: global.labelColor, fontSize: 11),
+                    ),
+                    value: _isAutoEnabled,
+                    activeThumbColor: global.primaryAccent,
+                    onChanged: _toggleAuto,
                   ),
-                  subtitle: const Text(
-                    "Automatically rank users (Excludes Admins)",
-                    style: TextStyle(color: global.labelColor, fontSize: 11),
-                  ),
-                  value: _isAutoEnabled,
-                  activeThumbColor: global.primaryAccent,
-                  onChanged: _toggleAuto,
                 ),
               ),
             ),
@@ -299,7 +303,8 @@ class _ManageLeaderboardsScreenState extends State<ManageLeaderboardsScreen> {
                       adminId: _adminId,
                       quizId: widget.quizId,
                       title: "Official Rankings",
-                      description: "Automatically generated based on top scores.",
+                      description:
+                          "Automatically generated based on top scores.",
                       isPublic: true,
                       entries: data,
                     );

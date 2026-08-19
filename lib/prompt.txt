@@ -216,3 +216,106 @@ fix dependencies error
 things to add > tags (modules > store quiz id ) seperate storage document
 
 admin cant see or edit quiz data internal
+
+The AI summary and evaluation reports are stored in Firestore across the following collections and document paths:
+1. Firestore Storage Locations
+User Explanation Collection (Flutter App Primary Path):
+/explanation/{uid}/{quizId}/{responseId}
+Alias Path: /explanation/{uid}/analysis/{responseId}
+Global Evaluations Collection:
+/quiz_evaluations/{responseId}
+User Subcollection: /quiz_evaluations/{uid}/{quizId}/{responseId}
+2. Stored Document Schema
+code
+JSON
+{
+  "quizId": "oJp7StOP2HVEKK87KX30",
+  "responseId": "qsh3YLJ58ZXGipc3TpAu",
+  "uid": "CTzkdZCWueheQS6ojZNhZZDbZ053",
+  "timestamp": "12 August 2026 at 21:14:35 UTC+5:30",
+
+  "analysis": {
+    "rating": "Capable Professional",
+    "overall": "Evaluated full quiz (20 questions). Achieved score of 15/20 (75%).",
+    "accuracy": "75%",
+    "score": 15,
+    "totalQuestions": 20,
+    "subjectPerformance": [
+      {
+        "subject": "Dynamics",
+        "rating": "Good",
+        "accuracy": "80%",
+        "feedback": "Demonstrated high accuracy (4/5) in Dynamics."
+      },
+      {
+        "subject": "Kinematics",
+        "rating": "Requires Attention",
+        "accuracy": "40%",
+        "feedback": "Needs reinforcement in Kinematics (2/5 correct, 2 unattempted)."
+      }
+    ],
+    "strengths": [
+      "High accuracy in Dynamics",
+      "Good time management on straightforward questions"
+    ],
+    "weaknesses": [
+      "Formulas and acceleration vectors in Kinematics"
+    ],
+    "recommendations": [
+      "Review Kinematics step-by-step explanations.",
+      "Practice multi-step momentum problems."
+    ]
+  },
+
+  "evaluation_report": {
+    "metadata": {
+      "quiz_title": "Mixed Dynamics",
+      "total_questions": 20,
+      "correct_responses": 15,
+      "incorrect_responses": 5,
+      "accuracy_percentage": 75.0
+    },
+    "executive_summary": { ... },
+    "topic_breakdown": [ ... ],
+    "actionable_next_steps": [ ... ]
+  }
+}
+3. Retrieval Endpoints
+To read the AI summary via the API:
+GET /api/explanation/:uid/:quizId/:responseId
+GET /api/quiz_evaluations/:responseId
+
+Quiz Recommendations (/recommendation/{userId}):
+Stored directly as a single document with { [quizId]: { ... } }.
+Includes creation timestamps (createdAt, createdAtMs, and timestamp) so the client app can check when recommendations were created and recreate/refresh them after a while:
+code
+JSON
+// Firestore Document: /recommendation/{userId}
+{
+  "quiz_kinematics_01": {
+    "why": "Needs practice in Kinematics",
+    "recommended": true,
+    "reason": "Recommended to strengthen your understanding in Kinematics based on test evaluation.",
+    "quizId": "quiz_kinematics_01",
+    "userId": "CTzkdZCWueheQS6ojZNhZZDbZ053",
+    "title": "Kinematics & Motion Graphs",
+    "targetTopic": "Kinematics",
+    "totalQuestions": 20,
+    "createdAt": "2026-08-17T16:25:00.000Z",
+    "createdAtMs": 1787045100000,
+    "timestamp": "17 August 2026 at 21:55:00 UTC+5:30"
+  }
+}
+Quiz AI Description (/ai_description/{quizId} & /quizzes/{quizId}):
+Stored using the same pattern with createdAt, createdAtMs, and timestamp fields:
+code
+JSON
+// Firestore Document: /ai_description/{quizId}
+{
+  "quizId": "quiz_kinematics_01",
+  "AI_description": "Comprehensive evaluation covering 1D/2D kinematics, projectile motion, and acceleration graphs.",
+  "description": "Comprehensive evaluation covering 1D/2D kinematics, projectile motion, and acceleration graphs.",
+  "createdAt": "2026-08-17T16:25:00.000Z",
+  "createdAtMs": 1787045100000,
+  "timestamp": "17 August 2026 at 21:55:00 UTC+5:30"
+}

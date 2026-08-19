@@ -58,9 +58,7 @@ class _AdminPanelState extends State<AdminPanel> {
       "enable_quiz_creation_rate_limit",
       "enable_form_save_rate_limit",
     ],
-    "Leaderboards": [
-      "enable_leaderboards",
-    ],
+    "Leaderboards": ["enable_leaderboards"],
   };
 
   @override
@@ -150,7 +148,9 @@ class _AdminPanelState extends State<AdminPanel> {
     };
 
     final requiredPerm = keyPermissionMap[key];
-    if (requiredPerm == null) return _permissions.contains('manage_app_settings');
+    if (requiredPerm == null) {
+      return _permissions.contains('manage_app_settings');
+    }
     return _permissions.contains(requiredPerm);
   }
 
@@ -205,7 +205,7 @@ class _AdminPanelState extends State<AdminPanel> {
           groupedKeys.add('form_save_rate_limit_seconds');
           groupedKeys.add('ai_daily_generation_limit');
           groupedKeys.add('admin_refresh_rate_limit_seconds');
-          
+
           // Legacy flags to hide
           groupedKeys.add('ai_models');
           groupedKeys.add('ai_model_index');
@@ -273,8 +273,10 @@ class _AdminPanelState extends State<AdminPanel> {
                 icon: Icons.leaderboard_outlined,
                 title: "Manage Leaderboards",
                 subtitle: "Manually create and update leaderboards",
-                enabled: _isMaster || _permissions.contains('manage_leaderboards'),
-                onTap: () => Navigator.pushNamed(context, '/Manage Leaderboards'),
+                enabled:
+                    _isMaster || _permissions.contains('manage_leaderboards'),
+                onTap: () =>
+                    Navigator.pushNamed(context, '/Manage Leaderboards'),
               ),
               _buildManagementTile(
                 icon: Icons.report_gmailerrorred_rounded,
@@ -380,7 +382,9 @@ class _AdminPanelState extends State<AdminPanel> {
 
                   if (confirm == true) {
                     try {
-                      final count = await global.adminDb.removeEmptyTags(adminId);
+                      final count = await global.adminDb.removeEmptyTags(
+                        adminId,
+                      );
                       if (mounted) {
                         messenger.showSnackBar(
                           SnackBar(
@@ -421,7 +425,6 @@ class _AdminPanelState extends State<AdminPanel> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: enabled
@@ -429,39 +432,44 @@ class _AdminPanelState extends State<AdminPanel> {
               : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
-      child: ListTile(
-        onTap: enabled ? onTap : null,
-        enabled: enabled,
-        leading: Icon(
-          icon,
-          color: enabled
-              ? global.primaryAccent
-              : global.primaryAccent.withValues(alpha: 0.4),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
+      child: Material(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: enabled ? onTap : null,
+          enabled: enabled,
+          leading: Icon(
+            icon,
             color: enabled
-                ? global.valueColor
-                : global.valueColor.withValues(alpha: 0.4),
-            fontWeight: FontWeight.bold,
+                ? global.primaryAccent
+                : global.primaryAccent.withValues(alpha: 0.4),
           ),
-        ),
-        subtitle: Text(
-          enabled ? subtitle : "Insufficient Permission",
-          style: TextStyle(
+          title: Text(
+            title,
+            style: TextStyle(
+              color: enabled
+                  ? global.valueColor
+                  : global.valueColor.withValues(alpha: 0.4),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          subtitle: Text(
+            enabled ? subtitle : "Insufficient Permission",
+            style: TextStyle(
+              color: enabled
+                  ? global.labelColor
+                  : global.errorColor.withValues(alpha: 0.6),
+              fontSize: 12,
+            ),
+          ),
+          trailing: Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
             color: enabled
                 ? global.labelColor
-                : global.errorColor.withValues(alpha: 0.6),
-            fontSize: 12,
+                : global.labelColor.withValues(alpha: 0.2),
           ),
-        ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          size: 14,
-          color: enabled
-              ? global.labelColor
-              : global.labelColor.withValues(alpha: 0.2),
         ),
       ),
     );
@@ -526,33 +534,41 @@ class _AdminPanelState extends State<AdminPanel> {
                   _debounceTimers[key]!.cancel();
                 }
 
-                _debounceTimers[key] = Timer(const Duration(milliseconds: 1500), () async {
-                  dynamic typedVal = newVal;
-                  if (value is int) typedVal = int.tryParse(newVal);
-                  if (value is double) typedVal = double.tryParse(newVal);
+                _debounceTimers[key] = Timer(
+                  const Duration(milliseconds: 1500),
+                  () async {
+                    dynamic typedVal = newVal;
+                    if (value is int) typedVal = int.tryParse(newVal);
+                    if (value is double) typedVal = double.tryParse(newVal);
 
-                  if (typedVal != null && typedVal != value) {
-                    try {
-                      await _settingsService.updateFeatureFlag(key, typedVal);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Changes for $displayTitle synced"),
-                            backgroundColor: global.successColor.withValues(alpha: 0.8),
-                            duration: const Duration(seconds: 1),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Error: $e"), backgroundColor: global.errorColor),
-                        );
+                    if (typedVal != null && typedVal != value) {
+                      try {
+                        await _settingsService.updateFeatureFlag(key, typedVal);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Changes for $displayTitle synced"),
+                              backgroundColor: global.successColor.withValues(
+                                alpha: 0.8,
+                              ),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Error: $e"),
+                              backgroundColor: global.errorColor,
+                            ),
+                          );
+                        }
                       }
                     }
-                  }
-                });
+                  },
+                );
               },
             ),
           ),

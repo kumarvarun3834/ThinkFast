@@ -331,6 +331,21 @@ class _ResultScreenState extends State<ResultScreen> {
         _isLoading = false;
         _activeResultModule = "All";
       });
+
+      // After score calculation, check if an AI analysis already exists for this attempt
+      if (_responseId != null) {
+        final existingAnalysis = await global.aiConnect.getAttemptAnalysis(
+          userId: user.uid,
+          quizId: _quizId,
+          attemptId: _responseId!,
+        );
+        if (mounted && existingAnalysis != null) {
+          setState(() {
+            _aiAnalysis = existingAnalysis['analysis'];
+            _aiTraces = existingAnalysis['traces'];
+          });
+        }
+      }
     } catch (e) {
       if (mounted) {
         final messenger = ScaffoldMessenger.of(context);
@@ -703,7 +718,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Widget _buildAiFeedbackPanel() {
-    if (_aiAnalysis == null) {
+    if (_aiAnalysis == null || _isAnalyzing) {
       return Column(
         children: [
           OutlinedButton.icon(
@@ -748,9 +763,12 @@ class _ResultScreenState extends State<ResultScreen> {
       );
     }
 
-    final String rating = _aiAnalysis!['rating'] ?? "Learner";
+    final String rating =
+        _aiAnalysis!['overallRating'] ?? _aiAnalysis!['rating'] ?? "Learner";
     final String commentary =
-        _aiAnalysis!['overallCommentary'] ?? "No commentary provided.";
+        _aiAnalysis!['summary'] ??
+        _aiAnalysis!['overallCommentary'] ??
+        "No commentary provided.";
     final List<dynamic> subjectPerformance =
         _aiAnalysis!['subjectPerformance'] ?? [];
     final List<dynamic> strengths = _aiAnalysis!['strengths'] ?? [];
@@ -818,6 +836,16 @@ class _ResultScreenState extends State<ResultScreen> {
                   onPressed: _showTracesDialog,
                   tooltip: "Server Traces",
                 ),
+              // User can recreate/refresh analysis
+              IconButton(
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  color: global.primaryAccent,
+                  size: 20,
+                ),
+                onPressed: _isAnalyzing ? null : _fetchAiAnalysis,
+                tooltip: "Re-analyze with AI",
+              ),
             ],
           ),
           const SizedBox(height: 24),

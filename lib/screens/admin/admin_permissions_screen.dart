@@ -193,12 +193,13 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
   Widget _buildSuperToggle() {
     return Container(
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: global.borderColor),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
         child: SwitchListTile(
           title: const Text(
             "Super Admin",
@@ -226,7 +227,6 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: global.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected
@@ -235,7 +235,9 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           ),
         ),
         child: Material(
-          color: Colors.transparent,
+          color: global.cardColor,
+          borderRadius: BorderRadius.circular(12),
+          clipBehavior: Clip.antiAlias,
           child: CheckboxListTile(
             title: Text(
               entry.value,

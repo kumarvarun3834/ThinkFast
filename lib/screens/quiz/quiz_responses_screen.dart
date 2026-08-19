@@ -588,9 +588,6 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: isSelected
-                            ? _primaryAccent.withOpacity(0.15)
-                            : _cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected ? _primaryAccent : _borderColor,
@@ -598,7 +595,11 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                         ),
                       ),
                       child: Material(
-                        color: Colors.transparent,
+                        color: isSelected
+                            ? _primaryAccent.withValues(alpha: 0.15)
+                            : _cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        clipBehavior: Clip.antiAlias,
                         child: ListTile(
                           onLongPress: () => _toggleSelection(id),
                           onTap: _isSelectionMode
@@ -718,7 +719,7 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
                                           (score >= total / 2
                                                   ? global.successColor
                                                   : global.errorColor)
-                                              .withOpacity(0.1),
+                                              .withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(

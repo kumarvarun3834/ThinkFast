@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -10,9 +11,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 class ApiClient {
   static final Dio _dio = _initDio();
 
-  // Local cache to reduce frequency of App Check attestation requests
+  // Local cache and locking to prevent "Too many attempts"
   static String? _cachedAppCheckToken;
   static DateTime? _lastTokenFetch;
+  static Completer<String?>? _tokenCompleter;
 
   static Dio _initDio() {
     final dio = Dio();
@@ -42,22 +44,34 @@ class ApiClient {
   static Dio get instance => _dio;
 
   static Future<String?> _getAppCheckToken() async {
+    // 1. Return from cache if recent (5 mins)
     final now = DateTime.now();
-    // Use local cache for 5 minutes to prevent "Too many attempts" errors
     if (_cachedAppCheckToken != null && _lastTokenFetch != null) {
       if (now.difference(_lastTokenFetch!).inMinutes < 5) {
         return _cachedAppCheckToken;
       }
     }
 
+    // 2. If already fetching, wait for the result
+    if (_tokenCompleter != null) {
+      return _tokenCompleter!.future;
+    }
+
+    // 3. Start a new fetch session
+    _tokenCompleter = Completer<String?>();
     try {
-      _cachedAppCheckToken = await FirebaseAppCheck.instance.getToken();
+      final token = await FirebaseAppCheck.instance.getToken();
+      _cachedAppCheckToken = token;
       _lastTokenFetch = now;
-      return _cachedAppCheckToken;
+      _tokenCompleter!.complete(token);
     } catch (e) {
       debugPrint("App Check token error: $e");
-      return _cachedAppCheckToken; // Return last known good token on error
+      _tokenCompleter!.complete(_cachedAppCheckToken); // Return old if fail
+    } finally {
+      _tokenCompleter = null; // Reset for next cycle
     }
+
+    return _cachedAppCheckToken;
   }
 
   /// 🔐 Builds a hardened security payload for AI backend requests

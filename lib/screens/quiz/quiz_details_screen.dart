@@ -1709,8 +1709,9 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.quizData = flattenedQuestions;
 
                 global.id = _quizData!['id'];
-                global.time = _quizData!['time'] as int;
-                global.perQuestionTime = _quizData!['perQuestionTime'] ?? 0;
+                global.time = (_quizData!['time'] ?? 0).toInt();
+                global.perQuestionTime = (_quizData!['perQuestionTime'] ?? 0)
+                    .toInt();
                 global.completeRandomShuffle =
                     _quizData!['completeRandomShuffle'] ?? false;
                 global.shuffleModules = _quizData!['shuffleModules'] ?? false;
@@ -1733,7 +1734,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.solutions = {};
 
                 // Mark as active quiz with expiry (Duration + 5 mins buffer)
-                final int quizDurationSeconds = _quizData!['time'] as int;
+                final int quizDurationSeconds = global.time;
                 final DateTime expiry = quizDurationSeconds > 0
                     ? DateTime.now().add(
                         Duration(seconds: quizDurationSeconds + 300),

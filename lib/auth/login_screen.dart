@@ -75,14 +75,39 @@ class _LoginScreenState extends State<LoginScreen> {
       } else if (e == 'too-many-requests') {
         _show("Firebase: Too many requests. Please try again later.");
       } else if (e == 'too_many_attempts_ip_blocked') {
-        _show("Too many failed attempts. This device/IP has been temporarily flagged.");
+        _show(
+          "Too many failed attempts. This device/IP has been temporarily flagged.",
+        );
       } else if (e == 'account_deleted_unverified') {
-        _show("Account deleted: Unverified accounts older than a week are automatically removed.");
+        _show(
+          "Account deleted: Unverified accounts older than a week are automatically removed.",
+        );
       } else {
         _show("Login failed: $e");
       }
     } finally {
       if (mounted) setState(() => loading = false);
+    }
+  }
+
+  void forgotPassword() async {
+    final email = emailController.text.trim();
+    if (email.isEmpty) {
+      _show("Please enter your email address to reset password");
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(email);
+      _show("Password reset email sent! Check your inbox.");
+    } catch (e) {
+      if (e == 'user-not-found') {
+        _show("No user found with this email.");
+      } else if (e == 'invalid-email') {
+        _show("Please enter a valid email address.");
+      } else {
+        _show("Error: $e");
+      }
     }
   }
 
@@ -128,7 +153,10 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: global.cardColor,
         title: Text(
           "Already Logged In",
-          style: GoogleFonts.poppins(color: global.valueColor, fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            color: global.valueColor,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Text(
           "You are currently logged in on another device. Logging in here will terminate your session there.",
@@ -149,7 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 login(force: true);
               }
             },
-            child: const Text("LOGOUT OTHER & LOGIN", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "LOGOUT OTHER & LOGIN",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -208,7 +239,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.email, color: global.primaryAccent),
+                prefixIcon: const Icon(
+                  Icons.email,
+                  color: global.primaryAccent,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -228,7 +262,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 prefixIcon: const Icon(Icons.lock, color: global.primaryAccent),
               ),
             ),
-            const SizedBox(height: 30),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: forgotPassword,
+                child: const Text(
+                  "Forgot Password?",
+                  style: TextStyle(
+                    color: global.primaryAccent,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             loading
                 ? const CircularProgressIndicator(color: global.primaryAccent)
                 : SizedBox(

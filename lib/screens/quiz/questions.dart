@@ -1992,7 +1992,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                                       style: GoogleFonts.poppins(
                                         color: global.primaryAccent,
                                         fontSize: 11,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
@@ -2003,8 +2003,11 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                                           ?.toString()] ??
                                       "",
                                   style: GoogleFonts.poppins(
-                                    color: global.valueColor,
+                                    color: global.valueColor.withValues(
+                                      alpha: 0.8,
+                                    ),
                                     fontSize: 13,
+                                    fontWeight: FontWeight.normal,
                                   ),
                                 ),
                               ],

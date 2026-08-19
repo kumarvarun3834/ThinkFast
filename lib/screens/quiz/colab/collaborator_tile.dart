@@ -30,16 +30,18 @@ class CollaboratorTile extends StatelessWidget {
     final String name = collaborator['userName'] ?? "Unknown User";
     final String? photoUrl = collaborator['userPhoto'];
     final String uid = collaborator['userId'];
-    final Map<String, dynamic> perms = collaborator['permissions'] as Map<String, dynamic>? ?? {};
+    final Map<String, dynamic> perms =
+        collaborator['permissions'] as Map<String, dynamic>? ?? {};
 
     // Check Global Feature Flag
-    final bool managementEnabled = global.featureFlags?['management_features'] ?? true;
-    final bool effectiveManageEnabled = canManageThisTeam && (isAdmin || managementEnabled);
+    final bool managementEnabled =
+        global.featureFlags?['management_features'] ?? true;
+    final bool effectiveManageEnabled =
+        canManageThisTeam && (isAdmin || managementEnabled);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isSelected ? global.primaryAccent.withOpacity(0.1) : global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected ? global.primaryAccent : global.borderColor,
@@ -47,19 +49,29 @@ class CollaboratorTile extends StatelessWidget {
         ),
       ),
       child: Material(
-        color: Colors.transparent,
+        color: isSelected
+            ? global.primaryAccent.withOpacity(0.1)
+            : global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
-          borderRadius: BorderRadius.circular(12),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             leading: Stack(
               children: [
                 CircleAvatar(
                   backgroundColor: global.bgColor,
-                  backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-                  child: photoUrl == null ? const Icon(Icons.person, color: global.primaryAccent) : null,
+                  backgroundImage: photoUrl != null
+                      ? NetworkImage(photoUrl)
+                      : null,
+                  child: photoUrl == null
+                      ? const Icon(Icons.person, color: global.primaryAccent)
+                      : null,
                 ),
                 if (isSelected)
                   Positioned(
@@ -67,20 +79,36 @@ class CollaboratorTile extends StatelessWidget {
                     bottom: 0,
                     child: Container(
                       padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.check_circle, color: global.primaryAccent, size: 14),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_circle,
+                        color: global.primaryAccent,
+                        size: 14,
+                      ),
                     ),
                   ),
               ],
             ),
             title: Text(
               name,
-              style: const TextStyle(color: global.valueColor, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: global.valueColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(uid, style: const TextStyle(color: global.labelColor, fontSize: 10)),
+                Text(
+                  uid,
+                  style: const TextStyle(
+                    color: global.labelColor,
+                    fontSize: 10,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
@@ -97,7 +125,9 @@ class CollaboratorTile extends StatelessWidget {
                 : IconButton(
                     icon: Icon(
                       Icons.remove_circle_outline,
-                      color: effectiveManageEnabled ? global.errorColor : global.labelColor.withOpacity(0.3),
+                      color: effectiveManageEnabled
+                          ? global.errorColor
+                          : global.labelColor.withOpacity(0.3),
                     ),
                     onPressed: () {
                       if (effectiveManageEnabled) {
@@ -106,7 +136,9 @@ class CollaboratorTile extends StatelessWidget {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text("Access Denied: Caller does not have permission to perform this action."),
+                            content: Text(
+                              "Access Denied: Caller does not have permission to perform this action.",
+                            ),
                             backgroundColor: global.errorColor,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -121,7 +153,10 @@ class CollaboratorTile extends StatelessWidget {
   }
 
   Widget _buildPermissionBadge(String key) {
-    final display = key.replaceAll('can_', '').replaceAll('_', ' ').toUpperCase();
+    final display = key
+        .replaceAll('can_', '')
+        .replaceAll('_', ' ')
+        .toUpperCase();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
@@ -131,7 +166,11 @@ class CollaboratorTile extends StatelessWidget {
       ),
       child: Text(
         display,
-        style: const TextStyle(color: global.primaryAccent, fontSize: 8, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: global.primaryAccent,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

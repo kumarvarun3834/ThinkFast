@@ -58,7 +58,9 @@ class AiDatabaseService {
   }) async {
     // Audit logging is now handled automatically by the secure backend
     // to ensure metrics integrity and prevent insecure client writes.
-    debugPrint("AI Generation Log: Handled by server for quiz $generatedQuizId");
+    debugPrint(
+      "AI Generation Log: Handled by server for quiz $generatedQuizId",
+    );
   }
 
   /// ✅ Get AI usage count for today (Read-only on client)
@@ -145,13 +147,37 @@ class AiDatabaseService {
           .collection('gen')
           .doc(quizId)
           .get();
-      
+
       if (doc.exists) {
         return doc.data()?['insight'] as String?;
       }
       return null;
     } catch (e) {
       debugPrint("Error fetching AI insight: $e");
+      return null;
+    }
+  }
+
+  /// ✅ Fetch Existing AI Analysis for a specific attempt
+  Future<Map<String, dynamic>?> getAttemptAnalysis({
+    required String userId,
+    required String quizId,
+    required String attemptId,
+  }) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('explanation')
+          .doc(userId)
+          .collection(quizId)
+          .doc(attemptId)
+          .get();
+
+      if (doc.exists) {
+        return doc.data();
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching attempt analysis: $e");
       return null;
     }
   }

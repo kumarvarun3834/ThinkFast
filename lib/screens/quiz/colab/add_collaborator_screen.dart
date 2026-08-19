@@ -73,14 +73,16 @@ class _AddCollaboratorScreenState extends State<AddCollaboratorScreen> {
         if (failedIds.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text("$successCount collaborator(s) added successfully")),
+              content: Text("$successCount collaborator(s) added successfully"),
+            ),
           );
           Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  "Added $successCount. Failed for: ${failedIds.join(', ')}"),
+                "Added $successCount. Failed for: ${failedIds.join(', ')}",
+              ),
               backgroundColor: global.warningColor,
             ),
           );
@@ -130,8 +132,10 @@ class _AddCollaboratorScreenState extends State<AddCollaboratorScreen> {
                 hintStyle: const TextStyle(color: global.labelColor),
                 filled: true,
                 fillColor: global.cardColor,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: global.borderColor),
@@ -159,7 +163,10 @@ class _AddCollaboratorScreenState extends State<AddCollaboratorScreen> {
             _buildPermissionGroup("Data & Analytics", [
               _buildPermissionSwitch("View Responses", 'can_view_results'),
               _buildPermissionSwitch("View Answer Key", 'can_view_answer_key'),
-              _buildPermissionSwitch("Advanced Analytics", 'can_view_analytics'),
+              _buildPermissionSwitch(
+                "Advanced Analytics",
+                'can_view_analytics',
+              ),
               _buildPermissionSwitch("Export Data", 'can_export_data'),
             ]),
             const SizedBox(height: 24),
@@ -186,13 +193,17 @@ class _AddCollaboratorScreenState extends State<AddCollaboratorScreen> {
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
-                            color: Colors.black, strokeWidth: 2))
+                          color: Colors.black,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text(
                         "GRANT ACCESS",
                         style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: 1.1),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                          letterSpacing: 1.1,
+                        ),
                       ),
               ),
             ),
@@ -219,31 +230,37 @@ class _AddCollaboratorScreenState extends State<AddCollaboratorScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: global.cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: global.borderColor),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
+      child: Material(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
                 color: global.valueColor,
                 fontSize: 14,
-                fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPermissionSwitch(String title, String key) {
     return SwitchListTile(
-      title: Text(title,
-          style: const TextStyle(color: global.labelColor, fontSize: 13)),
+      title: Text(
+        title,
+        style: const TextStyle(color: global.labelColor, fontSize: 13),
+      ),
       value: _permissions[key] ?? false,
       activeColor: global.primaryAccent,
       onChanged: (v) => setState(() => _permissions[key] = v),

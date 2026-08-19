@@ -35,43 +35,59 @@ class ManageActionTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: enabled ? global.borderColor : global.borderColor.withOpacity(0.3),
+          color: enabled
+              ? global.borderColor
+              : global.borderColor.withValues(alpha: 0.3),
         ),
       ),
-      child: ListTile(
-        onTap: enabled
-            ? onTap
-            : () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Access Denied: Caller does not have permission to perform this action."),
-                    backgroundColor: global.errorColor,
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-        leading: Icon(
-          icon,
-          color: enabled
-              ? (isDestructive ? global.errorColor : global.primaryAccent)
-              : global.labelColor.withOpacity(0.4),
-        ),
-        title: Text(
-          text,
-          style: TextStyle(
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          onTap: enabled
+              ? onTap
+              : () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Access Denied: Caller does not have permission to perform this action.",
+                      ),
+                      backgroundColor: global.errorColor,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+          leading: Icon(
+            icon,
             color: enabled
-                ? (isDestructive ? global.errorColor : global.valueColor)
-                : global.valueColor.withOpacity(0.4),
-            fontWeight: FontWeight.w600,
+                ? (isDestructive ? global.errorColor : global.primaryAccent)
+                : global.labelColor.withValues(alpha: 0.4),
           ),
+          title: Text(
+            text,
+            style: TextStyle(
+              color: enabled
+                  ? (isDestructive ? global.errorColor : global.valueColor)
+                  : global.valueColor.withValues(alpha: 0.4),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: !enabled
+              ? Icon(
+                  Icons.lock,
+                  size: 16,
+                  color: global.labelColor.withValues(alpha: 0.4),
+                )
+              : Icon(
+                  Icons.chevron_right,
+                  size: 16,
+                  color: global.labelColor.withValues(alpha: 0.6),
+                ),
         ),
-        trailing: !enabled
-            ? Icon(Icons.lock, size: 16, color: global.labelColor.withOpacity(0.4))
-            : Icon(Icons.chevron_right, size: 16, color: global.labelColor.withOpacity(0.6)),
       ),
     );
   }
