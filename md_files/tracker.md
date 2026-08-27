@@ -82,6 +82,7 @@
 
 ## 🚧 In Progress / Current Focus
 
+- [ ] Updating AI Analysis JSON logic to align with new backend specifications (Scheduled for tomorrow).
 - [ ] Optimizing AI Prompt Engineering for better quiz variety.
 - [ ] Improving error handling for network-edge cases during quiz submission.
 - [ ] Profile screen more fields to add

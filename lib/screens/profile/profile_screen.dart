@@ -27,7 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _languageController = TextEditingController();
   final TextEditingController _studyHoursController = TextEditingController();
   final TextEditingController _targetExamController = TextEditingController();
-  final TextEditingController _learningStyleController = TextEditingController();
+  final TextEditingController _learningStyleController =
+      TextEditingController();
   String _preferredDifficulty = 'medium';
   bool _optInAiAnalysis = false;
   bool _privacyPolicyAccepted = false;
@@ -125,23 +126,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'goal': _optInAiAnalysis ? _goalController.text.trim() : null,
           'interests': _optInAiAnalysis
               ? _interestsController.text
-                  .split(',')
-                  .map((e) => e.trim())
-                  .where((e) => e.isNotEmpty)
-                  .toList()
+                    .split(',')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList()
               : [],
           'learningTopics': _optInAiAnalysis
               ? _learningTopicsController.text
-                  .split(',')
-                  .map((e) => e.trim())
-                  .where((e) => e.isNotEmpty)
-                  .toList()
+                    .split(',')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList()
               : [],
-          'preferredDifficulty': _optInAiAnalysis ? _preferredDifficulty : 'medium',
-          'preferredLanguage': _optInAiAnalysis ? _languageController.text.trim() : null,
-          'studyHoursPerWeek': _optInAiAnalysis ? (int.tryParse(_studyHoursController.text) ?? 0) : 0,
-          'targetExam': _optInAiAnalysis ? _targetExamController.text.trim() : null,
-          'learningStyle': _optInAiAnalysis ? _learningStyleController.text.trim() : null,
+          'preferredDifficulty': _optInAiAnalysis
+              ? _preferredDifficulty
+              : 'medium',
+          'preferredLanguage': _optInAiAnalysis
+              ? _languageController.text.trim()
+              : null,
+          'studyHoursPerWeek': _optInAiAnalysis
+              ? (int.tryParse(_studyHoursController.text) ?? 0)
+              : 0,
+          'targetExam': _optInAiAnalysis
+              ? _targetExamController.text.trim()
+              : null,
+          'learningStyle': _optInAiAnalysis
+              ? _learningStyleController.text.trim()
+              : null,
         },
       );
 
@@ -206,422 +217,445 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: global.valueColor,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              "SKIP",
-              style: GoogleFonts.poppins(
-                color: global.primaryAccent,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: const [SizedBox(width: 8)],
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: global.primaryAccent),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: global.cardColor,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: global.borderColor),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: global.cardColor,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: global.borderColor),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              const CircleAvatar(
-                                radius: 50,
-                                backgroundColor: global.bgColor,
-                                child: Icon(
-                                  Icons.person,
-                                  size: 60,
-                                  color: global.primaryAccent,
-                                ),
-                              ),
-                              if (_user != null && !_user.emailVerified)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: global.cardColor,
-                                      width: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Stack(
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  const CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: global.bgColor,
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color: global.primaryAccent,
                                     ),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.warning_amber_rounded,
-                                        size: 12,
-                                        color: Colors.white,
+                                  if (_user != null && !_user.emailVerified)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
                                       ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        "UNVERIFIED",
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: global.cardColor,
+                                          width: 2,
                                         ),
                                       ),
-                                    ],
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.warning_amber_rounded,
+                                            size: 12,
+                                            color: Colors.white,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "UNVERIFIED",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else if (_user != null && _user.emailVerified)
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: global.cardColor,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        size: 16,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _buildSectionHeader("Basic Information"),
+                            const SizedBox(height: 16),
+                            _buildLabel("Full Name *"),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              _nameController,
+                              "Enter your name",
+                              Icons.person_outline,
+                            ),
+                            const SizedBox(height: 24),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _privacyPolicyAccepted
+                                      ? global.borderColor
+                                      : global.errorColor.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                ),
+                              ),
+                              child: Material(
+                                color: global.bgColor.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                clipBehavior: Clip.antiAlias,
+                                child: CheckboxListTile(
+                                  title: GestureDetector(
+                                    onTap: () => Navigator.pushNamed(
+                                      context,
+                                      "/Privacy Policy",
+                                    ),
+                                    child: Text(
+                                      "I accept the Privacy Policy",
+                                      style: GoogleFonts.poppins(
+                                        color: global.valueColor,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
                                   ),
-                                )
-                              else if (_user != null && _user.emailVerified)
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: global.cardColor,
-                                      width: 2,
-                                    ),
+                                  value: _privacyPolicyAccepted,
+                                  activeColor: global.primaryAccent,
+                                  onChanged: (v) => setState(
+                                    () => _privacyPolicyAccepted = v ?? false,
                                   ),
-                                  child: const Icon(
-                                    Icons.check,
-                                    size: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        _buildSectionHeader("Basic Information"),
-                        const SizedBox(height: 16),
-                        _buildLabel("Full Name *"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          _nameController,
-                          "Enter your name",
-                          Icons.person_outline,
-                        ),
-
-                        const SizedBox(height: 24),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _privacyPolicyAccepted
-                                  ? global.borderColor
-                                  : global.errorColor.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Material(
-                            color: global.bgColor.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            clipBehavior: Clip.antiAlias,
-                            child: CheckboxListTile(
-                            title: GestureDetector(
-                              onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
-                              child: Text(
-                                "I accept the Privacy Policy",
-                                style: GoogleFonts.poppins(
-                                  color: global.valueColor,
-                                  fontSize: 14,
-                                  decoration: TextDecoration.underline,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
                                 ),
                               ),
                             ),
-                            value: _privacyPolicyAccepted,
-                            activeColor: global.primaryAccent,
-                            onChanged: (v) => setState(() => _privacyPolicyAccepted = v ?? false),
-                            controlAffinity: ListTileControlAffinity.leading,
-                          ),
-                        ),
-                      ),
-                        if (!_privacyPolicyAccepted)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 12, top: 4),
-                            child: Text(
-                              "You must accept the privacy policy to continue.",
-                              style: GoogleFonts.poppins(color: global.errorColor, fontSize: 10),
-                            ),
-                          ),
-
-                        const SizedBox(height: 24),
-                        _buildLabel("User UID"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          _uidController,
-                          "User ID",
-                          Icons.fingerprint_rounded,
-                          readOnly: true,
-                          suffixIcon: IconButton(
-                            icon: const Icon(
-                              Icons.copy_rounded,
-                              color: global.primaryAccent,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              Clipboard.setData(
-                                ClipboardData(text: _uidController.text),
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("UID copied to clipboard"),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-                        _buildSectionHeader("AI & Personalization"),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: global.borderColor),
-                          ),
-                          child: Material(
-                            color: global.bgColor.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            clipBehavior: Clip.antiAlias,
-                            child: SwitchListTile(
-                            title: Text(
-                              "Opt-in for AI Analysis",
-                              style: GoogleFonts.poppins(
-                                color: (int.tryParse(_ageController.text) ?? 13) < 13
-                                    ? global.hintColor
-                                    : global.valueColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              (int.tryParse(_ageController.text) ?? 13) < 13
-                                  ? "Personalization is restricted for users under 13."
-                                  : "Allow AI to analyze your learning style for personalized quizzes.",
-                              style: GoogleFonts.poppins(
-                                color: (int.tryParse(_ageController.text) ?? 13) < 13
-                                    ? global.errorColor.withValues(alpha: 0.7)
-                                    : global.labelColor,
-                                fontSize: 11,
-                              ),
-                            ),
-                            value: _optInAiAnalysis,
-                            activeThumbColor: global.primaryAccent,
-                            onChanged: (int.tryParse(_ageController.text) ?? 13) < 13
-                                ? null
-                                : (v) => setState(() => _optInAiAnalysis = v),
-                          ),
-                        ),
-                      ),
-
-                        if (_optInAiAnalysis) ...[
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Class/Grade"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _classController,
-                                      "e.g. 12th",
-                                      Icons.school_outlined,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Age"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _ageController,
-                                      "e.g. 18",
-                                      Icons.cake_outlined,
-                                      keyboardType: TextInputType.number,
-                                      onChanged: _handleAgeChanged,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 20),
-                          _buildLabel("Study Goal"),
-                          const SizedBox(height: 8),
-                          _buildTextField(
-                            _goalController,
-                            "e.g. Crack NEET 2025",
-                            Icons.track_changes_rounded,
-                          ),
-
-                          const SizedBox(height: 20),
-                          _buildLabel("Interests (comma separated)"),
-                          const SizedBox(height: 8),
-                          _buildTextField(
-                            _interestsController,
-                            "Physics, Space, Coding",
-                            Icons.auto_awesome_outlined,
-                          ),
-
-                          const SizedBox(height: 20),
-                          _buildLabel("Specific Learning Topics"),
-                          const SizedBox(height: 8),
-                          _buildTextField(
-                            _learningTopicsController,
-                            "e.g. Quantum Mechanics, Organic Chemistry",
-                            Icons.book_outlined,
-                          ),
-
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Preferred Language"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _languageController,
-                                      "English / Hindi",
-                                      Icons.translate_rounded,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Study Hours/Week"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _studyHoursController,
-                                      "e.g. 10",
-                                      Icons.timer_outlined,
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 20),
-                          _buildLabel("Difficulty Preference"),
-                          const SizedBox(height: 8),
-                          _buildDropdownField(),
-
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Target Exam"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _targetExamController,
-                                      "NEET, JEE, UPSC",
-                                      Icons.school_outlined,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLabel("Learning Style"),
-                                    const SizedBox(height: 8),
-                                    _buildTextField(
-                                      _learningStyleController,
-                                      "Visual, Auditory, etc.",
-                                      Icons.psychology_outlined,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-
-                        const SizedBox(height: 32),
-                        _buildSectionHeader("Private Information"),
-                        const SizedBox(height: 16),
-                        _buildLabel("Email Address (Private)"),
-                        const SizedBox(height: 8),
-                        _buildTextField(
-                          TextEditingController(text: _user?.email ?? ""),
-                          "Email",
-                          Icons.email_outlined,
-                          readOnly: true,
-                        ),
-
-                        const SizedBox(height: 40),
-                        _isSaving
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: global.primaryAccent,
-                                ),
-                              )
-                            : ElevatedButton(
-                                onPressed: _saveProfile,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: global.btnColor,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size(double.infinity, 56),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 4,
+                            if (!_privacyPolicyAccepted)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 12,
+                                  top: 4,
                                 ),
                                 child: Text(
-                                  "SAVE & CONTINUE",
+                                  "You must accept the privacy policy to continue.",
                                   style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                                    color: global.errorColor,
+                                    fontSize: 10,
                                   ),
                                 ),
                               ),
-                        SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-                      ],
-                    ),
+                            const SizedBox(height: 24),
+                            _buildLabel("User UID"),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              _uidController,
+                              "User ID",
+                              Icons.fingerprint_rounded,
+                              readOnly: true,
+                              suffixIcon: IconButton(
+                                icon: const Icon(
+                                  Icons.copy_rounded,
+                                  color: global.primaryAccent,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  Clipboard.setData(
+                                    ClipboardData(text: _uidController.text),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("UID copied to clipboard"),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _buildSectionHeader("AI & Personalization"),
+                            const SizedBox(height: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: global.borderColor),
+                              ),
+                              child: Material(
+                                color: global.bgColor.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                clipBehavior: Clip.antiAlias,
+                                child: SwitchListTile(
+                                  title: Text(
+                                    "Opt-in for AI Analysis",
+                                    style: GoogleFonts.poppins(
+                                      color:
+                                          (int.tryParse(_ageController.text) ??
+                                                  13) <
+                                              13
+                                          ? global.hintColor
+                                          : global.valueColor,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    (int.tryParse(_ageController.text) ?? 13) <
+                                            13
+                                        ? "Personalization is restricted for users under 13."
+                                        : "Allow AI to analyze your learning style for personalized quizzes.",
+                                    style: GoogleFonts.poppins(
+                                      color:
+                                          (int.tryParse(_ageController.text) ??
+                                                  13) <
+                                              13
+                                          ? global.errorColor.withValues(
+                                              alpha: 0.7,
+                                            )
+                                          : global.labelColor,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  value: _optInAiAnalysis,
+                                  activeThumbColor: global.primaryAccent,
+                                  onChanged:
+                                      (int.tryParse(_ageController.text) ??
+                                              13) <
+                                          13
+                                      ? null
+                                      : (v) => setState(
+                                          () => _optInAiAnalysis = v,
+                                        ),
+                                ),
+                              ),
+                            ),
+
+                            if (_optInAiAnalysis) ...[
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Class/Grade"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _classController,
+                                          "e.g. 12th",
+                                          Icons.school_outlined,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Age"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _ageController,
+                                          "e.g. 18",
+                                          Icons.cake_outlined,
+                                          keyboardType: TextInputType.number,
+                                          onChanged: _handleAgeChanged,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Study Goal"),
+                              const SizedBox(height: 8),
+                              _buildTextField(
+                                _goalController,
+                                "e.g. Crack NEET 2025",
+                                Icons.track_changes_rounded,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Interests (comma separated)"),
+                              const SizedBox(height: 8),
+                              _buildTextField(
+                                _interestsController,
+                                "Physics, Space, Coding",
+                                Icons.auto_awesome_outlined,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Specific Learning Topics"),
+                              const SizedBox(height: 8),
+                              _buildTextField(
+                                _learningTopicsController,
+                                "e.g. Quantum Mechanics, Organic Chemistry",
+                                Icons.book_outlined,
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Preferred Language"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _languageController,
+                                          "English / Hindi",
+                                          Icons.translate_rounded,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Study Hours/Week"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _studyHoursController,
+                                          "e.g. 10",
+                                          Icons.timer_outlined,
+                                          keyboardType: TextInputType.number,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Difficulty Preference"),
+                              const SizedBox(height: 8),
+                              _buildDropdownField(),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Target Exam"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _targetExamController,
+                                          "NEET, JEE, UPSC",
+                                          Icons.school_outlined,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _buildLabel("Learning Style"),
+                                        const SizedBox(height: 8),
+                                        _buildTextField(
+                                          _learningStyleController,
+                                          "Visual, Auditory, etc.",
+                                          Icons.psychology_outlined,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            const SizedBox(height: 32),
+                            _buildSectionHeader("Private Information"),
+                            const SizedBox(height: 16),
+                            _buildLabel("Email Address (Private)"),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              TextEditingController(text: _user?.email ?? ""),
+                              "Email",
+                              Icons.email_outlined,
+                              readOnly: true,
+                            ),
+
+                            const SizedBox(height: 40),
+                            _isSaving
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: global.primaryAccent,
+                                    ),
+                                  )
+                                : ElevatedButton(
+                                    onPressed: _saveProfile,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: global.btnColor,
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        56,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: 4,
+                                    ),
+                                    child: Text(
+                                      "SAVE & CONTINUE",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                  ),
+                            SizedBox(
+                              height:
+                                  MediaQuery.of(context).padding.bottom + 40,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
     );

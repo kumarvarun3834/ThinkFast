@@ -1,1 +1,42 @@
-{"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"hosting":{"public":"public","ignore":["firebase.json","**/node_modules/**"]},"flutter":{"platforms":{"android":{"default":{"projectId":"thinkfast3834","appId":"1:775124683303:android:21a4d7bab1de83981fdc02","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"thinkfast3834","configurations":{"android":"1:775124683303:android:21a4d7bab1de83981fdc02"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/quiz/**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "thinkfast3834",
+          "appId": "1:775124683303:android:21a4d7bab1de83981fdc02",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "thinkfast3834",
+          "configurations": {
+            "android": "1:775124683303:android:21a4d7bab1de83981fdc02"
+          }
+        }
+      }
+    }
+  }
+}

@@ -33,14 +33,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data
-                    android:scheme="https"
-                    android:host="thinkfast3834.web.app"
-                    android:pathPrefix="/quiz" />
-                <data
-                    android:scheme="https"
-                    android:host="thinkfast3834.firebaseapp.com"
-                    android:pathPrefix="/quiz" />
+                <data android:scheme="https" />
+                <data android:host="thinkfast3834.web.app" />
+                <data android:host="thinkfast3834.firebaseapp.com" />
+                <data android:pathPrefix="/quiz" />
             </intent-filter>
 
         </activity>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Quiz - ThinkFast</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0F172A;
+            --card-color: #1E293B;
+            --primary-accent: #3B82F6;
+            --btn-color: #2563EB;
+            --text-color: #E2E8F0;
+            --label-color: #94A3B8;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 500px;
+            padding: 2rem;
+            background-color: var(--card-color);
+            border-radius: 24px;
+            border: 1px solid #334155;
+        }
+        h2 { color: #fff; margin-bottom: 1rem; }
+        p { color: var(--label-color); margin-bottom: 2rem; font-size: 0.9rem; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--btn-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary-accent);
+            color: var(--primary-accent);
+        }
+        .logo { width: 80px; height: 80px; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://thinkfast3834.web.app/favicon.png" alt="Logo" class="logo" style="filter: brightness(1.2);">
+        <h2>Ready for your Quiz?</h2>
+        <p>If the app didn't open automatically, use the buttons below to continue your journey.</p>
+
+        <a href="#" id="open-app-btn" class="btn">Open in ThinkFast App</a>
+        <a href="https://thinkfast3834.web.app/download/app.apk" class="btn btn-outline">Install App (APK)</a>
+
+        <div style="margin-top: 2rem; font-size: 0.8rem; color: #475569;">
+            ID: <span id="quiz-id">...</span>
+        </div>
+    </div>
+
+    <script>
+        // Extract quiz ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const quizId = urlParams.get('id');
+        document.getElementById('quiz-id').innerText = quizId || 'None';
+
+        // Deep link intent URL
+        const appLink = window.location.href;
+        document.getElementById('open-app-btn').href = appLink;
+
+        // Auto-redirect logic for mobile
+        function isMobile() {
+            return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        if (isMobile() && quizId) {
+            // If we are on mobile, the browser already tried and failed to open the app
+            // (since the app didn't intercept the https link).
+            // We can try one more time or just let the user click.
+            console.log("On mobile, waiting for user action.");
+        }
+    </script>
+</body>
+</html>

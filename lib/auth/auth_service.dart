@@ -172,16 +172,35 @@ class AuthService {
   /// ---------------- GOOGLE SIGN IN ----------------
   Future<User?> signInWithGoogle({bool force = false}) async {
     try {
-      // Trigger the authentication flow
-      // Note: In google_sign_in 7.0.0+, you must call initialize() first if using custom config,
-      // but here we use the default (configured via google-services.json on Android).
-      // The method is now 'authenticate' for interactive sign-in.
-      final GoogleSignInAccount googleAccount = await _googleSignIn
+      if (kIsWeb) {
+        // On Web, we use Firebase's native Popup for better compatibility
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        final UserCredential userCredential = await _auth.signInWithPopup(
+          googleProvider,
+        );
+        final user = userCredential.user;
+
+        if (user != null) {
+          await global.db.createUserProfile(
+            uid: user.uid,
+            email: user.email ?? '',
+            name: user.displayName,
+            photoUrl: user.photoURL,
+          );
+          await _deviceService.updateActiveDevice(user.uid);
+        }
+        return user;
+      }
+
+      // Trigger the authentication flow on Mobile
+      final GoogleSignInAccount? googleAccount = await _googleSignIn
           .authenticate();
+
+      if (googleAccount == null) return null;
 
       // Obtain the auth details from the account
       final GoogleSignInAuthentication googleAuth =
-          googleAccount.authentication;
+          await googleAccount.authentication;
 
       // Create a new credential
       final AuthCredential credential = GoogleAuthProvider.credential(

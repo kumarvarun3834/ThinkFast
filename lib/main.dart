@@ -50,6 +50,9 @@ Future<void> main() async {
         ? AndroidProvider.debug
         : AndroidProvider.playIntegrity,
     appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+    providerWeb: ReCaptchaV3Provider(
+      '6LdII5stAAAAADFf-Tm76q4E70ZopHbWStxVJCJl',
+    ),
   );
 
   if (kDebugMode) {

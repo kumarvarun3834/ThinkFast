@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:dio/dio.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:thinkfast/services/api_client.dart';
 import '../utils/global.dart' as global;
 
@@ -249,7 +249,7 @@ class QuizService {
         debugPrint("Secure AI Quiz Update: Calling backend -> $url");
 
         final Map<String, dynamic> hardenedPayload =
-            await ApiClient.buildSecurityPayload(updates!);
+            await ApiClient.buildSecurityPayload(updates);
 
         final response = await ApiClient.instance.put(
           url,
@@ -495,36 +495,34 @@ class QuizService {
     return List<Map<String, dynamic>>.from(data['modules'] ?? []);
   }
 
-  /// ✅ Fetch Public Quizzes
+  /// ✅ Fetch Public Quizzes (AI-Resilient)
   Stream<List<Map<String, dynamic>>> getPublicQuizzes() {
-    return _quizzes
-        .where('visibility', isEqualTo: 'public')
-        .where('isDeleted', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
+    return _quizzes.where('visibility', isEqualTo: 'public').snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList(),
-        );
+            return _mapAiQuizData(data, doc.id);
+          })
+          .where((quiz) => quiz['isDeleted'] != true)
+          .toList();
+    });
   }
 
   /// ✅ Fetch My Quizzes
   Stream<List<Map<String, dynamic>>> getMyQuizzes(String creatorId) {
-    return _quizzes
-        .where('creatorId', isEqualTo: creatorId)
-        .where('isDeleted', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
+    return _quizzes.where('creatorId', isEqualTo: creatorId).snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs
+          .map((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList(),
-        );
+            return _mapAiQuizData(data, doc.id);
+          })
+          .where((quiz) => quiz['isDeleted'] != true)
+          .toList();
+    });
   }
 
   /// ✅ Fetch Managed Quizzes (Where user is a collaborator)
@@ -584,16 +582,91 @@ class QuizService {
     return _quizzes
         .where('creatorId', isEqualTo: creatorId)
         .where('isAiGenerated', isEqualTo: true)
-        .where('isDeleted', isEqualTo: false)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList(),
-        );
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return _mapAiQuizData(data, doc.id);
+              })
+              .where((quiz) => quiz['isDeleted'] != true)
+              .toList();
+        });
+  }
+
+  /// 🛠️ Helper to map AI Backend data to App Schema
+  Map<String, dynamic> _mapAiQuizData(Map<String, dynamic> data, String id) {
+    data['id'] = id;
+
+    // Map missing isDeleted field
+    data['isDeleted'] = data['isDeleted'] ?? false;
+
+    // Map Author -> User
+    if (data['user'] == null || data['user'].toString().isEmpty) {
+      data['user'] =
+          data['author'] ??
+          data['creatorName'] ??
+          data['creatorEmail']?.split('@')[0] ??
+          'AI Engine';
+    }
+
+    // Map Duration/Timer -> Time
+    if (data['time'] == null || data['time'] == 0) {
+      data['time'] = data['duration'] ?? data['timer'] ?? 0;
+    }
+
+    // Handle Title Mismatch
+    if (data['title'] == null) {
+      data['title'] = data['AI_title'] ?? 'Generated Quiz';
+    }
+
+    // Ensure tags is always a list
+    if (data['tags'] == null) {
+      data['tags'] = [];
+      // Try to extract tags from modules if main tags list is empty
+      final List modules = data['modules'] as List? ?? [];
+      for (var m in modules) {
+        if (m is Map && (m['name'] != null || m['subject'] != null)) {
+          data['tags'].add(m['name'] ?? m['subject']);
+        }
+      }
+    }
+
+    return data;
+  }
+
+  /// ✅ Fetch Home Feed (Public Quizzes + User's own AI Generations)
+  Stream<List<Map<String, dynamic>>> getHomeFeed(String userId) {
+    return Rx.combineLatest2(getPublicQuizzes(), getMyAiQuizzes(userId), (
+      List<Map<String, dynamic>> public,
+      List<Map<String, dynamic>> myAi,
+    ) {
+      // Merge and remove duplicates (in case my AI quiz is also public)
+      final Map<String, Map<String, dynamic>> combined = {};
+      for (var q in public) {
+        combined[q['id']] = q;
+      }
+      for (var q in myAi) {
+        combined[q['id']] = q;
+      }
+
+      final list = combined.values.toList();
+
+      // Robust sorting by createdAt (Handle Timestamp, String, DateTime or Null)
+      list.sort((a, b) {
+        DateTime parse(dynamic val) {
+          if (val is Timestamp) return val.toDate();
+          if (val is String) return DateTime.tryParse(val) ?? DateTime(2000);
+          if (val is DateTime) return val;
+          return DateTime(2000);
+        }
+
+        final aTime = parse(a['createdAt']);
+        final bTime = parse(b['createdAt']);
+        return bTime.compareTo(aTime);
+      });
+      return list;
+    });
   }
 
   /// ✅ Master control: Get all quizzes for a user (Admin only)

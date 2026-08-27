@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_filter_screen.dart';
 import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
@@ -40,6 +41,9 @@ class _MainScreenState extends State<MainScreen> {
   // Selection Logic
   final Set<String> _selectedQuizIds = {};
   bool _isSelectionMode = false;
+
+  // Web/Desktop Split View Logic
+  String? _selectedQuizIdForWeb;
 
   // Filter Logic
   final Set<String> _selectedTags = {};
@@ -189,8 +193,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   /// 🧩 QUIZ CARD (Minimized)
-  Widget buildQuizCard(Map<String, dynamic> data) {
+  Widget buildQuizCard(
+    Map<String, dynamic> data, {
+    bool isBlockFormat = false,
+  }) {
     final bool isSelected = _selectedQuizIds.contains(data['id']);
+    final bool isWebSelected = _selectedQuizIdForWeb == data['id'];
     final bool canSelect = widget.showMyQuizzes || widget.showTrash;
     final bool deletedByAdmin = data['deletedByType'] == 'admin';
 
@@ -202,188 +210,306 @@ class _MainScreenState extends State<MainScreen> {
         } else if (widget.showTrash || data['isDeleted'] == true) {
           _showRestoreDialog(data);
         } else {
-          Navigator.pushNamed(context, "/Quiz Details", arguments: data['id']);
+          final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
+          if (isLargeScreen) {
+            setState(() {
+              _selectedQuizIdForWeb = data['id'];
+            });
+          } else {
+            Navigator.pushNamed(
+              context,
+              "/Quiz Details",
+              arguments: data['id'],
+            );
+          }
         }
       },
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        margin: isBlockFormat
+            ? const EdgeInsets.all(8)
+            : const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         elevation: 0,
-        color: isSelected
+        color: (isSelected || isWebSelected)
             ? global.primaryAccent.withValues(alpha: 0.15)
             : global.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: isSelected ? global.primaryAccent : global.borderColor,
-            width: isSelected ? 2 : 1,
+            color: (isSelected || isWebSelected)
+                ? global.primaryAccent
+                : global.borderColor,
+            width: (isSelected || isWebSelected) ? 2 : 1,
           ),
         ),
         child: Opacity(
           opacity: (deletedByAdmin && !global.isAdmin) ? 0.6 : 1.0,
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                if (_isSelectionMode)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Icon(
-                      isSelected
-                          ? Icons.check_circle
-                          : Icons.radio_button_unchecked,
-                      color: isSelected
-                          ? global.primaryAccent
-                          : global.labelColor,
-                    ),
-                  ),
-                Expanded(
-                  child: Column(
+            child: isBlockFormat
+                ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        data['title'] ?? 'Untitled',
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: global.valueColor,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    data['title'] ?? 'Untitled',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: global.valueColor,
+                                    ),
+                                  ),
+                                ),
+                                if (data['isAiGenerated'] == true)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: StatusBadge(
+                                      text: "AI",
+                                      color: Colors.purpleAccent,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          if (!widget.showTrash && !_isSelectionMode)
+                            IconButton(
+                              icon: const Icon(Icons.share_rounded, size: 18),
+                              onPressed: () => _shareQuiz(data['id']),
+                              color: global.primaryAccent,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                        ],
                       ),
                       if (data['examTag'] != null &&
                           data['examTag'].toString().isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4.0),
                           child: Text(
-                            "Exam: ${data['examTag']}",
+                            data['examTag'],
                             style: GoogleFonts.poppins(
-                              fontSize: 11,
+                              fontSize: 10,
                               color: global.primaryAccent,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                      const SizedBox(height: 6),
-                      if (data['isDeleted'] == true)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6.0),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: global.errorColor.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: global.errorColor),
-                                ),
-                                child: const Text(
-                                  "DELETED",
-                                  style: TextStyle(
-                                    color: global.errorColor,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              if (deletedByAdmin)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 6.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: global.warningColor.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: global.warningColor,
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      "BY ADMIN",
-                                      style: TextStyle(
-                                        color: global.warningColor,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                      const Spacer(),
+                      Text(
+                        "by ${data['user'] ?? 'Anonymous'}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: global.labelColor,
                         ),
-                      if (widget.showTrash || data['isDeleted'] == true)
-                        _buildTrashSubtitle(data)
-                      else
-                        Text(
-                          "Created by: ${data['user'] ?? 'Anonymous'}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: global.labelColor,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      // Show Module Subjects and Tags
-                      const SizedBox(height: 8),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
                         children: [
-                          // Module Subjects
-                          ...(data['modules'] as List? ?? []).map((m) {
+                          ...(data['modules'] as List? ?? []).take(2).map((m) {
                             final sub = m is Map ? m['subject'].toString() : "";
-                            if (sub.isEmpty) return const SizedBox.shrink();
                             return _buildMetaChip(sub, isSubject: true);
                           }),
-                          // Module Tags
-                          if (data['moduleTags'] != null)
-                            ...(data['moduleTags'] as Map).values
-                                .expand((tags) => tags as List)
-                                .map((t) {
-                                  return _buildMetaChip(
-                                    t.toString(),
-                                    isModuleTag: true,
-                                  );
-                                }),
-                          // Regular Tags
-                          ...(data['tags'] as List? ?? []).map((t) {
-                            return _buildMetaChip(t.toString());
-                          }),
+                          if ((data['tags'] as List? ?? []).isNotEmpty)
+                            _buildMetaChip(data['tags'][0].toString()),
                         ],
                       ),
                     ],
+                  )
+                : Row(
+                    children: [
+                      if (_isSelectionMode)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Icon(
+                            isSelected
+                                ? Icons.check_circle
+                                : Icons.radio_button_unchecked,
+                            color: isSelected
+                                ? global.primaryAccent
+                                : global.labelColor,
+                          ),
+                        ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    data['title'] ?? 'Untitled',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: global.valueColor,
+                                    ),
+                                  ),
+                                ),
+                                if (data['isAiGenerated'] == true)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: StatusBadge(
+                                      text: "AI",
+                                      color: Colors.purpleAccent,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            if (data['examTag'] != null &&
+                                data['examTag'].toString().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  "Exam: ${data['examTag']}",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: global.primaryAccent,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 6),
+                            if (data['isDeleted'] == true)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: global.errorColor.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: global.errorColor,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "DELETED",
+                                        style: TextStyle(
+                                          color: global.errorColor,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    if (deletedByAdmin)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 6.0,
+                                        ),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: global.warningColor
+                                                .withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                            border: Border.all(
+                                              color: global.warningColor,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "BY ADMIN",
+                                            style: TextStyle(
+                                              color: global.warningColor,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            if (widget.showTrash || data['isDeleted'] == true)
+                              _buildTrashSubtitle(data)
+                            else
+                              Text(
+                                "Created by: ${data['user'] ?? 'Anonymous'}",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: global.labelColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            // Show Module Subjects and Tags
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 4,
+                              runSpacing: 4,
+                              children: [
+                                // Module Subjects
+                                ...(data['modules'] as List? ?? []).map((m) {
+                                  final sub = m is Map
+                                      ? m['subject'].toString()
+                                      : "";
+                                  if (sub.isEmpty)
+                                    return const SizedBox.shrink();
+                                  return _buildMetaChip(sub, isSubject: true);
+                                }),
+                                // Module Tags
+                                if (data['moduleTags'] != null)
+                                  ...(data['moduleTags'] as Map).values
+                                      .expand((tags) => tags as List)
+                                      .map((t) {
+                                        return _buildMetaChip(
+                                          t.toString(),
+                                          isModuleTag: true,
+                                        );
+                                      }),
+                                // Regular Tags
+                                ...(data['tags'] as List? ?? []).map((t) {
+                                  return _buildMetaChip(t.toString());
+                                }),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!widget.showTrash && !_isSelectionMode)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.share_rounded,
+                            color: global.primaryAccent,
+                            size: 20,
+                          ),
+                          onPressed: () => _shareQuiz(data['id']),
+                          tooltip: "Share Quiz Link",
+                        ),
+                      if (!_isSelectionMode)
+                        Icon(
+                          (widget.showTrash || data['isDeleted'] == true)
+                              ? Icons.restore_from_trash_rounded
+                              : Icons.arrow_forward_ios_rounded,
+                          color: (deletedByAdmin && !global.isAdmin)
+                              ? Colors.grey
+                              : ((widget.showTrash || data['isDeleted'] == true)
+                                    ? global.successColor
+                                    : global.borderColor),
+                          size: 18,
+                        ),
+                    ],
                   ),
-                ),
-                if (!widget.showTrash && !_isSelectionMode)
-                  IconButton(
-                    icon: const Icon(
-                      Icons.share_rounded,
-                      color: global.primaryAccent,
-                      size: 20,
-                    ),
-                    onPressed: () => _shareQuiz(data['id']),
-                    tooltip: "Share Quiz Link",
-                  ),
-                if (!_isSelectionMode)
-                  Icon(
-                    (widget.showTrash || data['isDeleted'] == true)
-                        ? Icons.restore_from_trash_rounded
-                        : Icons.arrow_forward_ios_rounded,
-                    color: (deletedByAdmin && !global.isAdmin)
-                        ? Colors.grey
-                        : ((widget.showTrash || data['isDeleted'] == true)
-                              ? global.successColor
-                              : global.borderColor),
-                    size: 18,
-                  ),
-              ],
-            ),
           ),
         ),
       ),
@@ -532,9 +658,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildQuizList(List<Map<String, dynamic>> allQuizzes) {
     final filteredQuizzes = allQuizzes.where((quiz) {
+      // ... (existing filtering logic)
       final title = (quiz['title'] ?? "").toString().toLowerCase();
-
-      // Collect ALL metadata for thorough matching (Tags, Subjects, Exam, Subtopics)
       final quizTags = List<String>.from(quiz['tags'] ?? []);
       final quizSubjects = (quiz['modules'] as List? ?? [])
           .map((m) => m is Map ? m['subject'].toString() : "")
@@ -542,7 +667,6 @@ class _MainScreenState extends State<MainScreen> {
       if (quiz['examTag'] != null && quiz['examTag'].toString().isNotEmpty) {
         quizSubjects.add(quiz['examTag'].toString());
       }
-
       final Map<String, dynamic> moduleTagsMap = quiz['moduleTags'] is Map
           ? quiz['moduleTags']
           : {};
@@ -550,19 +674,15 @@ class _MainScreenState extends State<MainScreen> {
           .expand((tags) => tags is List ? tags : [])
           .map((t) => t.toString())
           .toSet();
-
-      // Unified pool for filtering and search
       final allMetadata = {...quizTags, ...quizSubjects, ...allModuleTags};
       final allMetadataLower = allMetadata.map((m) => m.toLowerCase()).toSet();
 
-      // 1. AI Source Match
       if (_aiSourceFilter != "All") {
         final bool isAi = quiz['isAiGenerated'] == true;
         if (_aiSourceFilter == "AI Only" && !isAi) return false;
         if (_aiSourceFilter == "Manual Only" && isAi) return false;
       }
 
-      // 2. Search Query Match (Partial match on title or any metadata)
       bool matchesSearch = true;
       if (_searchQuery.isNotEmpty) {
         bool titleMatch = title.contains(_searchQuery);
@@ -572,11 +692,9 @@ class _MainScreenState extends State<MainScreen> {
         matchesSearch = titleMatch || metadataMatch;
       }
 
-      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty) {
+      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty)
         return matchesSearch;
-      }
 
-      // 3. Filter Match (Case-insensitive match on selected chips)
       final selectedFiltersLower = {
         ..._selectedTags.map((t) => t.toLowerCase()),
         ..._selectedSubjects.map((s) => s.toLowerCase()),
@@ -584,17 +702,14 @@ class _MainScreenState extends State<MainScreen> {
 
       bool matchesFilter = false;
       if (_isStrictFilter) {
-        // Strict: ALL selected filters MUST be present in the quiz
         matchesFilter = selectedFiltersLower.every(
           (f) => allMetadataLower.contains(f),
         );
       } else {
-        // Normal (OR Logic): Quiz must contain AT LEAST ONE selected tag or subject
         matchesFilter = selectedFiltersLower.any(
           (f) => allMetadataLower.contains(f),
         );
       }
-
       return matchesSearch && matchesFilter;
     }).toList();
 
@@ -604,6 +719,24 @@ class _MainScreenState extends State<MainScreen> {
           "No matching quizzes found",
           style: TextStyle(color: global.labelColor),
         ),
+      );
+    }
+
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
+
+    if (isLargeScreen) {
+      return GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 300,
+          mainAxisExtent: 220,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: filteredQuizzes.length,
+        itemBuilder: (context, index) {
+          return buildQuizCard(filteredQuizzes[index], isBlockFormat: true);
+        },
       );
     }
 
@@ -770,128 +903,226 @@ class _MainScreenState extends State<MainScreen> {
             ),
       body: Container(
         color: global.bgColor,
-        child: Column(
+        child: Row(
           children: [
-            if (!widget.showTrash &&
-                !widget.showMyQuizzes &&
-                !widget.showManagedQuizzes)
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: LocalCacheService().getRecentQuizzes(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.isEmpty)
-                    return const SizedBox.shrink();
-                  final recent = snapshot.data!;
-                  return Container(
-                    height: 120,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            "RECENTLY VIEWED",
-                            style: GoogleFonts.poppins(
-                              color: global.primaryAccent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: recent.length,
-                            itemBuilder: (context, index) {
-                              final quiz = recent[index];
-                              return GestureDetector(
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  "/Quiz Details",
-                                  arguments: quiz['id'],
-                                ),
-                                child: Container(
-                                  width: 160,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: global.cardColor,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: global.borderColor,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        quiz['title'] ?? 'Untitled',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: global.valueColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "by ${quiz['user'] ?? 'Anonymous'}",
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: global.labelColor,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             Expanded(
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: readDatabases(),
-                builder: (context, snapshot) {
-                  final allQuizzes = snapshot.data ?? [];
-                  return Column(
-                    children: [
-                      Expanded(
-                        child:
-                            snapshot.connectionState == ConnectionState.waiting
-                            ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: global.primaryAccent,
+              flex: 3,
+              child: Column(
+                children: [
+                  if (!widget.showTrash &&
+                      !widget.showMyQuizzes &&
+                      !widget.showManagedQuizzes)
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: LocalCacheService().getRecentQuizzes(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData || snapshot.data!.isEmpty)
+                          return const SizedBox.shrink();
+                        final recent = snapshot.data!;
+                        return Container(
+                          height: 120,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
                                 ),
-                              )
-                            : allQuizzes.isEmpty
-                            ? const Center(
                                 child: Text(
-                                  "No quizzes available",
-                                  style: TextStyle(color: global.labelColor),
+                                  "RECENTLY VIEWED",
+                                  style: GoogleFonts.poppins(
+                                    color: global.primaryAccent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
-                              )
-                            : _buildQuizList(allQuizzes),
-                      ),
-                    ],
-                  );
-                },
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  itemCount: recent.length,
+                                  itemBuilder: (context, index) {
+                                    final quiz = recent[index];
+                                    return GestureDetector(
+                                      onTap: () {
+                                        final bool isLargeScreen =
+                                            MediaQuery.of(context).size.width >
+                                            900;
+                                        if (isLargeScreen) {
+                                          setState(() {
+                                            _selectedQuizIdForWeb = quiz['id'];
+                                          });
+                                        } else {
+                                          Navigator.pushNamed(
+                                            context,
+                                            "/Quiz Details",
+                                            arguments: quiz['id'],
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        width: 160,
+                                        margin: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                        ),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: global.cardColor,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color:
+                                                _selectedQuizIdForWeb ==
+                                                    quiz['id']
+                                                ? global.primaryAccent
+                                                : global.borderColor,
+                                            width:
+                                                _selectedQuizIdForWeb ==
+                                                    quiz['id']
+                                                ? 2
+                                                : 1,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    quiz['title'] ?? 'Untitled',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      color: global.valueColor,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (quiz['isAiGenerated'] ==
+                                                    true)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          left: 4.0,
+                                                        ),
+                                                    child: StatusBadge(
+                                                      text: "AI",
+                                                      color:
+                                                          Colors.purpleAccent,
+                                                      fontSize: 8,
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 4,
+                                                            vertical: 2,
+                                                          ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              "by ${quiz['user'] ?? 'Anonymous'}",
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                color: global.labelColor,
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  Expanded(
+                    child: StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: readDatabases(),
+                      builder: (context, snapshot) {
+                        final allQuizzes = snapshot.data ?? [];
+                        return Column(
+                          children: [
+                            Expanded(
+                              child:
+                                  snapshot.connectionState ==
+                                      ConnectionState.waiting
+                                  ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: global.primaryAccent,
+                                      ),
+                                    )
+                                  : allQuizzes.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        "No quizzes available",
+                                        style: TextStyle(
+                                          color: global.labelColor,
+                                        ),
+                                      ),
+                                    )
+                                  : _buildQuizList(allQuizzes),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
+            if (MediaQuery.of(context).size.width > 900)
+              VerticalDivider(width: 1, color: global.borderColor),
+            if (MediaQuery.of(context).size.width > 900)
+              Expanded(
+                flex: 2,
+                child: _selectedQuizIdForWeb == null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.quiz_outlined,
+                              size: 64,
+                              color: global.labelColor.withValues(alpha: 0.3),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "Select a quiz to view details",
+                              style: TextStyle(
+                                color: global.labelColor.withValues(alpha: 0.5),
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : KeyedSubtree(
+                        key: ValueKey(_selectedQuizIdForWeb),
+                        child: QuizDetailsScreen(
+                          quizId: _selectedQuizIdForWeb!,
+                          isEmbedded: true,
+                        ),
+                      ),
+              ),
           ],
         ),
       ),

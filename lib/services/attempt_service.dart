@@ -1,10 +1,7 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:dio/dio.dart';
 import 'package:thinkfast/services/ai_service.dart';
-import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/services/notification_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
@@ -31,9 +28,12 @@ class AttemptService {
     List<String>? questionOrder,
     List<String>? visitedItems,
   }) async {
-    // 1. Calculate Score
+    // 1. Calculate Score & Metrics
     int score = 0;
     int maxPossible = 0;
+    int correctCount = 0;
+    int wrongCount = 0;
+    int skippedCount = 0;
 
     Map<String, int> getMarking(String? type, String qUid) {
       final schemeType = markingScheme['type'] ?? 'default';
@@ -78,41 +78,62 @@ class AttemptService {
       final marking = getMarking(qType, qUid);
       maxPossible += marking['correct']!;
 
-      if (qType == "Integer") {
-        final String userVal = selected.isNotEmpty
-            ? selected.first.toString().trim()
-            : "";
-        final String correctVal = correct.isNotEmpty
-            ? correct.first.toString().trim()
-            : "";
+      bool isAnswered = selected.isNotEmpty;
+      if (qType == "Integer" && isAnswered) {
+        if (selected.first.toString().trim().isEmpty) isAnswered = false;
+      }
 
-        if (userVal.isNotEmpty && userVal == correctVal) {
-          score += marking['correct']!;
-        } else if (userVal.isNotEmpty) {
-          score += marking['wrong']!;
+      if (!isAnswered) {
+        skippedCount++;
+      } else {
+        bool isCorrect = false;
+        if (qType == "Integer") {
+          final String userVal = selected.first.toString().trim();
+          final String correctVal = correct.isNotEmpty
+              ? correct.first.toString().trim()
+              : "";
+          isCorrect = userVal.isNotEmpty && userVal == correctVal;
+        } else {
+          isCorrect =
+              selected.length == correct.length &&
+              selected.every((s) => correct.contains(s));
         }
-      } else if (selected.isNotEmpty &&
-          selected.length == correct.length &&
-          selected.every((s) => correct.contains(s))) {
-        score += marking['correct']!;
-      } else if (selected.isNotEmpty) {
-        score += marking['wrong']!;
+
+        if (isCorrect) {
+          score += marking['correct']!;
+          correctCount++;
+        } else {
+          score += marking['wrong']!;
+          wrongCount++;
+        }
       }
     });
+
+    final double percentage = maxPossible > 0 ? (score / maxPossible) * 100 : 0;
+    final int passThreshold = (markingScheme['passThreshold'] ?? 40).toInt();
+    final bool passed = percentage >= passThreshold;
 
     // 2. Prepare Data
     final attemptData = {
       'userId': userId,
+      'uid': userId, // Alias for backend
+      'userEmail': FirebaseAuth.instance.currentUser?.email ?? 'unknown',
       'quizId': quizId,
       'quizTitle': quizTitle,
       'score': score,
       'maxPossible': maxPossible,
       'totalQuestions': totalQuestions,
+      'correctCount': correctCount,
+      'wrongCount': wrongCount,
+      'skippedCount': skippedCount,
+      'percentage': double.parse(percentage.toStringAsFixed(2)),
+      'passed': passed,
       'answers': userAnswers,
       'reviewItems': reviewItems ?? [],
       'questionOrder': questionOrder ?? [],
       'visitedItems': visitedItems ?? [],
       'status': 1,
+      'submittedAt': DateTime.now().toIso8601String(),
       'timestamp': FieldValue.serverTimestamp(),
     };
 
@@ -196,7 +217,9 @@ class AttemptService {
       final bool hasPrivacyAccepted = profile?['optInAiAnalysis'] == true;
 
       if (!hasPrivacyAccepted) {
-        debugPrint("Skipping post-submission analysis: AI & Personalization policy not accepted.");
+        debugPrint(
+          "Skipping post-submission analysis: AI & Personalization policy not accepted.",
+        );
         return;
       }
 
@@ -209,7 +232,9 @@ class AttemptService {
         responseId: responseId,
       );
 
-      debugPrint("Post-Submission AI Analysis triggered successfully. Backend handles storage.");
+      debugPrint(
+        "Post-Submission AI Analysis triggered successfully. Backend handles storage.",
+      );
     } catch (e) {
       debugPrint("Post-Submission AI Analysis Trigger Error: $e");
     }

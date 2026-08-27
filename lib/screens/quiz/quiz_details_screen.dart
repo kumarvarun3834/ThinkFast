@@ -11,8 +11,13 @@ import 'package:thinkfast/screens/quiz/colab/management_bottom_sheet.dart';
 
 class QuizDetailsScreen extends StatefulWidget {
   final String quizId;
+  final bool isEmbedded;
 
-  const QuizDetailsScreen({super.key, required this.quizId});
+  const QuizDetailsScreen({
+    super.key,
+    required this.quizId,
+    this.isEmbedded = false,
+  });
 
   @override
   State<QuizDetailsScreen> createState() => _QuizDetailsScreenState();
@@ -598,6 +603,320 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
         _creatorProfile?['email'] ??
         (_isLoading ? "Loading..." : "Unknown");
 
+    final mainContent = _isLoading && _quizData == null
+        ? const Center(
+            child: CircularProgressIndicator(color: global.primaryAccent),
+          )
+        : _hasError && _quizData == null
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: global.errorColor,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _errorMessage,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      color: global.valueColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: _fetchQuizDetails,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: global.btnColor,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(200, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text(
+                      "RETRY LOADING",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("GO BACK"),
+                  ),
+                ],
+              ),
+            ),
+          )
+        : SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    VisibilityBadge(
+                      visibility: _quizData?['visibility'] ?? 'private',
+                      isLocked: _quizData?['isLocked'] ?? false,
+                      isDeleted: _quizData?['isDeleted'] ?? false,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: _quizData == null
+                            ? null
+                            : () {
+                                final link =
+                                    "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
+                                final messenger = ScaffoldMessenger.of(context);
+                                Clipboard.setData(
+                                  ClipboardData(text: link),
+                                ).then((_) {
+                                  if (mounted) {
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text("Quiz link copied!"),
+                                      ),
+                                    );
+                                  }
+                                });
+                              },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: global.borderColor),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.link_rounded,
+                                size: 18,
+                                color: global.primaryAccent,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  _quizData == null
+                                      ? "thinkfast3834.web.app/quiz?id=..."
+                                      : "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}",
+                                  style: GoogleFonts.poppins(
+                                    color: global.labelColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.copy_all_rounded,
+                                size: 16,
+                                color: global.labelColor,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: global.cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: global.borderColor),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 💎 Prominent Description & Insight Section
+                      if (description.isNotEmpty && description != 'null') ...[
+                        Text(
+                          "ABOUT THIS QUIZ",
+                          style: GoogleFonts.poppins(
+                            color: global.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          description,
+                          style: GoogleFonts.poppins(
+                            color: global.valueColor,
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (_quizData?['AI_description'] != null &&
+                          _quizData!['AI_description']
+                              .toString()
+                              .isNotEmpty) ...[
+                        _buildAiDescriptionCard(_quizData!['AI_description']),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (_aiInsight != null && _aiInsight!.isNotEmpty) ...[
+                        _buildAiInsightCard(_aiInsight!),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (_quizData != null &&
+                          _quizData!['examTag'] != null &&
+                          _quizData!['examTag'].toString().isNotEmpty)
+                        InfoRow(
+                          label: "Target Exam",
+                          value: _quizData!['examTag'].toString(),
+                          icon: Icons.school_outlined,
+                        ),
+                      const Divider(color: global.borderColor, height: 32),
+                      if (_quizData != null && (_quizData!['time'] ?? 0) > 0)
+                        InfoRow(
+                          label: "Duration",
+                          value: timeLimit,
+                          icon: Icons.timer_outlined,
+                        ),
+                      InfoRow(
+                        label: "Total Questions",
+                        value: totalQuestions,
+                        icon: Icons.quiz_outlined,
+                      ),
+                      InfoRow(
+                        label: "Created By",
+                        value: creator,
+                        icon: Icons.person_outline,
+                      ),
+                      if (_quizData != null && _quizData!['activeAt'] != null)
+                        InfoRow(
+                          label: "Scheduled For",
+                          value:
+                              "${(_quizData!['activeAt'] as Timestamp).toDate().day}/${(_quizData!['activeAt'] as Timestamp).toDate().month} ${(_quizData!['activeAt'] as Timestamp).toDate().hour}:${(_quizData!['activeAt'] as Timestamp).toDate().minute.toString().padLeft(2, '0')}",
+                          icon: Icons.calendar_today_outlined,
+                        ),
+                      if (_quizData != null &&
+                          _quizData!['isRestricted'] == true)
+                        InfoRow(
+                          label: "Access",
+                          value: "Restricted (Allowed List Only)",
+                          icon: Icons.lock_person_outlined,
+                        ),
+                      if (_quizData != null) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          "TAGS & TOPICS",
+                          style: GoogleFonts.poppins(
+                            color: global.labelColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            // Logic: Filter out duplicate tags that are already shown as module subjects
+                            ...(() {
+                              final List<Widget> unifiedWidgets = [];
+                              final Set<String> shownTags = {};
+
+                              // 1. Render Subjects (Module titles) first
+                              final List modules =
+                                  _quizData!['modules'] as List? ?? [];
+                              for (var m in modules) {
+                                final sub = m is Map
+                                    ? m['subject'].toString()
+                                    : "Unknown";
+                                if (sub.isEmpty || sub == 'null') continue;
+
+                                shownTags.add(sub.toLowerCase().trim());
+
+                                final List<String> modTags =
+                                    (_quizData!['moduleTags'] != null &&
+                                        _quizData!['moduleTags'][sub] != null)
+                                    ? List<String>.from(
+                                        _quizData!['moduleTags'][sub],
+                                      )
+                                    : [];
+
+                                unifiedWidgets.add(
+                                  _buildUnifiedTag(
+                                    sub,
+                                    modTags,
+                                    isModule: true,
+                                  ),
+                                );
+                              }
+
+                              // 2. Render Regular Tags, skipping duplicates
+                              final List tags =
+                                  _quizData!['tags'] as List? ?? [];
+                              for (var t in tags) {
+                                final tagStr = t.toString().trim();
+                                final normalized = tagStr.toLowerCase();
+
+                                if (tagStr.isEmpty ||
+                                    tagStr == 'null' ||
+                                    shownTags.contains(normalized))
+                                  continue;
+
+                                shownTags.add(normalized);
+                                unifiedWidgets.add(
+                                  _buildUnifiedTag(tagStr, [], isModule: false),
+                                );
+                              }
+
+                              return unifiedWidgets;
+                            })(),
+                          ],
+                        ),
+                      ],
+                      const Divider(color: global.borderColor, height: 32),
+                      _buildQuizTypeSection(),
+                      const Divider(color: global.borderColor, height: 32),
+                      _buildMarkingSchemeInfo(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 32),
+                if (!_isLoading || _quizData != null) _buildActionButtons(),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+              ],
+            ),
+          );
+
+    if (widget.isEmbedded) {
+      return mainContent;
+    }
+
     return Stack(
       children: [
         Scaffold(
@@ -627,346 +946,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
               if (_isAdmin) const AdminBadge(),
             ],
           ),
-          body: _isLoading && _quizData == null
-              ? const Center(
-                  child: CircularProgressIndicator(color: global.primaryAccent),
-                )
-              : _hasError && _quizData == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline_rounded,
-                          color: global.errorColor,
-                          size: 64,
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          _errorMessage,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            color: global.valueColor,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        ElevatedButton.icon(
-                          onPressed: _fetchQuizDetails,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: global.btnColor,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(200, 56),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: const Text(
-                            "RETRY LOADING",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("GO BACK"),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          VisibilityBadge(
-                            visibility: _quizData?['visibility'] ?? 'private',
-                            isLocked: _quizData?['isLocked'] ?? false,
-                            isDeleted: _quizData?['isDeleted'] ?? false,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: InkWell(
-                              onTap: _quizData == null
-                                  ? null
-                                  : () {
-                                      final link =
-                                          "https://thinkfast3834.web.app/quiz?id=${_quizData!['id']}";
-                                      final messenger = ScaffoldMessenger.of(
-                                        context,
-                                      );
-                                      Clipboard.setData(
-                                        ClipboardData(text: link),
-                                      ).then((_) {
-                                        if (mounted) {
-                                          messenger.showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                "Quiz link copied!",
-                                              ),
-                                            ),
-                                          );
-                                        }
-                                      });
-                                    },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: global.borderColor),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.link_rounded,
-                                      size: 18,
-                                      color: global.primaryAccent,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        _quizData == null
-                                            ? "thinkfast.app/quiz?id=..."
-                                            : "thinkfast3834.web.app/quiz?id=${_quizData!['id']}",
-                                        style: GoogleFonts.poppins(
-                                          color: global.labelColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(
-                                      Icons.copy_all_rounded,
-                                      size: 16,
-                                      color: global.labelColor,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: global.cardColor,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: global.borderColor),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 💎 Prominent Description & Insight Section
-                            if (description.isNotEmpty &&
-                                description != 'null') ...[
-                              Text(
-                                "ABOUT THIS QUIZ",
-                                style: GoogleFonts.poppins(
-                                  color: global.labelColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                description,
-                                style: GoogleFonts.poppins(
-                                  color: global.valueColor,
-                                  fontSize: 15,
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-
-                            if (_quizData?['AI_description'] != null &&
-                                _quizData!['AI_description']
-                                    .toString()
-                                    .isNotEmpty) ...[
-                              _buildAiDescriptionCard(
-                                _quizData!['AI_description'],
-                              ),
-                              const SizedBox(height: 24),
-                            ],
-
-                            if (_aiInsight != null &&
-                                _aiInsight!.isNotEmpty) ...[
-                              _buildAiInsightCard(_aiInsight!),
-                              const SizedBox(height: 24),
-                            ],
-
-                            if (_quizData != null &&
-                                _quizData!['examTag'] != null &&
-                                _quizData!['examTag'].toString().isNotEmpty)
-                              InfoRow(
-                                label: "Target Exam",
-                                value: _quizData!['examTag'].toString(),
-                                icon: Icons.school_outlined,
-                              ),
-                            const Divider(
-                              color: global.borderColor,
-                              height: 32,
-                            ),
-                            if (_quizData != null &&
-                                (_quizData!['time'] ?? 0) > 0)
-                              InfoRow(
-                                label: "Duration",
-                                value: timeLimit,
-                                icon: Icons.timer_outlined,
-                              ),
-                            InfoRow(
-                              label: "Total Questions",
-                              value: totalQuestions,
-                              icon: Icons.quiz_outlined,
-                            ),
-                            InfoRow(
-                              label: "Created By",
-                              value: creator,
-                              icon: Icons.person_outline,
-                            ),
-                            if (_quizData != null &&
-                                _quizData!['activeAt'] != null)
-                              InfoRow(
-                                label: "Scheduled For",
-                                value:
-                                    "${(_quizData!['activeAt'] as Timestamp).toDate().day}/${(_quizData!['activeAt'] as Timestamp).toDate().month} ${(_quizData!['activeAt'] as Timestamp).toDate().hour}:${(_quizData!['activeAt'] as Timestamp).toDate().minute.toString().padLeft(2, '0')}",
-                                icon: Icons.calendar_today_outlined,
-                              ),
-                            if (_quizData != null &&
-                                _quizData!['isRestricted'] == true)
-                              InfoRow(
-                                label: "Access",
-                                value: "Restricted (Allowed List Only)",
-                                icon: Icons.lock_person_outlined,
-                              ),
-                            if (_quizData != null) ...[
-                              const SizedBox(height: 24),
-                              Text(
-                                "TAGS & TOPICS",
-                                style: GoogleFonts.poppins(
-                                  color: global.labelColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  // Logic: Filter out duplicate tags that are already shown as module subjects
-                                  ...(() {
-                                    final List<Widget> unifiedWidgets = [];
-                                    final Set<String> shownTags = {};
-
-                                    // 1. Render Subjects (Module titles) first
-                                    final List modules =
-                                        _quizData!['modules'] as List? ?? [];
-                                    for (var m in modules) {
-                                      final sub = m is Map
-                                          ? m['subject'].toString()
-                                          : "Unknown";
-                                      if (sub.isEmpty || sub == 'null')
-                                        continue;
-
-                                      shownTags.add(sub.toLowerCase().trim());
-
-                                      final List<String> modTags =
-                                          (_quizData!['moduleTags'] != null &&
-                                              _quizData!['moduleTags'][sub] !=
-                                                  null)
-                                          ? List<String>.from(
-                                              _quizData!['moduleTags'][sub],
-                                            )
-                                          : [];
-
-                                      unifiedWidgets.add(
-                                        _buildUnifiedTag(
-                                          sub,
-                                          modTags,
-                                          isModule: true,
-                                        ),
-                                      );
-                                    }
-
-                                    // 2. Render Regular Tags, skipping duplicates
-                                    final List tags =
-                                        _quizData!['tags'] as List? ?? [];
-                                    for (var t in tags) {
-                                      final tagStr = t.toString().trim();
-                                      final normalized = tagStr.toLowerCase();
-
-                                      if (tagStr.isEmpty ||
-                                          tagStr == 'null' ||
-                                          shownTags.contains(normalized))
-                                        continue;
-
-                                      shownTags.add(normalized);
-                                      unifiedWidgets.add(
-                                        _buildUnifiedTag(
-                                          tagStr,
-                                          [],
-                                          isModule: false,
-                                        ),
-                                      );
-                                    }
-
-                                    return unifiedWidgets;
-                                  })(),
-                                ],
-                              ),
-                            ],
-                            const Divider(
-                              color: global.borderColor,
-                              height: 32,
-                            ),
-                            _buildQuizTypeSection(),
-                            const Divider(
-                              color: global.borderColor,
-                              height: 32,
-                            ),
-                            _buildMarkingSchemeInfo(),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      if (!_isLoading || _quizData != null)
-                        _buildActionButtons(),
-                      SizedBox(
-                        height: MediaQuery.of(context).padding.bottom + 40,
-                      ),
-                    ],
-                  ),
-                ),
+          body: mainContent,
         ),
         if (_isStartingQuiz)
           Positioned.fill(

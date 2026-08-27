@@ -251,6 +251,10 @@ class UserDatabaseService {
     } else if (showManagedQuizzes && userId != null) {
       return _quizService.getManagedQuizzes(userId);
     } else {
+      // Home Screen: Show Public Quizzes + User's own AI Generations
+      if (userId != null) {
+        return _quizService.getHomeFeed(userId);
+      }
       return _quizService.getPublicQuizzes();
     }
   }

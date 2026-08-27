@@ -213,141 +213,154 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 40),
-            Text(
-              "Welcome Back",
-              style: GoogleFonts.poppins(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: global.valueColor,
-              ),
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: emailController,
-              style: const TextStyle(color: global.valueColor),
-              decoration: InputDecoration(
-                labelText: "Email",
-                labelStyle: const TextStyle(color: global.labelColor),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: global.borderColor),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: global.primaryAccent),
-                ),
-                prefixIcon: const Icon(
-                  Icons.email,
-                  color: global.primaryAccent,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              style: const TextStyle(color: global.valueColor),
-              decoration: InputDecoration(
-                labelText: "Password",
-                labelStyle: const TextStyle(color: global.labelColor),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: global.borderColor),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: global.primaryAccent),
-                ),
-                prefixIcon: const Icon(Icons.lock, color: global.primaryAccent),
-              ),
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: forgotPassword,
-                child: const Text(
-                  "Forgot Password?",
-                  style: TextStyle(
-                    color: global.primaryAccent,
-                    fontSize: 13,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const SizedBox(height: 40),
+                Text(
+                  "Welcome Back",
+                  style: GoogleFonts.poppins(
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
+                    color: global.valueColor,
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            loading
-                ? const CircularProgressIndicator(color: global.primaryAccent)
-                : SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: global.btnColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        "LOGIN",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                        ),
+                const SizedBox(height: 40),
+                TextField(
+                  controller: emailController,
+                  style: const TextStyle(color: global.valueColor),
+                  decoration: InputDecoration(
+                    labelText: "Email",
+                    labelStyle: const TextStyle(color: global.labelColor),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: global.borderColor),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: global.primaryAccent),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.email,
+                      color: global.primaryAccent,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: global.valueColor),
+                  decoration: InputDecoration(
+                    labelText: "Password",
+                    labelStyle: const TextStyle(color: global.labelColor),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: global.borderColor),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: global.primaryAccent),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.lock,
+                      color: global.primaryAccent,
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: forgotPassword,
+                    child: const Text(
+                      "Forgot Password?",
+                      style: TextStyle(
+                        color: global.primaryAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-            const SizedBox(height: 24),
-            const Text("OR", style: TextStyle(color: global.labelColor)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton(
-                onPressed: loginWithGoogle,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: global.borderColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                ),
+                const SizedBox(height: 10),
+                loading
+                    ? const CircularProgressIndicator(
+                        color: global.primaryAccent,
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: global.btnColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            "LOGIN",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                const SizedBox(height: 24),
+                const Text("OR", style: TextStyle(color: global.labelColor)),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: loginWithGoogle,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: global.borderColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Continue with Google",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: global.valueColor,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                child: Row(
+                const SizedBox(height: 30),
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      "Continue with Google",
-                      style: TextStyle(fontSize: 16, color: global.valueColor),
+                      "Don't have an account?",
+                      style: TextStyle(color: global.labelColor),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pushNamed(context, '/signup'),
+                      child: const Text(
+                        "Sign Up",
+                        style: TextStyle(
+                          color: global.primaryAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Don't have an account?",
-                  style: TextStyle(color: global.labelColor),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/signup'),
-                  child: const Text(
-                    "Sign Up",
-                    style: TextStyle(
-                      color: global.primaryAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
               ],
             ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-          ],
+          ),
         ),
       ),
     );
