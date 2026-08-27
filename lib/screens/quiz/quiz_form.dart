@@ -808,138 +808,147 @@ class _QuizPageState extends State<QuizPage> {
                   ),
                 ),
               ),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    QuizHeaderSection(
-                      titleController: _titleController,
-                      descriptionController: _descriptionController,
-                      examController: _examController,
-                      visibility: visibility,
-                      onVisibilityChanged: (v) =>
-                          setState(() => visibility = v!),
-                      allowMultipleAttempts: allowMultipleAttempts,
-                      onAllowMultipleAttemptsChanged: (v) =>
-                          setState(() => allowMultipleAttempts = v),
-                      maxAttemptsController: _maxAttemptsController,
-                      disableModuleSwitchingUntilTimeout:
-                          disableModuleSwitchingUntilTimeout,
-                      onDisableModuleSwitchingChanged: (v) => setState(
-                        () => disableModuleSwitchingUntilTimeout = v,
-                      ),
-                      forceWaitUntilTimeout: forceWaitUntilTimeout,
-                      onForceWaitUntilTimeoutChanged: (v) =>
-                          setState(() => forceWaitUntilTimeout = v),
-                      enableAutoLeaderboard: enableAutoLeaderboard,
-                      onEnableAutoLeaderboardChanged: (v) =>
-                          setState(() => enableAutoLeaderboard = v),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        QuizHeaderSection(
+                          titleController: _titleController,
+                          descriptionController: _descriptionController,
+                          examController: _examController,
+                          visibility: visibility,
+                          onVisibilityChanged: (v) =>
+                              setState(() => visibility = v!),
+                          allowMultipleAttempts: allowMultipleAttempts,
+                          onAllowMultipleAttemptsChanged: (v) =>
+                              setState(() => allowMultipleAttempts = v),
+                          maxAttemptsController: _maxAttemptsController,
+                          disableModuleSwitchingUntilTimeout:
+                              disableModuleSwitchingUntilTimeout,
+                          onDisableModuleSwitchingChanged: (v) => setState(
+                            () => disableModuleSwitchingUntilTimeout = v,
+                          ),
+                          forceWaitUntilTimeout: forceWaitUntilTimeout,
+                          onForceWaitUntilTimeoutChanged: (v) =>
+                              setState(() => forceWaitUntilTimeout = v),
+                          enableAutoLeaderboard: enableAutoLeaderboard,
+                          onEnableAutoLeaderboardChanged: (v) =>
+                              setState(() => enableAutoLeaderboard = v),
+                        ),
+                        const SizedBox(height: 16),
+                        SchedulingPanel(
+                          scheduledTime: _scheduledTime,
+                          onPickDateTime: _pickDateTime,
+                          onClearDateTime: () =>
+                              setState(() => _scheduledTime = null),
+                          isRestricted: _isRestricted,
+                          onRestrictedChanged: (v) =>
+                              setState(() => _isRestricted = v),
+                          allowedUsersController: _allowedUsersController,
+                        ),
+                        const SizedBox(height: 16),
+                        ModulesPanel(
+                          modulesList: modulesList,
+                          moduleController: _moduleController,
+                          moduleTagControllers: _moduleTagControllers,
+                          importEnabled: _importEnabled,
+                          onShowImportDialog: () =>
+                              _showImportDialog(append: true),
+                          onAddModule: () {
+                            final m = _moduleController.text.trim();
+                            if (m.isNotEmpty && !modulesList.contains(m))
+                              setState(() {
+                                modulesList.add(m);
+                                _moduleController.clear();
+                                _updateModuleLimitControllers();
+                              });
+                          },
+                          onMoveModule: _moveModule,
+                          onRemoveModule: (m) => setState(() {
+                            modulesList.remove(m);
+                            _moduleTagControllers.remove(m);
+                            _moduleLimitControllers.remove(m);
+                          }),
+                          onScrollToModule: _scrollToModule,
+                          completeRandomShuffle: completeRandomShuffle,
+                          onCompleteRandomShuffleChanged: (v) =>
+                              setState(() => completeRandomShuffle = v),
+                          shuffleModules: shuffleModules,
+                          onShuffleModulesChanged: (v) =>
+                              setState(() => shuffleModules = v),
+                          shuffleQuestionsWithinModules:
+                              shuffleQuestionsWithinModules,
+                          onShuffleQuestionsWithinModulesChanged: (v) =>
+                              setState(() => shuffleQuestionsWithinModules = v),
+                        ),
+                        const SizedBox(height: 24),
+                        MarkingSchemePanel(
+                          canEdit:
+                              _isAdmin ||
+                              global.ownedQuizIds.contains(_currentDocId) ||
+                              _currentDocId.isEmpty,
+                          markingType: markingType,
+                          onTypeChanged: (v) => setState(() => markingType = v),
+                          globalCorrectController: _globalCorrectController,
+                          globalWrongController: _globalWrongController,
+                          scCorrectController: _scCorrectController,
+                          scWrongController: _scWrongController,
+                          mcCorrectController: _mcCorrectController,
+                          mcWrongController: _mcWrongController,
+                          intCorrectController: _intCorrectController,
+                          intWrongController: _intWrongController,
+                        ),
+                        const SizedBox(height: 24),
+                        TimingConfigPanel(
+                          timingType: timingType,
+                          onTypeChanged: (v) => setState(() {
+                            timingType = v;
+                            if (v == "per_module" ||
+                                v == "per_type_per_module") {
+                              _updateModuleTimingControllers();
+                            }
+                          }),
+                          timeController: _timeController,
+                          perQuestionTimeController: _perQuestionTimeController,
+                          modulesList: modulesList,
+                          moduleTimingControllers: _moduleTimingControllers,
+                          moduleTypeTimingControllers:
+                              _moduleTypeTimingControllers,
+                          typeTimingControllers: _typeTimingControllers,
+                        ),
+                        const SizedBox(height: 24),
+                        AttemptLimitsPanel(
+                          attemptLimitType: attemptLimitType,
+                          onTypeChanged: (v) => setState(() {
+                            attemptLimitType = v;
+                            if (v == "per_module")
+                              _updateModuleLimitControllers();
+                          }),
+                          modulesList: modulesList,
+                          globalLimitControllers: _globalLimitControllers,
+                          moduleLimitControllers: _moduleLimitControllers,
+                        ),
+                        const SizedBox(height: 24),
+                        QuestionsListSection(
+                          modulesList: modulesList,
+                          questions: questions,
+                          moduleKeys: _moduleKeys,
+                          questionKeys: _questionKeys,
+                          markingType: markingType,
+                          timingType: timingType,
+                          onUpdateFormData: _updateFormData,
+                          onRemoveForm: _removeForm,
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).padding.bottom + 40,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    SchedulingPanel(
-                      scheduledTime: _scheduledTime,
-                      onPickDateTime: _pickDateTime,
-                      onClearDateTime: () =>
-                          setState(() => _scheduledTime = null),
-                      isRestricted: _isRestricted,
-                      onRestrictedChanged: (v) =>
-                          setState(() => _isRestricted = v),
-                      allowedUsersController: _allowedUsersController,
-                    ),
-                    const SizedBox(height: 16),
-                    ModulesPanel(
-                      modulesList: modulesList,
-                      moduleController: _moduleController,
-                      moduleTagControllers: _moduleTagControllers,
-                      importEnabled: _importEnabled,
-                      onShowImportDialog: () => _showImportDialog(append: true),
-                      onAddModule: () {
-                        final m = _moduleController.text.trim();
-                        if (m.isNotEmpty && !modulesList.contains(m))
-                          setState(() {
-                            modulesList.add(m);
-                            _moduleController.clear();
-                            _updateModuleLimitControllers();
-                          });
-                      },
-                      onMoveModule: _moveModule,
-                      onRemoveModule: (m) => setState(() {
-                        modulesList.remove(m);
-                        _moduleTagControllers.remove(m);
-                        _moduleLimitControllers.remove(m);
-                      }),
-                      onScrollToModule: _scrollToModule,
-                      completeRandomShuffle: completeRandomShuffle,
-                      onCompleteRandomShuffleChanged: (v) =>
-                          setState(() => completeRandomShuffle = v),
-                      shuffleModules: shuffleModules,
-                      onShuffleModulesChanged: (v) =>
-                          setState(() => shuffleModules = v),
-                      shuffleQuestionsWithinModules:
-                          shuffleQuestionsWithinModules,
-                      onShuffleQuestionsWithinModulesChanged: (v) =>
-                          setState(() => shuffleQuestionsWithinModules = v),
-                    ),
-                    const SizedBox(height: 24),
-                    MarkingSchemePanel(
-                      canEdit:
-                          _isAdmin ||
-                          global.ownedQuizIds.contains(_currentDocId) ||
-                          _currentDocId.isEmpty,
-                      markingType: markingType,
-                      onTypeChanged: (v) => setState(() => markingType = v),
-                      globalCorrectController: _globalCorrectController,
-                      globalWrongController: _globalWrongController,
-                      scCorrectController: _scCorrectController,
-                      scWrongController: _scWrongController,
-                      mcCorrectController: _mcCorrectController,
-                      mcWrongController: _mcWrongController,
-                      intCorrectController: _intCorrectController,
-                      intWrongController: _intWrongController,
-                    ),
-                    const SizedBox(height: 24),
-                    TimingConfigPanel(
-                      timingType: timingType,
-                      onTypeChanged: (v) => setState(() {
-                        timingType = v;
-                        if (v == "per_module" || v == "per_type_per_module") {
-                          _updateModuleTimingControllers();
-                        }
-                      }),
-                      timeController: _timeController,
-                      perQuestionTimeController: _perQuestionTimeController,
-                      modulesList: modulesList,
-                      moduleTimingControllers: _moduleTimingControllers,
-                      moduleTypeTimingControllers: _moduleTypeTimingControllers,
-                      typeTimingControllers: _typeTimingControllers,
-                    ),
-                    const SizedBox(height: 24),
-                    AttemptLimitsPanel(
-                      attemptLimitType: attemptLimitType,
-                      onTypeChanged: (v) => setState(() {
-                        attemptLimitType = v;
-                        if (v == "per_module") _updateModuleLimitControllers();
-                      }),
-                      modulesList: modulesList,
-                      globalLimitControllers: _globalLimitControllers,
-                      moduleLimitControllers: _moduleLimitControllers,
-                    ),
-                    const SizedBox(height: 24),
-                    QuestionsListSection(
-                      modulesList: modulesList,
-                      questions: questions,
-                      moduleKeys: _moduleKeys,
-                      questionKeys: _questionKeys,
-                      markingType: markingType,
-                      timingType: timingType,
-                      onUpdateFormData: _updateFormData,
-                      onRemoveForm: _removeForm,
-                    ),
-                    SizedBox(
-                      height: MediaQuery.of(context).padding.bottom + 40,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
