@@ -76,101 +76,107 @@ class _QuizCollaboratorsScreenState extends State<QuizCollaboratorsScreen> {
         ),
         iconTheme: const IconThemeData(color: global.valueColor),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('quizzes')
-            .doc(widget.quizId)
-            .snapshots(),
-        builder: (context, quizSnapshot) {
-          final quizData = quizSnapshot.data?.data() as Map<String, dynamic>?;
-          final bool isLocked = quizData?['isLocked'] ?? false;
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('quizzes')
+                .doc(widget.quizId)
+                .snapshots(),
+            builder: (context, quizSnapshot) {
+              final quizData =
+                  quizSnapshot.data?.data() as Map<String, dynamic>?;
+              final bool isLocked = quizData?['isLocked'] ?? false;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _buildSectionHeader("Quiz Status"),
-              const SizedBox(height: 12),
-              QuizStatusPanel(
-                quizId: widget.quizId,
-                isLocked: isLocked,
-                canLockUnlock: _canLockUnlock,
-                isAdmin: _isAdmin,
-                currentUserId: _currentUserId,
-              ),
-              const SizedBox(height: 32),
+              return ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildSectionHeader("Quiz Status"),
+                  const SizedBox(height: 12),
+                  QuizStatusPanel(
+                    quizId: widget.quizId,
+                    isLocked: isLocked,
+                    canLockUnlock: _canLockUnlock,
+                    isAdmin: _isAdmin,
+                    currentUserId: _currentUserId,
+                  ),
+                  const SizedBox(height: 32),
 
-              _buildSectionHeader("Current Team"),
-              if (_canManageThisTeam)
-                const SizedBox(height: 8)
-              else
-                const SizedBox(height: 12),
+                  _buildSectionHeader("Current Team"),
+                  if (_canManageThisTeam)
+                    const SizedBox(height: 8)
+                  else
+                    const SizedBox(height: 12),
 
-              if (_canManageThisTeam)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: InkWell(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddCollaboratorScreen(
-                          quizId: widget.quizId,
-                          isAdmin: _isAdmin,
-                          currentUserId: _currentUserId,
-                        ),
-                      ),
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: global.primaryAccent.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: global.primaryAccent.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.person_add_alt_1_outlined,
-                            color: global.primaryAccent,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "Add New Collaborator",
-                            style: GoogleFonts.poppins(
-                              color: global.primaryAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                  if (_canManageThisTeam)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: InkWell(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddCollaboratorScreen(
+                              quizId: widget.quizId,
+                              isAdmin: _isAdmin,
+                              currentUserId: _currentUserId,
                             ),
                           ),
-                          const Spacer(),
-                          const Icon(
-                            Icons.arrow_forward_ios,
-                            color: global.primaryAccent,
-                            size: 14,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
                           ),
-                        ],
+                          decoration: BoxDecoration(
+                            color: global.primaryAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: global.primaryAccent.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.person_add_alt_1_outlined,
+                                color: global.primaryAccent,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                "Add New Collaborator",
+                                style: GoogleFonts.poppins(
+                                  color: global.primaryAccent,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Spacer(),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                color: global.primaryAccent,
+                                size: 14,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
+
+                  TeamListPanel(
+                    quizId: widget.quizId,
+                    canManageThisTeam: _canManageThisTeam,
+                    currentUserId: _currentUserId,
+                    isAdmin: _isAdmin,
                   ),
-                ),
 
-              TeamListPanel(
-                quizId: widget.quizId,
-                canManageThisTeam: _canManageThisTeam,
-                currentUserId: _currentUserId,
-                isAdmin: _isAdmin,
-              ),
-
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-            ],
-          );
-        },
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }

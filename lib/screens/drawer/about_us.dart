@@ -90,144 +90,152 @@ class AboutUsScreen extends StatelessWidget {
         elevation: 0,
         iconTheme: IconThemeData(color: _valueColor),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Column(
-                children: [
-                  Image.asset('assets/images/quiz-logo.png', height: 180),
-                  const SizedBox(height: 16),
-                  Text(
-                    "ThinkFast",
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: _valueColor,
-                    ),
-                  ),
-                  Text(
-                    "Challenge Your Mind",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      color: _primaryAccent,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 40),
-            _buildSectionTitle("The Project"),
-            _buildContentText(
-              "ThinkFast is a high-performance quiz platform designed for modern learning. "
-              "Whether you're a student looking to test your knowledge or a creator building "
-              "engaging challenges, ThinkFast provides the tools you need in one sleek interface.",
-            ),
-            const SizedBox(height: 32),
-            _buildSectionTitle("Key Capabilities"),
-            _buildFeatureItem(
-              Icons.create_rounded,
-              "Dynamic Quiz Creation",
-              "Build complex quizzes with multiple-choice questions, custom timers, and descriptions.",
-            ),
-            _buildFeatureItem(
-              Icons.lock_person_rounded,
-              "Quiz Locking",
-              "Stop new responses instantly while keeping your quiz public and visible to everyone.",
-            ),
-            _buildFeatureItem(
-              Icons.repeat_one_rounded,
-              "Attempt Management",
-              "Toggle between single or multiple attempts to control how users interact with your content.",
-            ),
-            _buildFeatureItem(
-              Icons.devices_rounded,
-              "Single Device Security",
-              "Ensures account integrity by allowing only one active session at a time, automatically logging out other devices.",
-            ),
-            _buildFeatureItem(
-              Icons.security_update_good_rounded,
-              "Active Session Protection",
-              "Prevent multiple simultaneous quiz attempts with our smart auto-expiry and server-side cleanup system.",
-            ),
-            _buildFeatureItem(
-              Icons.rule_rounded,
-              "Custom Marking Schemes",
-              "Define granular scoring rules: default (+4/-1), global custom, per-question-type, or even unique scores for every question.",
-            ),
-            
-            _buildFeatureItem(
-              Icons.history_edu_rounded,
-              "My Attempts",
-              "Track your personal growth with a detailed history of your scores and performance across all quizzes.",
-            ),
-            _buildFeatureItem(
-              Icons.auto_awesome_rounded,
-              "AI Quiz Wizard",
-              "Generate high-quality quizzes instantly from your PDF documents or text notes using advanced AI models.",
-            ),
-            _buildFeatureItem(
-              Icons.analytics_rounded,
-              "Creator Analytics",
-              "View detailed responses for your quizzes, sorted by attempts and user IDs for precise insights.",
-            ),
-            _buildFeatureItem(
-              Icons.security_rounded,
-              "Firestore Security",
-              "Real-time data protection ensuring your private quizzes and personal results remain secure.",
-            ),
-            const SizedBox(height: 32),
-            _buildSectionTitle("Upcoming Features"),
-            _buildFeatureItem(
-              Icons.psychology_rounded,
-              "AI Personalization",
-              "Extended profiles for deep goal tracking, learning interests, and AI-driven personalization.",
-            ),
-            _buildFeatureItem(
-              Icons.leaderboard_rounded,
-              "Global Leaderboards",
-              "Compete with users worldwide and see where you stand in global knowledge rankings.",
-            ),
-            _buildFeatureItem(
-              Icons.picture_as_pdf_rounded,
-              "Export to PDF",
-              "Download your quiz results and performance reports as professionally formatted PDF documents.",
-            ),
-            const SizedBox(height: 32),
-            _buildSectionTitle("The Tech Stack"),
-            _buildContentText(
-              "Built using Flutter for a buttery-smooth UI and powered by Firebase Firestore "
-              "for real-time data synchronization and scalable backend operations.",
-            ),
-            const SizedBox(height: 48),
-            const Divider(color: Color(0xFF334155)),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pushNamed(context, "/Privacy Policy"),
-                child: Text(
-                  "Read our Privacy Policy",
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: _primaryAccent,
-                    decoration: TextDecoration.underline,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Column(
+                    children: [
+                      Image.asset('assets/images/quiz-logo.png', height: 180),
+                      const SizedBox(height: 16),
+                      Text(
+                        "ThinkFast",
+                        style: GoogleFonts.poppins(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: _valueColor,
+                        ),
+                      ),
+                      Text(
+                        "Challenge Your Mind",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: _primaryAccent,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 40),
+                _buildSectionTitle("The Project"),
+                _buildContentText(
+                  "ThinkFast is a high-performance quiz platform designed for modern learning. "
+                  "Whether you're a student looking to test your knowledge or a creator building "
+                  "engaging challenges, ThinkFast provides the tools you need in one sleek interface.",
+                ),
+                const SizedBox(height: 32),
+                _buildSectionTitle("Key Capabilities"),
+                _buildFeatureItem(
+                  Icons.create_rounded,
+                  "Dynamic Quiz Creation",
+                  "Build complex quizzes with multiple-choice questions, custom timers, and descriptions.",
+                ),
+                _buildFeatureItem(
+                  Icons.lock_person_rounded,
+                  "Quiz Locking",
+                  "Stop new responses instantly while keeping your quiz public and visible to everyone.",
+                ),
+                _buildFeatureItem(
+                  Icons.repeat_one_rounded,
+                  "Attempt Management",
+                  "Toggle between single or multiple attempts to control how users interact with your content.",
+                ),
+                _buildFeatureItem(
+                  Icons.devices_rounded,
+                  "Single Device Security",
+                  "Ensures account integrity by allowing only one active session at a time, automatically logging out other devices.",
+                ),
+                _buildFeatureItem(
+                  Icons.security_update_good_rounded,
+                  "Active Session Protection",
+                  "Prevent multiple simultaneous quiz attempts with our smart auto-expiry and server-side cleanup system.",
+                ),
+                _buildFeatureItem(
+                  Icons.rule_rounded,
+                  "Custom Marking Schemes",
+                  "Define granular scoring rules: default (+4/-1), global custom, per-question-type, or even unique scores for every question.",
+                ),
+                _buildFeatureItem(
+                  Icons.history_edu_rounded,
+                  "My Attempts",
+                  "Track your personal growth with a detailed history of your scores and performance across all quizzes.",
+                ),
+                _buildFeatureItem(
+                  Icons.auto_awesome_rounded,
+                  "AI Quiz Wizard",
+                  "Generate high-quality quizzes instantly from your PDF documents or text notes using advanced AI models.",
+                ),
+                _buildFeatureItem(
+                  Icons.analytics_rounded,
+                  "Creator Analytics",
+                  "View detailed responses for your quizzes, sorted by attempts and user IDs for precise insights.",
+                ),
+                _buildFeatureItem(
+                  Icons.security_rounded,
+                  "Firestore Security",
+                  "Real-time data protection ensuring your private quizzes and personal results remain secure.",
+                ),
+                const SizedBox(height: 32),
+                _buildSectionTitle("Upcoming Features"),
+                _buildFeatureItem(
+                  Icons.psychology_rounded,
+                  "AI Personalization",
+                  "Extended profiles for deep goal tracking, learning interests, and AI-driven personalization.",
+                ),
+                _buildFeatureItem(
+                  Icons.leaderboard_rounded,
+                  "Global Leaderboards",
+                  "Compete with users worldwide and see where you stand in global knowledge rankings.",
+                ),
+                _buildFeatureItem(
+                  Icons.picture_as_pdf_rounded,
+                  "Export to PDF",
+                  "Download your quiz results and performance reports as professionally formatted PDF documents.",
+                ),
+                const SizedBox(height: 32),
+                _buildSectionTitle("The Tech Stack"),
+                _buildContentText(
+                  "Built using Flutter for a buttery-smooth UI and powered by Firebase Firestore "
+                  "for real-time data synchronization and scalable backend operations.",
+                ),
+                const SizedBox(height: 48),
+                const Divider(color: Color(0xFF334155)),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, "/Privacy Policy"),
+                    child: Text(
+                      "Read our Privacy Policy",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: _primaryAccent,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    "© 2024 ThinkFast. Challenge Your Mind.",
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: _labelColor,
+                    ),
+                  ),
+                ),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+              ],
             ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                "© 2024 ThinkFast. Challenge Your Mind.",
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 12, color: _labelColor),
-              ),
-            ),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-          ],
+          ),
         ),
       ),
     );

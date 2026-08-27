@@ -206,143 +206,154 @@ class _QuizBannedUsersScreenState extends State<QuizBannedUsersScreen> {
               ]
             : [],
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _bannedUsersStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
-            return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError)
-            return Center(
-              child: Text(
-                "Error: ${snapshot.error}",
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          if (!snapshot.hasData || snapshot.data!.isEmpty)
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.block_rounded, size: 64, color: _borderColor),
-                  const SizedBox(height: 16),
-                  Text(
-                    "No blocked users found",
-                    style: GoogleFonts.poppins(color: _labelColor),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _bannedUsersStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    "Error: ${snapshot.error}",
+                    style: const TextStyle(color: Colors.red),
                   ),
-                ],
-              ),
-            );
-
-          final bannedUsers = snapshot.data!;
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: bannedUsers.length,
-            itemBuilder: (context, index) {
-              final user = bannedUsers[index];
-              final String id = user['id'];
-              final bool isSelected = _selectedUserIds.contains(id);
-              final bool hasPerm =
-                  _hasPerm('can_ban_users') || _hasPerm('canModerate');
-              final bool flagEnabled =
-                  _isAdmin ||
-                  (global.featureFlags?['management_features'] ?? true);
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? _primaryAccent : _borderColor,
-                    width: isSelected ? 2 : 1,
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.block_rounded, size: 64, color: _borderColor),
+                      const SizedBox(height: 16),
+                      Text(
+                        "No blocked users found",
+                        style: GoogleFonts.poppins(color: _labelColor),
+                      ),
+                    ],
                   ),
-                ),
-                child: Material(
-                  color: isSelected
-                      ? _primaryAccent.withOpacity(0.15)
-                      : _cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: ListTile(
-                    onLongPress: () => _toggleSelection(id),
-                    onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
-                    leading: CircleAvatar(
-                      backgroundColor: _borderColor,
-                      backgroundImage: user['userPhoto'] != null
-                          ? NetworkImage(user['userPhoto'])
-                          : null,
-                      child: user['userPhoto'] == null
-                          ? Icon(Icons.person, color: _labelColor)
-                          : null,
-                    ),
-                    title: Text(
-                      user['userName'] ?? "Unknown User",
-                      style: GoogleFonts.poppins(
-                        color: _valueColor,
-                        fontWeight: FontWeight.bold,
+                );
+              }
+
+              final bannedUsers = snapshot.data!;
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: bannedUsers.length,
+                itemBuilder: (context, index) {
+                  final user = bannedUsers[index];
+                  final String id = user['id'];
+                  final bool isSelected = _selectedUserIds.contains(id);
+                  final bool hasPerm =
+                      _hasPerm('can_ban_users') || _hasPerm('canModerate');
+                  final bool flagEnabled =
+                      _isAdmin ||
+                      (global.featureFlags?['management_features'] ?? true);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? _primaryAccent : _borderColor,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (user['userEmail'] != null)
-                          Text(
-                            user['userEmail'],
-                            style: GoogleFonts.poppins(
-                              color: _labelColor,
-                              fontSize: 12,
-                            ),
-                          ),
-                        Text(
-                          "Reason: ${user['reason'] ?? 'No reason provided'}",
+                    child: Material(
+                      color: isSelected
+                          ? _primaryAccent.withValues(alpha: 0.15)
+                          : _cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        onLongPress: () => _toggleSelection(id),
+                        onTap: _isSelectionMode
+                            ? () => _toggleSelection(id)
+                            : null,
+                        leading: CircleAvatar(
+                          backgroundColor: _borderColor,
+                          backgroundImage: user['userPhoto'] != null
+                              ? NetworkImage(user['userPhoto'])
+                              : null,
+                          child: user['userPhoto'] == null
+                              ? Icon(Icons.person, color: _labelColor)
+                              : null,
+                        ),
+                        title: Text(
+                          user['userName'] ?? "Unknown User",
                           style: GoogleFonts.poppins(
-                            color: global.errorColor,
-                            fontSize: 12,
+                            color: _valueColor,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                    trailing: _isSelectionMode
-                        ? null
-                        : IconButton(
-                            icon: Icon(
-                              Icons.person_add_rounded,
-                              color: hasPerm && flagEnabled
-                                  ? global.successColor
-                                  : global.labelColor.withOpacity(0.3),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (user['userEmail'] != null)
+                              Text(
+                                user['userEmail'],
+                                style: GoogleFonts.poppins(
+                                  color: _labelColor,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            Text(
+                              "Reason: ${user['reason'] ?? 'No reason provided'}",
+                              style: GoogleFonts.poppins(
+                                color: global.errorColor,
+                                fontSize: 12,
+                              ),
                             ),
-                            onPressed: () {
-                              if (!flagEnabled) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Access Denied: Moderation features are disabled.",
-                                    ),
-                                    backgroundColor: global.errorColor,
-                                  ),
-                                );
-                                return;
-                              }
-                              if (hasPerm)
-                                _confirmUnban(user);
-                              else
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      "Access Denied: Caller does not have permission to perform this action.",
-                                    ),
-                                    backgroundColor: global.errorColor,
-                                  ),
-                                );
-                            },
-                            tooltip: "Unblock User",
-                          ),
-                  ),
-                ),
+                          ],
+                        ),
+                        trailing: _isSelectionMode
+                            ? null
+                            : IconButton(
+                                icon: Icon(
+                                  Icons.person_add_rounded,
+                                  color: hasPerm && flagEnabled
+                                      ? global.successColor
+                                      : global.labelColor.withOpacity(0.3),
+                                ),
+                                onPressed: () {
+                                  if (!flagEnabled) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Access Denied: Moderation features are disabled.",
+                                        ),
+                                        backgroundColor: global.errorColor,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (hasPerm) {
+                                    _confirmUnban(user);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Access Denied: Caller does not have permission to perform this action.",
+                                        ),
+                                        backgroundColor: global.errorColor,
+                                      ),
+                                    );
+                                  }
+                                },
+                                tooltip: "Unblock User",
+                              ),
+                      ),
+                    ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

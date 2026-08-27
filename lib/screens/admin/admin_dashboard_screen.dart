@@ -296,20 +296,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildMainContent(bool isSmall) {
+    Widget content;
     switch (_activeCategory) {
       case "Overview":
-        return _buildOverview(isSmall);
+        content = _buildOverview(isSmall);
+        break;
       case "System Health":
-        return _buildSystemHealth();
+        content = _buildSystemHealth();
+        break;
       case "Active Monitoring":
-        return _buildMonitoring();
+        content = _buildMonitoring();
+        break;
       case "API Generation Tester":
-        return _buildApiTester();
+        content = _buildApiTester();
+        break;
       case "Server Controls":
-        return _buildControls();
+        content = _buildControls();
+        break;
       default:
-        return const Center(child: Text("Select a category"));
+        content = const Center(child: Text("Select a category"));
     }
+
+    if (isSmall) return content;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: content,
+      ),
+    );
   }
 
   bool _isQueueProcessing = false;

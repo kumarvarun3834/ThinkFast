@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -51,18 +52,44 @@ class _MainScreenState extends State<MainScreen> {
   bool _isStrictFilter = false;
   String _aiSourceFilter = "All"; // 'All', 'AI Only', 'Manual Only'
 
+  late Stream<List<Map<String, dynamic>>> _quizStream;
+  late Future<List<Map<String, dynamic>>> _recentQuizzesFuture;
+  final ScrollController _recentScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
+    _updateStream();
+    _refreshRecentQuizzes();
     _auth.authStateChanges().listen((u) async {
       if (mounted) {
         setState(() => _user = u);
         if (u != null && global.currentUserProfile == null) {
           await global.db.initAppData(u.uid);
-          if (mounted) setState(() {}); // Refresh with new global data
+          if (mounted) {
+            _updateStream();
+            _refreshRecentQuizzes();
+            setState(() {});
+          }
         }
       }
     });
+  }
+
+  void _updateStream() {
+    _quizStream = global.db.readAllDatabases(
+      showMyQuizzes: widget.showMyQuizzes,
+      showManagedQuizzes: widget.showManagedQuizzes,
+      showAiGenerations: widget.showAiGenerations,
+      showTrash: widget.showTrash,
+      includeDeleted: _includeDeleted,
+      creatorId: widget.creator?.uid,
+      userId: _user?.uid,
+    );
+  }
+
+  void _refreshRecentQuizzes() {
+    _recentQuizzesFuture = LocalCacheService().getRecentQuizzes();
   }
 
   void _toggleSelection(String id) {
@@ -214,6 +241,7 @@ class _MainScreenState extends State<MainScreen> {
           if (isLargeScreen) {
             setState(() {
               _selectedQuizIdForWeb = data['id'];
+              _refreshRecentQuizzes();
             });
           } else {
             Navigator.pushNamed(
@@ -889,8 +917,10 @@ class _MainScreenState extends State<MainScreen> {
                           ? global.primaryAccent
                           : global.labelColor,
                     ),
-                    onPressed: () =>
-                        setState(() => _includeDeleted = !_includeDeleted),
+                    onPressed: () => setState(() {
+                      _includeDeleted = !_includeDeleted;
+                      _updateStream();
+                    }),
                     tooltip: _includeDeleted ? "Hide Deleted" : "Show Deleted",
                   ),
               ],
@@ -915,181 +945,198 @@ class _MainScreenState extends State<MainScreen> {
                       if (!widget.showTrash &&
                           !widget.showMyQuizzes &&
                           !widget.showManagedQuizzes)
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: LocalCacheService().getRecentQuizzes(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData || snapshot.data!.isEmpty)
-                          return const SizedBox.shrink();
-                        final recent = snapshot.data!;
-                        return Container(
-                          height: 120,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Text(
-                                  "RECENTLY VIEWED",
-                                  style: GoogleFonts.poppins(
-                                    color: global.primaryAccent,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: _recentQuizzesFuture,
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            final recent = snapshot.data!;
+                            return Container(
+                              height: 120,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    child: Text(
+                                      "RECENTLY VIEWED",
+                                      style: GoogleFonts.poppins(
+                                        color: global.primaryAccent,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Expanded(
-                                child: ListView.builder(
-                                  scrollDirection: Axis.horizontal,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  itemCount: recent.length,
-                                  itemBuilder: (context, index) {
-                                    final quiz = recent[index];
-                                    return GestureDetector(
-                                      onTap: () {
-                                        final bool isLargeScreen =
-                                            MediaQuery.of(context).size.width >
-                                            900;
-                                        if (isLargeScreen) {
-                                          setState(() {
-                                            _selectedQuizIdForWeb = quiz['id'];
-                                          });
-                                        } else {
-                                          Navigator.pushNamed(
-                                            context,
-                                            "/Quiz Details",
-                                            arguments: quiz['id'],
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        width: 160,
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 4,
+                                  const SizedBox(height: 8),
+                                  Expanded(
+                                    child: Scrollbar(
+                                      controller: _recentScrollController,
+                                      thumbVisibility: kIsWeb,
+                                      child: ListView.builder(
+                                        controller: _recentScrollController,
+                                        scrollDirection: Axis.horizontal,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
                                         ),
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: global.cardColor,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color:
-                                                _selectedQuizIdForWeb ==
-                                                    quiz['id']
-                                                ? global.primaryAccent
-                                                : global.borderColor,
-                                            width:
-                                                _selectedQuizIdForWeb ==
-                                                    quiz['id']
-                                                ? 2
-                                                : 1,
-                                          ),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    quiz['title'] ?? 'Untitled',
+                                        itemCount: recent.length,
+                                        itemBuilder: (context, index) {
+                                          final quiz = recent[index];
+                                          return GestureDetector(
+                                            onTap: () {
+                                              final bool isLargeScreen =
+                                                  MediaQuery.of(
+                                                    context,
+                                                  ).size.width >
+                                                  900;
+                                              if (isLargeScreen) {
+                                                setState(() {
+                                                  _selectedQuizIdForWeb =
+                                                      quiz['id'];
+                                                  _refreshRecentQuizzes();
+                                                });
+                                              } else {
+                                                Navigator.pushNamed(
+                                                  context,
+                                                  "/Quiz Details",
+                                                  arguments: quiz['id'],
+                                                );
+                                              }
+                                            },
+                                            child: Container(
+                                              width: 160,
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                  ),
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: global.cardColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color:
+                                                      _selectedQuizIdForWeb ==
+                                                          quiz['id']
+                                                      ? global.primaryAccent
+                                                      : global.borderColor,
+                                                  width:
+                                                      _selectedQuizIdForWeb ==
+                                                          quiz['id']
+                                                      ? 2
+                                                      : 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: Text(
+                                                          quiz['title'] ??
+                                                              'Untitled',
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                color: global
+                                                                    .valueColor,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 12,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      if (quiz['isAiGenerated'] ==
+                                                          true)
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                left: 4.0,
+                                                              ),
+                                                          child: StatusBadge(
+                                                            text: "AI",
+                                                            color: Colors
+                                                                .purpleAccent,
+                                                            fontSize: 8,
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 4,
+                                                                  vertical: 2,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    "by ${quiz['user'] ?? 'Anonymous'}",
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: const TextStyle(
-                                                      color: global.valueColor,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 12,
+                                                      color: global.labelColor,
+                                                      fontSize: 10,
                                                     ),
                                                   ),
-                                                ),
-                                                if (quiz['isAiGenerated'] ==
-                                                    true)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                          left: 4.0,
-                                                        ),
-                                                    child: StatusBadge(
-                                                      text: "AI",
-                                                      color:
-                                                          Colors.purpleAccent,
-                                                      fontSize: 8,
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 4,
-                                                            vertical: 2,
-                                                          ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "by ${quiz['user'] ?? 'Anonymous'}",
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: global.labelColor,
-                                                fontSize: 10,
+                                                ],
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  Expanded(
-                    child: StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: readDatabases(),
-                      builder: (context, snapshot) {
-                        final allQuizzes = snapshot.data ?? [];
-                        return Column(
-                          children: [
-                            Expanded(
-                              child:
-                                  snapshot.connectionState ==
-                                      ConnectionState.waiting
-                                  ? const Center(
-                                      child: CircularProgressIndicator(
-                                        color: global.primaryAccent,
-                                      ),
-                                    )
-                                  : allQuizzes.isEmpty
-                                  ? const Center(
-                                      child: Text(
-                                        "No quizzes available",
-                                        style: TextStyle(
-                                          color: global.labelColor,
-                                        ),
-                                      ),
-                                    )
-                                  : _buildQuizList(allQuizzes),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                            );
+                          },
+                        ),
+                      Expanded(
+                        child: StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: _quizStream,
+                          builder: (context, snapshot) {
+                            final allQuizzes = snapshot.data ?? [];
+                            return Column(
+                              children: [
+                                Expanded(
+                                  child:
+                                      snapshot.connectionState ==
+                                          ConnectionState.waiting
+                                      ? const Center(
+                                          child: CircularProgressIndicator(
+                                            color: global.primaryAccent,
+                                          ),
+                                        )
+                                      : allQuizzes.isEmpty
+                                      ? const Center(
+                                          child: Text(
+                                            "No quizzes available",
+                                            style: TextStyle(
+                                              color: global.labelColor,
+                                            ),
+                                          ),
+                                        )
+                                      : _buildQuizList(allQuizzes),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             if (MediaQuery.of(context).size.width > 900)
@@ -1137,7 +1184,12 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 FloatingActionButton.small(
                   heroTag: 'refresh_btn',
-                  onPressed: () => setState(() {}),
+                  onPressed: () {
+                    setState(() {
+                      _updateStream();
+                      _refreshRecentQuizzes();
+                    });
+                  },
                   backgroundColor: global.cardColor,
                   child: const Icon(
                     Icons.refresh_rounded,

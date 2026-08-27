@@ -31,7 +31,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
   }
 
   Future<void> _refreshData({bool force = false}) async {
-    final bool canBypass = global.adminLevel == 0 ||
+    final bool canBypass =
+        global.adminLevel == 0 ||
         global.adminPermissions.contains('manage_admins') ||
         global.featureFlags?['enable_refresh_limit_bypass'] == true;
 
@@ -64,9 +65,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error fetching admins: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error fetching admins: $e")));
       }
     }
   }
@@ -87,7 +88,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     });
   }
 
-  void _navigateToPermissions({List<String>? targetUids, List<String>? initialPermissions, bool initialIsSuper = false}) {
+  void _navigateToPermissions({
+    List<String>? targetUids,
+    List<String>? initialPermissions,
+    bool initialIsSuper = false,
+  }) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -112,9 +117,14 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: global.cardColor,
-        title: const Text("Remove Admin?", style: TextStyle(color: Colors.white)),
-        content: Text("Are you sure you want to remove admin privileges for $uid?",
-            style: const TextStyle(color: Colors.white70)),
+        title: const Text(
+          "Remove Admin?",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          "Are you sure you want to remove admin privileges for $uid?",
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -130,9 +140,9 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 if (mounted) Navigator.pop(context);
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error: $e")),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
                 }
               }
             },
@@ -173,12 +183,17 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
             ? [
                 TextButton.icon(
                   onPressed: () => _navigateToPermissions(),
-                  icon: const Icon(Icons.security_rounded,
-                      color: global.primaryAccent),
-                  label: const Text("UPDATE",
-                      style: TextStyle(
-                          color: global.primaryAccent,
-                          fontWeight: FontWeight.bold)),
+                  icon: const Icon(
+                    Icons.security_rounded,
+                    color: global.primaryAccent,
+                  ),
+                  label: const Text(
+                    "UPDATE",
+                    style: TextStyle(
+                      color: global.primaryAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ]
             : [
@@ -189,11 +204,19 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 ),
               ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: global.primaryAccent))
-          : _admins.isEmpty
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _isLoading
               ? const Center(
-                  child: Text("No app admins found.", style: TextStyle(color: Colors.white70)),
+                  child: CircularProgressIndicator(color: global.primaryAccent),
+                )
+              : _admins.isEmpty
+              ? const Center(
+                  child: Text(
+                    "No app admins found.",
+                    style: TextStyle(color: Colors.white70),
+                  ),
                 )
               : ListView.builder(
                   padding: EdgeInsets.fromLTRB(
@@ -227,10 +250,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isSelected ? global.primaryAccent : global.borderColor),
+                        border: Border.all(
+                          color: isSelected
+                              ? global.primaryAccent
+                              : global.borderColor,
+                        ),
                       ),
                       child: Material(
-                        color: isSelected ? global.primaryAccent.withOpacity(0.1) : global.cardColor,
+                        color: isSelected
+                            ? global.primaryAccent.withOpacity(0.1)
+                            : global.cardColor,
                         borderRadius: BorderRadius.circular(12),
                         clipBehavior: Clip.antiAlias,
                         child: ListTile(
@@ -238,22 +267,33 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                           onTap: _isSelectionMode
                               ? () => _toggleSelection(uid)
                               : () => _navigateToPermissions(
-                                    targetUids: [uid],
-                                    initialPermissions: perms,
-                                    initialIsSuper: level == 0,
-                                  ),
+                                  targetUids: [uid],
+                                  initialPermissions: perms,
+                                  initialIsSuper: level == 0,
+                                ),
                           leading: Stack(
                             children: [
                               CircleAvatar(
                                 backgroundColor: global.bgColor,
-                                backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-                                child: photoUrl == null ? const Icon(Icons.admin_panel_settings, color: global.labelColor) : null,
+                                backgroundImage: photoUrl != null
+                                    ? NetworkImage(photoUrl)
+                                    : null,
+                                child: photoUrl == null
+                                    ? const Icon(
+                                        Icons.admin_panel_settings,
+                                        color: global.labelColor,
+                                      )
+                                    : null,
                               ),
                               if (isSelected)
                                 const Positioned(
                                   right: 0,
                                   bottom: 0,
-                                  child: Icon(Icons.check_circle, color: global.primaryAccent, size: 16),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: global.primaryAccent,
+                                    size: 16,
+                                  ),
                                 ),
                             ],
                           ),
@@ -272,17 +312,27 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                               ),
                               if (level == 0)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: global.primaryAccent.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: global.primaryAccent),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
                                   ),
-                                  child: const Text("SUPER",
-                                      style: TextStyle(
-                                          color: global.primaryAccent,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold)),
+                                  decoration: BoxDecoration(
+                                    color: global.primaryAccent.withOpacity(
+                                      0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: global.primaryAccent,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "SUPER",
+                                    style: TextStyle(
+                                      color: global.primaryAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
@@ -292,13 +342,19 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                               if (name != null)
                                 Text(
                                   uid,
-                                  style: const TextStyle(color: global.labelColor, fontSize: 10),
+                                  style: const TextStyle(
+                                    color: global.labelColor,
+                                    fontSize: 10,
+                                  ),
                                 ),
                               Text(
                                 level == 0
                                     ? "Full Access (Super Admin)"
                                     : "Permissions: ${perms.isEmpty ? 'None' : perms.join(', ')}",
-                                style: const TextStyle(color: global.labelColor, fontSize: 12),
+                                style: const TextStyle(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -309,7 +365,11 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                                   children: [
                                     if (level != 0 || global.adminLevel == 0)
                                       IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: global.errorColor, size: 20),
+                                        icon: const Icon(
+                                          Icons.delete_outline,
+                                          color: global.errorColor,
+                                          size: 20,
+                                        ),
                                         onPressed: () => _confirmRemove(uid),
                                       ),
                                   ],
@@ -319,6 +379,8 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     );
                   },
                 ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: global.primaryAccent,
         onPressed: () {

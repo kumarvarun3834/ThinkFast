@@ -245,36 +245,41 @@ class _AiGenerationStatusScreenState extends State<AiGenerationStatusScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            if (_trackingId == null) ...[
-              _buildIdInput(),
-              const SizedBox(height: 32),
-              _buildHistorySection(),
-              const SizedBox(height: 48),
-              _buildJoinExistingQuizPrompt(),
-            ] else ...[
-              _buildStatusTracker(_trackingId!),
-              const SizedBox(height: 24),
-              _buildExecutionShell(),
-              const SizedBox(height: 40),
-              TextButton.icon(
-                onPressed: () {
-                  _pollingTimer?.cancel();
-                  _statusSubscription?.cancel();
-                  setState(() {
-                    _trackingId = null;
-                    _apiStatus = null;
-                    _shellLogs.clear();
-                  });
-                },
-                icon: const Icon(Icons.search_rounded),
-                label: const Text("TRACK DIFFERENT ID"),
-              ),
-            ],
-          ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                if (_trackingId == null) ...[
+                  _buildIdInput(),
+                  const SizedBox(height: 32),
+                  _buildHistorySection(),
+                  const SizedBox(height: 48),
+                  _buildJoinExistingQuizPrompt(),
+                ] else ...[
+                  _buildStatusTracker(_trackingId!),
+                  const SizedBox(height: 24),
+                  _buildExecutionShell(),
+                  const SizedBox(height: 40),
+                  TextButton.icon(
+                    onPressed: () {
+                      _pollingTimer?.cancel();
+                      _statusSubscription?.cancel();
+                      setState(() {
+                        _trackingId = null;
+                        _apiStatus = null;
+                        _shellLogs.clear();
+                      });
+                    },
+                    icon: const Icon(Icons.search_rounded),
+                    label: const Text("TRACK DIFFERENT ID"),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

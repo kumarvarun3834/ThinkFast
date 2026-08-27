@@ -96,6 +96,7 @@
 - [ ] **Leaderboards:** Global and Quiz-specific rankings.
 - [x] **Manual Admin Leaderboards:** Create and update rankings manually.
 - [ ] **Rich Media:** Support for images and diagrams in questions.
+- [ ] **Quiz Write Lock:** Concurrency control to prevent data loss during collaborative editing.
 - [ ] **Multiplayer:** Synchronous "Live Room" quiz mode.
 - [ ] **Exporting:** Download participant results as CSV/PDF.
 - [ ] **Advanced AI:** Personalized feedback based on attempt performance.

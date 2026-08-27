@@ -37,55 +37,63 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _recommendationService.streamRecommendations(_uid!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: global.primaryAccent),
-            );
-          }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _recommendationService.streamRecommendations(_uid!),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: global.primaryAccent),
+                );
+              }
 
-          final recommendations = snapshot.data ?? [];
+              final recommendations = snapshot.data ?? [];
 
-          if (recommendations.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.auto_awesome_outlined,
-                    size: 64,
-                    color: global.labelColor,
+              if (recommendations.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome_outlined,
+                        size: 64,
+                        color: global.labelColor,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "No recommendations yet.",
+                        style: GoogleFonts.poppins(color: global.labelColor),
+                      ),
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          "Complete more quizzes to help AI understand your learning gaps.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: global.labelColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "No recommendations yet.",
-                    style: GoogleFonts.poppins(color: global.labelColor),
-                  ),
-                  const SizedBox(height: 8),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      "Complete more quizzes to help AI understand your learning gaps.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: global.labelColor, fontSize: 12),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: recommendations.length,
-            itemBuilder: (context, index) {
-              final rec = recommendations[index];
-              return _buildRecommendationCard(rec);
+              return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: recommendations.length,
+                itemBuilder: (context, index) {
+                  final rec = recommendations[index];
+                  return _buildRecommendationCard(rec);
+                },
+              );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

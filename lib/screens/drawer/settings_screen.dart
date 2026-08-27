@@ -24,51 +24,56 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (user != null) ...[
-            _buildSectionHeader("Account"),
-            _buildSettingsTile(
-              icon: Icons.account_circle_outlined,
-              title: "Profile",
-              subtitle: "Manage your personal information",
-              onTap: () => Navigator.pushNamed(context, "/profile"),
-            ),
-            const SizedBox(height: 24),
-          ],
-          _buildSectionHeader("Information"),
-          _buildSettingsTile(
-            icon: Icons.info_outline_rounded,
-            title: "About Us",
-            subtitle: "Learn more about ThinkFast",
-            onTap: () => Navigator.pushNamed(context, "/About Us"),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (user != null) ...[
+                _buildSectionHeader("Account"),
+                _buildSettingsTile(
+                  icon: Icons.account_circle_outlined,
+                  title: "Profile",
+                  subtitle: "Manage your personal information",
+                  onTap: () => Navigator.pushNamed(context, "/profile"),
+                ),
+                const SizedBox(height: 24),
+              ],
+              _buildSectionHeader("Information"),
+              _buildSettingsTile(
+                icon: Icons.info_outline_rounded,
+                title: "About Us",
+                subtitle: "Learn more about ThinkFast",
+                onTap: () => Navigator.pushNamed(context, "/About Us"),
+              ),
+              _buildSettingsTile(
+                icon: Icons.privacy_tip_outlined,
+                title: "Privacy Policy",
+                subtitle: "Read our privacy guidelines",
+                onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
+              ),
+              const SizedBox(height: 24),
+              if (user != null) ...[
+                _buildSectionHeader("Session"),
+                _buildSettingsTile(
+                  icon: Icons.logout_rounded,
+                  title: "Logout",
+                  subtitle: "Sign out of your account",
+                  textColor: global.errorColor,
+                  onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (context.mounted) {
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/login', (route) => false);
+                    }
+                  },
+                ),
+              ],
+            ],
           ),
-          _buildSettingsTile(
-            icon: Icons.privacy_tip_outlined,
-            title: "Privacy Policy",
-            subtitle: "Read our privacy guidelines",
-            onTap: () => Navigator.pushNamed(context, "/Privacy Policy"),
-          ),
-          const SizedBox(height: 24),
-          if (user != null) ...[
-            _buildSectionHeader("Session"),
-            _buildSettingsTile(
-              icon: Icons.logout_rounded,
-              title: "Logout",
-              subtitle: "Sign out of your account",
-              textColor: global.errorColor,
-              onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                if (context.mounted) {
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/login', (route) => false);
-                }
-              },
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }

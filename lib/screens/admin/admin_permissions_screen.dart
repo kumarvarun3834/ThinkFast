@@ -66,34 +66,39 @@ class _AdminPermissionsScreenState extends State<AdminPermissionsScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoCard(),
-            const SizedBox(height: 24),
-            if (isBulk) ...[
-              _buildSectionHeader("Update Mode"),
-              const SizedBox(height: 12),
-              _buildModeSelector(),
-              const SizedBox(height: 24),
-            ],
-            if (global.adminLevel == 0) ...[
-              _buildSectionHeader("Account Level"),
-              const SizedBox(height: 12),
-              _buildSuperToggle(),
-              const SizedBox(height: 24),
-            ],
-            _buildSectionHeader("Permissions"),
-            const SizedBox(height: 12),
-            ..._availablePermissions.entries.map(
-              (entry) => _buildPermissionTile(entry),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoCard(),
+                const SizedBox(height: 24),
+                if (isBulk) ...[
+                  _buildSectionHeader("Update Mode"),
+                  const SizedBox(height: 12),
+                  _buildModeSelector(),
+                  const SizedBox(height: 24),
+                ],
+                if (global.adminLevel == 0) ...[
+                  _buildSectionHeader("Account Level"),
+                  const SizedBox(height: 12),
+                  _buildSuperToggle(),
+                  const SizedBox(height: 24),
+                ],
+                _buildSectionHeader("Permissions"),
+                const SizedBox(height: 12),
+                ..._availablePermissions.entries.map(
+                  (entry) => _buildPermissionTile(entry),
+                ),
+                const SizedBox(height: 40),
+                _buildApplyButton(),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+              ],
             ),
-            const SizedBox(height: 40),
-            _buildApplyButton(),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-          ],
+          ),
         ),
       ),
     );
