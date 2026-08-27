@@ -69,41 +69,52 @@ class _ManageLeaderboardsScreenState extends State<ManageLeaderboardsScreen> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          if (widget.quizId != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: global.borderColor),
-                ),
-                child: Material(
-                  color: global.cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  clipBehavior: Clip.antiAlias,
-                  child: SwitchListTile(
-                    title: const Text(
-                      "Auto-Generate Leaderboard",
-                      style: TextStyle(
-                        color: global.valueColor,
-                        fontWeight: FontWeight.bold,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              if (widget.quizId != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: global.borderColor),
+                    ),
+                    child: Material(
+                      color: global.cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      clipBehavior: Clip.antiAlias,
+                      child: SwitchListTile(
+                        title: const Text(
+                          "Auto-Generate Leaderboard",
+                          style: TextStyle(
+                            color: global.valueColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          "Automatically rank users (Excludes Admins)",
+                          style: TextStyle(
+                            color: global.labelColor,
+                            fontSize: 11,
+                          ),
+                        ),
+                        value: _isAutoEnabled,
+                        activeThumbColor: global.primaryAccent,
+                        onChanged: _toggleAuto,
                       ),
                     ),
-                    subtitle: const Text(
-                      "Automatically rank users (Excludes Admins)",
-                      style: TextStyle(color: global.labelColor, fontSize: 11),
-                    ),
-                    value: _isAutoEnabled,
-                    activeThumbColor: global.primaryAccent,
-                    onChanged: _toggleAuto,
                   ),
                 ),
-              ),
-            ),
-          Expanded(child: _buildList()),
-        ],
+              Expanded(child: _buildList()),
+            ],
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showLeaderboardEditor(null),

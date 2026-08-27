@@ -611,72 +611,81 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                if (msg['type'] == 'profile_review') {
-                  return _buildProfileReview();
-                }
-                if (msg['type'] == 'ai_summary') {
-                  return _buildAiSummary();
-                }
-                if (msg['type'] == 'personalization_insight') {
-                  return _buildPersonalizationInsight(msg['text']);
-                }
-                return _buildChatBubble(msg);
-              },
-            ),
-          ),
-          if (_currentStep < _steps.length && !_isLoading) _buildInputArea(),
-          if (_isLoading)
-            SafeArea(
-              top: false,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
-                decoration: BoxDecoration(
-                  color: global.cardColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(32),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
                   ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      color: global.primaryAccent,
-                      strokeWidth: 3,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      _typingMessages[_typingMessageIndex],
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: global.valueColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Status: $_generationStatus",
-                      style: GoogleFonts.poppins(
-                        color: global.labelColor,
-                        fontSize: 12,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ],
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = _messages[index];
+                    if (msg['type'] == 'profile_review') {
+                      return _buildProfileReview();
+                    }
+                    if (msg['type'] == 'ai_summary') {
+                      return _buildAiSummary();
+                    }
+                    if (msg['type'] == 'personalization_insight') {
+                      return _buildPersonalizationInsight(msg['text']);
+                    }
+                    return _buildChatBubble(msg);
+                  },
                 ),
               ),
-            ),
-        ],
+              if (_currentStep < _steps.length && !_isLoading)
+                _buildInputArea(),
+              if (_isLoading)
+                SafeArea(
+                  top: false,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+                    decoration: BoxDecoration(
+                      color: global.cardColor,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(
+                          color: global.primaryAccent,
+                          strokeWidth: 3,
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          _typingMessages[_typingMessageIndex],
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: global.valueColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Status: $_generationStatus",
+                          style: GoogleFonts.poppins(
+                            color: global.labelColor,
+                            fontSize: 12,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

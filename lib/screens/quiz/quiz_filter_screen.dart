@@ -71,41 +71,49 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
                 _selectedSubjects.clear();
               });
             },
-            child: const Text("Clear All", style: TextStyle(color: global.errorColor)),
+            child: const Text(
+              "Clear All",
+              style: TextStyle(color: global.errorColor),
+            ),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildToggleSection(),
-                  const SizedBox(height: 24),
-                  _buildAiSourceSection(),
-                  const SizedBox(height: 24),
-                  if (_availableExams.isNotEmpty) ...[
-                    _buildSectionTitle("EXAMS"),
-                    const SizedBox(height: 12),
-                    _buildChipGrid(_availableExams, _selectedSubjects),
-                    const SizedBox(height: 24),
-                  ],
-                  if (_availableModules.isNotEmpty) ...[
-                    _buildSectionTitle("MODULES / SUBJECTS"),
-                    const SizedBox(height: 12),
-                    _buildChipGrid(_availableModules, _selectedSubjects),
-                    const SizedBox(height: 24),
-                  ],
-                  _buildTagSection(),
-                ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildToggleSection(),
+                      const SizedBox(height: 24),
+                      _buildAiSourceSection(),
+                      const SizedBox(height: 24),
+                      if (_availableExams.isNotEmpty) ...[
+                        _buildSectionTitle("EXAMS"),
+                        const SizedBox(height: 12),
+                        _buildChipGrid(_availableExams, _selectedSubjects),
+                        const SizedBox(height: 24),
+                      ],
+                      if (_availableModules.isNotEmpty) ...[
+                        _buildSectionTitle("MODULES / SUBJECTS"),
+                        const SizedBox(height: 12),
+                        _buildChipGrid(_availableModules, _selectedSubjects),
+                        const SizedBox(height: 24),
+                      ],
+                      _buildTagSection(),
+                    ],
+                  ),
+                ),
               ),
-            ),
+              _buildApplyButton(),
+            ],
           ),
-          _buildApplyButton(),
-        ],
+        ),
       ),
     );
   }
@@ -118,21 +126,21 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: _filterModeChip("NORMAL", !_isStrict),
-            ),
+            Expanded(child: _filterModeChip("NORMAL", !_isStrict)),
             const SizedBox(width: 12),
-            Expanded(
-              child: _filterModeChip("STRICT", _isStrict),
-            ),
+            Expanded(child: _filterModeChip("STRICT", _isStrict)),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          _isStrict 
-            ? "Showing quizzes that ONLY contain selected tags/modules."
-            : "Showing quizzes that contain AT LEAST ONE selected tag/module.",
-          style: const TextStyle(color: global.labelColor, fontSize: 10, fontStyle: FontStyle.italic),
+          _isStrict
+              ? "Showing quizzes that ONLY contain selected tags/modules."
+              : "Showing quizzes that contain AT LEAST ONE selected tag/module.",
+          style: const TextStyle(
+            color: global.labelColor,
+            fontSize: 10,
+            fontStyle: FontStyle.italic,
+          ),
         ),
       ],
     );
@@ -222,10 +230,11 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
-        
+
         final tags = snapshot.data!.docs
             .where((doc) {
-              final List quizIds = (doc.data() as Map)['quizIds'] as List? ?? [];
+              final List quizIds =
+                  (doc.data() as Map)['quizIds'] as List? ?? [];
               return quizIds.isNotEmpty;
             })
             .map((doc) => doc.id)
@@ -257,7 +266,9 @@ class _QuizFilterScreenState extends State<QuizFilterScreen> {
             const SizedBox(width: 8),
             Expanded(child: _sourceChip("AI Only", _aiSource == "AI Only")),
             const SizedBox(width: 8),
-            Expanded(child: _sourceChip("Manual Only", _aiSource == "Manual Only")),
+            Expanded(
+              child: _sourceChip("Manual Only", _aiSource == "Manual Only"),
+            ),
           ],
         ),
       ],

@@ -216,43 +216,49 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: global.adminDb.getFullUserProfile(widget.userId, _adminId!),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final user = snapshot.data;
-          if (user == null)
-            return const Center(
-              child: Text(
-                "User not found",
-                style: TextStyle(color: global.labelColor),
-              ),
-            );
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: FutureBuilder<Map<String, dynamic>?>(
+            future: global.adminDb.getFullUserProfile(widget.userId, _adminId!),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final user = snapshot.data;
+              if (user == null) {
+                return const Center(
+                  child: Text(
+                    "User not found",
+                    style: TextStyle(color: global.labelColor),
+                  ),
+                );
+              }
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _buildProfileHeader(user),
-              const SizedBox(height: 24),
-              _buildStats(user),
-              const SizedBox(height: 24),
-              _buildDetailedInfo(user),
-              const SizedBox(height: 24),
-              _buildActionButtons(),
-              const SizedBox(height: 32),
-              _buildSectionHeader("USER QUIZZES"),
-              const SizedBox(height: 12),
-              _buildQuizzesList(),
-              const SizedBox(height: 32),
-              _buildSectionHeader("USER ATTEMPTS"),
-              const SizedBox(height: 12),
-              _buildAttemptsList(),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-            ],
-          );
-        },
+              return ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildProfileHeader(user),
+                  const SizedBox(height: 24),
+                  _buildStats(user),
+                  const SizedBox(height: 24),
+                  _buildDetailedInfo(user),
+                  const SizedBox(height: 24),
+                  _buildActionButtons(),
+                  const SizedBox(height: 32),
+                  _buildSectionHeader("USER QUIZZES"),
+                  const SizedBox(height: 12),
+                  _buildQuizzesList(),
+                  const SizedBox(height: 32),
+                  _buildSectionHeader("USER ATTEMPTS"),
+                  const SizedBox(height: 12),
+                  _buildAttemptsList(),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }

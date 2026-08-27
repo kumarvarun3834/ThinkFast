@@ -128,81 +128,86 @@ class _AllUsersScreenState extends State<AllUsersScreen> {
                 ),
               ],
       ),
-      body: Column(
-        children: [
-          if (!_isSelectionMode)
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: TextField(
-                style: const TextStyle(color: global.valueColor),
-                onChanged: (val) =>
-                    setState(() => _searchQuery = val.toLowerCase()),
-                decoration: InputDecoration(
-                  hintText: "Search users by name...",
-                  hintStyle: const TextStyle(color: global.labelColor),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: global.labelColor,
-                  ),
-                  filled: true,
-                  fillColor: global.cardColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              if (!_isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: TextField(
+                    style: const TextStyle(color: global.valueColor),
+                    onChanged: (val) =>
+                        setState(() => _searchQuery = val.toLowerCase()),
+                    decoration: InputDecoration(
+                      hintText: "Search users by name...",
+                      hintStyle: const TextStyle(color: global.labelColor),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: global.labelColor,
+                      ),
+                      filled: true,
+                      fillColor: global.cardColor,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _usersStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: global.primaryAccent,
-                    ),
-                  );
-                }
+              Expanded(
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: _usersStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: global.primaryAccent,
+                        ),
+                      );
+                    }
 
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      "Error: ${snapshot.error}",
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          "Error: ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      );
+                    }
 
-                final users = snapshot.data ?? [];
-                final filteredUsers = users.where((u) {
-                  final name = (u['name'] ?? "").toString().toLowerCase();
-                  final uid = (u['uid'] ?? "").toString().toLowerCase();
-                  return name.contains(_searchQuery) ||
-                      uid.contains(_searchQuery);
-                }).toList();
+                    final users = snapshot.data ?? [];
+                    final filteredUsers = users.where((u) {
+                      final name = (u['name'] ?? "").toString().toLowerCase();
+                      final uid = (u['uid'] ?? "").toString().toLowerCase();
+                      return name.contains(_searchQuery) ||
+                          uid.contains(_searchQuery);
+                    }).toList();
 
-                if (filteredUsers.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      "No users found",
-                      style: TextStyle(color: global.labelColor),
-                    ),
-                  );
-                }
+                    if (filteredUsers.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No users found",
+                          style: TextStyle(color: global.labelColor),
+                        ),
+                      );
+                    }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = filteredUsers[index];
-                    return _buildUserTile(user);
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = filteredUsers[index];
+                        return _buildUserTile(user);
+                      },
+                    );
                   },
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

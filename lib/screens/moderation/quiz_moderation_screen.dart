@@ -410,13 +410,18 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildBannedUsersTab(),
-          _buildDeletedResponsesTab(),
-          _buildParticipantsTab(),
-        ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildBannedUsersTab(),
+              _buildDeletedResponsesTab(),
+              _buildParticipantsTab(),
+            ],
+          ),
+        ),
       ),
     );
   }

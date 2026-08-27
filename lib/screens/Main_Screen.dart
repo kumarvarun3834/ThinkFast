@@ -907,11 +907,14 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Expanded(
               flex: 3,
-              child: Column(
-                children: [
-                  if (!widget.showTrash &&
-                      !widget.showMyQuizzes &&
-                      !widget.showManagedQuizzes)
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: Column(
+                    children: [
+                      if (!widget.showTrash &&
+                          !widget.showMyQuizzes &&
+                          !widget.showManagedQuizzes)
                     FutureBuilder<List<Map<String, dynamic>>>(
                       future: LocalCacheService().getRecentQuizzes(),
                       builder: (context, snapshot) {

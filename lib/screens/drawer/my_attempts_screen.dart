@@ -71,127 +71,133 @@ class _MyAttemptsScreenState extends State<MyAttemptsScreen> {
                 style: GoogleFonts.poppins(color: _labelColor),
               ),
             )
-          : StreamBuilder<List<Map<String, dynamic>>>(
-              stream: global.db.getUserAttempts(
-                _user!.uid,
-                includeDeleted: true,
-              ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: global.primaryAccent,
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 64,
-                          color: _borderColor,
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: StreamBuilder<List<Map<String, dynamic>>>(
+                  stream: global.db.getUserAttempts(
+                    _user!.uid,
+                    includeDeleted: true,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: global.primaryAccent,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "No attempts found",
-                          style: GoogleFonts.poppins(color: _labelColor),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final allAttempts = snapshot.data!;
-                final attempts = widget.quizId == null
-                    ? allAttempts
-                    : allAttempts
-                          .where((a) => a['quizId'] == widget.quizId)
-                          .toList();
-
-                if (attempts.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 64,
-                          color: _borderColor,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          widget.quizId == null
-                              ? "No attempts found"
-                              : "No attempts for this quiz found",
-                          style: GoogleFonts.poppins(color: _labelColor),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                int totalAggScore = 0;
-                int totalAggQuestions = 0;
-                for (var a in attempts) {
-                  totalAggScore += (a['score'] as int? ?? 0);
-                  totalAggQuestions += ((a['totalQuestions'] as int? ?? 0) * 4);
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: attempts.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return Column(
-                        children: [
-                          Card(
-                            color: _cardColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: _borderColor),
-                            ),
-                            child: MarksPanel(
-                              totalCorrectAnswers: totalAggScore,
-                              totalQuestions: totalAggQuestions,
-                              title: "Overall Performance",
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Padding(
-                              padding: const EdgeInsets.only(
-                                left: 8.0,
-                                bottom: 16,
-                              ),
-                              child: Text(
-                                "RECENT ATTEMPTS",
-                                style: GoogleFonts.poppins(
-                                  color: _primaryAccent,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.2,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
                       );
                     }
 
-                    final attempt = attempts[index - 1];
-                    return ModularAttemptCard(
-                      attempt: attempt,
-                      user: _user!,
-                      onDelete: () => _confirmDelete(attempt),
+                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.history_rounded,
+                              size: 64,
+                              color: _borderColor,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "No attempts found",
+                              style: GoogleFonts.poppins(color: _labelColor),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final allAttempts = snapshot.data!;
+                    final attempts = widget.quizId == null
+                        ? allAttempts
+                        : allAttempts
+                              .where((a) => a['quizId'] == widget.quizId)
+                              .toList();
+
+                    if (attempts.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.history_rounded,
+                              size: 64,
+                              color: _borderColor,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              widget.quizId == null
+                                  ? "No attempts found"
+                                  : "No attempts for this quiz found",
+                              style: GoogleFonts.poppins(color: _labelColor),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    int totalAggScore = 0;
+                    int totalAggQuestions = 0;
+                    for (var a in attempts) {
+                      totalAggScore += (a['score'] as int? ?? 0);
+                      totalAggQuestions +=
+                          ((a['totalQuestions'] as int? ?? 0) * 4);
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: attempts.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Column(
+                            children: [
+                              Card(
+                                color: _cardColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(color: _borderColor),
+                                ),
+                                child: MarksPanel(
+                                  totalCorrectAnswers: totalAggScore,
+                                  totalQuestions: totalAggQuestions,
+                                  title: "Overall Performance",
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 8.0,
+                                    bottom: 16,
+                                  ),
+                                  child: Text(
+                                    "RECENT ATTEMPTS",
+                                    style: GoogleFonts.poppins(
+                                      color: _primaryAccent,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        final attempt = attempts[index - 1];
+                        return ModularAttemptCard(
+                          attempt: attempt,
+                          user: _user!,
+                          onDelete: () => _confirmDelete(attempt),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
     );
   }

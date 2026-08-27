@@ -188,129 +188,155 @@ class _AdminPanelState extends State<AdminPanel> {
           ),
         ],
       ),
-      body: StreamBuilder<Map<String, dynamic>?>(
-        stream: _featureFlagsStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: global.primaryAccent),
-            );
-          }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<Map<String, dynamic>?>(
+            stream: _featureFlagsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(color: global.primaryAccent),
+                );
+              }
 
-          final flags = snapshot.data ?? {};
+              final flags = snapshot.data ?? {};
 
-          // Collect all flags that are already grouped
-          final groupedKeys = _flagGroups.values.expand((e) => e).toSet();
-          groupedKeys.add('quiz_creation_rate_limit_minutes');
-          groupedKeys.add('form_save_rate_limit_seconds');
-          groupedKeys.add('ai_daily_generation_limit');
-          groupedKeys.add('admin_refresh_rate_limit_seconds');
+              // Collect all flags that are already grouped
+              final groupedKeys = _flagGroups.values.expand((e) => e).toSet();
+              groupedKeys.add('quiz_creation_rate_limit_minutes');
+              groupedKeys.add('form_save_rate_limit_seconds');
+              groupedKeys.add('ai_daily_generation_limit');
+              groupedKeys.add('admin_refresh_rate_limit_seconds');
 
-          // Legacy flags to hide
-          groupedKeys.add('ai_models');
-          groupedKeys.add('ai_model_index');
-          groupedKeys.add('gemini_api_key');
+              // Legacy flags to hide
+              groupedKeys.add('ai_models');
+              groupedKeys.add('ai_model_index');
+              groupedKeys.add('gemini_api_key');
 
-          // Find any flags in Firestore that are NOT in our groups
-          final otherKeys = flags.keys
-              .where((k) => !groupedKeys.contains(k) && k != 'updatedAt')
-              .toList();
+              // Find any flags in Firestore that are NOT in our groups
+              final otherKeys = flags.keys
+                  .where((k) => !groupedKeys.contains(k) && k != 'updatedAt')
+                  .toList();
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _buildSectionHeader("Platform Management"),
-              const SizedBox(height: 12),
-              _buildManagementTile(
-                icon: Icons.people_alt_outlined,
-                title: "User Management",
-                subtitle: "View users, ban accounts, delete data",
-                enabled: _isMaster || _permissions.contains('moderate_users'),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AllUsersScreen(),
+              return ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildSectionHeader("Platform Management"),
+                  const SizedBox(height: 12),
+                  _buildManagementTile(
+                    icon: Icons.people_alt_outlined,
+                    title: "User Management",
+                    subtitle: "View users, ban accounts, delete data",
+                    enabled:
+                        _isMaster || _permissions.contains('moderate_users'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AllUsersScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _buildManagementTile(
-                icon: Icons.admin_panel_settings_outlined,
-                title: "Admin Management",
-                subtitle: "Manage platform-wide administrators",
-                enabled: _isMaster || _permissions.contains('manage_admins'),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ManageAdminsScreen(),
+                  _buildManagementTile(
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: "Admin Management",
+                    subtitle: "Manage platform-wide administrators",
+                    enabled:
+                        _isMaster || _permissions.contains('manage_admins'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ManageAdminsScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _buildManagementTile(
-                icon: Icons.person_add_alt_1_outlined,
-                title: "Promote New Admin",
-                subtitle: "Add and configure new app administrators",
-                enabled: _isMaster || _permissions.contains('manage_admins'),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AddAppAdminScreen(),
+                  _buildManagementTile(
+                    icon: Icons.person_add_alt_1_outlined,
+                    title: "Promote New Admin",
+                    subtitle: "Add and configure new app administrators",
+                    enabled:
+                        _isMaster || _permissions.contains('manage_admins'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddAppAdminScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _buildManagementTile(
-                icon: Icons.history_edu_outlined,
-                title: "View Audit Logs",
-                subtitle: "Track system activity and admin actions",
-                enabled: _isMaster || _permissions.contains('view_audit_logs'),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AuditLogsScreen(),
+                  _buildManagementTile(
+                    icon: Icons.history_edu_outlined,
+                    title: "View Audit Logs",
+                    subtitle: "Track system activity and admin actions",
+                    enabled:
+                        _isMaster || _permissions.contains('view_audit_logs'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AuditLogsScreen(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              _buildManagementTile(
-                icon: Icons.leaderboard_outlined,
-                title: "Manage Leaderboards",
-                subtitle: "Manually create and update leaderboards",
-                enabled:
-                    _isMaster || _permissions.contains('manage_leaderboards'),
-                onTap: () =>
-                    Navigator.pushNamed(context, '/Manage Leaderboards'),
-              ),
-              _buildManagementTile(
-                icon: Icons.report_gmailerrorred_rounded,
-                title: "Reported Content",
-                subtitle: "Review flagged quizzes and questions",
-                enabled: _isMaster || _permissions.contains('moderate_users'),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ReportedContentScreen(),
+                  _buildManagementTile(
+                    icon: Icons.leaderboard_outlined,
+                    title: "Manage Leaderboards",
+                    subtitle: "Manually create and update leaderboards",
+                    enabled:
+                        _isMaster ||
+                        _permissions.contains('manage_leaderboards'),
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/Manage Leaderboards'),
                   ),
-                ),
-              ),
-              _buildManagementTile(
-                icon: Icons.dashboard_customize_outlined,
-                title: "API & Server Dashboard",
-                subtitle: "Monitor and test backend endpoints",
-                enabled: _isMaster || _permissions.contains('access_dashboard'),
-                onTap: () => Navigator.pushNamed(context, '/dashboard'),
-              ),
-              const SizedBox(height: 24),
+                  _buildManagementTile(
+                    icon: Icons.report_gmailerrorred_rounded,
+                    title: "Reported Content",
+                    subtitle: "Review flagged quizzes and questions",
+                    enabled:
+                        _isMaster || _permissions.contains('moderate_users'),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReportedContentScreen(),
+                      ),
+                    ),
+                  ),
+                  _buildManagementTile(
+                    icon: Icons.dashboard_customize_outlined,
+                    title: "API & Server Dashboard",
+                    subtitle: "Monitor and test backend endpoints",
+                    enabled:
+                        _isMaster || _permissions.contains('access_dashboard'),
+                    onTap: () => Navigator.pushNamed(context, '/dashboard'),
+                  ),
+                  const SizedBox(height: 24),
 
-              ..._flagGroups.entries.map((group) {
-                final groupFlags = group.value
-                    .where((k) => flags.containsKey(k))
-                    .toList();
-                if (groupFlags.isEmpty) return const SizedBox.shrink();
+                  ..._flagGroups.entries.map((group) {
+                    final groupFlags = group.value
+                        .where((k) => flags.containsKey(k))
+                        .toList();
+                    if (groupFlags.isEmpty) return const SizedBox.shrink();
 
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader(group.key),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionHeader(group.key),
+                        const SizedBox(height: 12),
+                        ...groupFlags.map((key) {
+                          final value = flags[key];
+                          if (value is bool) {
+                            return _buildFlagToggle(key, value);
+                          } else {
+                            return _buildGenericField(key, value, flags);
+                          }
+                        }),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  }),
+
+                  if (otherKeys.isNotEmpty) ...[
+                    _buildSectionHeader("Other Settings"),
                     const SizedBox(height: 12),
-                    ...groupFlags.map((key) {
+                    ...otherKeys.map((key) {
                       final value = flags[key];
                       if (value is bool) {
                         return _buildFlagToggle(key, value);
@@ -320,97 +346,84 @@ class _AdminPanelState extends State<AdminPanel> {
                     }),
                     const SizedBox(height: 24),
                   ],
-                );
-              }),
 
-              if (otherKeys.isNotEmpty) ...[
-                _buildSectionHeader("Other Settings"),
-                const SizedBox(height: 12),
-                ...otherKeys.map((key) {
-                  final value = flags[key];
-                  if (value is bool) {
-                    return _buildFlagToggle(key, value);
-                  } else {
-                    return _buildGenericField(key, value, flags);
-                  }
-                }),
-                const SizedBox(height: 24),
-              ],
+                  _buildSectionHeader("Rate Limits"),
+                  const SizedBox(height: 12),
+                  _buildRateLimitField(flags),
+                  const SizedBox(height: 24),
 
-              _buildSectionHeader("Rate Limits"),
-              const SizedBox(height: 12),
-              _buildRateLimitField(flags),
-              const SizedBox(height: 24),
+                  _buildSectionHeader("Database Maintenance"),
+                  _buildManagementTile(
+                    icon: Icons.cleaning_services_outlined,
+                    title: "Cleanup Orphaned Tags",
+                    subtitle: "Remove tags with no associated quizzes",
+                    enabled:
+                        _isMaster ||
+                        _permissions.contains('manage_app_settings'),
+                    onTap: () async {
+                      final String? adminId =
+                          FirebaseAuth.instance.currentUser?.uid;
+                      if (adminId == null) return;
 
-              _buildSectionHeader("Database Maintenance"),
-              _buildManagementTile(
-                icon: Icons.cleaning_services_outlined,
-                title: "Cleanup Orphaned Tags",
-                subtitle: "Remove tags with no associated quizzes",
-                enabled:
-                    _isMaster || _permissions.contains('manage_app_settings'),
-                onTap: () async {
-                  final String? adminId =
-                      FirebaseAuth.instance.currentUser?.uid;
-                  if (adminId == null) return;
-
-                  final messenger = ScaffoldMessenger.of(context);
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      backgroundColor: global.cardColor,
-                      title: const Text(
-                        "Cleanup Tags?",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      content: const Text(
-                        "This will permanently delete all tags that are not linked to any active quizzes.",
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("CANCEL"),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text("CLEANUP"),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm == true) {
-                    try {
-                      final count = await global.adminDb.removeEmptyTags(
-                        adminId,
-                      );
-                      if (mounted) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Successfully removed $count empty tag(s).",
+                      final messenger = ScaffoldMessenger.of(context);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: global.cardColor,
+                          title: const Text(
+                            "Cleanup Tags?",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          content: const Text(
+                            "This will permanently delete all tags that are not linked to any active quizzes.",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("CANCEL"),
                             ),
-                          ),
-                        );
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text("CLEANUP"),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          final count = await global.adminDb.removeEmptyTags(
+                            adminId,
+                          );
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Successfully removed $count empty tag(s).",
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text("Cleanup Error: $e"),
+                                backgroundColor: global.errorColor,
+                              ),
+                            );
+                          }
+                        }
                       }
-                    } catch (e) {
-                      if (mounted) {
-                        messenger.showSnackBar(
-                          SnackBar(
-                            content: Text("Cleanup Error: $e"),
-                            backgroundColor: global.errorColor,
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-              ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-            ],
-          );
-        },
+                    },
+                  ),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }

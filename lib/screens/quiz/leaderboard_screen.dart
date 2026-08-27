@@ -31,86 +31,93 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('leaderboards')
-            .doc(widget.quizId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('leaderboards')
+                .doc(widget.quizId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return _buildEmptyState("No rankings generated yet.");
-          }
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return _buildEmptyState("No rankings generated yet.");
+              }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final entries = List<Map<String, dynamic>>.from(
-            data['entries'] ?? [],
-          );
-          final isPublic = data['isPublic'] ?? true;
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final entries = List<Map<String, dynamic>>.from(
+                data['entries'] ?? [],
+              );
+              final isPublic = data['isPublic'] ?? true;
 
-          if (!isPublic && !global.isAdmin) {
-            return _buildEmptyState("This leaderboard is currently private.");
-          }
+              if (!isPublic && !global.isAdmin) {
+                return _buildEmptyState(
+                  "This leaderboard is currently private.",
+                );
+              }
 
-          if (entries.isEmpty) {
-            return _buildEmptyState("No rankings generated yet.");
-          }
+              if (entries.isEmpty) {
+                return _buildEmptyState("No rankings generated yet.");
+              }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Text(
-                  widget.quizTitle,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: global.valueColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  data['title'] ?? 'Official Rankings',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    color: global.primaryAccent,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (data['description'] != null &&
-                    data['description'].toString().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      data['description'],
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      widget.quizTitle,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: global.labelColor,
-                        fontSize: 13,
+                      style: GoogleFonts.poppins(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: global.valueColor,
                       ),
                     ),
-                  ),
-                const SizedBox(height: 32),
-                _buildLeaderboardList(entries),
-                const SizedBox(height: 24),
-                Center(
-                  child: Text(
-                    "Last Updated: ${_formatTimestamp(data['updatedAt'])}",
-                    style: const TextStyle(
-                      color: global.hintColor,
-                      fontSize: 11,
+                    const SizedBox(height: 12),
+                    Text(
+                      data['title'] ?? 'Official Rankings',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        color: global.primaryAccent,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
+                    if (data['description'] != null &&
+                        data['description'].toString().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          data['description'],
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: global.labelColor,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 32),
+                    _buildLeaderboardList(entries),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: Text(
+                        "Last Updated: ${_formatTimestamp(data['updatedAt'])}",
+                        style: const TextStyle(
+                          color: global.hintColor,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }
