@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
+// Conditional import to prevent Android build errors
+import 'dart:html' if (dart.library.io) 'dart:io' as html;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class Questions extends StatefulWidget {
   const Questions({super.key});
 
@@ -208,6 +212,26 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _integerController = TextEditingController();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    if (kIsWeb) {
+      // 📺 Auto Fullscreen on Start
+      // Must be triggered by user gesture (this screen is pushed on button click)
+      try {
+        html.document.documentElement?.requestFullscreen();
+      } catch (e) {
+        debugPrint("Fullscreen error: $e");
+      }
+
+      // 🕵️ Web Anti-Cheat: Detect Tab Switching / Minimizing
+      // WidgetsBindingObserver covers some, but onBlur is more aggressive
+      html.window.onBlur.listen((event) {
+        if (!_isSubmitted && !global.isReviewMode && global.time > 0) {
+          debugPrint("Anti-Cheat: Tab blurred. Submitting...");
+          _submitAndFinish();
+        }
+      });
+    }
+
     _loadQuizWithTime();
   }
 
@@ -216,6 +240,16 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     _integerController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    if (kIsWeb) {
+      // Exit Fullscreen on finish
+      try {
+        if (html.document.fullscreenElement != null) {
+          html.document.exitFullscreen();
+        }
+      } catch (_) {}
+    }
+
     _timer?.cancel();
     super.dispose();
   }
