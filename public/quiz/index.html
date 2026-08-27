@@ -53,6 +53,45 @@
             color: var(--primary-accent);
         }
         .logo { width: 80px; height: 80px; margin-bottom: 1rem; }
+
+        /* Bottom Prompt Styles */
+        #download-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-color);
+            padding: 1rem 1.5rem;
+            display: none; /* Hidden by default */
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 2px solid var(--primary-accent);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .prompt-text {
+            text-align: left;
+            flex: 1;
+        }
+        .prompt-text span { font-weight: bold; color: white; display: block; }
+        .prompt-text small { color: var(--label-color); font-size: 0.75rem; }
+        .prompt-btn {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-left: 1rem;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -69,6 +108,15 @@
         </div>
     </div>
 
+    <!-- Bottom Download Prompt -->
+    <div id="download-prompt">
+        <div class="prompt-text">
+            <span>Get the ThinkFast App</span>
+            <small>Better experience, real-time results, and AI wizardry.</small>
+        </div>
+        <a href="https://thinkfast3834.web.app/download/app.apk" class="prompt-btn">Download Now</a>
+    </div>
+
     <script>
         // Extract quiz ID from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -79,16 +127,18 @@
         const appLink = window.location.href;
         document.getElementById('open-app-btn').href = appLink;
 
-        // Auto-redirect logic for mobile
+        // Detection and Prompt Logic
         function isMobile() {
             return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
         }
 
-        if (isMobile() && quizId) {
-            // If we are on mobile, the browser already tried and failed to open the app
-            // (since the app didn't intercept the https link).
-            // We can try one more time or just let the user click.
-            console.log("On mobile, waiting for user action.");
+        if (isMobile()) {
+            // Show the bottom prompt on mobile web if they land here
+            document.getElementById('download-prompt').style.display = 'flex';
+
+            // Optional: Auto-try to launch app via custom scheme if https fails
+            // This is hit-or-miss, but standard App Links usually handle it via OS.
+            console.log("Mobile user detected. Prompting download.");
         }
     </script>
 </body>

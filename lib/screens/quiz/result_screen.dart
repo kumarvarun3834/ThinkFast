@@ -71,6 +71,7 @@ class _ResultScreenState extends State<ResultScreen> {
       if (widget.quizId != null && widget.attemptAnswers != null) {
         // VIEWING PAST ATTEMPT
         setState(() => _loadingMessage = "Fetching result...");
+        global.personalizedSolutions = {}; // Reset previous session data
         _quizId = widget.quizId!;
         _responseId = widget.attemptId; // Capture passed ID
         userAnswers = widget.attemptAnswers!;
@@ -343,6 +344,16 @@ class _ResultScreenState extends State<ResultScreen> {
           setState(() {
             _aiAnalysis = existingAnalysis['analysis'];
             _aiTraces = existingAnalysis['traces'];
+
+            // Load personalized per-question explanations if available
+            final pExplanations = existingAnalysis['questionExplanations'];
+            if (pExplanations is Map) {
+              global.personalizedSolutions = Map<String, String>.from(
+                pExplanations.map(
+                  (k, v) => MapEntry(k.toString(), v.toString()),
+                ),
+              );
+            }
           });
         }
       }

@@ -227,8 +227,13 @@ class _QuizPageState extends State<QuizPage> {
           ),
           ElevatedButton(
             onPressed: () {
+              final text = controller.text.trim();
+              if (text.isEmpty) {
+                _showError("Please enter JSON data to import.");
+                return;
+              }
               Navigator.pop(ctx);
-              _importQuizData(controller.text.trim(), append: append);
+              _importQuizData(text, append: append);
             },
             child: const Text("IMPORT"),
           ),
@@ -413,6 +418,90 @@ class _QuizPageState extends State<QuizPage> {
 
   Future<void> _saveQuiz() async {
     if (user == null) return;
+
+    // 1. Basic Metadata Validation
+    if (_titleController.text.trim().isEmpty) {
+      _showError("Quiz Title cannot be empty");
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      _showError("Quiz Description cannot be empty");
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    // 2. Questions Validation
+    if (questions.isEmpty) {
+      _showError("Add at least one question to save the quiz.");
+      return;
+    }
+
+    for (int i = 0; i < questions.length; i++) {
+      final q = questions[i];
+      final String type = q['type']?.toString() ?? "";
+      final String prompt = q['question']?.toString().trim() ?? "";
+      final List answers = q['answers'] as List? ?? [];
+      final List choices = q['choices'] as List? ?? [];
+
+      if (type.isEmpty ||
+          (type != "Single Choice" &&
+              type != "Multiple Choice" &&
+              type != "Integer")) {
+        _showError("Question ${i + 1}: Select a valid question type.");
+        _scrollToQuestion(i);
+        return;
+      }
+
+      if (prompt.isEmpty) {
+        _showError("Question ${i + 1}: Question prompt cannot be empty.");
+        _scrollToQuestion(i);
+        return;
+      }
+
+      if (type == "Integer") {
+        if (answers.isEmpty || answers.first.toString().trim().isEmpty) {
+          _showError("Question ${i + 1}: Provide a correct integer answer.");
+          _scrollToQuestion(i);
+          return;
+        }
+      } else {
+        // Choice-based validation
+        final trimmedChoices = choices.map((c) => c.toString().trim()).toList();
+        final nonBlankChoices = trimmedChoices
+            .where((c) => c.isNotEmpty)
+            .toList();
+
+        if (nonBlankChoices.length < 2) {
+          _showError(
+            "Question ${i + 1}: Provide at least 2 non-blank choices.",
+          );
+          _scrollToQuestion(i);
+          return;
+        }
+
+        if (trimmedChoices.any((c) => c.isEmpty)) {
+          _showError("Question ${i + 1}: All choice fields must be filled.");
+          _scrollToQuestion(i);
+          return;
+        }
+
+        if (answers.isEmpty) {
+          _showError("Question ${i + 1}: Select at least one correct answer.");
+          _scrollToQuestion(i);
+          return;
+        }
+      }
+    }
+
     final markingScheme = FormDataHelpers.prepareMarkingScheme(
       markingType: markingType,
       globalCorrectController: _globalCorrectController,
@@ -540,6 +629,31 @@ class _QuizPageState extends State<QuizPage> {
         key!.currentContext!,
         duration: const Duration(milliseconds: 500),
       );
+  }
+
+  void _scrollToQuestion(int index) {
+    final key = _questionKeys[index];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 500),
+      );
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            msg,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: global.errorColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Future<void> _pickDateTime() async {

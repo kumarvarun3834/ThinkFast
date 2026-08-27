@@ -86,6 +86,7 @@
 - [ ] Optimizing AI Prompt Engineering for better quiz variety.
 - [ ] Improving error handling for network-edge cases during quiz submission.
 - [ ] Profile screen more fields to add
+- [x] **Deep Link Recovery:** Implemented browser-side bottom prompt to download the app if not installed.
 - [ ] **Infrastructure:** Flutter_Ai server-side configuration for model processing.
 
 ---

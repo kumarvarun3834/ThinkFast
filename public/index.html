@@ -51,6 +51,36 @@
         }
         .btn:hover { background-color: var(--primary-accent); transform: translateY(-2px); }
         .logo { width: 120px; height: 120px; margin-bottom: 1.5rem; }
+
+        /* Bottom Prompt Styles */
+        #download-prompt {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-color);
+            padding: 1rem 1.5rem;
+            display: none;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 2px solid var(--primary-accent);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .prompt-text { text-align: left; flex: 1; }
+        .prompt-text span { font-weight: bold; color: white; display: block; }
+        .prompt-text small { color: var(--label-color); font-size: 0.75rem; }
+        .prompt-btn {
+            background-color: var(--primary-accent);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -65,5 +95,20 @@
 
         <a href="https://thinkfast3834.web.app/home" class="btn" style="background-color: transparent; border: 1px solid var(--primary-accent); color: var(--primary-accent);">Visit Web Dashboard</a>
     </div>
+
+    <!-- Bottom Download Prompt -->
+    <div id="download-prompt">
+        <div class="prompt-text">
+            <span>Get the ThinkFast App</span>
+            <small>Unlock AI features and offline support.</small>
+        </div>
+        <a href="https://thinkfast3834.web.app/download/app.apk" class="prompt-btn">Download</a>
+    </div>
+
+    <script>
+        if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            document.getElementById('download-prompt').style.display = 'flex';
+        }
+    </script>
 </body>
 </html>

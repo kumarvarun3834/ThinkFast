@@ -27,12 +27,15 @@ class _QuizFormState extends State<QuizForm> {
   final TextEditingController _correctAnswerController =
       TextEditingController();
   final List<TextEditingController> _choiceControllers = [];
-  final TextEditingController _correctController =
-      TextEditingController(text: "4");
-  final TextEditingController _wrongController =
-      TextEditingController(text: "-1");
-  final TextEditingController _timerController =
-      TextEditingController(text: "0");
+  final TextEditingController _correctController = TextEditingController(
+    text: "4",
+  );
+  final TextEditingController _wrongController = TextEditingController(
+    text: "-1",
+  );
+  final TextEditingController _timerController = TextEditingController(
+    text: "0",
+  );
   Set<int> _selectedAnswers = {};
   String? _selectedValue;
   String? _selectedModule;
@@ -66,7 +69,8 @@ class _QuizFormState extends State<QuizForm> {
       _questionController.text = widget.formDataPart["question"] as String;
     }
     if (widget.formDataPart["description"] != null) {
-      _descriptionController.text = widget.formDataPart["description"] as String;
+      _descriptionController.text =
+          widget.formDataPart["description"] as String;
     }
 
     // Load existing type
@@ -88,7 +92,7 @@ class _QuizFormState extends State<QuizForm> {
     // Load existing answers
     if (widget.formDataPart["answers"] != null) {
       List answers = widget.formDataPart["answers"] as List;
-      
+
       if (_selectedValue == "Integer" && answers.isNotEmpty) {
         _correctAnswerController.text = answers.first.toString();
       } else {
@@ -110,7 +114,7 @@ class _QuizFormState extends State<QuizForm> {
   void _emitData() {
     final choices = _choiceControllers.map((c) => c.text.trim()).toList();
     List<String> answers;
-    
+
     if (_selectedValue == "Integer") {
       answers = [_correctAnswerController.text.trim()];
     } else {
@@ -166,14 +170,23 @@ class _QuizFormState extends State<QuizForm> {
             decoration: InputDecoration(
               labelText: "Choice ${index + 1}",
               labelStyle: const TextStyle(color: global.labelColor),
+              errorText: _choiceControllers[index].text.trim().isEmpty
+                  ? "Empty choice"
+                  : null,
               enabledBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: global.borderColor),
               ),
               focusedBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: global.primaryAccent),
               ),
+              errorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: global.errorColor),
+              ),
+              focusedErrorBorder: const OutlineInputBorder(
+                borderSide: BorderSide(color: global.errorColor, width: 2),
+              ),
             ),
-            onChanged: (_) => _emitData(),
+            onChanged: (_) => setState(() => _emitData()),
           ),
         ),
         IconButton(
@@ -200,7 +213,11 @@ class _QuizFormState extends State<QuizForm> {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> options = ["Multiple Choice", "Single Choice", "Integer"];
+    final List<String> options = [
+      "Multiple Choice",
+      "Single Choice",
+      "Integer",
+    ];
 
     return Material(
       color: global.cardColor,
@@ -249,8 +266,8 @@ class _QuizFormState extends State<QuizForm> {
               initialValue: widget.moduleOptions.contains(_selectedModule)
                   ? _selectedModule
                   : (widget.moduleOptions.isNotEmpty
-                      ? widget.moduleOptions.first
-                      : null),
+                        ? widget.moduleOptions.first
+                        : null),
               decoration: const InputDecoration(
                 labelText: "Subject / Module Name",
                 labelStyle: TextStyle(color: global.labelColor),
@@ -279,17 +296,26 @@ class _QuizFormState extends State<QuizForm> {
               controller: _questionController,
               style: const TextStyle(color: global.valueColor),
               maxLines: null,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: "Question Prompt",
-                labelStyle: TextStyle(color: global.labelColor),
-                enabledBorder: OutlineInputBorder(
+                labelStyle: const TextStyle(color: global.labelColor),
+                errorText: _questionController.text.trim().isEmpty
+                    ? "Question prompt is required"
+                    : null,
+                enabledBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: global.borderColor),
                 ),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: global.primaryAccent),
                 ),
+                errorBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: global.errorColor),
+                ),
+                focusedErrorBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: global.errorColor, width: 2),
+                ),
               ),
-              onChanged: (_) => _emitData(),
+              onChanged: (_) => setState(() => _emitData()),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -363,19 +389,40 @@ class _QuizFormState extends State<QuizForm> {
                 controller: _correctAnswerController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: global.valueColor),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Correct Integer Value",
-                  labelStyle: TextStyle(color: global.labelColor),
-                  enabledBorder: OutlineInputBorder(
+                  labelStyle: const TextStyle(color: global.labelColor),
+                  errorText: _correctAnswerController.text.trim().isEmpty
+                      ? "Integer answer is required"
+                      : null,
+                  enabledBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: global.borderColor),
                   ),
-                  focusedBorder: OutlineInputBorder(
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: global.primaryAccent),
                   ),
+                  errorBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: global.errorColor),
+                  ),
+                  focusedErrorBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: global.errorColor, width: 2),
+                  ),
                 ),
-                onChanged: (_) => _emitData(),
+                onChanged: (_) => setState(() => _emitData()),
               )
             else ...[
+              if (_choiceControllers.length < 2)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Text(
+                    "⚠️ Provide at least 2 options",
+                    style: TextStyle(
+                      color: global.errorColor.withValues(alpha: 0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               Column(children: optionsData()),
               const SizedBox(height: 12),
               if (_selectedAnswers.isEmpty)
@@ -393,7 +440,10 @@ class _QuizFormState extends State<QuizForm> {
                 borderRadius: BorderRadius.circular(8),
                 onTap: _addChoice,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

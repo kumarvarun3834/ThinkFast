@@ -33,6 +33,7 @@ bool isReviewMode = false;
 int reviewInitialIndex = 0;
 Map<String, List<String>> correctAnswers = {};
 Map<String, String> solutions = {};
+Map<String, String> personalizedSolutions = {}; // AI feedback per question
 String id = "";
 String currentAttemptId = "";
 Map<String, dynamic>? currentUserProfile;
@@ -66,4 +67,5 @@ const Color infoColor = Colors.blueAccent;
 
 // AI Backend Configuration
 const String aiBackendUrl = "https://thinkfast.ai.studio";
-const String projectContext = "ThinkFast: A secure, AI-powered quiz platform with professional-grade delegated management and real-time administrative control.";
+const String projectContext =
+    "ThinkFast: A secure, AI-powered quiz platform with professional-grade delegated management and real-time administrative control.";

@@ -1712,6 +1712,7 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.isReviewMode = false;
                 global.correctAnswers = {};
                 global.solutions = {};
+                global.personalizedSolutions = {};
 
                 // Mark as active quiz with expiry (Duration + 5 mins buffer)
                 final int quizDurationSeconds = global.time;

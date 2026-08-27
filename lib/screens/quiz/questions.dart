@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,7 +10,6 @@ import 'package:thinkfast/utils/global.dart' as global;
 
 // Conditional import to prevent Android build errors
 import 'dart:html' if (dart.library.io) 'dart:io' as html;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Questions extends StatefulWidget {
   const Questions({super.key});
@@ -215,7 +215,6 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
     if (kIsWeb) {
       // 📺 Auto Fullscreen on Start
-      // Must be triggered by user gesture (this screen is pushed on button click)
       try {
         html.document.documentElement?.requestFullscreen();
       } catch (e) {
@@ -223,7 +222,6 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       }
 
       // 🕵️ Web Anti-Cheat: Detect Tab Switching / Minimizing
-      // WidgetsBindingObserver covers some, but onBlur is more aggressive
       html.window.onBlur.listen((event) {
         if (!_isSubmitted && !global.isReviewMode && global.time > 0) {
           debugPrint("Anti-Cheat: Tab blurred. Submitting...");
@@ -1286,6 +1284,11 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     );
   }
 
+  void _scrollToQuestion(int index) {
+    // In current implementation, horizontal list is already visible.
+    // If needed for larger vertical screens, can add scroll controller.
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -1399,8 +1402,6 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        // Allow immediate exit and state save (submit) for "any other location"
-        // defined here as Unlimited Time sessions or Admin previews.
         if (global.time == 0 || global.isAdmin) {
           _submitAndFinish();
           return;
@@ -1711,413 +1712,503 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
             },
           ),
         ),
-        body: Column(
-          children: [
-            // Module Selector
-            if (!global.completeRandomShuffle && modules.length > 1)
-              Container(
-                height: 50,
-                margin: const EdgeInsets.only(top: 10),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: global.isReviewMode
-                      ? modules.length + 1
-                      : modules.length,
-                  itemBuilder: (context, index) {
-                    if (global.isReviewMode && index == 0) {
-                      final bool isSelected = _activeModule == "All";
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: const Text(
-                            "ALL",
-                            style: TextStyle(fontSize: 10),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                // Module Selector
+                if (!global.completeRandomShuffle && modules.length > 1)
+                  Container(
+                    height: 50,
+                    margin: const EdgeInsets.only(top: 10),
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: global.isReviewMode
+                          ? modules.length + 1
+                          : modules.length,
+                      itemBuilder: (context, index) {
+                        if (global.isReviewMode && index == 0) {
+                          final bool isSelected = _activeModule == "All";
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: const Text(
+                                "ALL",
+                                style: TextStyle(fontSize: 10),
+                              ),
+                              selected: isSelected,
+                              selectedColor: global.primaryAccent,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    _activeModule = "All";
+                                  });
+                                }
+                              },
+                            ),
+                          );
+                        }
+
+                        final m = global.isReviewMode
+                            ? modules[index - 1]
+                            : modules[index];
+                        final bool isSelected = _activeModule == m;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ChoiceChip(
+                            label: Text(
+                              m.toUpperCase(),
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                            selected: isSelected,
+                            selectedColor: global.primaryAccent,
+                            onSelected: (selected) {
+                              if (selected) {
+                                if (global.disableModuleSwitchingUntilTimeout &&
+                                    _timeLeft.inSeconds > 0 &&
+                                    !global.isReviewMode) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Module switching disabled until timeout",
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                setState(() {
+                                  _activeModule = m;
+                                  if (!global.isReviewMode) {
+                                    // Jump to first question of this module during quiz
+                                    i = global.quizData.indexWhere(
+                                      (q) =>
+                                          (q['subject']?.toString() ??
+                                              'General') ==
+                                          m,
+                                    );
+                                    switchState();
+                                  }
+                                });
+                              }
+                            },
                           ),
-                          selected: isSelected,
-                          selectedColor: global.primaryAccent,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() {
-                                _activeModule = "All";
-                              });
-                            }
-                          },
+                        );
+                      },
+                    ),
+                  ),
+
+                // Horizontal Navigation dots (Filtered by module or sequence)
+                Container(
+                  height: 60,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: (global.isReviewMode && _activeModule == "All")
+                        ? _displaySequence.length
+                        : moduleIndices.length,
+                    itemBuilder: (context, index) {
+                      int globalIndex =
+                          (global.isReviewMode && _activeModule == "All")
+                          ? _displaySequence[index]
+                          : moduleIndices[index];
+                      return GestureDetector(
+                        onTap:
+                            (global.perQuestionTime > 0 &&
+                                globalIndex < i &&
+                                !global.isReviewMode)
+                            ? null
+                            : () {
+                                setState(() {
+                                  i = globalIndex;
+                                  switchState();
+                                });
+                              },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          decoration: _getQuestionDecoration(
+                            globalIndex,
+                            isCurrent: i == globalIndex,
+                          ),
+                          child: Center(
+                            child: Text(
+                              _getDisplayNumber(globalIndex),
+                              style: TextStyle(
+                                color:
+                                    (global.perQuestionTime > 0 &&
+                                        globalIndex < i &&
+                                        !global.isReviewMode)
+                                    ? Colors.white.withValues(alpha: 0.3)
+                                    : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
                         ),
                       );
-                    }
-
-                    final m = global.isReviewMode
-                        ? modules[index - 1]
-                        : modules[index];
-                    final bool isSelected = _activeModule == m;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(
-                          m.toUpperCase(),
-                          style: const TextStyle(fontSize: 10),
-                        ),
-                        selected: isSelected,
-                        selectedColor: global.primaryAccent,
-                        onSelected: (selected) {
-                          if (selected) {
-                            if (global.disableModuleSwitchingUntilTimeout &&
-                                _timeLeft.inSeconds > 0 &&
-                                !global.isReviewMode) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Module switching disabled until timeout",
-                                  ),
-                                ),
-                              );
-                              return;
-                            }
-                            setState(() {
-                              _activeModule = m;
-                              if (!global.isReviewMode) {
-                                // Jump to first question of this module during quiz
-                                i = global.quizData.indexWhere(
-                                  (q) =>
-                                      (q['subject']?.toString() ?? 'General') ==
-                                      m,
-                                );
-                                switchState();
-                              }
-                            });
-                          }
-                        },
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
 
-            // Horizontal Navigation dots (Filtered by module or sequence)
-            Container(
-              height: 60,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: (global.isReviewMode && _activeModule == "All")
-                    ? _displaySequence.length
-                    : moduleIndices.length,
-                itemBuilder: (context, index) {
-                  int globalIndex =
-                      (global.isReviewMode && _activeModule == "All")
-                      ? _displaySequence[index]
-                      : moduleIndices[index];
-                  return GestureDetector(
-                    onTap:
-                        (global.perQuestionTime > 0 &&
-                            globalIndex < i &&
-                            !global.isReviewMode)
-                        ? null
-                        : () {
-                            setState(() {
-                              i = globalIndex;
-                              switchState();
-                            });
-                          },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: _getQuestionDecoration(
-                        globalIndex,
-                        isCurrent: i == globalIndex,
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getDisplayNumber(globalIndex),
-                          style: TextStyle(
-                            color:
-                                (global.perQuestionTime > 0 &&
-                                    globalIndex < i &&
-                                    !global.isReviewMode)
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Card(
-                  color:
-                      (global.isReviewMode &&
-                          _getQuestionColor(i) != Colors.transparent)
-                      ? _getQuestionColor(i).withValues(alpha: 0.05)
-                      : global.cardColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Card(
                       color:
                           (global.isReviewMode &&
                               _getQuestionColor(i) != Colors.transparent)
-                          ? _getQuestionColor(i).withValues(alpha: 0.5)
-                          : global.borderColor,
-                      width:
-                          (global.isReviewMode &&
-                              _getQuestionColor(i) != Colors.transparent)
-                          ? 2
-                          : 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          ? _getQuestionColor(i).withValues(alpha: 0.05)
+                          : global.cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color:
+                              (global.isReviewMode &&
+                                  _getQuestionColor(i) != Colors.transparent)
+                              ? _getQuestionColor(i).withValues(alpha: 0.5)
+                              : global.borderColor,
+                          width:
+                              (global.isReviewMode &&
+                                  _getQuestionColor(i) != Colors.transparent)
+                              ? 2
+                              : 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: global.labelColor.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    "Q${_getDisplayNumber(i)}",
-                                    style: GoogleFonts.poppins(
-                                      color: global.labelColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: global.primaryAccent.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    (question['type'] ?? 'Single Choice')
-                                        .toString()
-                                        .toUpperCase(),
-                                    style: GoogleFonts.poppins(
-                                      color: global.primaryAccent,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                if (!global.isReviewMode &&
-                                    global.attemptLimits['type'] != 'none')
-                                  _buildLimitStatusIndicatorAtIndex(i),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(
-                                    Icons.report_gmailerrorred_rounded,
-                                    color: global.errorColor,
-                                    size: 20,
-                                  ),
-                                  onPressed: () => _showReportDialog(i),
-                                  tooltip: "Report Question",
-                                ),
-                              ],
-                            ),
-                            if (global.isReviewMode)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color:
-                                      (_getMarksForQuestion(i) > 0
-                                              ? global.successColor
-                                              : (_getMarksForQuestion(i) < 0
-                                                    ? global.errorColor
-                                                    : global.labelColor))
-                                          .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  "${_getMarksForQuestion(i) > 0 ? '+' : ''}${_getMarksForQuestion(i)} Marks",
-                                  style: GoogleFonts.poppins(
-                                    color: _getMarksForQuestion(i) > 0
-                                        ? global.successColor
-                                        : (_getMarksForQuestion(i) < 0
-                                              ? global.errorColor
-                                              : global.labelColor),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "${(question["Q"] as Map?)?['text'] ?? ""}",
-                          style: GoogleFonts.poppins(
-                            color: global.valueColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ...buttonsData(i),
-                        if (global.isReviewMode &&
-                            global.solutions.containsKey(
-                              question['uid']?.toString() ?? "",
-                            ) &&
-                            global.solutions[question['uid']?.toString()]
-                                    ?.trim()
-                                    .isNotEmpty ==
-                                true)
-                          Container(
-                            margin: const EdgeInsets.only(top: 20),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: global.bgColor.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: global.primaryAccent.withValues(
-                                  alpha: 0.3,
-                                ),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.lightbulb_outline,
-                                      color: global.primaryAccent,
-                                      size: 18,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: global.labelColor.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        "Q${_getDisplayNumber(i)}",
+                                        style: GoogleFonts.poppins(
+                                          color: global.labelColor,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      "SOLUTION",
-                                      style: GoogleFonts.poppins(
-                                        color: global.primaryAccent,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: global.primaryAccent.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        (question['type'] ?? 'Single Choice')
+                                            .toString()
+                                            .toUpperCase(),
+                                        style: GoogleFonts.poppins(
+                                          color: global.primaryAccent,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  global.solutions[question['uid']
-                                          ?.toString()] ??
-                                      "",
-                                  style: GoogleFonts.poppins(
-                                    color: global.valueColor.withValues(
-                                      alpha: 0.8,
+                                Row(
+                                  children: [
+                                    if (!global.isReviewMode &&
+                                        global.attemptLimits['type'] != 'none')
+                                      _buildLimitStatusIndicatorAtIndex(i),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(
+                                        Icons.report_gmailerrorred_rounded,
+                                        color: global.errorColor,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _showReportDialog(i),
+                                      tooltip: "Report Question",
                                     ),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.normal,
-                                  ),
+                                  ],
                                 ),
+                                if (global.isReviewMode)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (_getMarksForQuestion(i) > 0
+                                                  ? global.successColor
+                                                  : (_getMarksForQuestion(i) < 0
+                                                        ? global.errorColor
+                                                        : global.labelColor))
+                                              .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      "${_getMarksForQuestion(i) > 0 ? '+' : ''}${_getMarksForQuestion(i)} Marks",
+                                      style: GoogleFonts.poppins(
+                                        color: _getMarksForQuestion(i) > 0
+                                            ? global.successColor
+                                            : (_getMarksForQuestion(i) < 0
+                                                  ? global.errorColor
+                                                  : global.labelColor),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
-                          ),
-                        if (!global.isReviewMode) ...[
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    side: BorderSide(
-                                      color: global.quizResult[i][4] == true
-                                          ? global.reviewColor
-                                          : global.borderColor,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    foregroundColor:
-                                        global.quizResult[i][4] == true
-                                        ? global.reviewColor
-                                        : global.labelColor,
-                                  ),
-                                  onPressed: () => setState(() {
-                                    global.quizResult[i][4] =
-                                        !(global.quizResult[i][4] as bool);
-                                  }),
-                                  icon: Icon(
-                                    global.quizResult[i][4] == true
-                                        ? Icons.bookmark
-                                        : Icons.bookmark_border,
-                                    size: 18,
-                                  ),
-                                  label: const Text(
-                                    "REVIEW",
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
+                            const SizedBox(height: 16),
+                            Text(
+                              "${(question["Q"] as Map?)?['text'] ?? ""}",
+                              style: GoogleFonts.poppins(
+                                color: global.valueColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: global.errorColor,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                            ),
+                            const SizedBox(height: 20),
+                            ...buttonsData(i),
+                            // --- Review Mode Solutions/Explanations ---
+                            if (global.isReviewMode) ...[
+                              // 1. Personalized AI Analysis (Specific to User's Attempt)
+                              if (global.personalizedSolutions.containsKey(
+                                    question['uid']?.toString() ?? "",
+                                  ) &&
+                                  (global
+                                              .personalizedSolutions[question['uid']
+                                                  ?.toString()]
+                                              ?.trim() ??
+                                          "")
+                                      .isNotEmpty)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 20),
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.purpleAccent.withValues(
+                                        alpha: 0.3,
+                                      ),
                                     ),
                                   ),
-                                  onPressed: () => setState(() {
-                                    global.quizResult[i][2] = <String>[];
-                                    if (currentData["type"] == "Integer") {
-                                      _integerController.clear();
-                                    }
-                                  }),
-                                  icon: const Icon(
-                                    Icons.clear_rounded,
-                                    size: 18,
-                                  ),
-                                  label: const Text(
-                                    "CLEAR",
-                                    style: TextStyle(fontSize: 12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.auto_awesome_rounded,
+                                            color: Colors.purpleAccent,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            "PERSONALIZED AI FEEDBACK",
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.purpleAccent,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        global.personalizedSolutions[question['uid']
+                                                ?.toString()] ??
+                                            "",
+                                        style: GoogleFonts.poppins(
+                                          color: global.valueColor,
+                                          fontSize: 13,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+
+                              // 2. Examiner's Solution / General Description
+                              if (global.solutions.containsKey(
+                                    question['uid']?.toString() ?? "",
+                                  ) ||
+                                  (question['description']?.toString() ?? "")
+                                      .isNotEmpty ||
+                                  (question['explanation']?.toString() ?? "")
+                                      .isNotEmpty)
+                                Builder(
+                                  builder: (context) {
+                                    final String? examinerSolution =
+                                        global.solutions[question['uid']
+                                            ?.toString()] ??
+                                        question['description']?.toString() ??
+                                        question['explanation']?.toString();
+
+                                    if (examinerSolution == null ||
+                                        examinerSolution.trim().isEmpty) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return Container(
+                                      margin: const EdgeInsets.only(top: 12),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: global.bgColor.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: global.primaryAccent
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.lightbulb_outline,
+                                                color: global.primaryAccent,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                "EXAMINER SOLUTION",
+                                                style: GoogleFonts.poppins(
+                                                  color: global.primaryAccent,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  letterSpacing: 1.1,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            examinerSolution,
+                                            style: GoogleFonts.poppins(
+                                              color: global.valueColor
+                                                  .withValues(alpha: 0.8),
+                                              fontSize: 13,
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
+                            if (!global.isReviewMode) ...[
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                          color: global.quizResult[i][4] == true
+                                              ? global.reviewColor
+                                              : global.borderColor,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        foregroundColor:
+                                            global.quizResult[i][4] == true
+                                            ? global.reviewColor
+                                            : global.labelColor,
+                                      ),
+                                      onPressed: () => setState(() {
+                                        global.quizResult[i][4] =
+                                            !(global.quizResult[i][4] as bool);
+                                      }),
+                                      icon: Icon(
+                                        global.quizResult[i][4] == true
+                                            ? Icons.bookmark
+                                            : Icons.bookmark_border,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        "REVIEW",
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: global.errorColor,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () => setState(() {
+                                        global.quizResult[i][2] = <String>[];
+                                        if (currentData["type"] == "Integer") {
+                                          _integerController.clear();
+                                        }
+                                      }),
+                                      icon: const Icon(
+                                        Icons.clear_rounded,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        "CLEAR",
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                        ],
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
         bottomNavigationBar: Container(
           padding: EdgeInsets.fromLTRB(
