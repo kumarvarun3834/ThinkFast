@@ -47,10 +47,12 @@ Future<void> main() async {
 
   // Initialize Firebase App Check
   await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode
-        ? AndroidProvider.debug
-        : AndroidProvider.playIntegrity,
-    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+    providerAndroid: kDebugMode
+        ? const AndroidDebugProvider()
+        : const AndroidPlayIntegrityProvider(),
+    providerApple: kDebugMode
+        ? const AppleDebugProvider()
+        : const AppleDeviceCheckProvider(),
     providerWeb: ReCaptchaV3Provider(
       '6LdII5stAAAAADFf-Tm76q4E70ZopHbWStxVJCJl',
     ),
