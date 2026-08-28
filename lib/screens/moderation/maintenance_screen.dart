@@ -19,7 +19,7 @@ class MaintenanceScreen extends StatelessWidget {
       backgroundColor: global.bgColor,
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
+          constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(

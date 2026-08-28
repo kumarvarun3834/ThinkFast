@@ -410,18 +410,13 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           ],
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildBannedUsersTab(),
-              _buildDeletedResponsesTab(),
-              _buildParticipantsTab(),
-            ],
-          ),
-        ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildBannedUsersTab(),
+          _buildDeletedResponsesTab(),
+          _buildParticipantsTab(),
+        ],
       ),
     );
   }
@@ -441,109 +436,116 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           );
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).padding.bottom + 40,
-          ),
-          itemCount: participants.length,
-          itemBuilder: (context, index) {
-            final user = participants[index];
-            final String id = user['id'];
-            final bool isSelected = _selectedIds.contains(id);
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView.builder(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 40,
+              ),
+              itemCount: participants.length,
+              itemBuilder: (context, index) {
+                final user = participants[index];
+                final String id = user['id'];
+                final bool isSelected = _selectedIds.contains(id);
 
-            return Container(
-              key: ValueKey(id),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? _primaryAccent : _borderColor,
-                ),
-              ),
-              child: Material(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
-                  leading: Stack(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: _borderColor,
-                        backgroundImage: user['userPhoto'] != null
-                            ? NetworkImage(user['userPhoto'])
-                            : null,
-                        child: user['userPhoto'] == null
-                            ? Icon(Icons.person, color: _labelColor)
-                            : null,
-                      ),
-                      if (isSelected)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_circle,
-                              color: global.primaryAccent,
-                              size: 14,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  title: Text(
-                    user['userName'] ?? "Unknown User",
-                    style: GoogleFonts.poppins(
-                      color: _valueColor,
-                      fontWeight: FontWeight.bold,
+                return Container(
+                  key: ValueKey(id),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? _primaryAccent : _borderColor,
                     ),
                   ),
-                  subtitle: Text(
-                    "UID: ${user['userId']}",
-                    style: GoogleFonts.poppins(
-                      color: _labelColor,
-                      fontSize: 10,
-                    ),
-                  ),
-                  trailing: _isSelectionMode
-                      ? null
-                      : IconButton(
-                          icon: Icon(
-                            Icons.remove_circle_outline,
-                            color: _hasPerm('can_manage_collaborators')
-                                ? global.errorColor
-                                : global.labelColor.withValues(alpha: 0.3),
+                  child: Material(
+                    color: isSelected
+                        ? _primaryAccent.withValues(alpha: 0.2)
+                        : _cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      onLongPress: () => _toggleSelection(id),
+                      onTap: _isSelectionMode
+                          ? () => _toggleSelection(id)
+                          : null,
+                      leading: Stack(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: _borderColor,
+                            backgroundImage: user['userPhoto'] != null
+                                ? NetworkImage(user['userPhoto'])
+                                : null,
+                            child: user['userPhoto'] == null
+                                ? Icon(Icons.person, color: _labelColor)
+                                : null,
                           ),
-                          onPressed: () {
-                            if (_hasPerm('can_manage_collaborators')) {
-                              _confirmRevokeAccess(user);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Access Denied: Caller does not have permission to perform this action.",
-                                  ),
-                                  backgroundColor: global.errorColor,
+                          if (isSelected)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
                                 ),
-                              );
-                            }
-                          },
+                                child: const Icon(
+                                  Icons.check_circle,
+                                  color: global.primaryAccent,
+                                  size: 14,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      title: Text(
+                        user['userName'] ?? "Unknown User",
+                        style: GoogleFonts.poppins(
+                          color: _valueColor,
+                          fontWeight: FontWeight.bold,
                         ),
-                ),
-              ),
-            );
-          },
+                      ),
+                      subtitle: Text(
+                        "UID: ${user['userId']}",
+                        style: GoogleFonts.poppins(
+                          color: _labelColor,
+                          fontSize: 10,
+                        ),
+                      ),
+                      trailing: _isSelectionMode
+                          ? null
+                          : IconButton(
+                              icon: Icon(
+                                Icons.remove_circle_outline,
+                                color: _hasPerm('can_manage_collaborators')
+                                    ? global.errorColor
+                                    : global.labelColor.withValues(alpha: 0.3),
+                              ),
+                              onPressed: () {
+                                if (_hasPerm('can_manage_collaborators')) {
+                                  _confirmRevokeAccess(user);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Access Denied: Caller does not have permission to perform this action.",
+                                      ),
+                                      backgroundColor: global.errorColor,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -606,141 +608,148 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
           return _buildEmptyState(Icons.block_rounded, "No blocked users");
         }
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).padding.bottom + 40,
-          ),
-          itemCount: bannedUsers.length,
-          itemBuilder: (context, index) {
-            final user = bannedUsers[index];
-            final String id = user['id'];
-            final bool isSelected = _selectedIds.contains(id);
-
-            return Container(
-              key: ValueKey(id),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? _primaryAccent : _borderColor,
-                ),
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView.builder(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 40,
               ),
-              child: Material(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode ? () => _toggleSelection(id) : null,
-                  leading: Stack(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: _borderColor,
-                        backgroundImage: user['userPhoto'] != null
-                            ? NetworkImage(user['userPhoto'])
-                            : null,
-                        child: user['userPhoto'] == null
-                            ? Icon(Icons.person, color: _labelColor)
-                            : null,
-                      ),
-                      if (isSelected)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_circle,
-                              color: global.primaryAccent,
-                              size: 14,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  title: Text(
-                    user['userName'] ?? "Unknown User",
-                    style: GoogleFonts.poppins(
-                      color: _valueColor,
-                      fontWeight: FontWeight.bold,
+              itemCount: bannedUsers.length,
+              itemBuilder: (context, index) {
+                final user = bannedUsers[index];
+                final String id = user['id'];
+                final bool isSelected = _selectedIds.contains(id);
+
+                return Container(
+                  key: ValueKey(id),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? _primaryAccent : _borderColor,
                     ),
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "UID: ${user['userId']}",
-                        style: GoogleFonts.poppins(
-                          color: _labelColor,
-                          fontSize: 10,
-                        ),
-                      ),
-                      Text(
-                        "Reason: ${user['reason'] ?? 'No reason'}",
-                        style: GoogleFonts.poppins(
-                          color: global.errorColor,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  trailing: _isSelectionMode
-                      ? null
-                      : IconButton(
-                          icon: Icon(
-                            Icons.person_add_rounded,
-                            color:
-                                (_hasPerm('can_ban_users') ||
-                                        _hasPerm('canModerate')) &&
-                                    (_isAdmin ||
-                                        (global.featureFlags?['management_features'] ??
-                                            true))
-                                ? global.successColor
-                                : global.labelColor.withValues(alpha: 0.3),
+                  child: Material(
+                    color: isSelected
+                        ? _primaryAccent.withValues(alpha: 0.2)
+                        : _cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      onLongPress: () => _toggleSelection(id),
+                      onTap: _isSelectionMode
+                          ? () => _toggleSelection(id)
+                          : null,
+                      leading: Stack(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: _borderColor,
+                            backgroundImage: user['userPhoto'] != null
+                                ? NetworkImage(user['userPhoto'])
+                                : null,
+                            child: user['userPhoto'] == null
+                                ? Icon(Icons.person, color: _labelColor)
+                                : null,
                           ),
-                          onPressed: () {
-                            if (!(_isAdmin ||
-                                (global.featureFlags?['management_features'] ??
-                                    true))) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Access Denied: Moderation features are disabled.",
-                                  ),
-                                  backgroundColor: global.errorColor,
+                          if (isSelected)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
                                 ),
-                              );
-                              return;
-                            }
-                            if (_hasPerm('can_ban_users') ||
-                                _hasPerm('canModerate')) {
-                              _confirmUnban(user);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Access Denied: Caller does not have permission to perform this action.",
-                                  ),
-                                  backgroundColor: global.errorColor,
+                                child: const Icon(
+                                  Icons.check_circle,
+                                  color: global.primaryAccent,
+                                  size: 14,
                                 ),
-                              );
-                            }
-                          },
-                          tooltip: "Unblock User",
+                              ),
+                            ),
+                        ],
+                      ),
+                      title: Text(
+                        user['userName'] ?? "Unknown User",
+                        style: GoogleFonts.poppins(
+                          color: _valueColor,
+                          fontWeight: FontWeight.bold,
                         ),
-                ),
-              ),
-            );
-          },
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "UID: ${user['userId']}",
+                            style: GoogleFonts.poppins(
+                              color: _labelColor,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            "Reason: ${user['reason'] ?? 'No reason'}",
+                            style: GoogleFonts.poppins(
+                              color: global.errorColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: _isSelectionMode
+                          ? null
+                          : IconButton(
+                              icon: Icon(
+                                Icons.person_add_rounded,
+                                color:
+                                    (_hasPerm('can_ban_users') ||
+                                            _hasPerm('canModerate')) &&
+                                        (_isAdmin ||
+                                            (global.featureFlags?['management_features'] ??
+                                                true))
+                                    ? global.successColor
+                                    : global.labelColor.withValues(alpha: 0.3),
+                              ),
+                              onPressed: () {
+                                if (!(_isAdmin ||
+                                    (global.featureFlags?['management_features'] ??
+                                        true))) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Access Denied: Moderation features are disabled.",
+                                      ),
+                                      backgroundColor: global.errorColor,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_hasPerm('can_ban_users') ||
+                                    _hasPerm('canModerate')) {
+                                  _confirmUnban(user);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Access Denied: Caller does not have permission to perform this action.",
+                                      ),
+                                      backgroundColor: global.errorColor,
+                                    ),
+                                  );
+                                }
+                              },
+                              tooltip: "Unblock User",
+                            ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -761,136 +770,142 @@ class _QuizModerationScreenState extends State<QuizModerationScreen>
             "No deleted responses found",
           );
 
-        return ListView.builder(
-          padding: EdgeInsets.fromLTRB(
-            16,
-            16,
-            16,
-            MediaQuery.of(context).padding.bottom + 40,
-          ),
-          itemCount: responses.length,
-          itemBuilder: (context, index) {
-            final r = responses[index];
-            final String id = r['id'];
-            final bool isSelected = _selectedIds.contains(id);
-            final actor = r['deletedByType'] ?? 'Admin';
-
-            return Container(
-              key: ValueKey(id),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? _primaryAccent : _borderColor,
-                ),
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: ListView.builder(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 40,
               ),
-              child: Material(
-                color: isSelected
-                    ? _primaryAccent.withValues(alpha: 0.2)
-                    : _cardColor,
-                borderRadius: BorderRadius.circular(12),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  onLongPress: () => _toggleSelection(id),
-                  onTap: _isSelectionMode
-                      ? () => _toggleSelection(id)
-                      : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ResultScreen(
-                              quizId: r['quizId'],
-                              attemptAnswers:
-                                  r['answers'] as Map<String, dynamic>,
-                              attemptReviewItems:
-                                  r['reviewItems'] as List<dynamic>?,
-                              attemptQuestionOrder:
-                                  r['questionOrder'] as List<dynamic>?,
-                              isDeleted: true,
-                            ),
-                          ),
-                        ),
-                  title: Text(
-                    "User: ${r['userId']}",
-                    style: GoogleFonts.poppins(
-                      color: _valueColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+              itemCount: responses.length,
+              itemBuilder: (context, index) {
+                final r = responses[index];
+                final String id = r['id'];
+                final bool isSelected = _selectedIds.contains(id);
+                final actor = r['deletedByType'] ?? 'Admin';
+
+                return Container(
+                  key: ValueKey(id),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? _primaryAccent : _borderColor,
                     ),
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        "Deleted By: ${actor.toString().toUpperCase()}",
-                        style: const TextStyle(
-                          color: global.errorColor,
-                          fontSize: 11,
+                  child: Material(
+                    color: isSelected
+                        ? _primaryAccent.withValues(alpha: 0.2)
+                        : _cardColor,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      onLongPress: () => _toggleSelection(id),
+                      onTap: _isSelectionMode
+                          ? () => _toggleSelection(id)
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResultScreen(
+                                  quizId: r['quizId'],
+                                  attemptAnswers:
+                                      r['answers'] as Map<String, dynamic>,
+                                  attemptReviewItems:
+                                      r['reviewItems'] as List<dynamic>?,
+                                  attemptQuestionOrder:
+                                      r['questionOrder'] as List<dynamic>?,
+                                  isDeleted: true,
+                                ),
+                              ),
+                            ),
+                      title: Text(
+                        "User: ${r['userId']}",
+                        style: GoogleFonts.poppins(
+                          color: _valueColor,
                           fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
-                      Text(
-                        "Reason: ${r['deleteReason'] ?? 'N/A'}",
-                        style: TextStyle(color: _labelColor, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                  trailing: _isSelectionMode
-                      ? null
-                      : IconButton(
-                          icon: Icon(
-                            Icons.chevron_right,
-                            color:
-                                _hasPerm('canModerate') &&
-                                    (_isAdmin ||
-                                        (global.featureFlags?['management_features'] ??
-                                            true))
-                                ? global.errorColor
-                                : global.labelColor.withValues(alpha: 0.3),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text(
+                            "Deleted By: ${actor.toString().toUpperCase()}",
+                            style: const TextStyle(
+                              color: global.errorColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          onPressed: () {
-                            if (!(_isAdmin ||
-                                (global.featureFlags?['management_features'] ??
-                                    true))) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Access Denied: Moderation features are disabled.",
-                                  ),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
-                              return;
-                            }
-                            if (_hasPerm('canModerate')) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ResultScreen(
-                                    quizId: r['quizId'],
-                                    attemptAnswers:
-                                        r['answers'] as Map<String, dynamic>,
-                                    attemptReviewItems:
-                                        r['reviewItems'] as List<dynamic>?,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Access Denied: Caller does not have permission to perform this action.",
-                                  ),
-                                  backgroundColor: global.errorColor,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                ),
-              ),
-            );
-          },
+                          Text(
+                            "Reason: ${r['deleteReason'] ?? 'N/A'}",
+                            style: TextStyle(color: _labelColor, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      trailing: _isSelectionMode
+                          ? null
+                          : IconButton(
+                              icon: Icon(
+                                Icons.chevron_right,
+                                color:
+                                    _hasPerm('canModerate') &&
+                                        (_isAdmin ||
+                                            (global.featureFlags?['management_features'] ??
+                                                true))
+                                    ? global.errorColor
+                                    : global.labelColor.withValues(alpha: 0.3),
+                              ),
+                              onPressed: () {
+                                if (!(_isAdmin ||
+                                    (global.featureFlags?['management_features'] ??
+                                        true))) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Access Denied: Moderation features are disabled.",
+                                      ),
+                                      backgroundColor: global.errorColor,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (_hasPerm('canModerate')) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ResultScreen(
+                                        quizId: r['quizId'],
+                                        attemptAnswers:
+                                            r['answers']
+                                                as Map<String, dynamic>,
+                                        attemptReviewItems:
+                                            r['reviewItems'] as List<dynamic>?,
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Access Denied: Caller does not have permission to perform this action.",
+                                      ),
+                                      backgroundColor: global.errorColor,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         );
       },
     );

@@ -313,6 +313,33 @@ class AuthService {
     }
   }
 
+  /// ---------------- REAUTHENTICATE ----------------
+  Future<void> reauthenticate(String email, String password) async {
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      await _auth.currentUser?.reauthenticateWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "reauth_failed";
+    }
+  }
+
+  /// ---------------- UPDATE EMAIL ----------------
+  Future<void> updateEmail(String newEmail) async {
+    try {
+      // Modern flow: Sends verification to new email, updates once verified
+      await _auth.currentUser?.verifyBeforeUpdateEmail(newEmail);
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "update_email_failed";
+    }
+  }
+
   /// ---------------- LOGOUT ----------------
   Future<void> logout() async {
     try {

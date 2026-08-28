@@ -97,6 +97,30 @@ class UserService {
 
     await _users.doc(uid).set(updates, SetOptions(merge: true));
 
+    // --- Sync Name Change to Owned Quizzes (Delayed to prevent rapid DB writes) ---
+    if (name != null) {
+      // Fire and forget the delayed task
+      Future.delayed(const Duration(minutes: 5), () async {
+        try {
+          final quizzesSnapshot = await FirebaseFirestore.instance
+              .collection('quizzes')
+              .where('creatorId', isEqualTo: uid)
+              .get();
+
+          if (quizzesSnapshot.docs.isNotEmpty) {
+            final WriteBatch batch = FirebaseFirestore.instance.batch();
+            for (var doc in quizzesSnapshot.docs) {
+              batch.update(doc.reference, {'user': name});
+            }
+            await batch.commit();
+            debugPrint("Delayed name sync completed for quizzes of $uid");
+          }
+        } catch (e) {
+          debugPrint("Error in delayed name sync: $e");
+        }
+      });
+    }
+
     await AdminService().logAction(
       actorId: uid,
       action: 'update_profile',

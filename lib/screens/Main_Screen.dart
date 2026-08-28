@@ -11,6 +11,8 @@ import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 
+import '../test_quiz/timer_library.dart';
+
 class MainScreen extends StatefulWidget {
   final User? creator;
   final bool showMyQuizzes;
@@ -491,8 +493,9 @@ class _MainScreenState extends State<MainScreen> {
                                   final sub = m is Map
                                       ? m['subject'].toString()
                                       : "";
-                                  if (sub.isEmpty)
+                                  if (sub.isEmpty) {
                                     return const SizedBox.shrink();
+                                  }
                                   return _buildMetaChip(sub, isSubject: true);
                                 }),
                                 // Module Tags
@@ -663,17 +666,21 @@ class _MainScreenState extends State<MainScreen> {
                         docId: data['id'],
                         currentUserId: _user!.uid,
                       );
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Quiz restored successfully"),
-                        ),
-                      );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Quiz restored successfully"),
+                          ),
+                        );
+                      }
                     } catch (e) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Restore error: $e")),
-                      );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Restore error: $e")),
+                        );
+                      }
                     }
                   }
                 : null,
@@ -720,8 +727,9 @@ class _MainScreenState extends State<MainScreen> {
         matchesSearch = titleMatch || metadataMatch;
       }
 
-      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty)
+      if (_selectedTags.isEmpty && _selectedSubjects.isEmpty) {
         return matchesSearch;
+      }
 
       final selectedFiltersLower = {
         ..._selectedTags.map((t) => t.toLowerCase()),
@@ -879,7 +887,7 @@ class _MainScreenState extends State<MainScreen> {
                     onPressed: () async {
                       final List<Map<String, dynamic>> allQuizzes =
                           await readDatabases().first;
-                      if (!mounted) return;
+                      if (!context.mounted) return;
 
                       final result = await Navigator.push<Map<String, dynamic>>(
                         context,
@@ -894,7 +902,7 @@ class _MainScreenState extends State<MainScreen> {
                         ),
                       );
 
-                      if (result != null) {
+                      if (result != null && context.mounted) {
                         setState(() {
                           _selectedTags.clear();
                           _selectedTags.addAll(result['tags']);
@@ -963,7 +971,7 @@ class _MainScreenState extends State<MainScreen> {
                                       horizontal: 20,
                                     ),
                                     child: Text(
-                                      "RECENTLY VIEWED",
+                                      "RECENT ACTIVITY",
                                       style: GoogleFonts.poppins(
                                         color: global.primaryAccent,
                                         fontSize: 10,
@@ -985,7 +993,10 @@ class _MainScreenState extends State<MainScreen> {
                                         ),
                                         itemCount: recent.length,
                                         itemBuilder: (context, index) {
-                                          final quiz = recent[index];
+                                          final activity = recent[index];
+                                          final bool isResult =
+                                              activity['activityType'] ==
+                                              'result';
                                           return GestureDetector(
                                             onTap: () {
                                               final bool isLargeScreen =
@@ -993,17 +1004,30 @@ class _MainScreenState extends State<MainScreen> {
                                                     context,
                                                   ).size.width >
                                                   900;
-                                              if (isLargeScreen) {
+                                              if (isResult) {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        ResultScreen(
+                                                          quizId:
+                                                              activity['id'],
+                                                          attemptId:
+                                                              activity['attemptId'],
+                                                        ),
+                                                  ),
+                                                );
+                                              } else if (isLargeScreen) {
                                                 setState(() {
                                                   _selectedQuizIdForWeb =
-                                                      quiz['id'];
+                                                      activity['id'];
                                                   _refreshRecentQuizzes();
                                                 });
                                               } else {
                                                 Navigator.pushNamed(
                                                   context,
                                                   "/Quiz Details",
-                                                  arguments: quiz['id'],
+                                                  arguments: activity['id'],
                                                 );
                                               }
                                             },
@@ -1021,12 +1045,12 @@ class _MainScreenState extends State<MainScreen> {
                                                 border: Border.all(
                                                   color:
                                                       _selectedQuizIdForWeb ==
-                                                          quiz['id']
+                                                          activity['id']
                                                       ? global.primaryAccent
                                                       : global.borderColor,
                                                   width:
                                                       _selectedQuizIdForWeb ==
-                                                          quiz['id']
+                                                          activity['id']
                                                       ? 2
                                                       : 1,
                                                 ),
@@ -1039,9 +1063,23 @@ class _MainScreenState extends State<MainScreen> {
                                                 children: [
                                                   Row(
                                                     children: [
+                                                      Icon(
+                                                        isResult
+                                                            ? Icons
+                                                                  .analytics_outlined
+                                                            : Icons
+                                                                  .quiz_outlined,
+                                                        size: 14,
+                                                        color: isResult
+                                                            ? global
+                                                                  .successColor
+                                                            : global
+                                                                  .primaryAccent,
+                                                      ),
+                                                      const SizedBox(width: 6),
                                                       Expanded(
                                                         child: Text(
-                                                          quiz['title'] ??
+                                                          activity['title'] ??
                                                               'Untitled',
                                                           maxLines: 1,
                                                           overflow: TextOverflow
@@ -1057,36 +1095,24 @@ class _MainScreenState extends State<MainScreen> {
                                                               ),
                                                         ),
                                                       ),
-                                                      if (quiz['isAiGenerated'] ==
-                                                          true)
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                left: 4.0,
-                                                              ),
-                                                          child: StatusBadge(
-                                                            text: "AI",
-                                                            color: Colors
-                                                                .purpleAccent,
-                                                            fontSize: 8,
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 4,
-                                                                  vertical: 2,
-                                                                ),
-                                                          ),
-                                                        ),
                                                     ],
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    "by ${quiz['user'] ?? 'Anonymous'}",
+                                                    isResult
+                                                        ? "VIEW RESULT"
+                                                        : "by ${activity['user'] ?? 'Anonymous'}",
                                                     maxLines: 1,
                                                     overflow:
                                                         TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      color: global.labelColor,
+                                                    style: TextStyle(
+                                                      color: isResult
+                                                          ? global.successColor
+                                                          : global.labelColor,
                                                       fontSize: 10,
+                                                      fontWeight: isResult
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
                                                     ),
                                                   ),
                                                 ],

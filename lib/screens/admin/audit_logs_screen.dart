@@ -18,6 +18,7 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
   DateTime? _lastRefresh;
   bool _canView = false;
   bool _canDelete = false;
+  String _selectedCategory = "All";
 
   @override
   void initState() {
@@ -120,10 +121,11 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       try {
         await _adminService.clearAuditLogs();
         await _refreshLogs(force: true);
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text("Audit logs cleared")));
+        }
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
@@ -133,6 +135,117 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
         }
       }
     }
+  }
+
+  Widget _buildSidePanel() {
+    final categories = ["All", "Admin", "Quiz", "Moderation", "User"];
+
+    return Container(
+      width: 300,
+      decoration: BoxDecoration(
+        color: global.cardColor,
+        border: Border(right: BorderSide(color: global.borderColor)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              "LOG CATEGORIES",
+              style: GoogleFonts.poppins(
+                color: global.primaryAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final isSelected = _selectedCategory == cat;
+                return ListTile(
+                  selected: isSelected,
+                  selectedTileColor: global.primaryAccent.withValues(
+                    alpha: 0.1,
+                  ),
+                  title: Text(
+                    cat,
+                    style: TextStyle(
+                      color: isSelected
+                          ? global.primaryAccent
+                          : global.valueColor,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () => setState(() => _selectedCategory = cat),
+                );
+              },
+            ),
+          ),
+          const Divider(color: global.borderColor),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "SUMMARY",
+                  style: GoogleFonts.poppins(
+                    color: global.labelColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildStatItem("Total Logs", _logs.length.toString()),
+                if (_selectedCategory != "All") ...[
+                  const SizedBox(height: 12),
+                  _buildStatItem(
+                    "$_selectedCategory Logs",
+                    _logs
+                        .where(
+                          (l) =>
+                              (l['category'] ?? 'general')
+                                  .toString()
+                                  .toLowerCase() ==
+                              _selectedCategory.toLowerCase(),
+                        )
+                        .length
+                        .toString(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: global.valueColor,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(color: global.labelColor, fontSize: 12),
+        ),
+      ],
+    );
   }
 
   Color _getCategoryColor(String category) {
@@ -152,6 +265,8 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
+
     if (!_canView) {
       return Scaffold(
         backgroundColor: global.bgColor,
@@ -169,11 +284,30 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
       );
     }
 
+    var filteredLogs = _logs;
+    if (_selectedCategory != "All") {
+      filteredLogs = _logs
+          .where(
+            (log) =>
+                (log['category'] ?? 'general').toString().toLowerCase() ==
+                _selectedCategory.toLowerCase(),
+          )
+          .toList();
+    }
+
     return Scaffold(
       backgroundColor: global.bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: isLargeScreen
+            ? null
+            : Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.menu, color: global.valueColor),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                ),
+              ),
         title: Text(
           "Audit Logs",
           style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
@@ -195,14 +329,79 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
           ),
         ],
       ),
+      drawer: isLargeScreen
+          ? null
+          : Drawer(
+              backgroundColor: global.cardColor,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DrawerHeader(
+                    decoration: const BoxDecoration(color: global.bgColor),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Categories',
+                        style: GoogleFonts.poppins(
+                          color: global.valueColor,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      children: ["All", "Admin", "Quiz", "Moderation", "User"]
+                          .map(
+                            (cat) => ListTile(
+                              selected: _selectedCategory == cat,
+                              title: Text(
+                                cat,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              onTap: () {
+                                setState(() => _selectedCategory = cat);
+                                Navigator.pop(context);
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
           child: _isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: global.primaryAccent),
                 )
-              : _logs.isEmpty
+              : isLargeScreen
+              ? Row(
+                  children: [
+                    _buildSidePanel(),
+                    Expanded(
+                      child: filteredLogs.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No logs found for this category.",
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: filteredLogs.length,
+                              itemBuilder: (context, index) {
+                                return _buildLogCard(filteredLogs[index]);
+                              },
+                            ),
+                    ),
+                  ],
+                )
+              : filteredLogs.isEmpty
               ? const Center(
                   child: Text(
                     "No logs found.",
@@ -211,172 +410,162 @@ class _AuditLogsScreenState extends State<AuditLogsScreen> {
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  itemCount: _logs.length,
+                  itemCount: filteredLogs.length,
                   itemBuilder: (context, index) {
-                    final log = _logs[index];
-                    final dynamic timestamp = log['timestamp'];
-                    String dateStr = 'N/A';
-                    if (timestamp != null) {
-                      DateTime? dt;
-                      if (timestamp is Timestamp) {
-                        dt = timestamp.toDate();
-                      } else if (timestamp is DateTime) {
-                        dt = timestamp;
-                      } else if (timestamp is String) {
-                        dt = DateTime.tryParse(timestamp);
-                      }
-
-                      if (dt != null) {
-                        // Manual formatting to avoid intl dependency
-                        final day = dt.day.toString().padLeft(2, '0');
-                        final months = [
-                          'Jan',
-                          'Feb',
-                          'Mar',
-                          'Apr',
-                          'May',
-                          'Jun',
-                          'Jul',
-                          'Aug',
-                          'Sep',
-                          'Oct',
-                          'Nov',
-                          'Dec',
-                        ];
-                        final month = months[dt.month - 1];
-                        final hour = dt.hour.toString().padLeft(2, '0');
-                        final minute = dt.minute.toString().padLeft(2, '0');
-                        final second = dt.second.toString().padLeft(2, '0');
-                        dateStr = "$day $month, $hour:$minute:$second";
-                      }
-                    }
-
-                    return Card(
-                      color: global.cardColor,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: global.borderColor),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _getCategoryColor(
-                                      log['category'] ?? 'general',
-                                    ).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: _getCategoryColor(
-                                        log['category'] ?? 'general',
-                                      ),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    (log['category'] ?? 'GENERAL')
-                                        .toString()
-                                        .toUpperCase(),
-                                    style: TextStyle(
-                                      color: _getCategoryColor(
-                                        log['category'] ?? 'general',
-                                      ),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  dateStr,
-                                  style: const TextStyle(
-                                    color: global.labelColor,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              (log['action'] ?? 'Unknown Action')
-                                  .toString()
-                                  .replaceAll('_', ' ')
-                                  .toUpperCase(),
-                              style: const TextStyle(
-                                color: global.valueColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              log['details'] ?? 'No details provided',
-                              style: const TextStyle(
-                                color: global.labelColor,
-                                fontSize: 13,
-                              ),
-                            ),
-                            const Divider(
-                              color: global.borderColor,
-                              height: 24,
-                            ),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.person_outline,
-                                  size: 14,
-                                  color: global.labelColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    "Actor: ${log['actorName'] ?? 'Unknown'} (${log['actorId']})",
-                                    style: const TextStyle(
-                                      color: global.labelColor,
-                                      fontSize: 11,
-                                      fontFamily: 'monospace',
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.info_outline,
-                                  size: 14,
-                                  color: global.labelColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    "Target: ${log['targetId']}",
-                                    style: const TextStyle(
-                                      color: global.labelColor,
-                                      fontSize: 11,
-                                      fontFamily: 'monospace',
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildLogCard(filteredLogs[index]);
                   },
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogCard(Map<String, dynamic> log) {
+    final dynamic timestamp = log['timestamp'];
+    String dateStr = 'N/A';
+    if (timestamp != null) {
+      DateTime? dt;
+      if (timestamp is Timestamp) {
+        dt = timestamp.toDate();
+      } else if (timestamp is DateTime) {
+        dt = timestamp;
+      } else if (timestamp is String) {
+        dt = DateTime.tryParse(timestamp);
+      }
+
+      if (dt != null) {
+        final day = dt.day.toString().padLeft(2, '0');
+        final months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        final month = months[dt.month - 1];
+        final hour = dt.hour.toString().padLeft(2, '0');
+        final minute = dt.minute.toString().padLeft(2, '0');
+        final second = dt.second.toString().padLeft(2, '0');
+        dateStr = "$day $month, $hour:$minute:$second";
+      }
+    }
+
+    return Card(
+      color: global.cardColor,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: global.borderColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getCategoryColor(
+                      log['category'] ?? 'general',
+                    ).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: _getCategoryColor(log['category'] ?? 'general'),
+                    ),
+                  ),
+                  child: Text(
+                    (log['category'] ?? 'GENERAL').toString().toUpperCase(),
+                    style: TextStyle(
+                      color: _getCategoryColor(log['category'] ?? 'general'),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  dateStr,
+                  style: const TextStyle(
+                    color: global.labelColor,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              (log['action'] ?? 'Unknown Action')
+                  .toString()
+                  .replaceAll('_', ' ')
+                  .toUpperCase(),
+              style: const TextStyle(
+                color: global.valueColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              log['details'] ?? 'No details provided',
+              style: const TextStyle(color: global.labelColor, fontSize: 13),
+            ),
+            const Divider(color: global.borderColor, height: 24),
+            Row(
+              children: [
+                const Icon(
+                  Icons.person_outline,
+                  size: 14,
+                  color: global.labelColor,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Actor: ${log['actorName'] ?? 'Unknown'} (${log['actorId']})",
+                    style: const TextStyle(
+                      color: global.labelColor,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: global.labelColor,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    "Target: ${log['targetId']}",
+                    style: const TextStyle(
+                      color: global.labelColor,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -16,6 +16,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _uidController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
 
   // Extended AI Profile Controllers
   final TextEditingController _classController = TextEditingController();
@@ -51,6 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final updatedUser = FirebaseAuth.instance.currentUser;
 
       _uidController.text = updatedUser?.uid ?? '';
+      _emailController.text = updatedUser?.email ?? '';
       final profile = await global.db.getUserProfile(
         updatedUser!.uid,
         actorId: updatedUser.uid,
@@ -195,6 +197,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showEmailUpdateDialog() {
+    final TextEditingController newEmailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordUser =
+        _user?.providerData.any((p) => p.providerId == 'password') ?? false;
+    bool isPending = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: global.cardColor,
+          title: Text(
+            "Update Email",
+            style: GoogleFonts.poppins(color: global.valueColor),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "A verification email will be sent to your new address. Your account will not be updated until you verify the new email.",
+                style: GoogleFonts.poppins(
+                  color: global.labelColor,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                newEmailController,
+                "New Email",
+                Icons.email_outlined,
+              ),
+              if (isPasswordUser) ...[
+                const SizedBox(height: 16),
+                _buildTextField(
+                  passwordController,
+                  "Current Password",
+                  Icons.lock_outline,
+                  isPassword: true,
+                ),
+              ],
+              if (isPending) ...[
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isPending ? null : () => Navigator.pop(context),
+              child: const Text("CANCEL"),
+            ),
+            ElevatedButton(
+              onPressed: isPending
+                  ? null
+                  : () async {
+                      final email = newEmailController.text.trim();
+                      final password = passwordController.text;
+
+                      if (email.isEmpty) return;
+                      if (isPasswordUser && password.isEmpty) return;
+
+                      setModalState(() => isPending = true);
+
+                      try {
+                        if (isPasswordUser) {
+                          await global.auth.reauthenticate(
+                            _user!.email!,
+                            password,
+                          );
+                        }
+                        await global.auth.updateEmail(email);
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Verification email sent to $email. Please check your inbox.",
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          setModalState(() => isPending = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Update failed: $e"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: const Text("SEND VERIFICATION"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,14 +325,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: const [SizedBox(width: 8)],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: global.primaryAccent),
-            )
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: SingleChildScrollView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: global.primaryAccent),
+                )
+              : SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
@@ -610,10 +716,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _buildLabel("Email Address (Private)"),
                             const SizedBox(height: 8),
                             _buildTextField(
-                              TextEditingController(text: _user?.email ?? ""),
+                              _emailController,
                               "Email",
                               Icons.email_outlined,
                               readOnly: true,
+                              suffixIcon:
+                                  (_user?.providerData.any(
+                                        (p) => p.providerId == 'password',
+                                      ) ??
+                                      false)
+                                  ? IconButton(
+                                      icon: const Icon(
+                                        Icons.edit_rounded,
+                                        color: global.primaryAccent,
+                                        size: 20,
+                                      ),
+                                      onPressed: _showEmailUpdateDialog,
+                                    )
+                                  : null,
                             ),
 
                             const SizedBox(height: 40),
@@ -656,8 +776,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-              ),
-            ),
+        ),
+      ),
     );
   }
 
@@ -705,12 +825,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool readOnly = false,
     Widget? suffixIcon,
     TextInputType keyboardType = TextInputType.text,
+    bool isPassword = false,
     void Function(String)? onChanged,
   }) {
     return TextField(
       controller: controller,
       readOnly: readOnly,
       keyboardType: keyboardType,
+      obscureText: isPassword,
       onChanged: onChanged,
       style: GoogleFonts.poppins(color: global.valueColor),
       decoration: InputDecoration(

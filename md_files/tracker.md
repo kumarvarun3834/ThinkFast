@@ -104,7 +104,8 @@
 - [ ] **Account Management:**
     - [ ] **Account Deletion:** Self-service "Delete My Account" with data purge (Play Store
       requirement).
-    - [ ] **Email Updates:** Allow users to change their registered email address.
+    - [x] **Email Updates:** Allow users to change their registered email address with verification.
+    - [x] **Profile Name Sync:** Automatically update creator names on existing quizzes when profile is updated.
     - [ ] **Phone Authentication:** Integration of phone number login and primary contact updates.
 - [ ] **Compliance & Safety:**
     - [x] **Restricted Mode for Minors:** Disabled AI personalization for users under 13 (COPPA

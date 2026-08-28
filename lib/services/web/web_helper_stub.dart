@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-void enterFullScreen() {
-  // Do nothing on mobile (SystemChrome handles it)
-}
+void enterFullScreen() {}
 
-void exitFullScreen() {
-  // Do nothing on mobile
-}
+void exitFullScreen() {}
 
-void listenToTabSwitch(VoidCallback onSwitch) {
-  // WidgetsBindingObserver handles this on mobile
-}
+void listenToTabSwitch(VoidCallback onSwitch) {}
+
+void listenToFullScreenChange(VoidCallback onExit) {}
+
+void listenToTextSelection(VoidCallback onSelection) {}
+
+bool isFullScreen() => false;

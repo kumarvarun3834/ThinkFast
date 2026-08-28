@@ -362,8 +362,141 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
     return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
   }
 
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchUserId = value.trim();
+          });
+        },
+        style: GoogleFonts.poppins(color: _valueColor),
+        decoration: InputDecoration(
+          hintText: "Filter by User, ID, or Marks...",
+          hintStyle: GoogleFonts.poppins(color: _labelColor, fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: _labelColor, size: 20),
+          filled: true,
+          fillColor: _cardColor,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: _borderColor),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidePanel(List<Map<String, dynamic>> responses) {
+    final total = responses.length;
+    double avg = 0;
+    if (total > 0) {
+      int sum = 0;
+      for (var r in responses) {
+        sum += (r['score'] as num?)?.toInt() ?? 0;
+      }
+      avg = sum / total;
+    }
+
+    return Container(
+      width: 300,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        border: Border(right: BorderSide(color: _borderColor)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              "QUICK OVERVIEW",
+              style: GoogleFonts.poppins(
+                color: _primaryAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatItem("Total Responses", total.toString()),
+                const SizedBox(height: 16),
+                _buildStatItem("Average Score", avg.toStringAsFixed(1)),
+              ],
+            ),
+          ),
+          const Divider(color: global.borderColor, height: 48),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "SEARCH & FILTER",
+              style: GoogleFonts.poppins(
+                color: _labelColor,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) =>
+                  setState(() => _searchUserId = value.trim()),
+              style: GoogleFonts.poppins(color: _valueColor),
+              decoration: InputDecoration(
+                hintText: "Search name, ID...",
+                hintStyle: TextStyle(color: _labelColor, fontSize: 13),
+                prefixIcon: Icon(Icons.search, color: _labelColor, size: 20),
+                filled: true,
+                fillColor: _bgColor.withValues(alpha: 0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: _borderColor),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            color: _valueColor,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.poppins(color: _labelColor, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
+
     return Scaffold(
       backgroundColor: _bgColor,
       appBar: AppBar(
@@ -456,327 +589,301 @@ class _QuizResponsesScreenState extends State<QuizResponsesScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
-            children: [
-              if (!_isSelectionMode)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchUserId = value.trim();
-                      });
-                    },
-                    style: GoogleFonts.poppins(color: _valueColor),
-                    decoration: InputDecoration(
-                      hintText: "Filter by User, ID, or Marks...",
-                      hintStyle: GoogleFonts.poppins(
-                        color: _labelColor,
-                        fontSize: 13,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: _labelColor,
-                        size: 20,
-                      ),
-                      filled: true,
-                      fillColor: _cardColor,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: _borderColor),
+          constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
+          child: StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _responsesStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    "Error: ${snapshot.error}",
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Text(
+                    "No responses yet",
+                    style: GoogleFonts.poppins(color: _labelColor),
+                  ),
+                );
+              }
+
+              var originalResponses = snapshot.data!;
+              var responses = List<Map<String, dynamic>>.from(
+                originalResponses,
+              );
+
+              // 1. Sort by time ASC to calculate attempt numbers correctly
+              responses.sort((a, b) {
+                final tA =
+                    (a['timestamp'] as dynamic)?.toDate() ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                final tB =
+                    (b['timestamp'] as dynamic)?.toDate() ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                return tA.compareTo(tB);
+              });
+
+              // 2. Group by user and assign attempt numbers
+              Map<String, List<Map<String, dynamic>>> groupedResponses = {};
+              for (var r in responses) {
+                final uid = r['userId'] ?? 'Unknown';
+                groupedResponses.putIfAbsent(uid, () => []).add(r);
+              }
+
+              List<Map<String, dynamic>> flatResponses = [];
+              groupedResponses.forEach((uid, userResponses) {
+                for (int i = 0; i < userResponses.length; i++) {
+                  userResponses[i]['attemptNumber'] = i + 1;
+                  flatResponses.add(userResponses[i]);
+                }
+              });
+
+              // 3. Filter based on multi-match: Name > UserID > Marks
+              if (_searchUserId.isNotEmpty) {
+                final filter = _searchUserId.toLowerCase();
+                flatResponses = flatResponses.where((r) {
+                  final name = (r['userName'] ?? '').toString().toLowerCase();
+                  final uid = (r['userId'] ?? '').toString().toLowerCase();
+                  final id = (r['id'] ?? '').toString().toLowerCase();
+                  final score = (r['score'] ?? '').toString();
+
+                  return name.contains(filter) ||
+                      uid.contains(filter) ||
+                      id.contains(filter) ||
+                      score.contains(filter);
+                }).toList();
+              }
+
+              // 4. Sort by time DESC for display (Newest first)
+              flatResponses.sort((a, b) {
+                final tA =
+                    (a['timestamp'] as dynamic)?.toDate() ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                final tB =
+                    (b['timestamp'] as dynamic)?.toDate() ??
+                    DateTime.fromMillisecondsSinceEpoch(0);
+                return tB.compareTo(tA);
+              });
+
+              Widget mainContent = ListView.builder(
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  0,
+                  0,
+                  MediaQuery.of(context).padding.bottom + 40,
+                ),
+                itemCount: flatResponses.length,
+                itemBuilder: (context, index) {
+                  final r = flatResponses[index];
+                  final String id = r['id'];
+                  final bool isSelected = _selectedResponseIds.contains(id);
+                  final score = r['score'] ?? 0;
+                  final total = (r['totalQuestions'] ?? 0) * 4;
+
+                  return Container(
+                    key: ValueKey(id),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? _primaryAccent : _borderColor,
+                        width: isSelected ? 2 : 1,
                       ),
                     ),
-                  ),
-                ),
-              Expanded(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _responsesStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text(
-                          "Error: ${snapshot.error}",
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      );
-                    }
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                      return Center(
-                        child: Text(
-                          "No responses yet",
-                          style: GoogleFonts.poppins(color: _labelColor),
-                        ),
-                      );
-                    }
-
-                    var responses = snapshot.data!;
-
-                    // 1. Sort by time ASC to calculate attempt numbers correctly
-                    responses.sort((a, b) {
-                      final tA =
-                          (a['timestamp'] as dynamic)?.toDate() ??
-                          DateTime.fromMillisecondsSinceEpoch(0);
-                      final tB =
-                          (b['timestamp'] as dynamic)?.toDate() ??
-                          DateTime.fromMillisecondsSinceEpoch(0);
-                      return tA.compareTo(tB);
-                    });
-
-                    // 2. Group by user and assign attempt numbers
-                    Map<String, List<Map<String, dynamic>>> groupedResponses =
-                        {};
-                    for (var r in responses) {
-                      final uid = r['userId'] ?? 'Unknown';
-                      groupedResponses.putIfAbsent(uid, () => []).add(r);
-                    }
-
-                    List<Map<String, dynamic>> flatResponses = [];
-                    groupedResponses.forEach((uid, userResponses) {
-                      for (int i = 0; i < userResponses.length; i++) {
-                        userResponses[i]['attemptNumber'] = i + 1;
-                        flatResponses.add(userResponses[i]);
-                      }
-                    });
-
-                    // 3. Filter based on multi-match: Name > UserID > Marks
-                    if (_searchUserId.isNotEmpty) {
-                      final filter = _searchUserId.toLowerCase();
-                      flatResponses = flatResponses.where((r) {
-                        final name = (r['userName'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final uid = (r['userId'] ?? '')
-                            .toString()
-                            .toLowerCase();
-                        final id = (r['id'] ?? '').toString().toLowerCase();
-                        final score = (r['score'] ?? '').toString();
-
-                        return name.contains(filter) ||
-                            uid.contains(filter) ||
-                            id.contains(filter) ||
-                            score.contains(filter);
-                      }).toList();
-                    }
-
-                    // 4. Sort by time DESC for display (Newest first)
-                    flatResponses.sort((a, b) {
-                      final tA =
-                          (a['timestamp'] as dynamic)?.toDate() ??
-                          DateTime.fromMillisecondsSinceEpoch(0);
-                      final tB =
-                          (b['timestamp'] as dynamic)?.toDate() ??
-                          DateTime.fromMillisecondsSinceEpoch(0);
-                      return tB.compareTo(tA);
-                    });
-
-                    return ListView.builder(
-                      padding: EdgeInsets.fromLTRB(
-                        0,
-                        0,
-                        0,
-                        MediaQuery.of(context).padding.bottom + 40,
-                      ),
-                      itemCount: flatResponses.length,
-                      itemBuilder: (context, index) {
-                        final r = flatResponses[index];
-                        final String id = r['id'];
-                        final bool isSelected = _selectedResponseIds.contains(
-                          id,
-                        );
-                        final score = r['score'] ?? 0;
-                        final total = (r['totalQuestions'] ?? 0) * 4;
-
-                        return Container(
-                          key: ValueKey(id),
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected ? _primaryAccent : _borderColor,
-                              width: isSelected ? 2 : 1,
+                    child: Material(
+                      color: isSelected
+                          ? _primaryAccent.withValues(alpha: 0.15)
+                          : _cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        onLongPress: () => _toggleSelection(id),
+                        onTap: _isSelectionMode
+                            ? () => _toggleSelection(id)
+                            : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResultScreen(
+                                      quizId: r['quizId'],
+                                      attemptAnswers:
+                                          r['answers'] as Map<String, dynamic>,
+                                      attemptReviewItems:
+                                          r['reviewItems'] as List<dynamic>?,
+                                      attemptQuestionOrder:
+                                          r['questionOrder'] as List<dynamic>?,
+                                      isDeleted: r['isDeleted'] == true,
+                                    ),
+                                  ),
+                                );
+                              },
+                        leading: Stack(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: _borderColor,
+                              backgroundImage: r['userPhoto'] != null
+                                  ? NetworkImage(r['userPhoto'])
+                                  : null,
+                              child: r['userPhoto'] == null
+                                  ? Icon(Icons.person, color: _labelColor)
+                                  : null,
                             ),
-                          ),
-                          child: Material(
-                            color: isSelected
-                                ? _primaryAccent.withValues(alpha: 0.15)
-                                : _cardColor,
-                            borderRadius: BorderRadius.circular(12),
-                            clipBehavior: Clip.antiAlias,
-                            child: ListTile(
-                              onLongPress: () => _toggleSelection(id),
-                              onTap: _isSelectionMode
-                                  ? () => _toggleSelection(id)
-                                  : () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => ResultScreen(
-                                            quizId: r['quizId'],
-                                            attemptAnswers:
-                                                r['answers']
-                                                    as Map<String, dynamic>,
-                                            attemptReviewItems:
-                                                r['reviewItems']
-                                                    as List<dynamic>?,
-                                            attemptQuestionOrder:
-                                                r['questionOrder']
-                                                    as List<dynamic>?,
-                                            isDeleted: r['isDeleted'] == true,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                              leading: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: _borderColor,
-                                    backgroundImage: r['userPhoto'] != null
-                                        ? NetworkImage(r['userPhoto'])
-                                        : null,
-                                    child: r['userPhoto'] == null
-                                        ? Icon(Icons.person, color: _labelColor)
-                                        : null,
+                            if (isSelected)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
                                   ),
-                                  if (isSelected)
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.check_circle,
-                                          color: global.primaryAccent,
-                                          size: 14,
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                                  child: const Icon(
+                                    Icons.check_circle,
+                                    color: global.primaryAccent,
+                                    size: 14,
+                                  ),
+                                ),
                               ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      r['userName'] ?? "User: ${r['userId']}",
-                                      style: GoogleFonts.poppins(
-                                        color: _valueColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  if (r['userId'] ==
-                                      FirebaseAuth.instance.currentUser?.uid)
-                                    const StatusBadge(
-                                      text: "OWNER",
-                                      color: global.primaryAccent,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                    ),
-                                ],
+                          ],
+                        ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                r['userName'] ?? "User: ${r['userId']}",
+                                style: GoogleFonts.poppins(
+                                  color: _valueColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    "User ID: ${r['userId']}",
-                                    style: TextStyle(
-                                      color: _labelColor,
-                                      fontSize: 10,
-                                    ),
+                            ),
+                            if (r['userId'] ==
+                                FirebaseAuth.instance.currentUser?.uid)
+                              const StatusBadge(
+                                text: "OWNER",
+                                color: global.primaryAccent,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                              ),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              "User ID: ${r['userId']}",
+                              style: TextStyle(
+                                color: _labelColor,
+                                fontSize: 10,
+                              ),
+                            ),
+                            Text(
+                              "ID: $id",
+                              style: TextStyle(
+                                color: _labelColor,
+                                fontSize: 10,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                StatusBadge(
+                                  text: "Attempt #${r['attemptNumber']}",
+                                  color: _primaryAccent,
+                                  fontSize: 11,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
                                   ),
-                                  Text(
-                                    "ID: $id",
-                                    style: TextStyle(
-                                      color: _labelColor,
-                                      fontSize: 10,
-                                      fontFamily: 'monospace',
-                                    ),
+                                ),
+                                const SizedBox(width: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      StatusBadge(
-                                        text: "Attempt #${r['attemptNumber']}",
-                                        color: _primaryAccent,
-                                        fontSize: 11,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              (score >= total / 2
-                                                      ? global.successColor
-                                                      : global.errorColor)
-                                                  .withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          "Marks: $score / $total",
-                                          style: GoogleFonts.poppins(
-                                            color: score >= (total / 2)
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (score >= total / 2
                                                 ? global.successColor
-                                                : global.errorColor,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                                : global.errorColor)
+                                            .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Date: ${_formatDate(r['timestamp'])}",
+                                  child: Text(
+                                    "Marks: $score / $total",
                                     style: GoogleFonts.poppins(
-                                      color: _labelColor,
+                                      color: score >= (total / 2)
+                                          ? global.successColor
+                                          : global.errorColor,
+                                      fontWeight: FontWeight.bold,
                                       fontSize: 11,
                                     ),
                                   ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Date: ${_formatDate(r['timestamp'])}",
+                              style: GoogleFonts.poppins(
+                                color: _labelColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: _isSelectionMode
+                            ? null
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.more_vert),
+                                    onPressed: () =>
+                                        _showModerationOptions(context, r),
+                                    tooltip: "Moderation Options",
+                                  ),
+                                  Icon(Icons.chevron_right, color: _labelColor),
                                 ],
                               ),
-                              trailing: _isSelectionMode
-                                  ? null
-                                  : Icon(
-                                      Icons.chevron_right,
-                                      color: _labelColor,
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+                      ),
+                    ),
+                  );
+                },
+              );
+
+              if (isLargeScreen) {
+                return Row(
+                  children: [
+                    _buildSidePanel(originalResponses),
+                    Expanded(child: mainContent),
+                  ],
+                );
+              }
+
+              return Column(
+                children: [
+                  if (!_isSelectionMode) _buildSearchField(),
+                  Expanded(child: mainContent),
+                ],
+              );
+            },
           ),
         ),
       ),

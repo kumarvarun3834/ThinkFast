@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_service.dart';
 import '../services/firebase/q_admin_connect.dart';
 import '../services/firebase/admin_connect.dart';
 import '../services/firebase/ai_connect.dart';
@@ -10,6 +11,7 @@ final UserDatabaseService userConnect = UserDatabaseService();
 final AdminDatabaseService adminConnect = AdminDatabaseService();
 final QAdminDatabaseService qAdminConnect = QAdminDatabaseService();
 final AiDatabaseService aiConnect = AiDatabaseService();
+final AuthService auth = AuthService();
 
 // Deprecated aliases (Use the *Connect variants above)
 final UserDatabaseService db = userConnect;

@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/ai_service.dart';
+import 'package:thinkfast/services/web/web_helper.dart' as web_helper;
 import 'package:thinkfast/utils/global.dart' as global;
 
+import '../../services/local_cache_service.dart';
 import '../../widgets/text_container.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -46,6 +49,7 @@ class _ResultScreenState extends State<ResultScreen> {
   List<Map<String, dynamic>> _calculatedResults = [];
   Map<String, dynamic> _markingScheme = {"type": "default"};
   String _quizId = "";
+  String _quizTitle = "Quiz Result";
   String? _activeResultModule;
 
   // AI Analysis State
@@ -57,6 +61,7 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   void initState() {
     super.initState();
+    web_helper.exitFullScreen();
     _loadAnswersAndCalculateScore();
   }
 
@@ -68,25 +73,44 @@ class _ResultScreenState extends State<ResultScreen> {
       Map<String, dynamic> userAnswers = {};
       List<List<dynamic>> displayQuizResult = [];
 
-      if (widget.quizId != null && widget.attemptAnswers != null) {
+      if (widget.quizId != null &&
+          (widget.attemptAnswers != null || widget.attemptId != null)) {
         // VIEWING PAST ATTEMPT
         setState(() => _loadingMessage = "Fetching result...");
         global.personalizedSolutions = {}; // Reset previous session data
         _quizId = widget.quizId!;
-        _responseId = widget.attemptId; // Capture passed ID
-        userAnswers = widget.attemptAnswers!;
+        _responseId = widget.attemptId;
+
+        Map<String, dynamic>? attemptDoc;
+        if (widget.attemptAnswers == null && _responseId != null) {
+          final doc = await FirebaseFirestore.instance
+              .collection('responses')
+              .doc(_responseId)
+              .get();
+          if (doc.exists) {
+            attemptDoc = doc.data();
+          }
+        }
+
+        userAnswers =
+            widget.attemptAnswers ??
+            (attemptDoc?['answers'] as Map<String, dynamic>? ?? {});
+
         final List<String> reviewUids = widget.attemptReviewItems != null
             ? List<String>.from(widget.attemptReviewItems!)
-            : [];
+            : List<String>.from(attemptDoc?['reviewItems'] ?? []);
+
         final List<String> questionOrder = widget.attemptQuestionOrder != null
             ? List<String>.from(widget.attemptQuestionOrder!)
-            : [];
+            : List<String>.from(attemptDoc?['questionOrder'] ?? []);
+
         final List<String> visitedUids = widget.attemptVisitedItems != null
             ? List<String>.from(widget.attemptVisitedItems!)
-            : [];
+            : List<String>.from(attemptDoc?['visitedItems'] ?? []);
 
         // Fetch quiz data (questions)
         final quiz = await global.db.readDatabase(_quizId, userId: user.uid);
+        _quizTitle = quiz['title'] ?? 'Quiz Result';
         _displayQuizData = [];
         final List<dynamic> rawModules = quiz['modules'] as List? ?? [];
         final List<Map<String, dynamic>> allQuestions = [];
@@ -158,7 +182,12 @@ class _ResultScreenState extends State<ResultScreen> {
         // JUST FINISHED QUIZ (Using Global)
         setState(() => _loadingMessage = "Submitting attempt...");
         _quizId = global.id;
+        _quizTitle = "Quiz Result"; // Default, will try to improve
         _displayQuizData = List<Map<String, dynamic>>.from(global.quizData);
+        // Try to get title from first question's metadata or global if available
+        if (_displayQuizData.isNotEmpty) {
+          // You might want to store the quiz title in a more accessible place globally
+        }
         displayQuizResult = List<List<dynamic>>.from(global.quizResult);
         _markingScheme = global.markingScheme;
 
@@ -332,6 +361,18 @@ class _ResultScreenState extends State<ResultScreen> {
         _isLoading = false;
         _activeResultModule = "All";
       });
+
+      // --- Save to Recent Activity ---
+      try {
+        LocalCacheService().saveRecentActivity(
+          id: _quizId,
+          title: _quizTitle,
+          attemptId: _responseId,
+          activityType: 'result',
+        );
+      } catch (e) {
+        debugPrint("Error saving recent activity: $e");
+      }
 
       // After score calculation, check if an AI analysis already exists for this attempt
       if (_responseId != null) {
@@ -560,186 +601,180 @@ class _ResultScreenState extends State<ResultScreen> {
         : 0;
     final int threshold = (_markingScheme['passThreshold'] ?? 40).toInt();
     final bool isPassed = percentage >= threshold;
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
+
+    final List<Widget> details = [
+      if (widget.isDeleted)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: global.errorColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: global.errorColor.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.delete_forever,
+                color: global.errorColor,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  "This attempt has been soft-deleted and is visible only to administrators.",
+                  style: GoogleFonts.poppins(
+                    color: global.errorColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      Card(
+        color: global.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isPassed ? global.successColor : global.errorColor,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            MarksPanel(
+              totalCorrectAnswers: totalMarks,
+              totalQuestions: _maxMarks,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: (isPassed ? global.successColor : global.errorColor)
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                isPassed
+                    ? "PASSED ($threshold% Req.)"
+                    : "FAILED ($threshold% Req.)",
+                style: GoogleFonts.poppins(
+                  color: isPassed ? global.successColor : global.errorColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (global.featureFlags?['enable_export'] == true)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: TextButton.icon(
+                  onPressed: () {
+                    // Implement Export logic here
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Exporting results...")),
+                    );
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text("EXPORT ATTEMPT"),
+                  style: TextButton.styleFrom(
+                    foregroundColor: global.primaryAccent,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      Card(
+        color: global.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: global.borderColor),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildSummaryStat("Correct", _correctCount, global.successColor),
+              _buildSummaryStat("Wrong", _wrongCount, global.errorColor),
+              _buildSummaryStat(
+                "Skipped",
+                _unattemptedCount,
+                global.warningColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 24),
+      _buildAiFeedbackPanel(),
+      const SizedBox(height: 32),
+      ElevatedButton.icon(
+        onPressed: () => _startReview(index: 0),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: global.btnColor,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: const Icon(Icons.analytics_outlined),
+        label: const Text(
+          "SEE ATTEMPT DETAILS",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      const SizedBox(height: 16),
+      OutlinedButton.icon(
+        onPressed: () =>
+            Navigator.pushNamedAndRemoveUntil(context, "/home", (r) => false),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: global.valueColor,
+          minimumSize: const Size(double.infinity, 56),
+          side: const BorderSide(color: global.borderColor),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        icon: const Icon(Icons.home_outlined),
+        label: const Text("BACK TO HOME"),
+      ),
+    ];
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
+        constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              if (widget.isDeleted)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
-                  ),
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: global.errorColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: global.errorColor.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.delete_forever,
-                        color: global.errorColor,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          "This attempt has been soft-deleted and is visible only to administrators.",
-                          style: GoogleFonts.poppins(
-                            color: global.errorColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              Card(
-                color: global.cardColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: isPassed ? global.successColor : global.errorColor,
-                    width: 2,
-                  ),
-                ),
-                child: Column(
+          child: isLargeScreen
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    MarksPanel(
-                      totalCorrectAnswers: totalMarks,
-                      totalQuestions: _maxMarks,
+                    // Left Column: Core Results & Details
+                    Expanded(flex: 3, child: Column(children: details)),
+                    const SizedBox(width: 32),
+                    // Right Column: Overview (Question Map)
+                    Expanded(flex: 2, child: _buildModularBreakdown()),
+                  ],
+                )
+              : Column(
+                  children: [
+                    ...details,
+                    const SizedBox(height: 24),
+                    _buildModularBreakdown(),
+                    SizedBox(
+                      height: MediaQuery.of(context).padding.bottom + 40,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
-                      ),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color:
-                            (isPassed ? global.successColor : global.errorColor)
-                                .withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        isPassed
-                            ? "PASSED ($threshold% Req.)"
-                            : "FAILED ($threshold% Req.)",
-                        style: GoogleFonts.poppins(
-                          color: isPassed
-                              ? global.successColor
-                              : global.errorColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    if (global.featureFlags?['enable_export'] == true)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: TextButton.icon(
-                          onPressed: () {
-                            // Implement Export logic here
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Exporting results..."),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.download_rounded, size: 18),
-                          label: const Text("EXPORT ATTEMPT"),
-                          style: TextButton.styleFrom(
-                            foregroundColor: global.primaryAccent,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                color: global.cardColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: global.borderColor),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildSummaryStat(
-                        "Correct",
-                        _correctCount,
-                        global.successColor,
-                      ),
-                      _buildSummaryStat(
-                        "Wrong",
-                        _wrongCount,
-                        global.errorColor,
-                      ),
-                      _buildSummaryStat(
-                        "Skipped",
-                        _unattemptedCount,
-                        global.warningColor,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildAiFeedbackPanel(),
-              const SizedBox(height: 24),
-              _buildModularBreakdown(),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () => _startReview(index: 0),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: global.btnColor,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.analytics_outlined),
-                label: const Text(
-                  "SEE ATTEMPT DETAILS",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  "/home",
-                  (r) => false,
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: global.valueColor,
-                  minimumSize: const Size(double.infinity, 56),
-                  side: const BorderSide(color: global.borderColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.home_outlined),
-                label: const Text("BACK TO HOME"),
-              ),
-              SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
-            ],
-          ),
         ),
       ),
     );

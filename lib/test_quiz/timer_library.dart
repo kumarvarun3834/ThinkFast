@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 void main() {
@@ -30,7 +31,7 @@ class _TimerScreenState extends State<TimerScreen> {
 
   String _format(Duration d) =>
       "${d.inMinutes.remainder(60).toString().padLeft(2, '0')}:"
-          "${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
+      "${d.inSeconds.remainder(60).toString().padLeft(2, '0')}";
 
   void _startTimer() {
     _timer?.cancel();
@@ -42,7 +43,7 @@ class _TimerScreenState extends State<TimerScreen> {
           _timeLeft -= const Duration(seconds: 1);
         } else {
           t.cancel();
-          _runScript(); // ✅ run custom script at end
+          _runScript(); // run custom script at end
         }
       });
     });
@@ -55,7 +56,9 @@ class _TimerScreenState extends State<TimerScreen> {
     // Example: navigate to another page
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ResultScreen()),
+      MaterialPageRoute(
+        builder: (_) => const ResultScreen(quizId: null, attemptId: null),
+      ),
     );
   }
 
@@ -96,15 +99,13 @@ class _TimerScreenState extends State<TimerScreen> {
 }
 
 class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key});
+  const ResultScreen({super.key, required quizId, required attemptId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Result")),
-      body: const Center(
-        child: Text("✅ Script executed!"),
-      ),
+      body: const Center(child: Text("✅ Script executed!")),
     );
   }
 }

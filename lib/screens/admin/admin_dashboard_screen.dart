@@ -422,8 +422,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               );
                             }
                           } finally {
-                            if (mounted)
+                            if (mounted) {
                               setState(() => _isQueueProcessing = false);
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(
@@ -512,12 +513,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  List<dynamic> _getList(String key) {
-    final dynamic data = _dashboardData[key];
-    if (data is List) return data;
-    return [];
-  }
-
   Widget _buildOverview(bool isSmall) {
     final metrics = _dashboardData['metrics'] as Map? ?? {};
     final health = _dashboardData['health'] as Map? ?? {};
@@ -564,28 +559,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildActionButton({
-    required VoidCallback onPressed,
-    required IconData icon,
-    required String label,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: global.cardColor,
-        foregroundColor: global.primaryAccent,
-        side: const BorderSide(color: global.borderColor),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      icon: Icon(icon, size: 16),
-      label: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-      ),
     );
   }
 
@@ -833,35 +806,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildListItem(String text, IconData icon) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: global.cardColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: global.borderColor.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: global.labelColor),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.firaCode(
-                color: global.valueColor,
-                fontSize: 10,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ),
-        ],
       ),
     );
   }

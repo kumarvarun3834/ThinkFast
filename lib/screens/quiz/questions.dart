@@ -7,9 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/utils/global.dart' as global;
-
-// Conditional import to prevent Android build errors
-import 'dart:html' if (dart.library.io) 'dart:io' as html;
+import 'package:thinkfast/services/web/web_helper.dart' as web_helper;
 
 class Questions extends StatefulWidget {
   const Questions({super.key});
@@ -33,6 +31,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   String _loadingMessage = "Initializing Quiz...";
   late final TextEditingController _integerController;
   int _backPressCount = 0;
+  int _antiCheatWarnings = 0; // 🕵️ Track violations
 
   // List of indices in global.quizData in the order we want to display them
   List<int> _displaySequence = [];
@@ -215,22 +214,135 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
     if (kIsWeb) {
       // 📺 Auto Fullscreen on Start
-      try {
-        html.document.documentElement?.requestFullscreen();
-      } catch (e) {
-        debugPrint("Fullscreen error: $e");
-      }
+      web_helper.enterFullScreen();
 
       // 🕵️ Web Anti-Cheat: Detect Tab Switching / Minimizing
-      html.window.onBlur.listen((event) {
-        if (!_isSubmitted && !global.isReviewMode && global.time > 0) {
-          debugPrint("Anti-Cheat: Tab blurred. Submitting...");
-          _submitAndFinish();
-        }
+      web_helper.listenToTabSwitch(() {
+        _handleAntiCheatViolation("Tab switched or window minimized");
+      });
+
+      // 🕵️ Web Anti-Cheat: Detect Fullscreen Exit
+      web_helper.listenToFullScreenChange(() {
+        _handleAntiCheatViolation("Full screen mode exited");
+      });
+
+      // 🕵️ Web Anti-Cheat: Detect Text Selection
+      web_helper.listenToTextSelection(() {
+        _handleAntiCheatViolation("Text selection detected");
       });
     }
 
     _loadQuizWithTime();
+  }
+
+  void _handleAntiCheatViolation(String reason) {
+    if (_isSubmitted || global.isReviewMode || global.time <= 0) return;
+
+    debugPrint("Anti-Cheat Violation: $reason");
+
+    setState(() {
+      _antiCheatWarnings++;
+    });
+
+    if (_antiCheatWarnings >= 2) {
+      _submitAndFinish();
+      _showFinalViolationDialog(reason);
+    } else {
+      _showViolationWarning(reason);
+    }
+  }
+
+  void _showViolationWarning(String reason) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: global.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
+            const SizedBox(width: 12),
+            Text(
+              "Anti-Cheat Warning",
+              style: GoogleFonts.poppins(
+                color: global.valueColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Violation: $reason",
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Switching tabs, exiting full screen, or selecting text is not allowed during the quiz.",
+              style: TextStyle(color: global.labelColor, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "ONE MORE violation will result in IMMEDIATE submission of your quiz.",
+              style: TextStyle(
+                color: global.errorColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: global.primaryAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              if (kIsWeb) web_helper.enterFullScreen();
+            },
+            child: const Text(
+              "UNDERSTOOD",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFinalViolationDialog(String reason) {
+    // Since we are already navigating to result screen, we can show a snackbar or a persistent overlay there.
+    // But for immediate feedback, we can use a Future to show it after navigation or just show a snackbar.
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Quiz auto-submitted due to repeated violations: $reason",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: global.errorColor,
+            duration: const Duration(seconds: 10),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
   }
 
   @override
@@ -241,11 +353,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
     if (kIsWeb) {
       // Exit Fullscreen on finish
-      try {
-        if (html.document.fullscreenElement != null) {
-          html.document.exitFullscreen();
-        }
-      } catch (_) {}
+      web_helper.exitFullScreen();
     }
 
     _timer?.cancel();
@@ -259,7 +367,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
         !_isSubmitted &&
         !global.isReviewMode &&
         global.time > 0) {
-      _submitAndFinish();
+      _handleAntiCheatViolation("App minimized or put in background");
     }
   }
 
@@ -1155,7 +1263,6 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
         question['uid']?.toString() ??
         '';
 
-    final reasonController = TextEditingController();
     final detailsController = TextEditingController();
     String selectedReason = "Inaccurate Information";
     final List<String> reasons = [
@@ -1261,16 +1368,22 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     reason: selectedReason,
                     details: detailsController.text.trim(),
                   );
-                  Navigator.pop(context);
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Thank you. Your report has been submitted.",
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Thank you. Your report has been submitted.",
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                 } catch (e) {
-                  messenger.showSnackBar(SnackBar(content: Text("Error: $e")));
+                  if (context.mounted) {
+                    messenger.showSnackBar(
+                      SnackBar(content: Text("Error: $e")),
+                    );
+                  }
                 }
               },
               child: const Text(
@@ -1284,9 +1397,618 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     );
   }
 
-  void _scrollToQuestion(int index) {
-    // In current implementation, horizontal list is already visible.
-    // If needed for larger vertical screens, can add scroll controller.
+  Widget _buildSidePanel() {
+    return Container(
+      width: 300,
+      decoration: const BoxDecoration(
+        color: global.cardColor,
+        border: Border(right: BorderSide(color: global.borderColor)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              "QUIZ PROGRESS",
+              style: GoogleFonts.poppins(
+                color: global.primaryAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          // Stats Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSmallStat(
+                  "Answered",
+                  "${_calculateAnsweredCount()}",
+                  Colors.green,
+                ),
+                _buildSmallStat(
+                  "Remaining",
+                  "${global.quizData.length - _calculateAnsweredCount()}",
+                  global.labelColor,
+                ),
+                _buildSmallStat(
+                  "Review",
+                  "${_calculateReviewCount()}",
+                  global.reviewColor,
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: global.borderColor, height: 48),
+          // Question Grid
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "QUESTION NAVIGATOR",
+                    style: GoogleFonts.poppins(
+                      color: global.labelColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 5,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                    itemCount: global.quizData.length,
+                    itemBuilder: (context, index) {
+                      int globalIndex = index;
+                      // Note: We use global sequence here for the full map
+                      return GestureDetector(
+                        onTap:
+                            (global.perQuestionTime > 0 &&
+                                globalIndex < i &&
+                                !global.isReviewMode)
+                            ? null
+                            : () {
+                                setState(() {
+                                  i = globalIndex;
+                                  switchState();
+                                });
+                              },
+                        child: Container(
+                          decoration: _getQuestionDecoration(
+                            globalIndex,
+                            isCurrent: i == globalIndex,
+                          ),
+                          child: Center(
+                            child: Text(
+                              _getDisplayNumber(globalIndex),
+                              style: TextStyle(
+                                color:
+                                    (global.perQuestionTime > 0 &&
+                                        globalIndex < i &&
+                                        !global.isReviewMode)
+                                    ? Colors.white.withValues(alpha: 0.3)
+                                    : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  _buildLegendItem(Colors.green, "Answered"),
+                  _buildLegendItem(global.reviewColor, "Marked for Review"),
+                  _buildLegendItem(global.infoColor, "Visited"),
+                  _buildLegendItem(Colors.grey, "Unattempted"),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainQuestionArea() {
+    final Map<String, Object> question = global.quizData[i];
+    final List<String> modules = _getModules();
+    final List<int> moduleIndices = (global.completeRandomShuffle)
+        ? List.generate(global.quizData.length, (index) => index)
+        : global.quizData
+              .asMap()
+              .entries
+              .where(
+                (e) =>
+                    (e.value['subject']?.toString() ?? 'General') ==
+                    _activeModule,
+              )
+              .map((e) => e.key)
+              .toList();
+
+    return Column(
+      children: [
+        // Module Selector
+        if (!global.completeRandomShuffle && modules.length > 1)
+          Container(
+            height: 50,
+            margin: const EdgeInsets.only(top: 10),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: global.isReviewMode
+                  ? modules.length + 1
+                  : modules.length,
+              itemBuilder: (context, index) {
+                if (global.isReviewMode && index == 0) {
+                  final bool isSelected = _activeModule == "All";
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: ChoiceChip(
+                      label: const Text("ALL", style: TextStyle(fontSize: 10)),
+                      selected: isSelected,
+                      selectedColor: global.primaryAccent,
+                      onSelected: (selected) {
+                        if (selected) {
+                          setState(() {
+                            _activeModule = "All";
+                          });
+                        }
+                      },
+                    ),
+                  );
+                }
+
+                final m = global.isReviewMode
+                    ? modules[index - 1]
+                    : modules[index];
+                final bool isSelected = _activeModule == m;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
+                    label: Text(
+                      m.toUpperCase(),
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    selected: isSelected,
+                    selectedColor: global.primaryAccent,
+                    onSelected: (selected) {
+                      if (selected) {
+                        if (global.disableModuleSwitchingUntilTimeout &&
+                            _timeLeft.inSeconds > 0 &&
+                            !global.isReviewMode) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Module switching disabled until timeout",
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        setState(() {
+                          _activeModule = m;
+                          if (!global.isReviewMode) {
+                            // Jump to first question of this module during quiz
+                            i = global.quizData.indexWhere(
+                              (q) =>
+                                  (q['subject']?.toString() ?? 'General') == m,
+                            );
+                            switchState();
+                          }
+                        });
+                      }
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+
+        // Horizontal Navigation dots (Filtered by module or sequence)
+        Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: (global.isReviewMode && _activeModule == "All")
+                ? _displaySequence.length
+                : moduleIndices.length,
+            itemBuilder: (context, index) {
+              int globalIndex = (global.isReviewMode && _activeModule == "All")
+                  ? _displaySequence[index]
+                  : moduleIndices[index];
+              return GestureDetector(
+                onTap:
+                    (global.perQuestionTime > 0 &&
+                        globalIndex < i &&
+                        !global.isReviewMode)
+                    ? null
+                    : () {
+                        setState(() {
+                          i = globalIndex;
+                          switchState();
+                        });
+                      },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: _getQuestionDecoration(
+                    globalIndex,
+                    isCurrent: i == globalIndex,
+                  ),
+                  child: Center(
+                    child: Text(
+                      _getDisplayNumber(globalIndex),
+                      style: TextStyle(
+                        color:
+                            (global.perQuestionTime > 0 &&
+                                globalIndex < i &&
+                                !global.isReviewMode)
+                            ? Colors.white.withValues(alpha: 0.3)
+                            : Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Card(
+              color:
+                  (global.isReviewMode &&
+                      _getQuestionColor(i) != Colors.transparent)
+                  ? _getQuestionColor(i).withValues(alpha: 0.05)
+                  : global.cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color:
+                      (global.isReviewMode &&
+                          _getQuestionColor(i) != Colors.transparent)
+                      ? _getQuestionColor(i).withValues(alpha: 0.5)
+                      : global.borderColor,
+                  width:
+                      (global.isReviewMode &&
+                          _getQuestionColor(i) != Colors.transparent)
+                      ? 2
+                      : 1,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: global.labelColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "Q${_getDisplayNumber(i)}",
+                                style: GoogleFonts.poppins(
+                                  color: global.labelColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: global.primaryAccent.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                (question['type'] ?? 'Single Choice')
+                                    .toString()
+                                    .toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  color: global.primaryAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if (!global.isReviewMode &&
+                                global.attemptLimits['type'] != 'none')
+                              _buildLimitStatusIndicatorAtIndex(i),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.report_gmailerrorred_rounded,
+                                color: global.errorColor,
+                                size: 20,
+                              ),
+                              onPressed: () => _showReportDialog(i),
+                              tooltip: "Report Question",
+                            ),
+                          ],
+                        ),
+                        if (global.isReviewMode)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color:
+                                  (_getMarksForQuestion(i) > 0
+                                          ? global.successColor
+                                          : (_getMarksForQuestion(i) < 0
+                                                ? global.errorColor
+                                                : global.labelColor))
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              "${_getMarksForQuestion(i) > 0 ? '+' : ''}${_getMarksForQuestion(i)} Marks",
+                              style: GoogleFonts.poppins(
+                                color: _getMarksForQuestion(i) > 0
+                                    ? global.successColor
+                                    : (_getMarksForQuestion(i) < 0
+                                          ? global.errorColor
+                                          : global.labelColor),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "${(question["Q"] as Map?)?['text'] ?? ""}",
+                      style: GoogleFonts.poppins(
+                        color: global.valueColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ...buttonsData(i),
+                    // --- Review Mode Solutions/Explanations ---
+                    if (global.isReviewMode) ...[
+                      // 1. Personalized AI Analysis (Specific to User's Attempt)
+                      if (global.personalizedSolutions.containsKey(
+                            question['uid']?.toString() ?? "",
+                          ) &&
+                          (global
+                                      .personalizedSolutions[question['uid']
+                                          ?.toString()]
+                                      ?.trim() ??
+                                  "")
+                              .isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 20),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.purpleAccent.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.purpleAccent,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "PERSONALIZED AI FEEDBACK",
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.purpleAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                global.personalizedSolutions[question['uid']
+                                        ?.toString()] ??
+                                    "",
+                                style: GoogleFonts.poppins(
+                                  color: global.valueColor,
+                                  fontSize: 13,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // 2. Examiner's Solution / General Description
+                      if (global.solutions.containsKey(
+                            question['uid']?.toString() ?? "",
+                          ) ||
+                          (question['description']?.toString() ?? "")
+                              .isNotEmpty ||
+                          (question['explanation']?.toString() ?? "")
+                              .isNotEmpty)
+                        Builder(
+                          builder: (context) {
+                            final String? examinerSolution =
+                                global.solutions[question['uid']?.toString()] ??
+                                question['description']?.toString() ??
+                                question['explanation']?.toString();
+
+                            if (examinerSolution == null ||
+                                examinerSolution.trim().isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(top: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: global.bgColor.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: global.primaryAccent.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.lightbulb_outline,
+                                        color: global.primaryAccent,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "EXAMINER SOLUTION",
+                                        style: GoogleFonts.poppins(
+                                          color: global.primaryAccent,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    examinerSolution,
+                                    style: GoogleFonts.poppins(
+                                      color: global.valueColor.withValues(
+                                        alpha: 0.8,
+                                      ),
+                                      fontSize: 13,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                    if (!global.isReviewMode) ...[
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(
+                                  color: global.quizResult[i][4] == true
+                                      ? global.reviewColor
+                                      : global.borderColor,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                foregroundColor: global.quizResult[i][4] == true
+                                    ? global.reviewColor
+                                    : global.labelColor,
+                              ),
+                              onPressed: () => setState(() {
+                                global.quizResult[i][4] =
+                                    !(global.quizResult[i][4] as bool);
+                              }),
+                              icon: Icon(
+                                global.quizResult[i][4] == true
+                                    ? Icons.bookmark
+                                    : Icons.bookmark_border,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                "REVIEW",
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: global.errorColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: () => setState(() {
+                                global.quizResult[i][2] = <String>[];
+                                if (currentData["type"] == "Integer") {
+                                  _integerController.clear();
+                                }
+                              }),
+                              icon: const Icon(Icons.clear_rounded, size: 18),
+                              label: const Text(
+                                "CLEAR",
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -1375,27 +2097,13 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       );
     }
 
-    final List<String> modules = _getModules();
     if (global.quizData.isEmpty || i >= global.quizData.length) {
       return const Scaffold(body: Center(child: Text("Invalid Quiz State")));
     }
-    final Map<String, Object> question = global.quizData[i];
     final bool isLast = i == global.quizData.length - 1;
     final bool isFirst = i == 0;
 
-    // Filter Q dots based on module
-    final List<int> moduleIndices = (global.completeRandomShuffle)
-        ? List.generate(global.quizData.length, (index) => index)
-        : global.quizData
-              .asMap()
-              .entries
-              .where(
-                (e) =>
-                    (e.value['subject']?.toString() ?? 'General') ==
-                    _activeModule,
-              )
-              .map((e) => e.key)
-              .toList();
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
 
     return PopScope(
       canPop: global.isReviewMode,
@@ -1437,12 +2145,14 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
             ),
           ),
           centerTitle: true,
-          leading: Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.menu, color: global.valueColor),
-              onPressed: () => Scaffold.of(context).openDrawer(),
-            ),
-          ),
+          leading: isLargeScreen
+              ? null
+              : Builder(
+                  builder: (context) => IconButton(
+                    icon: const Icon(Icons.menu, color: global.valueColor),
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  ),
+                ),
           actions: [
             if (global.isReviewMode && !global.completeRandomShuffle)
               IconButton(
@@ -1550,666 +2260,196 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                   ),
                 ),
         ),
-        drawer: Drawer(
-          backgroundColor: global.cardColor,
-          child: StatefulBuilder(
-            builder: (context, setDrawerState) {
-              _drawerActiveModule ??= (global.isReviewMode
-                  ? "All"
-                  : _activeModule);
-              final List<String> drawerModules = ["All", ...modules];
+        drawer: isLargeScreen
+            ? null
+            : Drawer(
+                backgroundColor: global.cardColor,
+                child: StatefulBuilder(
+                  builder: (context, setDrawerState) {
+                    _drawerActiveModule ??= (global.isReviewMode
+                        ? "All"
+                        : _activeModule);
+                    final List<String> modules = _getModules();
+                    final List<String> drawerModules = ["All", ...modules];
 
-              List<int> drawerModuleIndices = [];
-              if (_drawerActiveModule == "All" ||
-                  global.completeRandomShuffle) {
-                drawerModuleIndices = global.isReviewMode
-                    ? _displaySequence
-                    : List.generate(global.quizData.length, (index) => index);
-              } else {
-                final sourceIndices = global.isReviewMode
-                    ? _displaySequence
-                    : List.generate(global.quizData.length, (index) => index);
-                drawerModuleIndices = sourceIndices
-                    .where(
-                      (idx) =>
-                          (global.quizData[idx]['subject']?.toString() ??
-                              'General') ==
-                          _drawerActiveModule,
-                    )
-                    .toList();
-              }
+                    List<int> drawerModuleIndices = [];
+                    if (_drawerActiveModule == "All" ||
+                        global.completeRandomShuffle) {
+                      drawerModuleIndices = global.isReviewMode
+                          ? _displaySequence
+                          : List.generate(
+                              global.quizData.length,
+                              (index) => index,
+                            );
+                    } else {
+                      final sourceIndices = global.isReviewMode
+                          ? _displaySequence
+                          : List.generate(
+                              global.quizData.length,
+                              (index) => index,
+                            );
+                      drawerModuleIndices = sourceIndices
+                          .where(
+                            (idx) =>
+                                (global.quizData[idx]['subject']?.toString() ??
+                                    'General') ==
+                                _drawerActiveModule,
+                          )
+                          .toList();
+                    }
 
-              return Column(
-                children: [
-                  DrawerHeader(
-                    decoration: const BoxDecoration(color: global.bgColor),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Navigate',
-                        style: GoogleFonts.poppins(
-                          color: global.valueColor,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (!global.completeRandomShuffle && modules.length > 1)
-                    Container(
-                      height: 50,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: drawerModules.length,
-                        itemBuilder: (context, index) {
-                          final m = drawerModules[index];
-                          final bool isSelected = _drawerActiveModule == m;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
-                              label: Text(
-                                m.toUpperCase(),
-                                style: const TextStyle(fontSize: 10),
-                              ),
-                              selected: isSelected,
-                              selectedColor: global.primaryAccent,
-                              onSelected: (selected) {
-                                if (selected) {
-                                  if (global
-                                          .disableModuleSwitchingUntilTimeout &&
-                                      _timeLeft.inSeconds > 0 &&
-                                      !global.isReviewMode) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          "Module switching disabled until timeout",
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  setDrawerState(() {
-                                    _drawerActiveModule = m;
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  Expanded(
-                    child: GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
-                          ),
-                      itemCount: drawerModuleIndices.length,
-                      itemBuilder: (context, index) {
-                        int globalIndex = drawerModuleIndices[index];
-                        return GestureDetector(
-                          onTap:
-                              (global.perQuestionTime > 0 &&
-                                  globalIndex < i &&
-                                  !global.isReviewMode)
-                              ? null
-                              : () {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _activeModule = global
-                                        .quizData[globalIndex]['subject']
-                                        ?.toString();
-                                    i = globalIndex;
-                                    switchState();
-                                  });
-                                },
-                          child: Container(
-                            decoration: _getQuestionDecoration(
-                              globalIndex,
-                              isCurrent: i == globalIndex,
-                            ),
-                            child: Center(
-                              child: Text(
-                                _getDisplayNumber(globalIndex),
-                                style: TextStyle(
-                                  color:
-                                      (global.perQuestionTime > 0 &&
-                                          globalIndex < i &&
-                                          !global.isReviewMode)
-                                      ? Colors.white.withValues(alpha: 0.3)
-                                      : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const Divider(color: global.borderColor),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
+                    return Column(
                       children: [
-                        _buildLegendItem(Colors.green, "Answered"),
-                        _buildLegendItem(
-                          global.reviewColor,
-                          "Marked for Review",
-                        ),
-                        _buildLegendItem(Colors.grey, "Unattempted"),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-                ],
-              );
-            },
-          ),
-        ),
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              children: [
-                // Module Selector
-                if (!global.completeRandomShuffle && modules.length > 1)
-                  Container(
-                    height: 50,
-                    margin: const EdgeInsets.only(top: 10),
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: global.isReviewMode
-                          ? modules.length + 1
-                          : modules.length,
-                      itemBuilder: (context, index) {
-                        if (global.isReviewMode && index == 0) {
-                          final bool isSelected = _activeModule == "All";
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: ChoiceChip(
-                              label: const Text(
-                                "ALL",
-                                style: TextStyle(fontSize: 10),
-                              ),
-                              selected: isSelected,
-                              selectedColor: global.primaryAccent,
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setState(() {
-                                    _activeModule = "All";
-                                  });
-                                }
-                              },
-                            ),
-                          );
-                        }
-
-                        final m = global.isReviewMode
-                            ? modules[index - 1]
-                            : modules[index];
-                        final bool isSelected = _activeModule == m;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: ChoiceChip(
-                            label: Text(
-                              m.toUpperCase(),
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                            selected: isSelected,
-                            selectedColor: global.primaryAccent,
-                            onSelected: (selected) {
-                              if (selected) {
-                                if (global.disableModuleSwitchingUntilTimeout &&
-                                    _timeLeft.inSeconds > 0 &&
-                                    !global.isReviewMode) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Module switching disabled until timeout",
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                setState(() {
-                                  _activeModule = m;
-                                  if (!global.isReviewMode) {
-                                    // Jump to first question of this module during quiz
-                                    i = global.quizData.indexWhere(
-                                      (q) =>
-                                          (q['subject']?.toString() ??
-                                              'General') ==
-                                          m,
-                                    );
-                                    switchState();
-                                  }
-                                });
-                              }
-                            },
+                        DrawerHeader(
+                          decoration: const BoxDecoration(
+                            color: global.bgColor,
                           ),
-                        );
-                      },
-                    ),
-                  ),
-
-                // Horizontal Navigation dots (Filtered by module or sequence)
-                Container(
-                  height: 60,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: (global.isReviewMode && _activeModule == "All")
-                        ? _displaySequence.length
-                        : moduleIndices.length,
-                    itemBuilder: (context, index) {
-                      int globalIndex =
-                          (global.isReviewMode && _activeModule == "All")
-                          ? _displaySequence[index]
-                          : moduleIndices[index];
-                      return GestureDetector(
-                        onTap:
-                            (global.perQuestionTime > 0 &&
-                                globalIndex < i &&
-                                !global.isReviewMode)
-                            ? null
-                            : () {
-                                setState(() {
-                                  i = globalIndex;
-                                  switchState();
-                                });
-                              },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: _getQuestionDecoration(
-                            globalIndex,
-                            isCurrent: i == globalIndex,
-                          ),
-                          child: Center(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
                             child: Text(
-                              _getDisplayNumber(globalIndex),
-                              style: TextStyle(
-                                color:
+                              'Navigate',
+                              style: GoogleFonts.poppins(
+                                color: global.valueColor,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!global.completeRandomShuffle && modules.length > 1)
+                          Container(
+                            height: 50,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              itemCount: drawerModules.length,
+                              itemBuilder: (context, index) {
+                                final m = drawerModules[index];
+                                final bool isSelected =
+                                    _drawerActiveModule == m;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      m.toUpperCase(),
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                    selected: isSelected,
+                                    selectedColor: global.primaryAccent,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        if (global
+                                                .disableModuleSwitchingUntilTimeout &&
+                                            _timeLeft.inSeconds > 0 &&
+                                            !global.isReviewMode) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Module switching disabled until timeout",
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        setDrawerState(() {
+                                          _drawerActiveModule = m;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        Expanded(
+                          child: GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount: drawerModuleIndices.length,
+                            itemBuilder: (context, index) {
+                              int globalIndex = drawerModuleIndices[index];
+                              return GestureDetector(
+                                onTap:
                                     (global.perQuestionTime > 0 &&
                                         globalIndex < i &&
                                         !global.isReviewMode)
-                                    ? Colors.white.withValues(alpha: 0.3)
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Card(
-                      color:
-                          (global.isReviewMode &&
-                              _getQuestionColor(i) != Colors.transparent)
-                          ? _getQuestionColor(i).withValues(alpha: 0.05)
-                          : global.cardColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color:
-                              (global.isReviewMode &&
-                                  _getQuestionColor(i) != Colors.transparent)
-                              ? _getQuestionColor(i).withValues(alpha: 0.5)
-                              : global.borderColor,
-                          width:
-                              (global.isReviewMode &&
-                                  _getQuestionColor(i) != Colors.transparent)
-                              ? 2
-                              : 1,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: global.labelColor.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        "Q${_getDisplayNumber(i)}",
-                                        style: GoogleFonts.poppins(
-                                          color: global.labelColor,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: global.primaryAccent.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        (question['type'] ?? 'Single Choice')
-                                            .toString()
-                                            .toUpperCase(),
-                                        style: GoogleFonts.poppins(
-                                          color: global.primaryAccent,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    if (!global.isReviewMode &&
-                                        global.attemptLimits['type'] != 'none')
-                                      _buildLimitStatusIndicatorAtIndex(i),
-                                    const SizedBox(width: 8),
-                                    IconButton(
-                                      constraints: const BoxConstraints(),
-                                      padding: EdgeInsets.zero,
-                                      icon: const Icon(
-                                        Icons.report_gmailerrorred_rounded,
-                                        color: global.errorColor,
-                                        size: 20,
-                                      ),
-                                      onPressed: () => _showReportDialog(i),
-                                      tooltip: "Report Question",
-                                    ),
-                                  ],
-                                ),
-                                if (global.isReviewMode)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          (_getMarksForQuestion(i) > 0
-                                                  ? global.successColor
-                                                  : (_getMarksForQuestion(i) < 0
-                                                        ? global.errorColor
-                                                        : global.labelColor))
-                                              .withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                    ? null
+                                    : () {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _activeModule = global
+                                              .quizData[globalIndex]['subject']
+                                              ?.toString();
+                                          i = globalIndex;
+                                          switchState();
+                                        });
+                                      },
+                                child: Container(
+                                  decoration: _getQuestionDecoration(
+                                    globalIndex,
+                                    isCurrent: i == globalIndex,
+                                  ),
+                                  child: Center(
                                     child: Text(
-                                      "${_getMarksForQuestion(i) > 0 ? '+' : ''}${_getMarksForQuestion(i)} Marks",
-                                      style: GoogleFonts.poppins(
-                                        color: _getMarksForQuestion(i) > 0
-                                            ? global.successColor
-                                            : (_getMarksForQuestion(i) < 0
-                                                  ? global.errorColor
-                                                  : global.labelColor),
-                                        fontSize: 10,
+                                      _getDisplayNumber(globalIndex),
+                                      style: TextStyle(
+                                        color:
+                                            (global.perQuestionTime > 0 &&
+                                                globalIndex < i &&
+                                                !global.isReviewMode)
+                                            ? Colors.white.withValues(
+                                                alpha: 0.3,
+                                              )
+                                            : Colors.white,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              "${(question["Q"] as Map?)?['text'] ?? ""}",
-                              style: GoogleFonts.poppins(
-                                color: global.valueColor,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ...buttonsData(i),
-                            // --- Review Mode Solutions/Explanations ---
-                            if (global.isReviewMode) ...[
-                              // 1. Personalized AI Analysis (Specific to User's Attempt)
-                              if (global.personalizedSolutions.containsKey(
-                                    question['uid']?.toString() ?? "",
-                                  ) &&
-                                  (global
-                                              .personalizedSolutions[question['uid']
-                                                  ?.toString()]
-                                              ?.trim() ??
-                                          "")
-                                      .isNotEmpty)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 20),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.purple.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.purpleAccent.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.auto_awesome_rounded,
-                                            color: Colors.purpleAccent,
-                                            size: 18,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            "PERSONALIZED AI FEEDBACK",
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.purpleAccent,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 1.1,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        global.personalizedSolutions[question['uid']
-                                                ?.toString()] ??
-                                            "",
-                                        style: GoogleFonts.poppins(
-                                          color: global.valueColor,
-                                          fontSize: 13,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
                                 ),
-
-                              // 2. Examiner's Solution / General Description
-                              if (global.solutions.containsKey(
-                                    question['uid']?.toString() ?? "",
-                                  ) ||
-                                  (question['description']?.toString() ?? "")
-                                      .isNotEmpty ||
-                                  (question['explanation']?.toString() ?? "")
-                                      .isNotEmpty)
-                                Builder(
-                                  builder: (context) {
-                                    final String? examinerSolution =
-                                        global.solutions[question['uid']
-                                            ?.toString()] ??
-                                        question['description']?.toString() ??
-                                        question['explanation']?.toString();
-
-                                    if (examinerSolution == null ||
-                                        examinerSolution.trim().isEmpty) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    return Container(
-                                      margin: const EdgeInsets.only(top: 12),
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: global.bgColor.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: global.primaryAccent
-                                              .withValues(alpha: 0.3),
-                                        ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.lightbulb_outline,
-                                                color: global.primaryAccent,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                "EXAMINER SOLUTION",
-                                                style: GoogleFonts.poppins(
-                                                  color: global.primaryAccent,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  letterSpacing: 1.1,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            examinerSolution,
-                                            style: GoogleFonts.poppins(
-                                              color: global.valueColor
-                                                  .withValues(alpha: 0.8),
-                                              fontSize: 13,
-                                              height: 1.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                            ],
-                            if (!global.isReviewMode) ...[
-                              const SizedBox(height: 24),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        side: BorderSide(
-                                          color: global.quizResult[i][4] == true
-                                              ? global.reviewColor
-                                              : global.borderColor,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        foregroundColor:
-                                            global.quizResult[i][4] == true
-                                            ? global.reviewColor
-                                            : global.labelColor,
-                                      ),
-                                      onPressed: () => setState(() {
-                                        global.quizResult[i][4] =
-                                            !(global.quizResult[i][4] as bool);
-                                      }),
-                                      icon: Icon(
-                                        global.quizResult[i][4] == true
-                                            ? Icons.bookmark
-                                            : Icons.bookmark_border,
-                                        size: 18,
-                                      ),
-                                      label: const Text(
-                                        "REVIEW",
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextButton.icon(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: global.errorColor,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                      onPressed: () => setState(() {
-                                        global.quizResult[i][2] = <String>[];
-                                        if (currentData["type"] == "Integer") {
-                                          _integerController.clear();
-                                        }
-                                      }),
-                                      icon: const Icon(
-                                        Icons.clear_rounded,
-                                        size: 18,
-                                      ),
-                                      label: const Text(
-                                        "CLEAR",
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
+                        const Divider(color: global.borderColor),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              _buildLegendItem(Colors.green, "Answered"),
+                              _buildLegendItem(
+                                global.reviewColor,
+                                "Marked for Review",
+                              ),
+                              _buildLegendItem(Colors.grey, "Unattempted"),
+                            ],
+                          ),
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).padding.bottom + 20,
+                        ),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
+        body: isLargeScreen
+            ? Row(
+                children: [
+                  _buildSidePanel(),
+                  Expanded(child: _buildMainQuestionArea()),
+                ],
+              )
+            : _buildMainQuestionArea(),
         bottomNavigationBar: Container(
           padding: EdgeInsets.fromLTRB(
             20,

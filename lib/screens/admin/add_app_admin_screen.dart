@@ -49,7 +49,7 @@ class _AddAppAdminScreenState extends State<AddAppAdminScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 800),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(

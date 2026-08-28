@@ -35,6 +35,22 @@ class UserDatabaseService {
           profile = await _userService.getUserProfile(uid);
         }
       }
+
+      // 1b. Sync Email if changed in Auth (Handles email updates)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.reload(); // Refresh local auth state from server
+        final updatedUser = FirebaseAuth.instance.currentUser;
+        if (updatedUser?.email != null &&
+            updatedUser?.email != profile?['email']) {
+          await _userService.updatePrivateDetails(
+            uid: uid,
+            email: updatedUser!.email,
+          );
+          profile = await _userService.getUserProfile(uid);
+        }
+      }
+
       global.currentUserProfile = profile;
 
       // 2. Fetch Admin Status

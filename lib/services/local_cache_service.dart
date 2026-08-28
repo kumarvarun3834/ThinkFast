@@ -1,8 +1,10 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalCacheService {
-  static const String _keyRecentQuizzes = 'recent_quizzes';
+  static const String _keyRecentActivity =
+      'recent_quizzes'; // Keeping the same key for migration compatibility
   static const String _keyAiUsage = 'ai_usage_today';
   static const String _keyAiUsageDate = 'ai_usage_date';
 
@@ -21,7 +23,9 @@ class LocalCacheService {
     try {
       final date = DateTime.parse(dateStr);
       final now = DateTime.now();
-      if (date.day != now.day || date.month != now.month || date.year != now.year) {
+      if (date.day != now.day ||
+          date.month != now.month ||
+          date.year != now.year) {
         return null;
       }
       return prefs.getInt(_keyAiUsage);
@@ -30,59 +34,72 @@ class LocalCacheService {
     }
   }
 
-  /// ✅ Save a quiz to the "Recently Viewed" list (Limited to last 10)
-  Future<void> saveRecentQuiz(Map<String, dynamic> quizData) async {
+  /// Save activity (Quiz View or Attempt) to the "Recent" list
+  Future<void> saveRecentActivity({
+    required String id,
+    required String title,
+    String? attemptId,
+    String? user,
+    String? examTag,
+    required String activityType, // 'quiz' or 'result'
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Get existing list
-    List<String> recentJson = prefs.getStringList(_keyRecentQuizzes) ?? [];
+
+    List<String> recentJson = prefs.getStringList(_keyRecentActivity) ?? [];
     List<Map<String, dynamic>> recentList = recentJson
         .map((item) => jsonDecode(item) as Map<String, dynamic>)
         .toList();
 
-    // Remove if already exists (to move to top)
-    recentList.removeWhere((item) => item['id'] == quizData['id']);
+    // Remove if already exists (match by ID and Type to allow same quiz and its result to coexist if needed,
+    // or just match by ID to move the quiz to top regardless of why it was viewed)
+    // Preference: Match by ID to keep the list clean.
+    recentList.removeWhere((item) => item['id'] == id);
 
-    // Create a compact version of the data to save space
-    final Map<String, dynamic> compactData = {
-      'id': quizData['id'],
-      'title': quizData['title'],
-      'description': quizData['description'],
-      'visibility': quizData['visibility'],
-      'examTag': quizData['examTag'],
-      'user': quizData['user'],
-      'totalQuestions': quizData['totalQuestions'],
-      'time': quizData['time'],
+    final Map<String, dynamic> activityData = {
+      'id': id,
+      'title': title,
+      'attemptId': attemptId,
+      'user': user,
+      'examTag': examTag,
+      'activityType': activityType,
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    // Insert at start
-    recentList.insert(0, compactData);
+    recentList.insert(0, activityData);
 
-    // Trim to 10
-    if (recentList.length > 10) {
-      recentList = recentList.sublist(0, 10);
+    if (recentList.length > 12) {
+      recentList = recentList.sublist(0, 12);
     }
 
-    // Save back
     await prefs.setStringList(
-      _keyRecentQuizzes,
+      _keyRecentActivity,
       recentList.map((item) => jsonEncode(item)).toList(),
     );
   }
 
-  /// ✅ Retrieve the last 10 recent quizzes
+  /// ✅ Legacy wrapper (for compatibility)
+  Future<void> saveRecentQuiz(Map<String, dynamic> quizData) async {
+    await saveRecentActivity(
+      id: quizData['id'],
+      title: quizData['title'] ?? 'Untitled',
+      user: quizData['user'],
+      examTag: quizData['examTag'],
+      activityType: 'quiz',
+    );
+  }
+
+  /// ✅ Retrieve recent activity
   Future<List<Map<String, dynamic>>> getRecentQuizzes() async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> recentJson = prefs.getStringList(_keyRecentQuizzes) ?? [];
+    List<String> recentJson = prefs.getStringList(_keyRecentActivity) ?? [];
     return recentJson
         .map((item) => jsonDecode(item) as Map<String, dynamic>)
         .toList();
   }
 
-  /// ✅ Clear recent quizzes
+  /// ✅ Clear recent activity
   Future<void> clearRecentQuizzes() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyRecentQuizzes);
+    await prefs.remove(_keyRecentActivity);
   }
 }
