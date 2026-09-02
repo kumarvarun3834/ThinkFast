@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/services/web/web_helper.dart' as web_helper;
+import 'package:thinkfast/utils/global.dart' as global;
 
 class Questions extends StatefulWidget {
   const Questions({super.key});
@@ -23,6 +23,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   bool _isDefaultOrder = false; // Start with History/Attempt order (false)
   Map<String, Object> currentData = {};
   Duration _timeLeft = Duration.zero; // ⏱️ dynamic time from Firestore
+  DateTime? _endTime; // ⏱️ Absolute end time to prevent pausing
   Timer? _timer;
   bool _isSubmitted = false;
   bool _isLoading = true;
@@ -30,7 +31,6 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   String _errorMessage = "";
   String _loadingMessage = "Initializing Quiz...";
   late final TextEditingController _integerController;
-  int _backPressCount = 0;
   int _antiCheatWarnings = 0; // 🕵️ Track violations
 
   // List of indices in global.quizData in the order we want to display them
@@ -221,10 +221,17 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
         _handleAntiCheatViolation("Tab switched or window minimized");
       });
 
-      // 🕵️ Web Anti-Cheat: Detect Fullscreen Exit
-      web_helper.listenToFullScreenChange(() {
-        _handleAntiCheatViolation("Full screen mode exited");
-      });
+      // 🕵️ Web Anti-Cheat: Detect Fullscreen Exit & Esc Key Intent
+      web_helper.listenToFullScreenChange(
+        onExit: () {
+          _handleAntiCheatViolation("Full screen mode exited");
+        },
+        onIntentToExit: () {
+          _handleAntiCheatViolation(
+            "Esc key pressed (Full screen exit intent)",
+          );
+        },
+      );
 
       // 🕵️ Web Anti-Cheat: Detect Text Selection
       web_helper.listenToTextSelection(() {
@@ -236,7 +243,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   }
 
   void _handleAntiCheatViolation(String reason) {
-    if (_isSubmitted || global.isReviewMode || global.time <= 0) return;
+    if (_isSubmitted || global.isReviewMode) return;
 
     debugPrint("Anti-Cheat Violation: $reason");
 
@@ -255,72 +262,133 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   void _showViolationWarning(String reason) {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: global.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent),
-            const SizedBox(width: 12),
-            Text(
-              "Anti-Cheat Warning",
-              style: GoogleFonts.poppins(
-                color: global.valueColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Violation: $reason",
-              style: const TextStyle(
-                color: Colors.orangeAccent,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "Switching tabs, exiting full screen, or selecting text is not allowed during the quiz.",
-              style: TextStyle(color: global.labelColor, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "ONE MORE violation will result in IMMEDIATE submission of your quiz.",
-              style: TextStyle(
-                color: global.errorColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: global.primaryAccent,
+      barrierDismissible: false, // Forbid closing by tapping outside
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          // Local timer to refresh the warning dialog UI
+          Timer.periodic(const Duration(seconds: 1), (timer) {
+            if (!context.mounted) {
+              timer.cancel();
+              return;
+            }
+            setModalState(() {});
+          });
+
+          return PopScope(
+            canPop: false, // Forbid closing by back button
+            child: AlertDialog(
+              backgroundColor: global.cardColor,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
               ),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              if (kIsWeb) web_helper.enterFullScreen();
-            },
-            child: const Text(
-              "UNDERSTOOD",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
+              title: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orangeAccent,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Security Violation",
+                    style: GoogleFonts.poppins(
+                      color: global.valueColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Warning (Strike 1/2)",
+                        style: GoogleFonts.poppins(
+                          color: Colors.orangeAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      if (global.time > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: global.errorColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _format(_timeLeft),
+                            style: GoogleFonts.firaCode(
+                              color: global.errorColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Reason: $reason",
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Switching tabs, exiting full screen (Esc), or selecting text is strictly forbidden. The timer continues to run as a penalty.",
+                    style: TextStyle(color: global.labelColor, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "ANY further violation will result in IMMEDIATE and AUTOMATIC submission of your quiz.",
+                    style: TextStyle(
+                      color: global.errorColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: global.primaryAccent,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (kIsWeb) {
+                      web_helper.enterFullScreen();
+                    } else {
+                      SystemChrome.setEnabledSystemUIMode(
+                        SystemUiMode.immersiveSticky,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    "RE-ENTER FULL SCREEN & CONTINUE",
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -365,8 +433,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.inactive) &&
         !_isSubmitted &&
-        !global.isReviewMode &&
-        global.time > 0) {
+        !global.isReviewMode) {
       _handleAntiCheatViolation("App minimized or put in background");
     }
   }
@@ -459,268 +526,653 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   }
 
   void _showSubmitConfirmation() {
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
     String? localActiveModule = _activeModule;
     final List<String> modules = _getModules();
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: global.cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final List<int> moduleIndices = (global.completeRandomShuffle)
-                ? List.generate(global.quizData.length, (index) => index)
-                : global.quizData
-                      .asMap()
-                      .entries
-                      .where(
-                        (e) =>
-                            (e.value['subject']?.toString() ?? 'General') ==
-                            localActiveModule,
-                      )
-                      .map((e) => e.key)
-                      .toList();
+    if (isLargeScreen) {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              final List<int> moduleIndices = (global.completeRandomShuffle)
+                  ? List.generate(global.quizData.length, (index) => index)
+                  : global.quizData
+                        .asMap()
+                        .entries
+                        .where(
+                          (e) =>
+                              (e.value['subject']?.toString() ?? 'General') ==
+                              localActiveModule,
+                        )
+                        .map((e) => e.key)
+                        .toList();
 
-            return DraggableScrollableSheet(
-              initialChildSize: 0.8,
-              minChildSize: 0.5,
-              maxChildSize: 0.95,
-              expand: false,
-              builder: (context, scrollController) {
-                return Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[600],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            global.isReviewMode
-                                ? "Review Navigator"
-                                : "Submit Quiz?",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (global.isReviewMode)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+              return Dialog(
+                backgroundColor: global.cardColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildSmallStat(
-                              "Score",
-                              "${_calculateCurrentTotalScore()}",
-                              global.primaryAccent,
+                            Text(
+                              global.isReviewMode
+                                  ? "Review Navigator"
+                                  : "Submit Quiz?",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            _buildSmallStat(
-                              "Answered",
-                              "${_calculateAnsweredCount()}",
-                              Colors.green,
-                            ),
-                            _buildSmallStat(
-                              "Review",
-                              "${_calculateReviewCount()}",
-                              global.reviewColor,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => Navigator.pop(context),
                             ),
                           ],
                         ),
-                      ),
-                    if (!global.completeRandomShuffle && modules.length > 1)
-                      Container(
-                        height: 50,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: modules.length,
-                          itemBuilder: (context, index) {
-                            final m = modules[index];
-                            final bool isSelected = localActiveModule == m;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ChoiceChip(
-                                label: Text(
-                                  m.toUpperCase(),
-                                  style: const TextStyle(fontSize: 10),
+                        const SizedBox(height: 16),
+                        if (global.isReviewMode)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildSmallStat(
+                                  "Score",
+                                  "${_calculateCurrentTotalScore()}",
+                                  global.primaryAccent,
                                 ),
-                                selected: isSelected,
-                                selectedColor: global.primaryAccent,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    if (global
-                                            .disableModuleSwitchingUntilTimeout &&
-                                        _timeLeft.inSeconds > 0 &&
-                                        !global.isReviewMode) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            "Module switching disabled until timeout",
-                                          ),
+                                _buildSmallStat(
+                                  "Answered",
+                                  "${_calculateAnsweredCount()}",
+                                  Colors.green,
+                                ),
+                                _buildSmallStat(
+                                  "Review",
+                                  "${_calculateReviewCount()}",
+                                  global.reviewColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (!global.completeRandomShuffle && modules.length > 1)
+                          Container(
+                            height: 50,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: global.isReviewMode
+                                  ? modules.length + 1
+                                  : modules.length,
+                              itemBuilder: (context, index) {
+                                if (global.isReviewMode && index == 0) {
+                                  final bool isSelected =
+                                      localActiveModule == "All";
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: ChoiceChip(
+                                      label: const Text(
+                                        "ALL",
+                                        style: TextStyle(fontSize: 10),
+                                      ),
+                                      selected: isSelected,
+                                      selectedColor: global.primaryAccent,
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          setModalState(() {
+                                            localActiveModule = "All";
+                                          });
+                                        }
+                                      },
+                                    ),
+                                  );
+                                }
+
+                                final m = global.isReviewMode
+                                    ? modules[index - 1]
+                                    : modules[index];
+                                final bool isSelected = localActiveModule == m;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ChoiceChip(
+                                    label: Text(
+                                      m.toUpperCase(),
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                    selected: isSelected,
+                                    selectedColor: global.primaryAccent,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        if (global
+                                                .disableModuleSwitchingUntilTimeout &&
+                                            _timeLeft.inSeconds > 0 &&
+                                            !global.isReviewMode) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Module switching disabled until timeout",
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
+                                        setModalState(() {
+                                          localActiveModule = m;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        Flexible(
+                          child: GridView.builder(
+                            shrinkWrap: true,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 6,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                            itemCount:
+                                (global.isReviewMode &&
+                                    localActiveModule == "All")
+                                ? _displaySequence.length
+                                : moduleIndices.length,
+                            itemBuilder: (context, index) {
+                              int globalIndex =
+                                  (global.isReviewMode &&
+                                      localActiveModule == "All")
+                                  ? _displaySequence[index]
+                                  : moduleIndices[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    i = globalIndex;
+                                    _activeModule = localActiveModule;
+                                    switchState();
+                                  });
+                                },
+                                child: Container(
+                                  decoration: _getQuestionDecoration(
+                                    globalIndex,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      _getDisplayNumber(globalIndex),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        if (global.isReviewMode)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLegendItem(Colors.green, "Correct"),
+                                  _buildLegendItem(
+                                    global.reviewColor,
+                                    "Review",
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLegendItem(
+                                    global.errorColor,
+                                    "Incorrect",
+                                  ),
+                                  _buildLegendItem(Colors.grey, "Unattempted"),
+                                ],
+                              ),
+                            ],
+                          )
+                        else
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLegendItem(Colors.green, "Answered"),
+                                  _buildLegendItem(
+                                    global.reviewColor,
+                                    "Marked for Review",
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLegendItem(Colors.grey, "Unattempted"),
+                                ],
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (global.forceWaitUntilTimeout &&
+                                      _timeLeft.inSeconds > 0 &&
+                                      !global.isReviewMode) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Submission not allowed until time runs out",
                                         ),
-                                      );
-                                      return;
-                                    }
-                                    setModalState(() {
-                                      localActiveModule = m;
-                                    });
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(context);
+                                  if (global.isReviewMode) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    switchToResultScreen();
                                   }
                                 },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    Expanded(
-                      child: GridView.builder(
-                        controller: scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 5,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),
-                        itemCount: moduleIndices.length,
-                        itemBuilder: (context, index) {
-                          int globalIndex = moduleIndices[index];
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.pop(context);
-                              setState(() {
-                                i = globalIndex;
-                                _activeModule = localActiveModule;
-                                switchState();
-                              });
-                            },
-                            child: Container(
-                              decoration: _getQuestionDecoration(globalIndex),
-                              child: Center(
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  backgroundColor: global.btnColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                                 child: Text(
-                                  _getDisplayNumber(globalIndex),
+                                  global.isReviewMode
+                                      ? "BACK TO SUMMARY"
+                                      : "SUBMIT QUIZ",
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: global.valueColor,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const Divider(color: global.borderColor, height: 32),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: global.cardColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setModalState) {
+              final List<int> moduleIndices = (global.completeRandomShuffle)
+                  ? List.generate(global.quizData.length, (index) => index)
+                  : global.quizData
+                        .asMap()
+                        .entries
+                        .where(
+                          (e) =>
+                              (e.value['subject']?.toString() ?? 'General') ==
+                              localActiveModule,
+                        )
+                        .map((e) => e.key)
+                        .toList();
+
+              return DraggableScrollableSheet(
+                initialChildSize: 0.8,
+                minChildSize: 0.5,
+                maxChildSize: 0.95,
+                expand: false,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[600],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              global.isReviewMode
+                                  ? "Review Navigator"
+                                  : "Submit Quiz?",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (global.isReviewMode)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildLegendItem(Colors.green, "Answered"),
-                              _buildLegendItem(
+                              _buildSmallStat(
+                                "Score",
+                                "${_calculateCurrentTotalScore()}",
+                                global.primaryAccent,
+                              ),
+                              _buildSmallStat(
+                                "Answered",
+                                "${_calculateAnsweredCount()}",
+                                Colors.green,
+                              ),
+                              _buildSmallStat(
+                                "Review",
+                                "${_calculateReviewCount()}",
                                 global.reviewColor,
-                                "Marked for Review",
                               ),
                             ],
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLegendItem(Colors.grey, "Unattempted"),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (global.forceWaitUntilTimeout &&
-                                    _timeLeft.inSeconds > 0 &&
-                                    !global.isReviewMode) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Submission not allowed until time runs out",
-                                      ),
+                        ),
+                      if (!global.completeRandomShuffle && modules.length > 1)
+                        Container(
+                          height: 50,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: global.isReviewMode
+                                ? modules.length + 1
+                                : modules.length,
+                            itemBuilder: (context, index) {
+                              if (global.isReviewMode && index == 0) {
+                                final bool isSelected =
+                                    localActiveModule == "All";
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: ChoiceChip(
+                                    label: const Text(
+                                      "ALL",
+                                      style: TextStyle(fontSize: 10),
                                     ),
-                                  );
-                                  return;
-                                }
-                                Navigator.pop(context);
-                                if (global.isReviewMode) {
-                                  Navigator.pop(context);
-                                } else {
-                                  switchToResultScreen();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                                    selected: isSelected,
+                                    selectedColor: global.primaryAccent,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setModalState(() {
+                                          localActiveModule = "All";
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              }
+
+                              final m = global.isReviewMode
+                                  ? modules[index - 1]
+                                  : modules[index];
+                              final bool isSelected = localActiveModule == m;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: ChoiceChip(
+                                  label: Text(
+                                    m.toUpperCase(),
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
+                                  selected: isSelected,
+                                  selectedColor: global.primaryAccent,
+                                  onSelected: (selected) {
+                                    if (selected) {
+                                      if (global
+                                              .disableModuleSwitchingUntilTimeout &&
+                                          _timeLeft.inSeconds > 0 &&
+                                          !global.isReviewMode) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              "Module switching disabled until timeout",
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      setModalState(() {
+                                        localActiveModule = m;
+                                      });
+                                    }
+                                  },
                                 ),
-                                backgroundColor: global.btnColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                              );
+                            },
+                          ),
+                        ),
+                      Expanded(
+                        child: GridView.builder(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                crossAxisSpacing: 10,
+                                mainAxisSpacing: 10,
+                              ),
+                          itemCount:
+                              (global.isReviewMode &&
+                                  localActiveModule == "All")
+                              ? _displaySequence.length
+                              : moduleIndices.length,
+                          itemBuilder: (context, index) {
+                            int globalIndex =
+                                (global.isReviewMode &&
+                                    localActiveModule == "All")
+                                ? _displaySequence[index]
+                                : moduleIndices[index];
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context);
+                                setState(() {
+                                  i = globalIndex;
+                                  _activeModule = localActiveModule;
+                                  switchState();
+                                });
+                              },
+                              child: Container(
+                                decoration: _getQuestionDecoration(globalIndex),
+                                child: Center(
+                                  child: Text(
+                                    _getDisplayNumber(globalIndex),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                global.isReviewMode
-                                    ? "BACK TO SUMMARY"
-                                    : "SUBMIT QUIZ",
-                                style: const TextStyle(
-                                  color: global.valueColor,
-                                  fontWeight: FontWeight.bold,
+                            );
+                          },
+                        ),
+                      ),
+                      const Divider(color: global.borderColor, height: 32),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: global.isReviewMode
+                            ? Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLegendItem(Colors.green, "Correct"),
+                                      _buildLegendItem(
+                                        global.reviewColor,
+                                        "Review",
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLegendItem(
+                                        global.errorColor,
+                                        "Incorrect",
+                                      ),
+                                      _buildLegendItem(
+                                        Colors.grey,
+                                        "Unattempted",
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLegendItem(
+                                        Colors.green,
+                                        "Answered",
+                                      ),
+                                      _buildLegendItem(
+                                        global.reviewColor,
+                                        "Marked for Review",
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLegendItem(
+                                        Colors.grey,
+                                        "Unattempted",
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (global.forceWaitUntilTimeout &&
+                                      _timeLeft.inSeconds > 0 &&
+                                      !global.isReviewMode) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Submission not allowed until time runs out",
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  Navigator.pop(context);
+                                  if (global.isReviewMode) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    switchToResultScreen();
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  backgroundColor: global.btnColor,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text(
+                                  global.isReviewMode
+                                      ? "BACK TO SUMMARY"
+                                      : "SUBMIT QUIZ",
+                                  style: const TextStyle(
+                                    color: global.valueColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
+                    ],
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
+    }
   }
 
   Widget _buildLegendItem(Color color, String text) {
@@ -751,23 +1203,24 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
   void switchState() {
     setState(() {
-      _backPressCount = 0; // Reset back count on navigation
       currentData = global.quizData[i];
       _activeModule = currentData['subject']?.toString() ?? 'General';
       final qInfo = currentData["Q"] as Map;
       global.quizResult[i][0] = qInfo['text'].toString();
       global.quizResult[i][1] = qInfo['id'].toString();
 
-      if (!global.isReviewMode && global.time > 0) {
+      if (!global.isReviewMode) {
         global.quizResult[i][3] = true; // Mark visited while attempting
-        final int qTimer =
-            int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
-        if (qTimer > 0) {
-          _timeLeft = Duration(seconds: qTimer);
-          _startTimer();
-        } else if (global.perQuestionTime > 0) {
-          _timeLeft = Duration(seconds: global.perQuestionTime);
-          _startTimer();
+        if (global.time > 0) {
+          final int qTimer =
+              int.tryParse(currentData['timer']?.toString() ?? '0') ?? 0;
+          if (qTimer > 0) {
+            _timeLeft = Duration(seconds: qTimer);
+            _startTimer();
+          } else if (global.perQuestionTime > 0) {
+            _timeLeft = Duration(seconds: global.perQuestionTime);
+            _startTimer();
+          }
         }
       }
 
@@ -1117,7 +1570,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     if (global.isReviewMode) {
       // In Review Mode, if not marked for review, keep dots looking like the quiz
       if (isAnswered) {
-        color = Colors.green;
+        final marks = _getMarksForQuestion(index);
+        color = marks > 0 ? Colors.green : global.errorColor;
       } else if (isVisited) {
         color = global.infoColor;
       }
@@ -1167,11 +1621,16 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
 
   void _startTimer() {
     _timer?.cancel();
+    _endTime = DateTime.now().add(_timeLeft); // Fixed point in time
+
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
       setState(() {
-        if (_timeLeft.inSeconds > 0) {
-          _timeLeft -= const Duration(seconds: 1);
+        final now = DateTime.now();
+        if (_endTime != null && _endTime!.isAfter(now)) {
+          _timeLeft = _endTime!.difference(now);
         } else {
+          _timeLeft = Duration.zero;
           if (global.perQuestionTime > 0) {
             if (i < global.quizData.length - 1) {
               i++;
@@ -1510,10 +1969,17 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     },
                   ),
                   const SizedBox(height: 32),
-                  _buildLegendItem(Colors.green, "Answered"),
-                  _buildLegendItem(global.reviewColor, "Marked for Review"),
-                  _buildLegendItem(global.infoColor, "Visited"),
-                  _buildLegendItem(Colors.grey, "Unattempted"),
+                  if (global.isReviewMode) ...[
+                    _buildLegendItem(Colors.green, "Correct"),
+                    _buildLegendItem(global.errorColor, "Incorrect"),
+                    _buildLegendItem(global.reviewColor, "Review"),
+                    _buildLegendItem(Colors.grey, "Unattempted"),
+                  ] else ...[
+                    _buildLegendItem(Colors.green, "Answered"),
+                    _buildLegendItem(global.reviewColor, "Marked for Review"),
+                    _buildLegendItem(global.infoColor, "Visited"),
+                    _buildLegendItem(Colors.grey, "Unattempted"),
+                  ],
                 ],
               ),
             ),
@@ -2110,27 +2576,8 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        if (global.time == 0 || global.isAdmin) {
-          _submitAndFinish();
-          return;
-        }
-
-        if (_backPressCount == 0) {
-          _backPressCount++;
-          _showSubmitConfirmation();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "Warning: Attempting to exit. Press BACK again will submit.",
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Colors.orangeAccent,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        } else {
-          _submitAndFinish();
-        }
+        // Treat back gesture/button as a security violation (attempt to leave exam)
+        _handleAntiCheatViolation("Back gesture/button detected");
       },
       child: Scaffold(
         backgroundColor: global.bgColor,

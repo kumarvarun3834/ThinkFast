@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/services/web/web_helper.dart' as web_helper;
 import 'package:thinkfast/widgets/quiz_widgets.dart';
 import 'package:thinkfast/screens/quiz/colab/manage_quiz_button.dart';
 import 'package:thinkfast/screens/quiz/colab/management_bottom_sheet.dart';
@@ -123,6 +125,127 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("BYPASS"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSecurityBriefing(VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Forbid closing by tapping outside
+      builder: (context) => PopScope(
+        canPop: false, // Forbid closing by back button
+        child: AlertDialog(
+          backgroundColor: global.cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.security_rounded, color: global.primaryAccent),
+              const SizedBox(width: 12),
+              Text(
+                "Security Protocol",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  color: global.valueColor,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "To maintain exam integrity, the following rules are strictly enforced:",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _ruleItem(
+                Icons.fullscreen_rounded,
+                "The quiz will start in Full-Screen mode.",
+              ),
+              _ruleItem(
+                Icons.tab_unselected_rounded,
+                "Do NOT switch tabs or minimize the window.",
+              ),
+              _ruleItem(
+                Icons.keyboard_return_rounded,
+                "Do NOT press 'Esc' to exit full-screen.",
+              ),
+              _ruleItem(
+                Icons.copy_rounded,
+                "Text selection and copying are disabled.",
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Violating these rules will result in a warning. A second violation will lead to IMMEDIATE AUTOMATIC SUBMISSION.",
+                style: TextStyle(
+                  color: global.errorColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() => _isStartingQuiz = false);
+                Navigator.pop(context);
+              },
+              child: const Text("CANCEL"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.primaryAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                if (kIsWeb) web_helper.enterFullScreen();
+                onConfirm();
+              },
+              child: const Text(
+                "I UNDERSTAND, START QUIZ",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _ruleItem(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: global.primaryAccent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(color: global.labelColor, fontSize: 12),
+            ),
           ),
         ],
       ),
@@ -1746,24 +1869,28 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
                 global.solutions = {};
                 global.personalizedSolutions = {};
 
-                // Mark as active quiz with expiry (Duration + 5 mins buffer)
-                final int quizDurationSeconds = global.time;
-                final DateTime expiry = quizDurationSeconds > 0
-                    ? DateTime.now().add(
-                        Duration(seconds: quizDurationSeconds + 300),
-                      )
-                    : DateTime.now().add(const Duration(days: 1)); // Unlimited
+                _showSecurityBriefing(() async {
+                  // Mark as active quiz with expiry (Duration + 5 mins buffer)
+                  final int quizDurationSeconds = global.time;
+                  final DateTime expiry = quizDurationSeconds > 0
+                      ? DateTime.now().add(
+                          Duration(seconds: quizDurationSeconds + 300),
+                        )
+                      : DateTime.now().add(
+                          const Duration(days: 1),
+                        ); // Unlimited
 
-                await global.db.updateActiveQuiz(
-                  uid: _user!.uid,
-                  quizId: _quizData!['id'],
-                  expiry: expiry,
-                );
+                  await global.db.updateActiveQuiz(
+                    uid: _user!.uid,
+                    quizId: _quizData!['id'],
+                    expiry: expiry,
+                  );
 
-                if (mounted) {
-                  setState(() => _isStartingQuiz = false);
-                  Navigator.pushNamed(context, "/Quiz");
-                }
+                  if (mounted) {
+                    setState(() => _isStartingQuiz = false);
+                    Navigator.pushNamed(context, "/Quiz");
+                  }
+                });
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("This quiz is private")),

@@ -28,10 +28,20 @@ void listenToTabSwitch(VoidCallback onSwitch) {
   }.toJS;
 }
 
-void listenToFullScreenChange(VoidCallback onExit) {
+void listenToFullScreenChange({
+  required VoidCallback onExit,
+  VoidCallback? onIntentToExit,
+}) {
   document.onfullscreenchange = (Event event) {
     if (document.fullscreenElement == null) {
       onExit();
+    }
+  }.toJS;
+
+  // Listen for the Escape key specifically as an intent to exit
+  window.onkeydown = (KeyboardEvent event) {
+    if (event.key == 'Escape' && document.fullscreenElement != null) {
+      if (onIntentToExit != null) onIntentToExit();
     }
   }.toJS;
 }
@@ -41,7 +51,6 @@ void listenToTextSelection(VoidCallback onSelection) {
     final selection = window.getSelection();
     if (selection != null && selection.toString().trim().isNotEmpty) {
       onSelection();
-      // Clear selection after detection to prevent infinite loops or multiple warnings
       selection.removeAllRanges();
     }
   }.toJS;

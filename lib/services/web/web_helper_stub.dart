@@ -6,7 +6,10 @@ void exitFullScreen() {}
 
 void listenToTabSwitch(VoidCallback onSwitch) {}
 
-void listenToFullScreenChange(VoidCallback onExit) {}
+void listenToFullScreenChange({
+  required VoidCallback onExit,
+  VoidCallback? onIntentToExit,
+}) {}
 
 void listenToTextSelection(VoidCallback onSelection) {}
 
