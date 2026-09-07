@@ -7,15 +7,16 @@ class LocalCacheService {
       'recent_quizzes'; // Keeping the same key for migration compatibility
   static const String _keyAiUsage = 'ai_usage_today';
   static const String _keyAiUsageDate = 'ai_usage_date';
+  static const String _keySplitRatio = 'split_ratio';
 
-  /// ✅ Cache AI Usage for the day
+  /// Cache AI Usage for the day
   Future<void> saveAiUsage(int count) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAiUsage, count);
     await prefs.setString(_keyAiUsageDate, DateTime.now().toIso8601String());
   }
 
-  /// ✅ Get cached AI Usage
+  /// Get cached AI Usage
   Future<int?> getAiUsage() async {
     final prefs = await SharedPreferences.getInstance();
     final dateStr = prefs.getString(_keyAiUsageDate);
@@ -77,7 +78,7 @@ class LocalCacheService {
     );
   }
 
-  /// ✅ Legacy wrapper (for compatibility)
+  /// Legacy wrapper (for compatibility)
   Future<void> saveRecentQuiz(Map<String, dynamic> quizData) async {
     await saveRecentActivity(
       id: quizData['id'],
@@ -88,7 +89,7 @@ class LocalCacheService {
     );
   }
 
-  /// ✅ Retrieve recent activity
+  /// Retrieve recent activity
   Future<List<Map<String, dynamic>>> getRecentQuizzes() async {
     final prefs = await SharedPreferences.getInstance();
     List<String> recentJson = prefs.getStringList(_keyRecentActivity) ?? [];
@@ -97,9 +98,21 @@ class LocalCacheService {
         .toList();
   }
 
-  /// ✅ Clear recent activity
+  /// Clear recent activity
   Future<void> clearRecentQuizzes() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyRecentActivity);
+  }
+
+  /// Save Split Ratio for Web/Desktop
+  Future<void> saveSplitRatio(double ratio) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keySplitRatio, ratio);
+  }
+
+  /// Retrieve Split Ratio
+  Future<double?> getSplitRatio() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_keySplitRatio);
   }
 }

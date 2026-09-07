@@ -47,6 +47,7 @@ class _MainScreenState extends State<MainScreen> {
 
   // Web/Desktop Split View Logic
   String? _selectedQuizIdForWeb;
+  double _splitRatio = 0.6; // 60% left, 40% right by default
 
   // Filter Logic
   final Set<String> _selectedTags = {};
@@ -61,6 +62,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSplitRatio();
     _updateStream();
     _refreshRecentQuizzes();
     _auth.authStateChanges().listen((u) async {
@@ -92,6 +94,13 @@ class _MainScreenState extends State<MainScreen> {
 
   void _refreshRecentQuizzes() {
     _recentQuizzesFuture = LocalCacheService().getRecentQuizzes();
+  }
+
+  Future<void> _loadSplitRatio() async {
+    final ratio = await LocalCacheService().getSplitRatio();
+    if (ratio != null && mounted) {
+      setState(() => _splitRatio = ratio.clamp(0.2, 0.8));
+    }
   }
 
   void _toggleSelection(String id) {
@@ -792,6 +801,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isLargeScreen = MediaQuery.of(context).size.width > 900;
     return Scaffold(
       backgroundColor: global.bgColor,
       appBar: AppBar(
@@ -944,7 +954,7 @@ class _MainScreenState extends State<MainScreen> {
         child: Row(
           children: [
             Expanded(
-              flex: 3,
+              flex: isLargeScreen ? (_splitRatio * 1000).toInt() : 1,
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1000),
@@ -1165,11 +1175,33 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             ),
-            if (MediaQuery.of(context).size.width > 900)
-              VerticalDivider(width: 1, color: global.borderColor),
-            if (MediaQuery.of(context).size.width > 900)
+            if (isLargeScreen)
+              GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragUpdate: (details) {
+                  final double width = MediaQuery.of(context).size.width;
+                  setState(() {
+                    _splitRatio = (_splitRatio + details.delta.dx / width)
+                        .clamp(0.2, 0.8);
+                  });
+                },
+                onHorizontalDragEnd: (details) {
+                  LocalCacheService().saveSplitRatio(_splitRatio);
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeLeftRight,
+                  child: Container(
+                    width: 8,
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Container(width: 1, color: global.borderColor),
+                    ),
+                  ),
+                ),
+              ),
+            if (isLargeScreen)
               Expanded(
-                flex: 2,
+                flex: (1000 - (_splitRatio * 1000)).toInt(),
                 child: _selectedQuizIdForWeb == null
                     ? Center(
                         child: Column(

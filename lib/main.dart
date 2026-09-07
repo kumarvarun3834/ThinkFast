@@ -1,7 +1,9 @@
 import 'dart:ui'; // For PointerDeviceKind
+
 import 'package:app_links/app_links.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_performance/firebase_performance.dart';
 import 'package:flutter/foundation.dart';
@@ -10,22 +12,21 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thinkfast/auth/login_screen.dart';
 import 'package:thinkfast/auth/signup_screen.dart';
 import 'package:thinkfast/auth/verification_screen.dart';
-import 'package:thinkfast/screens/drawer/privacy_policy.dart';
 import 'package:thinkfast/screens/admin/admin_dashboard_screen.dart';
-import 'package:thinkfast/screens/admin/manage_leaderboards_screen.dart';
-import 'package:thinkfast/screens/notification_screen.dart';
-import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/admin/admin_panel.dart';
 import 'package:thinkfast/screens/admin/manage_admins_screen.dart';
+import 'package:thinkfast/screens/admin/manage_leaderboards_screen.dart';
 import 'package:thinkfast/screens/drawer/about_us.dart';
-import 'package:thinkfast/screens/drawer/settings_screen.dart';
 import 'package:thinkfast/screens/drawer/my_attempts_screen.dart';
+import 'package:thinkfast/screens/drawer/privacy_policy.dart';
 import 'package:thinkfast/screens/drawer/recommendation_screen.dart';
+import 'package:thinkfast/screens/drawer/settings_screen.dart';
+import 'package:thinkfast/screens/main_screen.dart';
 import 'package:thinkfast/screens/moderation/ban_screen.dart';
 import 'package:thinkfast/screens/moderation/maintenance_screen.dart';
 import 'package:thinkfast/screens/moderation/quiz_moderation_screen.dart';
+import 'package:thinkfast/screens/notification_screen.dart';
 import 'package:thinkfast/screens/profile/profile_screen.dart';
-import 'package:thinkfast/screens/quiz/ai_generation_status_screen.dart';
 import 'package:thinkfast/screens/quiz/ai_quiz_generator.dart';
 import 'package:thinkfast/screens/quiz/leaderboard_screen.dart';
 import 'package:thinkfast/screens/quiz/questions.dart';
@@ -35,8 +36,8 @@ import 'package:thinkfast/screens/quiz/quiz_form.dart';
 import 'package:thinkfast/screens/quiz/quiz_responses_screen.dart';
 import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/screens/splash_screen.dart';
-import 'package:thinkfast/services/session_service.dart';
 import 'package:thinkfast/services/firebase/firebase_options.dart';
+import 'package:thinkfast/services/session_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -44,6 +45,14 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (kIsWeb) {
+    // 🌐 Web Stability: Force Long Polling to prevent QUIC/WebChannel stream errors (400 Bad Request)
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      webExperimentalForceLongPolling: true,
+    );
+  }
 
   // Initialize Firebase App Check
   await FirebaseAppCheck.instance.activate(
@@ -236,12 +245,6 @@ class _MyAppState extends State<MyApp> {
             break;
           case '/Quiz Result':
             page = const ResultScreen();
-            wrapInGradient = false;
-            break;
-          case '/AI Generation Status':
-            page = AiGenerationStatusScreen(
-              initialQuizId: settings.arguments as String?,
-            );
             wrapInGradient = false;
             break;
           case '/Quiz Details':

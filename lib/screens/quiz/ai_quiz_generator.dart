@@ -525,16 +525,9 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       }
 
       if (status == 'queued' || status == 'pending' || status == 'processing') {
-        setState(() => _generationStatus = "Queued");
-        final trackingId = result['queueId'] ?? quizId;
-        if (mounted) {
-          Navigator.pushReplacementNamed(
-            context,
-            '/AI Generation Status',
-            arguments: trackingId,
-          );
-        }
-        return;
+        // If still queued despite being "instant", we just wait a few seconds and try to navigate anyway
+        // or show a snackbar. Since user said it's removed, we'll just assume completion or show error.
+        throw Exception("Server is busy. Please try again in a moment.");
       }
 
       setState(() => _generationStatus = "Completed");
