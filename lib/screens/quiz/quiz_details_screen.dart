@@ -1638,11 +1638,15 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
 
                 if (isExpired) {
                   // Auto-submit blank and clean up
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cleaning up previous expired session...'),
-                    ),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Cleaning up previous expired session...',
+                        ),
+                      ),
+                    );
+                  }
                   await global.db.handleExpiredQuiz(_user!.uid, activeQuizId);
                   if (!mounted) return;
                 } else {
@@ -1900,9 +1904,14 @@ class _QuizDetailsScreenState extends State<QuizDetailsScreen> {
             } catch (e) {
               if (mounted) {
                 setState(() => _isStartingQuiz = false);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text("Quiz Start Error: $e")));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Quiz Start Error: $e"),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
               }
             }
           },

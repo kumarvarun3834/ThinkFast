@@ -26,6 +26,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   DateTime? _endTime; // ⏱️ Absolute end time to prevent pausing
   Timer? _timer;
   bool _isSubmitted = false;
+  bool _isViolationShowing = false; // 🕵️ Prevent duplicate dialogs
   bool _isLoading = true;
   bool _hasError = false;
   String _errorMessage = "";
@@ -243,7 +244,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
   }
 
   void _handleAntiCheatViolation(String reason) {
-    if (_isSubmitted || global.isReviewMode) return;
+    if (_isSubmitted || global.isReviewMode || _isViolationShowing) return;
 
     debugPrint("Anti-Cheat Violation: $reason");
 
@@ -255,6 +256,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       _submitAndFinish();
       _showFinalViolationDialog(reason);
     } else {
+      setState(() => _isViolationShowing = true);
       _showViolationWarning(reason);
     }
   }
@@ -267,7 +269,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
         builder: (context, setModalState) {
           // Local timer to refresh the warning dialog UI
           Timer.periodic(const Duration(seconds: 1), (timer) {
-            if (!context.mounted) {
+            if (!context.mounted || !_isViolationShowing) {
               timer.cancel();
               return;
             }
@@ -368,6 +370,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     ),
                   ),
                   onPressed: () {
+                    setState(() => _isViolationShowing = false);
                     Navigator.pop(context);
                     if (kIsWeb) {
                       web_helper.enterFullScreen();
@@ -516,7 +519,20 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
     _isSubmitted = true;
     setState(() => _timer?.cancel());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
     if (mounted) {
+      // 🚪 Ensure all open dialogs/bottom sheets are closed before navigating to results
+      // We pop until we reach the Questions screen (which has a context.mounted check)
+      // and then we replace it.
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) {
+          // Keep popping until we reach the main quiz route
+          return route.isFirst ||
+              route.settings.name == "/Quiz" ||
+              route.settings.name == "/Update Quiz" ||
+              route.settings.name == "/Create Quiz";
+        });
+      }
       Navigator.pushReplacementNamed(context, "/Quiz Result");
     }
   }

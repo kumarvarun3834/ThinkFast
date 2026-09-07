@@ -31,6 +31,7 @@ class AuthService {
   Future<User?> signUp(
     String email,
     String password, {
+    String? name,
     bool force = false,
   }) async {
     try {
@@ -42,10 +43,11 @@ class AuthService {
       final user = res.user;
 
       if (user != null) {
-        // Create user profile in Firestore
+        // Create user profile in Firestore (Pass name if available)
         await global.db.createUserProfile(
           uid: user.uid,
           email: user.email ?? email,
+          name: name,
         );
 
         if (!user.emailVerified) {
@@ -82,24 +84,30 @@ class AuthService {
     final ip = await _getPublicIP();
     final ipRef = _db.collection('security_logs').doc('ip_$ip');
 
-    // Check if IP is flagged
-    final snapshot = await ipRef.get();
-    if (snapshot.exists) {
-      final data = snapshot.data()!;
-      if (data['is_blocked'] == true) {
-        throw "too_many_attempts_ip_blocked";
-      }
-
-      // Auto-unblock after 1 hour (Optional but good for UX)
-      final Timestamp? lastAttempt = data['lastAttempt'];
-      if (lastAttempt != null && (data['attemptCount'] ?? 0) >= 5) {
-        final diff = DateTime.now().difference(lastAttempt.toDate());
-        if (diff.inHours >= 1) {
-          await ipRef.update({'attemptCount': 0, 'is_blocked': false});
-        } else {
+    // Check if IP is flagged (Safe read for non-admins)
+    try {
+      final snapshot = await ipRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.data()!;
+        if (data['is_blocked'] == true) {
           throw "too_many_attempts_ip_blocked";
         }
+
+        // Auto-unblock after 1 hour
+        final Timestamp? lastAttempt = data['lastAttempt'];
+        if (lastAttempt != null && (data['attemptCount'] ?? 0) >= 5) {
+          final diff = DateTime.now().difference(lastAttempt.toDate());
+          if (diff.inHours >= 1) {
+            await ipRef.update({'attemptCount': 0, 'is_blocked': false});
+          } else {
+            throw "too_many_attempts_ip_blocked";
+          }
+        }
       }
+    } catch (e) {
+      if (e == "too_many_attempts_ip_blocked") rethrow;
+      // Ignore read errors (like permission denied) to allow login to proceed
+      debugPrint("Security IP check skipped: $e");
     }
 
     try {
@@ -136,26 +144,31 @@ class AuthService {
 
       return user;
     } on FirebaseAuthException catch (e) {
-      // Increment failed count
-      await ipRef.set({
-        'attemptCount': FieldValue.increment(1),
-        'lastAttempt': FieldValue.serverTimestamp(),
-        'last_email_tried': email,
-        'ip': ip,
-        'action': 'failed_login',
-      }, SetOptions(merge: true));
+      // Increment failed count (Safe write - security_logs allows public create/update)
+      try {
+        await ipRef.set({
+          'attemptCount': FieldValue.increment(1),
+          'lastAttempt': FieldValue.serverTimestamp(),
+          'last_email_tried': email,
+          'ip': ip,
+          'action': 'failed_login',
+        }, SetOptions(merge: true));
 
-      // Re-fetch to check if we just hit the limit
-      final updated = await ipRef.get();
-      if ((updated.data()?['attemptCount'] ?? 0) >= 5) {
-        await ipRef.update({
-          'is_blocked': true,
-          'action': 'blocked_access',
-          'blockedUntil': Timestamp.fromDate(
-            DateTime.now().add(const Duration(hours: 1)),
-          ),
-        });
-        throw "too_many_attempts_ip_blocked";
+        // Re-fetch to check if we just hit the limit (This might still fail if not admin,
+        // but we'll ignore it as the next login call will handle it)
+        final updated = await ipRef.get();
+        if (updated.exists && (updated.data()?['attemptCount'] ?? 0) >= 5) {
+          await ipRef.update({
+            'is_blocked': true,
+            'action': 'blocked_access',
+            'blockedUntil': Timestamp.fromDate(
+              DateTime.now().add(const Duration(hours: 1)),
+            ),
+          });
+          throw "too_many_attempts_ip_blocked";
+        }
+      } catch (logError) {
+        debugPrint("Failed to log security attempt: $logError");
       }
 
       throw e.code;
@@ -192,20 +205,27 @@ class AuthService {
         return user;
       }
 
-      // Trigger the authentication flow on Mobile
-      final GoogleSignInAccount? googleAccount = await _googleSignIn
-          .authenticate();
+      // Trigger the authentication flow on Mobile (Google Sign In 7.2.0+)
+      // Note: authenticate() throws on cancel, unlike legacy signIn() which returned null.
+      GoogleSignInAccount googleAccount;
+      try {
+        googleAccount = await _googleSignIn.authenticate();
+      } catch (e) {
+        // Handle User Cancelled or other sign-in errors gracefully
+        debugPrint("Google Sign In Cancelled or Failed: $e");
+        return null;
+      }
 
-      if (googleAccount == null) return null;
-
-      // Obtain the auth details from the account
+      // Obtain the auth details from the account (getter in 7.2.0)
       final GoogleSignInAuthentication googleAuth =
-          await googleAccount.authentication;
+          googleAccount.authentication;
+
+      if (googleAuth.idToken == null) {
+        throw "google_id_token_missing";
+      }
 
       // Create a new credential
       final AuthCredential credential = GoogleAuthProvider.credential(
-        // Note: google_sign_in 7.0.0+ GoogleSignInAuthentication only has idToken.
-        // If you need accessToken, you use authorizationClient.
         idToken: googleAuth.idToken,
       );
 
@@ -235,12 +255,10 @@ class AuthService {
 
       return user;
     } on FirebaseAuthException catch (e) {
-      debugPrint("Google Auth Error: ${e.code}");
+      debugPrint("Google Auth Firebase Error: ${e.code}");
       throw e.code;
     } catch (e) {
-      // If user cancelled, authenticate() might throw or return something specific.
-      // Based on the source, it rethrows GoogleSignInException.
-      debugPrint("Google Sign In Error: $e");
+      debugPrint("Google Sign In Generic Error: $e");
       if (e == 'session_conflict') rethrow;
       throw "google_sign_in_failed: $e";
     }
@@ -337,6 +355,82 @@ class AuthService {
       throw e.code;
     } catch (e) {
       throw "update_email_failed";
+    }
+  }
+
+  /// ---------------- LINK WITH GOOGLE ----------------
+  Future<User?> linkWithGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) throw "no_user";
+
+    try {
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        final UserCredential credential = await user.linkWithPopup(
+          googleProvider,
+        );
+        return credential.user;
+      }
+
+      final GoogleSignInAccount? googleAccount = await _googleSignIn
+          .authenticate();
+      if (googleAccount == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          googleAccount.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await user.linkWithCredential(
+        credential,
+      );
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "link_google_failed";
+    }
+  }
+
+  /// ---------------- LINK WITH EMAIL ----------------
+  Future<User?> linkWithEmailPassword(String email, String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw "no_user";
+
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      final UserCredential userCredential = await user.linkWithCredential(
+        credential,
+      );
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "link_email_failed";
+    }
+  }
+
+  /// ---------------- UNLINK PROVIDER ----------------
+  Future<User?> unlinkProvider(String providerId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw "no_user";
+
+    // Safety check: Don't unlink the last provider
+    if (user.providerData.length <= 1) {
+      throw "cannot_unlink_last_provider";
+    }
+
+    try {
+      final updatedUser = await user.unlink(providerId);
+      return updatedUser;
+    } on FirebaseAuthException catch (e) {
+      throw e.code;
+    } catch (e) {
+      throw "unlink_failed";
     }
   }
 

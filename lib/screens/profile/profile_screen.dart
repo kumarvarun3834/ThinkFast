@@ -169,9 +169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       }
-
-      // If we came from login, we might want to navigate away after saving
-      // Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (mounted) {
         messenger.showSnackBar(

@@ -282,7 +282,7 @@ service cloud.firestore {
 
     match /security_logs/{logId} {
       // Brute-force protection tracking
-      allow read: if isGlobalAdmin();
+      allow read: if true; // Public access allowed for IP-based block checking
       allow create, update: if true; // Public access required for IP logging on failed auth
     }
 

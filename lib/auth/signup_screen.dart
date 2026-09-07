@@ -55,22 +55,25 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
+      final String fullName = nameController.text.trim();
+
       final user = await auth.signUp(
         emailController.text.trim(),
         passwordController.text.trim(),
+        name: fullName,
       );
 
       if (user != null) {
-        // optionally store name in Firebase Auth
-        await user.updateDisplayName(nameController.text.trim());
+        // 1. Update Firebase Auth Profile (Optional but good for tokens)
+        await user.updateDisplayName(fullName);
 
-        // Store privacy policy acceptance
+        // 2. Store privacy policy acceptance
         await global.db.updateProtectedDetails(
           uid: user.uid,
           details: {'privacyPolicyAccepted': true},
         );
 
-        // Check if login is enabled
+        // 3. Initialize Remaining App Data
         await global.db.initAppData(user.uid);
         final bool loginEnabled = global.featureFlags?['enable_login'] ?? true;
         final bool isAdmin = global.isAdmin || global.isRegisteredAdmin;
@@ -143,7 +146,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.person, color: global.primaryAccent),
+                prefixIcon: const Icon(
+                  Icons.person,
+                  color: global.primaryAccent,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -159,7 +165,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 focusedBorder: const OutlineInputBorder(
                   borderSide: BorderSide(color: global.primaryAccent),
                 ),
-                prefixIcon: const Icon(Icons.email, color: global.primaryAccent),
+                prefixIcon: const Icon(
+                  Icons.email,
+                  color: global.primaryAccent,
+                ),
               ),
             ),
             const SizedBox(height: 20),
