@@ -22,9 +22,12 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final user = FirebaseAuth.instance.currentUser;
-          final token = await user?.getIdToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          if (user != null) {
+            final token = await user.getIdToken();
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+              options.headers['x-user-uid'] = user.uid;
+            }
           }
 
           try {
@@ -35,6 +38,22 @@ class ApiClient {
           } catch (_) {}
 
           return handler.next(options);
+        },
+        onError: (DioException e, handler) {
+          if (kIsWeb && e.type == DioExceptionType.connectionError) {
+            debugPrint("--- SECURITY / CORS ERROR ---");
+            debugPrint(
+              "The request to ${e.requestOptions.path} was blocked by the browser.",
+            );
+            debugPrint(
+              "Check your backend CORS configuration for allowed headers and origins.",
+            );
+            debugPrint(
+              "Headers required: Content-Type, Authorization, X-Firebase-AppCheck",
+            );
+            debugPrint("-----------------------------");
+          }
+          return handler.next(e);
         },
       ),
     );

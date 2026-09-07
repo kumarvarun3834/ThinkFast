@@ -63,6 +63,14 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         'phase': 1,
       },
       {
+        'id': 'custom_goal',
+        'question': 'Please describe what you are preparing for:',
+        'type': 'text',
+        'hint': 'e.g. Professional Certification, Hobby, etc.',
+        'phase': 1,
+        'depends_on': {'goal': '✍ Custom'},
+      },
+      {
         'id': 'exam',
         'question': 'Which exam are you targeting?',
         'type': 'choice',
@@ -78,6 +86,14 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         ],
         'phase': 1,
         'depends_on': {'goal': '🏆 Competitive Exam'},
+      },
+      {
+        'id': 'other_exam_name',
+        'question': 'What is the name of the exam you are preparing for?',
+        'type': 'text',
+        'hint': 'e.g. GRE, GMAT, SAT, Board Exams...',
+        'phase': 1,
+        'depends_on': {'exam': 'Other'},
       },
       {
         'id': 'subject',
