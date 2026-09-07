@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:dio/dio.dart';
 import 'package:thinkfast/services/api_client.dart';
 import 'package:thinkfast/services/device_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
@@ -431,6 +430,34 @@ class AuthService {
       throw e.code;
     } catch (e) {
       throw "unlink_failed";
+    }
+  }
+
+  /// ---------------- DELETE ACCOUNT ----------------
+  Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) throw "no_user";
+
+    final String uid = user.uid;
+
+    try {
+      // 1. Purge Firestore Data First (while we still have the Auth token)
+      await global.db.purgeUserData(uid);
+
+      // 2. Clear Active Device
+      await _deviceService.clearActiveDevice(uid);
+
+      // 3. Delete Auth Account
+      await user.delete();
+
+      // 4. Sign out from Google if applicable
+      await _googleSignIn.signOut();
+    } on FirebaseAuthException catch (e) {
+      // Common error: requires-recent-login
+      throw e.code;
+    } catch (e) {
+      debugPrint("Account deletion error: $e");
+      throw "delete_failed";
     }
   }
 

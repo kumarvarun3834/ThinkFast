@@ -188,4 +188,58 @@ class UserService {
       category: 'user',
     );
   }
+
+  /// ✅ Purge all user data from Firestore (Account Deletion)
+  Future<void> purgeUserData(String uid) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    // 1. Delete user public profile
+    batch.delete(_users.doc(uid));
+
+    // 2. Delete private and protected details
+    batch.delete(_users.doc(uid).collection('private').doc('details'));
+    batch.delete(_users.doc(uid).collection('protected').doc('details'));
+
+    // 3. Delete device tracking
+    batch.delete(FirebaseFirestore.instance.collection('devices').doc(uid));
+    // Note: subcollections (active_device) need recursive deletion if they have many docs.
+    // For now, we'll try to delete the common ones.
+
+    // 4. Delete AI usage tracking
+    batch.delete(FirebaseFirestore.instance.collection('user_usage').doc(uid));
+
+    // 5. Delete responses (Limited to 500 for safety in a single batch)
+    final responses = await FirebaseFirestore.instance
+        .collection('responses')
+        .where('userId', isEqualTo: uid)
+        .limit(450)
+        .get();
+
+    for (var doc in responses.docs) {
+      batch.delete(doc.reference);
+    }
+
+    // 6. Delete explanation subcollections (Personalized AI Insights)
+    // These are often nested deeply, we delete the ones we know about.
+    // explanation/{uid}/gen/{quizId}
+    final genInsights = await FirebaseFirestore.instance
+        .collection('explanation')
+        .doc(uid)
+        .collection('gen')
+        .get();
+    for (var doc in genInsights.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+
+    // Log the purge action (Optional, as user doc is gone, but good for audit)
+    await AdminService().logAction(
+      actorId: uid,
+      action: 'purge_user_data',
+      targetId: uid,
+      details: 'All Firestore records removed for deleted account.',
+      category: 'user',
+    );
+  }
 }

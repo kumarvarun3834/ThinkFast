@@ -183,6 +183,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showDeleteAccountDialog() {
+    final TextEditingController passwordController = TextEditingController();
+    bool isPasswordUser =
+        _user?.providerData.any((p) => p.providerId == 'password') ?? false;
+    bool isPending = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          backgroundColor: global.cardColor,
+          title: Text(
+            "Delete Account?",
+            style: GoogleFonts.poppins(
+              color: global.errorColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "This action is permanent and cannot be undone. All your quiz history, attempts, and profile data will be erased forever.",
+                style: GoogleFonts.poppins(
+                  color: global.labelColor,
+                  fontSize: 13,
+                ),
+              ),
+              if (isPasswordUser) ...[
+                const SizedBox(height: 20),
+                Text(
+                  "Confirm your password to proceed:",
+                  style: GoogleFonts.poppins(
+                    color: global.valueColor,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildTextField(
+                  passwordController,
+                  "Password",
+                  Icons.lock_outline,
+                  isPassword: true,
+                ),
+              ],
+              if (isPending) ...[
+                const SizedBox(height: 20),
+                const Center(child: CircularProgressIndicator()),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isPending ? null : () => Navigator.pop(context),
+              child: const Text("CANCEL"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: global.errorColor,
+              ),
+              onPressed: isPending
+                  ? null
+                  : () async {
+                      if (isPasswordUser && passwordController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Password required")),
+                        );
+                        return;
+                      }
+
+                      setModalState(() => isPending = true);
+
+                      try {
+                        if (isPasswordUser) {
+                          await global.auth.reauthenticate(
+                            _user!.email!,
+                            passwordController.text,
+                          );
+                        }
+
+                        await global.auth.deleteAccount();
+
+                        if (context.mounted) {
+                          Navigator.of(
+                            context,
+                          ).pushNamedAndRemoveUntil('/login', (route) => false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Account and data permanently deleted.",
+                              ),
+                              backgroundColor: Colors.black,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          setModalState(() => isPending = false);
+                          String errorMsg = "Deletion failed: $e";
+                          if (e == 'requires-recent-login') {
+                            errorMsg =
+                                "Security check failed. Please logout and log back in before deleting your account.";
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMsg),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: const Text(
+                "DELETE PERMANENTLY",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleAgeChanged(String val) {
     final int? age = int.tryParse(val);
     if (age != null && age < 13) {
@@ -763,6 +891,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ),
                                     ),
                                   ),
+                            const SizedBox(height: 24),
+                            TextButton.icon(
+                              onPressed: _showDeleteAccountDialog,
+                              icon: const Icon(
+                                Icons.delete_forever_rounded,
+                                size: 18,
+                              ),
+                              label: const Text(
+                                "DELETE ACCOUNT",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.1,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: global.errorColor,
+                                minimumSize: const Size(double.infinity, 50),
+                              ),
+                            ),
                             SizedBox(
                               height:
                                   MediaQuery.of(context).padding.bottom + 40,

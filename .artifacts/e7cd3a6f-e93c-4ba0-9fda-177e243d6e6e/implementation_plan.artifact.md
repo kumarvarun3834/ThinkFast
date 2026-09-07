@@ -1,71 +1,45 @@
-# Proposed Backend API Consolidation Plan (Refined)
+# Account Deletion System Implementation Plan
 
-Reduce the backend surface area by removing all endpoints for actions that can be performed directly by the Flutter frontend using the Firebase SDK (Auth & Firestore). The backend will focus exclusively on AI processing, quota enforcement, and restricted administrative tasks.
+This plan outlines the implementation of a secure account deletion system for ThinkFast. Deleting an account will permanently remove the user's authentication and all associated Firestore data (profile, private details, and attempt history).
 
-## 🚫 1. Endpoints to REMOVE (Frontend can handle)
-The following functionality will be handled directly via the Firebase SDK on the client:
-- **Auth**: Login/Logout (already implemented via `FirebaseAuth`).
-- **Profiles**: Fetching/Updating user profile data (`FirebaseFirestore`).
-- **Manual CRUD**: Create, read, and update manual (non-AI) quizzes.
-- **Notifications**: Reading and marking alerts as "read".
-- **Discovery**: Querying active/scheduled quizzes from Firestore.
+## User Review Required
 
-## 🤖 2. Consolidated AI Orchestrator
-Focus the backend only on AI-heavy or security-locked tasks.
+> [!CAUTION]
+> Account deletion is irreversible. All quiz attempt history and personalization data will be lost.
+> Authentication providers (Firebase Auth) require a recent login to delete an account. Users may be prompted to re-login before final deletion.
 
-#### [NEW] `POST /api/quizzes`
-Handles all generation workflows. Requires secret API keys.
-- **Payload**:
-  ```json
-  {
-    "type": "ai_text" | "ai_pdf" | "wizard",
-    "config": { ... }, // Subject, topic, difficulty, isPersonal
-    "input": "..." // Text prompt or PDF base64
-  }
-  ```
+## Proposed Changes
 
-#### [MODIFY] `GET /api/quizzes/:id`
-Only for checking **real-time generation status** before the document exists in Firestore. Once the quiz is in Firestore, the frontend reads it directly.
+### [Authentication & Services]
 
-#### [MODIFY] `PATCH /api/quizzes/:id`
-Securely update AI-generated quizzes. Since these are write-locked for users in Firestore, the backend uses the Admin SDK to modify them or "unlock" them (by stripping the `isAiGenerated` flag).
+#### [MODIFY] [auth_service.dart](file:///G:/code/ThinkFast/lib/auth/auth_service.dart)
+- Add `deleteAccount()` method to handle the recursive deletion of Auth and database records.
 
-### 🎯 3. Interaction & Analysis
-#### [NEW] `POST /api/quizzes/:id/actions`
-Handles actions that require AI or write-locked collections.
-- **Payload**:
-  ```json
-  {
-    "action": "analyze", // Triggers AI Attempt Analysis and writes to /explanation
-    "data": { "responseId": "..." }
-  }
-  ```
+#### [MODIFY] [user_service.dart](file:///G:/code/ThinkFast/lib/services/user_service.dart)
+- Add `purgeUserData()` method to handle the deletion of Firestore documents:
+    - `/users/{uid}`
+    - `/users/{uid}/private/details`
+    - `/users/{uid}/protected/details`
+    - `/devices/{uid}`
+    - `/user_usage/{uid}`
+    - `/responses` (filtered by `userId`)
 
-### ⚙️ 4. Administrative Gateway
-Bulk tasks requiring Admin SDK or SMTP keys.
+---
 
-#### [NEW] `POST /api/admin/tasks`
-- **Payload**:
-  ```json
-  {
-    "task": "flush_queue" | "reset_db" | "send_email",
-    "params": { ... }
-  }
-  ```
+### [UI Components]
 
-## Summary of Reduction
-
-| Component | Status | New Path | Reason for Keeping |
-| :--- | :--- | :--- | :--- |
-| **AI Generation** | Consolidated | `POST /api/quizzes` | Secret Keys / Compute |
-| **PDF Extraction** | Consolidated | `POST /api/quizzes` | Specialized Libs / Heavy |
-| **AI Analysis** | Consolidated | `POST /api/quizzes/:id/actions` | Secret Keys / Write Lock |
-| **Admin Resets** | Consolidated | `POST /api/admin/tasks` | Admin SDK Required |
-| **Email Dispatch**| Consolidated | `POST /api/admin/tasks` | SMTP Credentials |
-| **CRUD / Auth** | **REMOVED** | - | Handled by Firebase SDK |
+#### [MODIFY] [profile_screen.dart](file:///G:/code/ThinkFast/lib/screens/profile/profile_screen.dart)
+- Add a "Delete Account" button in the Profile settings.
+- Implement a double-confirmation dialog with an optional password verification for security.
 
 ## Verification Plan
 
 ### Manual Verification
-- Verify `AiService.dart` refactoring: Ensure it uses `FirebaseFirestore` for simple reads/updates and calls the new API only for generation and analysis.
-- Check security rules: Ensure the backend still enforces quota updates in `user_usage` during generation calls.
+1. Log in with a test account.
+2. Complete a few quizzes to generate attempt history.
+3. Navigate to Profile > Delete Account.
+4. Confirm deletion (verify the password prompt if applicable).
+5. Verify in Firebase Console:
+    - User is removed from Authentication.
+    - All associated documents in `users`, `devices`, and `responses` are deleted.
+6. Attempt to log in again with the same credentials (should fail).

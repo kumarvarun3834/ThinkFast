@@ -184,6 +184,12 @@ class UserDatabaseService {
     }
   }
 
+  /// ✅ Purge all user data from Firestore (Account Deletion)
+  Future<void> purgeUserData(String uid) async {
+    await _ensurePermission(null, userId: uid);
+    return _userService.purgeUserData(uid);
+  }
+
   // --- Quiz Session Management ---
 
   Future<void> updateActiveQuiz({
@@ -498,7 +504,7 @@ class UserDatabaseService {
     return {
       'answers': correctKey,
       'solutions': solutions,
-      'submission': ?submissionResult,
+      'submission': submissionResult,
     };
   }
 
