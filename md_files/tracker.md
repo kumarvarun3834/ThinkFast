@@ -85,7 +85,7 @@
 - [ ] Updating AI Analysis JSON logic to align with new backend specifications (Scheduled for tomorrow).
 - [ ] Optimizing AI Prompt Engineering for better quiz variety.
 - [ ] Improving error handling for network-edge cases during quiz submission.
-- [ ] Profile screen more fields to add
+- [x] Profile screen expansion (Grade/Exam/Learning Style focus)
 - [x] **Deep Link Recovery:** Implemented browser-side bottom prompt to download the app if not installed.
 - [ ] **Infrastructure:** Flutter_Ai server-side configuration for model processing.
 

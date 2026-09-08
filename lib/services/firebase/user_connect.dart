@@ -175,10 +175,17 @@ class UserDatabaseService {
   Future<void> updateUserProfile({
     required String uid,
     String? name,
+    String? photoUrl,
+    String? bio,
     String? email,
   }) async {
     await _ensurePermission('enable_profile_edit', userId: uid);
-    await _userService.updateUserProfile(uid: uid, name: name);
+    await _userService.updateUserProfile(
+      uid: uid,
+      name: name,
+      photoUrl: photoUrl,
+      bio: bio,
+    );
     if (email != null) {
       await _userService.updatePrivateDetails(uid: uid, email: email);
     }

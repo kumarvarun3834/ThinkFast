@@ -18,7 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _uidController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
-  // Extended AI Profile Controllers
+  // Focused AI Profile Controllers
   final TextEditingController _classController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _goalController = TextEditingController();
@@ -27,10 +27,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       TextEditingController();
   final TextEditingController _languageController = TextEditingController();
   final TextEditingController _studyHoursController = TextEditingController();
-  final TextEditingController _targetExamController = TextEditingController();
   final TextEditingController _learningStyleController =
       TextEditingController();
   String _preferredDifficulty = 'medium';
+  String _targetExam = 'None';
+  String _board = 'CBSE';
+  String _focusArea = 'Balanced';
+  String _explanationDepth = 'Standard';
   bool _optInAiAnalysis = false;
   bool _privacyPolicyAccepted = false;
 
@@ -77,9 +80,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _studyHoursController.text = (profile['studyHoursPerWeek'] != null)
             ? profile['studyHoursPerWeek'].toString()
             : '';
-        _targetExamController.text = profile['targetExam'] ?? '';
+        _targetExam = profile['targetExam'] ?? 'None';
         _learningStyleController.text = profile['learningStyle'] ?? '';
         _preferredDifficulty = profile['preferredDifficulty'] ?? 'medium';
+        _board = profile['board'] ?? 'CBSE';
+        _focusArea = profile['focusArea'] ?? 'Balanced';
+        _explanationDepth = profile['explanationDepth'] ?? 'Standard';
         _optInAiAnalysis = profile['optInAiAnalysis'] ?? false;
         _privacyPolicyAccepted = profile['privacyPolicyAccepted'] ?? false;
       } else {
@@ -149,16 +155,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'studyHoursPerWeek': _optInAiAnalysis
               ? (int.tryParse(_studyHoursController.text) ?? 0)
               : 0,
-          'targetExam': _optInAiAnalysis
-              ? _targetExamController.text.trim()
-              : null,
+          'targetExam': _optInAiAnalysis ? _targetExam : null,
           'learningStyle': _optInAiAnalysis
               ? _learningStyleController.text.trim()
               : null,
+          'board': _optInAiAnalysis ? _board : null,
+          'focusArea': _optInAiAnalysis ? _focusArea : null,
+          'explanationDepth': _optInAiAnalysis ? _explanationDepth : null,
         },
       );
 
       if (mounted) {
+        // Refresh local cache of profile
+        global.currentUserProfile = await global.db.getUserProfile(
+          _user.uid,
+          actorId: _user.uid,
+        );
+
         messenger.showSnackBar(
           SnackBar(
             content: Text(
@@ -796,7 +809,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const SizedBox(height: 20),
                               _buildLabel("Difficulty Preference"),
                               const SizedBox(height: 8),
-                              _buildDropdownField(),
+                              _buildCustomDropdown(
+                                value: _preferredDifficulty,
+                                icon: Icons.bar_chart_rounded,
+                                items: ['easy', 'medium', 'hard'],
+                                onChanged: (v) =>
+                                    setState(() => _preferredDifficulty = v!),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Educational Board / Curriculum"),
+                              const SizedBox(height: 8),
+                              _buildCustomDropdown(
+                                value: _board,
+                                icon: Icons.account_balance_rounded,
+                                items: [
+                                  'CBSE',
+                                  'ICSE',
+                                  'IB',
+                                  'State Board',
+                                  'University',
+                                  'Professional',
+                                ],
+                                onChanged: (v) => setState(() => _board = v!),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("Focus Area"),
+                              const SizedBox(height: 8),
+                              _buildCustomDropdown(
+                                value: _focusArea,
+                                icon: Icons.center_focus_strong_rounded,
+                                items: [
+                                  'Balanced',
+                                  'Theory Heavy',
+                                  'Problem Solving',
+                                  'Concept Testing',
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _focusArea = v!),
+                              ),
+                              const SizedBox(height: 20),
+                              _buildLabel("AI Explanation Depth"),
+                              const SizedBox(height: 8),
+                              _buildCustomDropdown(
+                                value: _explanationDepth,
+                                icon: Icons.auto_stories_rounded,
+                                items: [
+                                  'Quick Hints',
+                                  'Standard',
+                                  'Deep Analysis',
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _explanationDepth = v!),
+                              ),
                               const SizedBox(height: 20),
                               Row(
                                 children: [
@@ -805,12 +869,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        _buildLabel("Target Exam"),
+                                        _buildLabel(
+                                          "Exam you are preparing for",
+                                        ),
                                         const SizedBox(height: 8),
-                                        _buildTextField(
-                                          _targetExamController,
-                                          "NEET, JEE, UPSC",
-                                          Icons.school_outlined,
+                                        _buildCustomDropdown(
+                                          value: _targetExam,
+                                          icon: Icons.school_outlined,
+                                          items: [
+                                            'None',
+                                            'JEE',
+                                            'NEET',
+                                            'UPSC',
+                                            'SSC',
+                                            'GATE',
+                                            'CAT',
+                                            'SAT',
+                                            'GRE',
+                                            'State Board',
+                                            'Other',
+                                          ],
+                                          onChanged: (v) =>
+                                              setState(() => _targetExam = v!),
                                         ),
                                       ],
                                     ),
@@ -1000,7 +1080,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildDropdownField() {
+  Widget _buildCustomDropdown({
+    required String value,
+    required IconData icon,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    // Fail-safe: Ensure the current value exists in the items list to prevent UI crash
+    final Set<String> uniqueItems = {...items, value};
+    final List<String> safeItems = uniqueItems.toList();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -1010,33 +1099,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
-          initialValue: _preferredDifficulty,
+          initialValue: value,
           dropdownColor: global.cardColor,
           icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
             color: global.primaryAccent,
           ),
           style: GoogleFonts.poppins(color: global.valueColor),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             border: InputBorder.none,
-            prefixIcon: Icon(
-              Icons.bar_chart_rounded,
-              color: global.primaryAccent,
-              size: 22,
-            ),
+            prefixIcon: Icon(icon, color: global.primaryAccent, size: 22),
           ),
-          items: ['easy', 'medium', 'hard'].map((String value) {
+          items: safeItems.map((String val) {
             return DropdownMenuItem<String>(
-              value: value,
+              value: val,
               child: Text(
-                value.toUpperCase(),
+                val.toUpperCase(),
                 style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
               ),
             );
           }).toList(),
-          onChanged: (newValue) {
-            setState(() => _preferredDifficulty = newValue!);
-          },
+          onChanged: onChanged,
         ),
       ),
     );
