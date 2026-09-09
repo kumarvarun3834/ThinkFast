@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/ai_service.dart';
 import 'package:thinkfast/services/api_client.dart';
+import 'package:thinkfast/services/media_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -59,6 +60,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           setState(() {
             _dashboardData['health'] = responses[0].data;
             _dashboardData['metrics'] = responses[1].data;
+          });
+        }
+      } else if (_activeCategory == "Media Storage") {
+        final status = await MediaService().getStorageStatus();
+        if (mounted) {
+          setState(() {
+            _dashboardData['storage'] = status;
           });
         }
       }
@@ -220,6 +228,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildSidebar(bool isSmall) {
     final categories = [
       {"name": "Overview", "icon": Icons.dashboard_rounded},
+      {"name": "Media Storage", "icon": Icons.cloud_done_rounded},
       {"name": "System Health", "icon": Icons.health_and_safety_rounded},
       {"name": "Active Monitoring", "icon": Icons.monitor_heart_rounded},
       {"name": "API Generation Tester", "icon": Icons.auto_awesome_rounded},
@@ -300,6 +309,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     switch (_activeCategory) {
       case "Overview":
         content = _buildOverview(isSmall);
+        break;
+      case "Media Storage":
+        content = _buildMediaStorage();
         break;
       case "System Health":
         content = _buildSystemHealth();
@@ -510,6 +522,151 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMediaStorage() {
+    final storage = _dashboardData['storage'] as Map? ?? {};
+    final double usagePercent = (storage['usage_percent'] ?? 0.0).toDouble();
+    final bool isHealthy = storage['health'] == 'healthy';
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        _buildSectionHeader("Media Storage Health"),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: global.cardColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isHealthy
+                  ? global.successColor.withValues(alpha: 0.3)
+                  : global.errorColor.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        storage['active_repo'] ?? "No Active Repo",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: global.valueColor,
+                        ),
+                      ),
+                      Text(
+                        "Current Sequential Storage",
+                        style: TextStyle(
+                          color: global.labelColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (isHealthy ? Colors.green : Colors.red).withValues(
+                        alpha: 0.1,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      isHealthy ? "HEALTHY" : "CRITICAL",
+                      style: TextStyle(
+                        color: isHealthy
+                            ? Colors.greenAccent
+                            : Colors.redAccent,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Capacity Usage",
+                    style: TextStyle(
+                      color: global.valueColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "${storage['size_mb'] ?? 0} MB / 5,000 MB",
+                    style: TextStyle(color: global.labelColor, fontSize: 13),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: usagePercent / 100,
+                  minHeight: 12,
+                  backgroundColor: global.bgColor,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    usagePercent > 90
+                        ? global.errorColor
+                        : usagePercent > 70
+                        ? global.warningColor
+                        : global.successColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Auto-rotation triggers at 90% (4.5 GB). Current usage is ${usagePercent.toStringAsFixed(2)}%.",
+                style: TextStyle(color: global.labelColor, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader("Maintenance Controls"),
+        const SizedBox(height: 16),
+        _buildActionCard(
+          "Forced Rotation",
+          "Manually trigger the sequential repository rotation (vN -> vN+1). Use only for emergency migration.",
+          Icons.rotate_right_rounded,
+          () => _triggerAction(
+            "/api/v1/media/repo/provision",
+            body: {"forceRotate": true},
+            destructive: true,
+          ),
+          isDestructive: true,
+        ),
+        const SizedBox(height: 16),
+        _buildActionCard(
+          "Provision Check",
+          "Verify and initialize the active storage repository on GitHub if missing.",
+          Icons.cloud_sync_rounded,
+          () => _triggerAction(
+            "/api/v1/media/repo/provision",
+            body: {"forceRotate": false},
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader("Repository Details"),
+        const SizedBox(height: 16),
+        _buildDetailCard("Full Storage JSON", storage),
+      ],
     );
   }
 

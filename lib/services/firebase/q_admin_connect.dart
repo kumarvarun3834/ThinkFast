@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:thinkfast/services/notification_service.dart';
-import '../../utils/global.dart' as global;
 
+import '../../utils/global.dart' as global;
 import '../admin_service.dart';
 import '../quiz_service.dart';
 import '../settings_service.dart';
@@ -16,7 +16,7 @@ class QAdminDatabaseService {
   Future<void> _ensurePermission(String? flag, {String? userId}) async {
     final flags =
         global.featureFlags ??
-            await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
+        await _settingsService.getFeatureFlags(isAdmin: global.isAdmin);
 
     if (flags?['maintenance_mode'] == true) {
       bool isUserAdmin = false;
@@ -25,7 +25,8 @@ class QAdminDatabaseService {
       }
       if (!isUserAdmin) {
         throw Exception(
-            "System is currently under maintenance. Please try again later.");
+          "System is currently under maintenance. Please try again later.",
+        );
       }
     }
 
@@ -35,10 +36,12 @@ class QAdminDatabaseService {
         isUserAdmin = await _adminService.isAdmin(userId);
       }
       if (!isUserAdmin) {
-        final actionName = flag.replaceFirst('enable_', '').replaceAll(
-            '_', ' ');
+        final actionName = flag
+            .replaceFirst('enable_', '')
+            .replaceAll('_', ' ');
         throw Exception(
-            "Access Denied: '$actionName' is currently disabled by the administrator.");
+          "Access Denied: '$actionName' is currently disabled by the administrator.",
+        );
       }
     }
   }
@@ -46,7 +49,8 @@ class QAdminDatabaseService {
   Future<void> _ensureAdminPermission(String userId, String permission) async {
     if (!await _adminService.hasPermission(userId, permission)) {
       throw Exception(
-          "Access Denied: Administrative permission '$permission' required.");
+        "Access Denied: Administrative permission '$permission' required.",
+      );
     }
   }
 
@@ -87,10 +91,14 @@ class QAdminDatabaseService {
     await _ensurePermission('enable_create_quiz', userId: creatorId);
     final Map<String, dynamic> scheme = markingScheme ?? {'type': 'default'};
     final transformed = _transformQuizData(
-        data, scheme, moduleOrder: moduleOrder);
+      data,
+      scheme,
+      moduleOrder: moduleOrder,
+    );
     final List modules = transformed['modules'] as List? ?? [];
-    final Set<String> allModules = data.map((q) =>
-    q['subject'] as String? ?? 'General').toSet();
+    final Set<String> allModules = data
+        .map((q) => q['subject'] as String? ?? 'General')
+        .toSet();
 
     final String quizId = await _quizService.createQuiz(
       clientToken: clientToken,
@@ -129,11 +137,12 @@ class QAdminDatabaseService {
     );
 
     await syncModuleTags(
-        quizId, moduleTags ?? {}, allModules: allModules.toList());
+      quizId,
+      moduleTags ?? {},
+      allModules: allModules.toList(),
+    );
 
-    if (examTag != null && examTag
-        .trim()
-        .isNotEmpty) {
+    if (examTag != null && examTag.trim().isNotEmpty) {
       await syncExamTag(quizId, examTag);
     }
 
@@ -142,7 +151,8 @@ class QAdminDatabaseService {
       try {
         await NotificationService().broadcastNotification(
           title: "New Quiz Alert!",
-          body: "$user just published a new quiz: $title. Challenge yourself now!",
+          body:
+              "$user just published a new quiz: $title. Challenge yourself now!",
           type: 'new_quiz',
           targetId: quizId,
         );
@@ -205,7 +215,9 @@ class QAdminDatabaseService {
         'bypass_quiz_privacy',
       );
 
-      if (!isExplicitManager && !hasPrivacyBypass && await _adminService.isAdmin(currentUserId)) {
+      if (!isExplicitManager &&
+          !hasPrivacyBypass &&
+          await _adminService.isAdmin(currentUserId)) {
         throw Exception(
           "Access Denied: Platform administrators cannot modify internal quiz content (questions/answers) without explicit management permissions or 'bypass_quiz_privacy' enabled.",
         );
@@ -218,21 +230,27 @@ class QAdminDatabaseService {
     if (visibility != null) updates['visibility'] = visibility;
     if (time != null) updates['time'] = time * 60;
     if (timingScheme != null) updates['timingScheme'] = timingScheme;
-    if (allowMultipleAttempts != null)
+    if (allowMultipleAttempts != null) {
       updates['allowMultipleAttempts'] = allowMultipleAttempts;
+    }
     if (maxAttempts != null) updates['maxAttempts'] = maxAttempts;
-    if (completeRandomShuffle != null)
+    if (completeRandomShuffle != null) {
       updates['completeRandomShuffle'] = completeRandomShuffle;
+    }
     if (shuffleModules != null) updates['shuffleModules'] = shuffleModules;
-    if (shuffleQuestionsWithinModules != null)
+    if (shuffleQuestionsWithinModules != null) {
       updates['shuffleQuestionsWithinModules'] = shuffleQuestionsWithinModules;
-    if (disableModuleSwitchingUntilTimeout != null)
+    }
+    if (disableModuleSwitchingUntilTimeout != null) {
       updates['disableModuleSwitchingUntilTimeout'] =
           disableModuleSwitchingUntilTimeout;
-    if (forceWaitUntilTimeout != null)
+    }
+    if (forceWaitUntilTimeout != null) {
       updates['forceWaitUntilTimeout'] = forceWaitUntilTimeout;
-    if (enableAutoLeaderboard != null)
+    }
+    if (enableAutoLeaderboard != null) {
       updates['enableAutoLeaderboard'] = enableAutoLeaderboard;
+    }
     if (perQuestionTime != null) updates['perQuestionTime'] = perQuestionTime;
     if (markingScheme != null) {
       updates['markingScheme'] = markingScheme;
@@ -241,8 +259,9 @@ class QAdminDatabaseService {
     if (attemptLimits != null) updates['attemptLimits'] = attemptLimits;
     if (activeAt != null) updates['activeAt'] = Timestamp.fromDate(activeAt);
     if (isRestricted != null) updates['isRestricted'] = isRestricted;
-    if (allowedParticipants != null)
+    if (allowedParticipants != null) {
       updates['allowedParticipants'] = allowedParticipants;
+    }
     if (tags != null) updates['tags'] = tags;
     if (moduleTags != null) updates['moduleTags'] = moduleTags;
     if (examTag != null) updates['examTag'] = examTag;
@@ -256,7 +275,10 @@ class QAdminDatabaseService {
       }
 
       final transformed = _transformQuizData(
-          data, scheme, moduleOrder: moduleOrder);
+        data,
+        scheme,
+        moduleOrder: moduleOrder,
+      );
       updates['modules'] = transformed['modules'];
       updates['totalQuestions'] = data.length;
       updates['moduleCount'] = transformed['modules'].length;
@@ -269,52 +291,80 @@ class QAdminDatabaseService {
         answerKeys: List<Map<String, dynamic>>.from(transformed['answerkeys']),
       );
 
-      final Set<String> allModules = data.map((q) =>
-      q['subject'] as String? ?? 'General').toSet();
+      final Set<String> allModules = data
+          .map((q) => q['subject'] as String? ?? 'General')
+          .toSet();
       await syncModuleTags(
-          docId, moduleTags ?? {}, allModules: allModules.toList());
+        docId,
+        moduleTags ?? {},
+        allModules: allModules.toList(),
+      );
     }
 
     if (updates.isNotEmpty) {
       await _quizService.updateQuiz(
-          quizId: docId, userId: currentUserId, updates: updates);
+        quizId: docId,
+        userId: currentUserId,
+        updates: updates,
+      );
     }
   }
 
-  Future<void> deleteDatabase(
-      {required String docId, required String currentUserId}) async {
+  Future<void> deleteDatabase({
+    required String docId,
+    required String currentUserId,
+  }) async {
     await _ensurePermission('enable_delete_quiz', userId: currentUserId);
     return _quizService.deleteQuiz(docId, currentUserId);
   }
 
-  Future<void> restoreDatabase(
-      {required String docId, required String currentUserId}) async {
+  Future<void> restoreDatabase({
+    required String docId,
+    required String currentUserId,
+  }) async {
     await _ensurePermission('enable_delete_quiz', userId: currentUserId);
     return _quizService.restoreQuiz(docId, currentUserId);
   }
 
-  Future<void> toggleQuizLock(
-      {required String docId, required String currentUserId, required bool isLocked}) async {
+  Future<void> toggleQuizLock({
+    required String docId,
+    required String currentUserId,
+    required bool isLocked,
+  }) async {
     await _ensurePermission('enable_edit_quiz', userId: currentUserId);
     return _quizService.updateQuiz(
-        quizId: docId, userId: currentUserId, updates: {'isLocked': isLocked});
+      quizId: docId,
+      userId: currentUserId,
+      updates: {'isLocked': isLocked},
+    );
   }
 
-  Future<void> grantManagementAccess(
-      {required String quizId, required String userId, required Map<String,
-          bool> permissions, required String addedBy}) async {
+  Future<void> grantManagementAccess({
+    required String quizId,
+    required String userId,
+    required Map<String, bool> permissions,
+    required String addedBy,
+  }) async {
     await _ensurePermission('management_features', userId: addedBy);
-    return _adminService.grantQuizManagementAccess(quizId: quizId,
-        userId: userId,
-        permissions: permissions,
-        addedBy: addedBy);
+    return _adminService.grantQuizManagementAccess(
+      quizId: quizId,
+      userId: userId,
+      permissions: permissions,
+      addedBy: addedBy,
+    );
   }
 
-  Future<void> removeManagementAccess(
-      {required String quizId, required String userId, required String removedBy}) async {
+  Future<void> removeManagementAccess({
+    required String quizId,
+    required String userId,
+    required String removedBy,
+  }) async {
     await _ensurePermission('management_features', userId: removedBy);
     return _adminService.removeQuizManagementAccess(
-        quizId: quizId, userId: userId, removedBy: removedBy);
+      quizId: quizId,
+      userId: userId,
+      removedBy: removedBy,
+    );
   }
 
   Stream<List<Map<String, dynamic>>> getQuizManagers(String quizId) =>
@@ -323,23 +373,43 @@ class QAdminDatabaseService {
   Stream<List<Map<String, dynamic>>> getQuizParticipants(String quizId) =>
       _adminService.getQuizParticipants(quizId);
 
-  Future<void> addParticipant(
-      {required String quizId, required String userId, required String addedBy}) async {
+  Future<void> addParticipant({
+    required String quizId,
+    required String userId,
+    required String addedBy,
+  }) async {
     await _ensurePermission('management_features', userId: addedBy);
     return _adminService.addParticipant(
-        quizId: quizId, userId: userId, addedBy: addedBy);
+      quizId: quizId,
+      userId: userId,
+      addedBy: addedBy,
+    );
   }
 
-  Future<void> banUser(
-      {required String userId, required String quizId, required String reason, required String adminId}) async {
+  Future<void> banUser({
+    required String userId,
+    required String quizId,
+    required String reason,
+    required String adminId,
+  }) async {
     return _adminService.banUser(
-        userId: userId, quizId: quizId, reason: reason, adminId: adminId);
+      userId: userId,
+      quizId: quizId,
+      reason: reason,
+      adminId: adminId,
+    );
   }
 
-  Future<void> unbanUser(
-      {required String userId, required String quizId, required String adminId}) async {
+  Future<void> unbanUser({
+    required String userId,
+    required String quizId,
+    required String adminId,
+  }) async {
     return _adminService.unbanUser(
-        userId: userId, quizId: quizId, adminId: adminId);
+      userId: userId,
+      quizId: quizId,
+      adminId: adminId,
+    );
   }
 
   Stream<List<Map<String, dynamic>>> getQuizBannedUsers(String quizId) =>
@@ -353,8 +423,11 @@ class QAdminDatabaseService {
 
   // --- Tag & Module Management ---
 
-  Future<void> syncModuleTags(String quizId,
-      Map<String, List<String>> moduleTags, {List<String>? allModules}) async {
+  Future<void> syncModuleTags(
+    String quizId,
+    Map<String, List<String>> moduleTags, {
+    List<String>? allModules,
+  }) async {
     final batch = FirebaseFirestore.instance.batch();
     final tagsRef = FirebaseFirestore.instance.collection('tags');
     final moduleTagsRef = FirebaseFirestore.instance.collection('module_tags');
@@ -363,12 +436,24 @@ class QAdminDatabaseService {
     moduleTags.forEach((moduleName, tags) {
       if (tags.isEmpty) {
         _addTagToBatch(
-            batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
+          batch,
+          tagsRef,
+          moduleTagsRef,
+          quizId,
+          moduleName,
+          'general',
+        );
       } else {
         for (var tag in tags) {
           final tagId = tag.toLowerCase().trim();
           _addTagToBatch(
-              batch, tagsRef, moduleTagsRef, quizId, moduleName, tagId);
+            batch,
+            tagsRef,
+            moduleTagsRef,
+            quizId,
+            moduleName,
+            tagId,
+          );
         }
       }
     });
@@ -378,7 +463,13 @@ class QAdminDatabaseService {
       for (var moduleName in allModules) {
         if (!moduleTags.containsKey(moduleName)) {
           _addTagToBatch(
-              batch, tagsRef, moduleTagsRef, quizId, moduleName, 'general');
+            batch,
+            tagsRef,
+            moduleTagsRef,
+            quizId,
+            moduleName,
+            'general',
+          );
         }
       }
     }
@@ -386,9 +477,14 @@ class QAdminDatabaseService {
     await batch.commit();
   }
 
-  void _addTagToBatch(WriteBatch batch, CollectionReference tagsRef,
-      CollectionReference moduleTagsRef, String quizId, String moduleName,
-      String tagId) {
+  void _addTagToBatch(
+    WriteBatch batch,
+    CollectionReference tagsRef,
+    CollectionReference moduleTagsRef,
+    String quizId,
+    String moduleName,
+    String tagId,
+  ) {
     // Platform-wide discovery
     batch.set(tagsRef.doc(tagId), {
       'name': tagId,
@@ -398,8 +494,8 @@ class QAdminDatabaseService {
     }, SetOptions(merge: true));
 
     // Granular module-tag document
-    final String granularDocId = "${quizId}_${moduleName.replaceAll(
-        ' ', '_')}_$tagId";
+    final String granularDocId =
+        "${quizId}_${moduleName.replaceAll(' ', '_')}_$tagId";
     batch.set(moduleTagsRef.doc(granularDocId), {
       'tag': tagId,
       'moduleName': moduleName,
@@ -431,9 +527,7 @@ class QAdminDatabaseService {
   }
 
   Future<void> syncExamTag(String quizId, String examTag) async {
-    if (examTag
-        .trim()
-        .isEmpty) return;
+    if (examTag.trim().isEmpty) return;
 
     final batch = FirebaseFirestore.instance.batch();
     final examTagsRef = FirebaseFirestore.instance.collection('exam_tags');
@@ -450,65 +544,87 @@ class QAdminDatabaseService {
 
   // --- Response Analytics ---
 
-  Future<void> softDeleteResponse(
-      {required String responseId, required String quizId, required String actorId, required String reason}) async {
+  Future<void> softDeleteResponse({
+    required String responseId,
+    required String quizId,
+    required String actorId,
+    required String reason,
+  }) async {
     await _ensurePermission(null, userId: actorId);
-    return _adminService.softDeleteResponse(responseId: responseId,
-        quizId: quizId,
-        actorId: actorId,
-        reason: reason);
+    return _adminService.softDeleteResponse(
+      responseId: responseId,
+      quizId: quizId,
+      actorId: actorId,
+      reason: reason,
+    );
   }
 
-  Future<void> restoreResponse(
-      {required String responseId, required String quizId}) async {
+  Future<void> restoreResponse({
+    required String responseId,
+    required String quizId,
+  }) async {
     await _ensurePermission(null, userId: global.currentUserProfile?['uid']);
     return _adminService.restoreResponse(
-        responseId: responseId, quizId: quizId);
+      responseId: responseId,
+      quizId: quizId,
+    );
   }
 
-  Stream<List<Map<String, dynamic>>> getQuizResponses(String quizId,
-      {bool includeDeleted = false}) {
+  Stream<List<Map<String, dynamic>>> getQuizResponses(
+    String quizId, {
+    bool includeDeleted = false,
+  }) {
     return FirebaseFirestore.instance
         .collection('responses')
         .where('quizId', isEqualTo: quizId)
         .snapshots()
         .map((snapshot) {
-      final docs = snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
-      if (includeDeleted) return docs;
-      return docs.where((doc) => doc['isDeleted'] != true).toList();
-    });
+          final docs = snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          }).toList();
+          if (includeDeleted) return docs;
+          return docs.where((doc) => doc['isDeleted'] != true).toList();
+        });
   }
 
   // --- Internal Data Helpers ---
 
-  Map<String, dynamic> _transformQuizData(List<Map<String, Object>> inputData,
-      Map<String, dynamic> markingScheme, {List<String>? moduleOrder}) {
+  Map<String, dynamic> _transformQuizData(
+    List<Map<String, Object>> inputData,
+    Map<String, dynamic> markingScheme, {
+    List<String>? moduleOrder,
+  }) {
     final Map<String, List<Map<String, dynamic>>> moduleMap = {};
     final List<Map<String, dynamic>> answerKeys = [];
     final Map<String, dynamic> perQuestionMap = {};
 
     for (int i = 0; i < inputData.length; i++) {
       final item = inputData[i];
-      final String qUid = item['uid']?.toString() ??
+      final String qUid =
+          item['uid']?.toString() ??
           (item['Q'] is Map ? (item['Q'] as Map)['id']?.toString() : null) ??
-          "q_${DateTime
-              .now()
-              .microsecondsSinceEpoch}_$i";
+          "q_${DateTime.now().microsecondsSinceEpoch}_$i";
 
-      final String qText = (item['question'] ??
-          (item['Q'] is Map ? (item['Q'] as Map)['text'] : '')).toString();
-      final String qDescription = (item['explanation'] ?? item['description'] ?? '').toString();
+      final String qText =
+          (item['question'] ??
+                  (item['Q'] is Map ? (item['Q'] as Map)['text'] : ''))
+              .toString();
+      final String qDescription =
+          (item['explanation'] ?? item['description'] ?? '').toString();
       final String qType = item['type']?.toString() ?? 'Single Choice';
       final String qSubject = item['subject']?.toString() ?? 'General';
       final int qTimer = int.tryParse(item['timer']?.toString() ?? '0') ?? 0;
+      final String qMediaUrl = item['mediaUrl']?.toString() ?? '';
+      final String qMediaFileName = item['mediaFileName']?.toString() ?? '';
+      final bool qAllowMediaAccess = item['allowMediaAccess'] as bool? ?? true;
 
       if (markingScheme['type'] == 'per_question') {
-        perQuestionMap[qUid] =
-        {'correct': item['correct'] ?? 4, 'wrong': item['wrong'] ?? -1};
+        perQuestionMap[qUid] = {
+          'correct': item['correct'] ?? 4,
+          'wrong': item['wrong'] ?? -1,
+        };
       }
 
       final choices = (item['choices'] ?? item['As']) as List? ?? [];
@@ -516,8 +632,13 @@ class QAdminDatabaseService {
       final List<Map<String, String>> optionsWithIds = [];
 
       if (qType == "Integer") {
-        if (answers.isNotEmpty) answerKeys.add(
-            {'q': qUid, 'a': answers.first.toString(), 's': qDescription});
+        if (answers.isNotEmpty) {
+          answerKeys.add({
+            'q': qUid,
+            'a': answers.first.toString(),
+            's': qDescription,
+          });
+        }
       } else {
         bool descriptionAdded = false;
         for (int j = 0; j < choices.length; j++) {
@@ -529,9 +650,7 @@ class QAdminDatabaseService {
             optUid = choice['id'].toString();
             optText = choice['text']?.toString() ?? '';
           } else {
-            optUid = "opt_${DateTime
-                .now()
-                .microsecondsSinceEpoch}_${i}_$j";
+            optUid = "opt_${DateTime.now().microsecondsSinceEpoch}_${i}_$j";
             optText = choice.toString();
           }
 
@@ -555,6 +674,9 @@ class QAdminDatabaseService {
         'uid': qUid,
         'type': qType,
         'timer': qTimer,
+        'mediaUrl': qMediaUrl,
+        'mediaFileName': qMediaFileName,
+        'allowMediaAccess': qAllowMediaAccess,
         'Q': {'id': qUid, 'text': qText},
         'As': optionsWithIds,
       };
@@ -562,13 +684,14 @@ class QAdminDatabaseService {
       moduleMap.putIfAbsent(qSubject, () => []).add(questionData);
     }
 
-    if (markingScheme['type'] == 'per_question')
+    if (markingScheme['type'] == 'per_question') {
       markingScheme['perQuestion'] = perQuestionMap;
+    }
 
     final List<String> typeOrder = [
       'Single Choice',
       'Multiple Choice',
-      'Integer'
+      'Integer',
     ];
 
     final List<Map<String, dynamic>> modules = moduleMap.entries.map((e) {

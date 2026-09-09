@@ -1,7 +1,121 @@
 import 'dart:convert';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thinkfast/utils/global.dart' as global;
+import 'package:thinkfast/services/custom_cache_manager.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../utils/global.dart' as global;
+
+class CachedMediaWidget extends StatelessWidget {
+  final String? url;
+  final double? maxHeight;
+
+  const CachedMediaWidget({super.key, this.url, this.maxHeight});
+
+  @override
+  Widget build(BuildContext context) {
+    if (url == null || url!.isEmpty) return const SizedBox.shrink();
+
+    final bool isPdf = url!.toLowerCase().endsWith('.pdf');
+
+    return FutureBuilder(
+      future: CustomCacheManager.getInstance(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(
+            child: SizedBox(
+              height: 40,
+              width: 40,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        }
+
+        final cacheManager = snapshot.data!;
+
+        if (isPdf) {
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: global.cardColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: global.borderColor),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: Colors.redAccent,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    "Reference Document (PDF)",
+                    style: TextStyle(color: global.valueColor, fontSize: 13),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (url == null) return;
+                    final uri = Uri.parse(url!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    "VIEW",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: global.borderColor),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: CachedNetworkImage(
+            imageUrl: url!,
+            cacheManager: cacheManager,
+            placeholder: (context, url) => Container(
+              height: 200,
+              color: global.cardColor,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: 200,
+              color: global.cardColor,
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.broken_image_rounded, color: global.labelColor),
+                  SizedBox(height: 8),
+                  Text(
+                    "Failed to load image",
+                    style: TextStyle(color: global.labelColor, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            fit: BoxFit.contain,
+            maxHeightDiskCache: 1000,
+          ),
+        );
+      },
+    );
+  }
+}
 
 class InfoRow extends StatelessWidget {
   final String label;
@@ -172,8 +286,12 @@ class QuizActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: isPrimary
                 ? (effectiveEnabled ? global.btnColor : global.hintColor)
-                : Colors.white.withValues(alpha: effectiveEnabled ? 0.05 : 0.02),
-            foregroundColor: Colors.white.withValues(alpha: effectiveEnabled ? 1.0 : 0.4),
+                : Colors.white.withValues(
+                    alpha: effectiveEnabled ? 0.05 : 0.02,
+                  ),
+            foregroundColor: Colors.white.withValues(
+              alpha: effectiveEnabled ? 1.0 : 0.4,
+            ),
             minimumSize: const Size(double.infinity, 56),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -182,10 +300,13 @@ class QuizActionButton extends StatelessWidget {
                   : BorderSide(
                       color: effectiveEnabled
                           ? global.borderColor
-                          : global.borderColor.withValues(alpha: 0.3)),
+                          : global.borderColor.withValues(alpha: 0.3),
+                    ),
             ),
             elevation: isPrimary && effectiveEnabled ? 4 : 0,
-            disabledBackgroundColor: isPrimary ? global.hintColor : Colors.white.withValues(alpha: 0.02),
+            disabledBackgroundColor: isPrimary
+                ? global.hintColor
+                : Colors.white.withValues(alpha: 0.02),
             disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
           ),
           child: Row(
@@ -204,8 +325,10 @@ class QuizActionButton extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: Colors.white.withValues(alpha: effectiveEnabled ? 1.0 : 0.4),
-                )
+                  color: Colors.white.withValues(
+                    alpha: effectiveEnabled ? 1.0 : 0.4,
+                  ),
+                ),
               ],
             ],
           ),
@@ -245,9 +368,7 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: color.withValues(alpha: 0.5),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Text(
         text.toUpperCase(),
@@ -300,7 +421,8 @@ class _AiGenerationDialogState extends State<AiGenerationDialog> {
             maxLines: 3,
             style: const TextStyle(color: global.valueColor, fontSize: 13),
             decoration: InputDecoration(
-              hintText: "e.g. Physics quiz on Newton's laws, 10 questions, Medium...",
+              hintText:
+                  "e.g. Physics quiz on Newton's laws, 10 questions, Medium...",
               hintStyle: const TextStyle(color: global.hintColor),
               filled: true,
               fillColor: global.bgColor,
@@ -312,17 +434,22 @@ class _AiGenerationDialogState extends State<AiGenerationDialog> {
           if (_isGenerating) ...[
             const SizedBox(height: 20),
             const LinearProgressIndicator(color: global.primaryAccent),
-          ]
+          ],
         ],
       ),
       actions: [
         TextButton(
           onPressed: _isGenerating ? null : () => Navigator.pop(context),
-          child: const Text("CANCEL", style: TextStyle(color: global.labelColor)),
+          child: const Text(
+            "CANCEL",
+            style: TextStyle(color: global.labelColor),
+          ),
         ),
         ElevatedButton(
           onPressed: _isGenerating ? null : _generate,
-          style: ElevatedButton.styleFrom(backgroundColor: global.primaryAccent),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: global.primaryAccent,
+          ),
           child: Text(widget.buttonText),
         ),
       ],
@@ -335,7 +462,7 @@ class _AiGenerationDialogState extends State<AiGenerationDialog> {
 
     setState(() => _isGenerating = true);
     try {
-      // Note: We'll use a mock generator for now as actual AI integration 
+      // Note: We'll use a mock generator for now as actual AI integration
       // usually requires secret keys.
       await Future.delayed(const Duration(seconds: 2));
       final json = jsonEncode({
@@ -351,15 +478,17 @@ class _AiGenerationDialogState extends State<AiGenerationDialog> {
             "type": "Single Choice",
             "subject": "General",
             "correct": 4,
-            "wrong": -1
-          }
-        ]
+            "wrong": -1,
+          },
+        ],
       });
       widget.onGenerated(json);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("AI Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("AI Error: $e")));
       }
     } finally {
       if (mounted) setState(() => _isGenerating = false);

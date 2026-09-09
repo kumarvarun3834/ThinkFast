@@ -104,7 +104,31 @@ Triggers LLM-driven performance evaluation and profile updates.
 
 ---
 
-## 4. 📥 Type 2: User Generated Direct (Bulk)
+## 4. 🖼️ Type 2: Media & Assets (Free Tier Storage)
+
+### `POST /media/upload`
+Orchestrates secure media storage using GitHub as a Free CDN.
+*   **Payload**:
+    ```json
+    {
+      "fileName": "diagram_01.png",
+      "fileType": "image/png" | "application/pdf",
+      "base64Data": "...", // Actual file content
+      "quizId": "quiz_uuid" // Associated quiz for path organization
+    }
+    ```
+*   **Response (200)**:
+    ```json
+    {
+      "status": "success",
+      "url": "https://raw.githubusercontent.com/user/repo/master/media/quiz_uuid/diagram_01.png",
+      "githubSha": "..." // Reference for potential deletion/updates
+    }
+    ```
+
+---
+
+## 5. 📥 Type 3: User Generated Direct (Bulk)
 
 ### `POST /admin/database/import-workspace`
 Administrative bulk import of template quizzes.

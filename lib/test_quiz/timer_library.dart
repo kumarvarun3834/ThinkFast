@@ -57,7 +57,8 @@ class _TimerScreenState extends State<TimerScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const ResultScreen(quizId: null, attemptId: null),
+        builder: (_) =>
+            const TimerTestResultScreen(quizId: null, attemptId: null),
       ),
     );
   }
@@ -98,8 +99,8 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 }
 
-class ResultScreen extends StatelessWidget {
-  const ResultScreen({super.key, required quizId, required attemptId});
+class TimerTestResultScreen extends StatelessWidget {
+  const TimerTestResultScreen({super.key, required quizId, required attemptId});
 
   @override
   Widget build(BuildContext context) {

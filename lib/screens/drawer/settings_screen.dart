@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/services/custom_cache_manager.dart';
+import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class SettingsScreen extends StatefulWidget {
@@ -13,6 +15,43 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   User? _user = FirebaseAuth.instance.currentUser;
   bool _isLoading = false;
+  int _cacheLimitMb = 500;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCacheSettings();
+  }
+
+  Future<void> _loadCacheSettings() async {
+    final limit = await LocalCacheService().getCacheLimit();
+    setState(() => _cacheLimitMb = limit);
+  }
+
+  void _updateCacheLimit(double value) async {
+    final int newLimit = value.toInt();
+    setState(() => _cacheLimitMb = newLimit);
+    await LocalCacheService().saveCacheLimit(newLimit);
+    CustomCacheManager.refreshConfig();
+  }
+
+  void _clearCache() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isLoading = true);
+    try {
+      final cache = await CustomCacheManager.getInstance();
+      await cache.emptyCache();
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Media cache cleared successfully!")),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text("Failed to clear cache: $e")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _refreshUser() async {
     await _user?.reload();
@@ -282,6 +321,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 24),
                     ],
+                    _buildSectionHeader("App Performance"),
+                    _buildCacheSettingsTile(),
+                    const SizedBox(height: 24),
                     _buildSectionHeader("Information"),
                     _buildSettingsTile(
                       icon: Icons.info_outline_rounded,
@@ -333,6 +375,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
           fontWeight: FontWeight.bold,
           letterSpacing: 1.5,
         ),
+      ),
+    );
+  }
+
+  Widget _buildCacheSettingsTile() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: global.cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: global.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.storage_rounded, color: global.primaryAccent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Media Cache Limit",
+                      style: TextStyle(
+                        color: global.valueColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      "Current: $_cacheLimitMb MB",
+                      style: const TextStyle(
+                        color: global.labelColor,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: _clearCache,
+                child: const Text(
+                  "CLEAR",
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Slider(
+            value: _cacheLimitMb.toDouble(),
+            min: 100,
+            max: 2000,
+            divisions: 19,
+            activeColor: global.primaryAccent,
+            inactiveColor: global.borderColor,
+            label: "$_cacheLimitMb MB",
+            onChanged: _updateCacheLimit,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "100 MB",
+                style: TextStyle(color: global.labelColor, fontSize: 10),
+              ),
+              const Text(
+                "2 GB",
+                style: TextStyle(color: global.labelColor, fontSize: 10),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

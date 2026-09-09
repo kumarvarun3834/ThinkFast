@@ -8,6 +8,7 @@ class LocalCacheService {
   static const String _keyAiUsage = 'ai_usage_today';
   static const String _keyAiUsageDate = 'ai_usage_date';
   static const String _keySplitRatio = 'split_ratio';
+  static const String _keyCacheLimitMb = 'cache_limit_mb';
 
   /// Cache AI Usage for the day
   Future<void> saveAiUsage(int count) async {
@@ -114,5 +115,17 @@ class LocalCacheService {
   Future<double?> getSplitRatio() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getDouble(_keySplitRatio);
+  }
+
+  /// ✅ Save Cache Limit in MB
+  Future<void> saveCacheLimit(int mb) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCacheLimitMb, mb);
+  }
+
+  /// ✅ Get Cache Limit in MB (Default: 500 MB)
+  Future<int> getCacheLimit() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keyCacheLimitMb) ?? 500;
   }
 }

@@ -6,12 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/screens/quiz/quiz_details_screen.dart';
 import 'package:thinkfast/screens/quiz/quiz_filter_screen.dart';
+import 'package:thinkfast/screens/quiz/result_screen.dart';
 import 'package:thinkfast/services/local_cache_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 import 'package:thinkfast/widgets/drawer_data.dart';
 import 'package:thinkfast/widgets/quiz_widgets.dart';
-
-import '../test_quiz/timer_library.dart';
 
 class MainScreen extends StatefulWidget {
   final User? creator;

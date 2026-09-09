@@ -9,6 +9,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:thinkfast/services/web/web_helper.dart' as web_helper;
 import 'package:thinkfast/utils/global.dart' as global;
 
+import '../../widgets/quiz_widgets.dart';
+
 class Questions extends StatefulWidget {
   const Questions({super.key});
 
@@ -2291,7 +2293,17 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+                    if (question['allowMediaAccess'] != false ||
+                        global.isAdmin ||
+                        global.ownedQuizIds.contains(global.id))
+                      CachedMediaWidget(
+                        url:
+                            question['mediaUrl']?.toString() ??
+                            question['image_url']?.toString() ??
+                            question['imageUrl']?.toString(),
+                      ),
+                    const SizedBox(height: 8),
                     ...buttonsData(i),
                     // --- Review Mode Solutions/Explanations ---
                     if (global.isReviewMode) ...[

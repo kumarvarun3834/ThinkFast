@@ -52,12 +52,19 @@
 - **Moderation:** Tools to restrict or delete quizzes that violate platform policies.
 - **Audit Logs:** Logging of administrative actions for transparency and security.
 
+### 3.6 Media Storage (Free Tier Strategy)
+- **GitHub CDN Integration:** To avoid Firebase Storage costs, rich media (images/PDFs) are stored in a public GitHub repository. 
+- **Secure Backend Orchestration:** The Flutter app sends media to the ThinkFast API, which securely commits the files to GitHub using a private token.
+- **Raw Content Delivery:** Files are served via `raw.githubusercontent.com` for fast, global performance without bandwidth costs.
+- **Local Media Caching:** The app automatically caches downloaded images and PDFs locally to save data and ensure instant loading on subsequent views. Users can customize the cache limit (up to 2GB) in the Settings screen.
+- **Storage Limits:** Individual files are capped at 50MB (GitHub warning threshold). Repositories are monitored to stay under the 5GB soft limit, with rotation policies in place if limits are reached.
+
 ## 4. Technical Stack
 - **Frontend:** Flutter (Dart)
 - **UI/UX:** Google Fonts (Poppins), Custom Dark Theme
 - **Backend/Database:** Firebase Firestore
 - **Authentication:** Firebase Authentication
-- **Storage:** Firebase Storage (for profile photos)
+- **Media Storage (Free Tier CDN):** GitHub REST API (Public Repository) with RAW Content Delivery.
 - **Deep Linking:** `app_links` package
 - **Analytics:** Firebase Analytics
 

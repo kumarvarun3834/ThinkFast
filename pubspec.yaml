@@ -50,6 +50,11 @@ dependencies:
   firebase_performance: ^0.11.4+3
   firebase_app_check: ^0.4.5
   web: ^1.1.0
+  flutter_cache_manager: ^3.4.2
+  cached_network_image: ^4.0.0
+  path_provider: ^2.1.6
+  file_picker: 8.1.7
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

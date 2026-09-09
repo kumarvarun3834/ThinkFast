@@ -9,22 +9,23 @@ ThinkFast follows a layered architecture to ensure separation of concerns and ma
     - `UserService`: User profiles and private data management.
     - `QuizService`: Quiz lifecycle (CRUD), access control, and metadata.
     - `AttemptService`: Scoring logic, submission of attempts, and history.
+    - `MediaService`: Secure file uploads to GitHub CDN via backend orchestration.
     - `AiService`: Integration with AI for content generation and usage tracking.
     - `AdminService`: Elevated privilege management and audit logging.
     - `SettingsService`: Global configuration and feature flags.
-- **Data Layer:** Firebase Firestore for NoSQL storage, Firebase Auth for security, and Firebase Storage for assets.
+- **Data Layer:** Firebase Firestore for NoSQL storage, Firebase Auth for security, and GitHub Repository for rich media assets.
 
 ## 2. Data Models (Firestore Schema)
 
 ### 2.1 Users (`/users/{uid}`)
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `name` | String | Display name. |
-| `photoUrl` | String | URL to profile picture. |
-| `createdAt` | Timestamp | Account creation time. |
-| `lastActive` | Timestamp | Last activity tracking. |
-| `quizCount` | Number | Total quizzes created by the user. |
-| `attemptCount` | Number | Total quizzes attempted by the user. |
+| Field          | Type      | Description                          |
+|:---------------|:----------|:-------------------------------------|
+| `name`         | String    | Display name.                        |
+| `photoUrl`     | String    | URL to profile picture.              |
+| `createdAt`    | Timestamp | Account creation time.               |
+| `lastActive`   | Timestamp | Last activity tracking.              |
+| `quizCount`    | Number    | Total quizzes created by the user.   |
+| `attemptCount` | Number    | Total quizzes attempted by the user. |
 
 **Sub-collections:**
 - `private/details`: Sensitive data like `email`, `activeQuizId`, and `activeQuizExpiry`.
@@ -180,4 +181,30 @@ Response/Attempt deletion follows a similar soft-delete pattern, attributing the
 
 ### 6.5 Local Caching Strategy
 - **Shared Preferences**: Utilizes `shared_preferences` to maintain a persistent local list of the last 10 quizzes visited. This reduces Firebase read overhead for frequent quiz-takers and improves app responsiveness.
+- **Media Cache Manager**: Implements a custom `flutter_cache_manager` with configurable storage limits (default 500MB) to store rich media assets locally.
+
+## 7. File & Media Handling (GitHub CDN Strategy)
+
+### 7.1 Motivation
+To ensure a sustainable free-tier operations model, the platform utilizes a Public GitHub Repository as a Content Delivery Network (CDN) for quiz-related rich media (Images and PDFs), bypassing the costs associated with traditional cloud storage buckets.
+
+### 7.2 Storage Workflow
+1.  **Selection**: Users select an image or PDF in the Quiz Editor.
+2.  **Transmission**: Flutter sends the file as a Base64 string to the ThinkFast API.
+3.  **Persistence**: The backend commits the file to a dedicated GitHub repository using a secure Personal Access Token.
+4.  **Referencing**: The backend returns a `raw.githubusercontent.com` URL, which is stored in the Firestore quiz document.
+5.  **Consumption**: Participant clients load media directly from GitHub's global edge servers.
+
+### 7.3 System Constraints (2024-2025)
+| Metric | Limit / Threshold | Enforcement |
+| :--- | :--- | :--- |
+| **Individual File Size** | 50 MB | Soft block (Warning) |
+| **Individual File Size** | 100 MB | Hard block (API Reject) |
+| **Repository Size** | 1 GB | Recommended (Performance) |
+| **Repository Size** | 5 GB | Soft limit (GitHub contact) |
+| **Repository Size** | 100 GB | Hard block |
+
+### 7.4 Optimization & Lifecycle
+- **Backend Compression**: The API automatically optimizes image dimensions and formats (WebP/JPEG) before committing to reduce repo bloat.
+- **Path Isolation**: Files are organized by `quizId` to prevent collision and allow for easy bulk deletion/cleanup during maintenance.
 

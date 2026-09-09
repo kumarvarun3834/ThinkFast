@@ -1,4 +1,7 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:thinkfast/services/media_service.dart';
 import 'package:thinkfast/utils/global.dart' as global;
 
 class QuizForm extends StatefulWidget {
@@ -40,9 +43,21 @@ class _QuizFormState extends State<QuizForm> {
   String? _selectedValue;
   String? _selectedModule;
 
+  // Media Management
+  String? _mediaUrl;
+  String? _mediaFileName;
+  bool _allowMediaAccess = true;
+  bool _isUploading = false;
+
   @override
   void initState() {
     super.initState();
+
+    // Load existing media if any
+    _mediaUrl = widget.formDataPart["mediaUrl"]?.toString();
+    _mediaFileName = widget.formDataPart["mediaFileName"]?.toString();
+    _allowMediaAccess =
+        widget.formDataPart["allowMediaAccess"] as bool? ?? true;
 
     // Load existing marking if any
     if (widget.formDataPart["correct"] != null) {
@@ -131,7 +146,181 @@ class _QuizFormState extends State<QuizForm> {
       "correct": int.tryParse(_correctController.text) ?? 4,
       "wrong": int.tryParse(_wrongController.text) ?? -1,
       "timer": int.tryParse(_timerController.text) ?? 0,
+      "mediaUrl": _mediaUrl ?? "",
+      "mediaFileName": _mediaFileName ?? "",
+      "allowMediaAccess": _allowMediaAccess,
     });
+  }
+
+  Future<void> _pickAndUploadMedia() async {
+    try {
+      final dynamic picker = FilePicker.platform;
+      final result = await picker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      if (file.bytes == null) return;
+
+      setState(() => _isUploading = true);
+
+      final String quizId = global.id.isNotEmpty ? global.id : "new_quiz_draft";
+
+      final url = await MediaService().uploadMedia(
+        fileName: file.name,
+        fileType: file.extension?.toLowerCase() == 'pdf'
+            ? 'application/pdf'
+            : 'image/${file.extension?.toLowerCase() ?? 'png'}',
+        bytes: file.bytes!,
+        quizId: quizId,
+      );
+
+      if (url != null) {
+        setState(() {
+          _mediaUrl = url;
+          _mediaFileName = file.name;
+        });
+        _emitData();
+      } else {
+        throw Exception("Upload failed - URL was null");
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Media upload failed: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  void _removeMedia() {
+    setState(() {
+      _mediaUrl = null;
+      _mediaFileName = null;
+    });
+    _emitData();
+  }
+
+  Widget _buildMediaSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: global.bgColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: global.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Rich Media (Image/PDF)",
+                style: GoogleFonts.poppins(
+                  color: global.primaryAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+              if (_mediaUrl != null)
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  onPressed: _removeMedia,
+                  tooltip: "Remove Media",
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_mediaUrl == null)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isUploading ? null : _pickAndUploadMedia,
+                icon: _isUploading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.attach_file_rounded),
+                label: Text(_isUploading ? "UPLOADING..." : "ATTACH MEDIA"),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: global.primaryAccent),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: global.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _mediaFileName?.toLowerCase().endsWith('.pdf') == true
+                            ? Icons.picture_as_pdf_rounded
+                            : Icons.image_rounded,
+                        color: global.primaryAccent,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _mediaFileName ?? "Attached File",
+                          style: const TextStyle(
+                            color: global.valueColor,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.check_circle,
+                        color: global.successColor,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    "Allow participants to access",
+                    style: TextStyle(color: global.valueColor, fontSize: 13),
+                  ),
+                  subtitle: const Text(
+                    "If disabled, media is for creator reference only",
+                    style: TextStyle(color: global.labelColor, fontSize: 11),
+                  ),
+                  value: _allowMediaAccess,
+                  activeThumbColor: global.primaryAccent,
+                  onChanged: (v) {
+                    setState(() => _allowMediaAccess = v);
+                    _emitData();
+                  },
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   void _addChoice() {
@@ -337,6 +526,8 @@ class _QuizFormState extends State<QuizForm> {
               onChanged: (_) => _emitData(),
             ),
             const SizedBox(height: 16),
+            _buildMediaSection(),
+            const SizedBox(height: 16),
             Row(
               children: [
                 if (widget.showIndividualMarking) ...[
@@ -470,6 +661,3 @@ class _QuizFormState extends State<QuizForm> {
     );
   }
 }
-
-// this will eliminate the setState during build error
-// your QuizPage doesn’t need changes now - it was fine

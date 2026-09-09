@@ -120,7 +120,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 20),
                   child: Text(
-                    "Last Updated: July 2024",
+                    "Last Updated: September 2024",
                     style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: _labelColor,
@@ -144,15 +144,40 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       "All data is transmitted over secure connections and stored in encrypted Firestore databases. "
                       "Access is restricted via granular security rules, ensuring only you (and authorized admins) can see your private data.",
                     ),
-                    _buildSectionTitle("3. Your Rights"),
+                    _buildSectionTitle("3. Account & Data Removal"),
                     _buildContentText(
-                      "You have the right to view and update your profile at any time. "
-                      "Unverified accounts are automatically purged after 7 days for your security.",
+                      "You have the absolute right to be forgotten. You can permanently delete your account and all associated Firestore records (profile, attempts, AI insights) "
+                      "directly from the Profile screen. Unverified accounts are automatically purged after 7 days.",
                     ),
                   ],
                 ),
 
-                // CONTAINER 2: AI & PERSONALIZATION
+                // CONTAINER 2: MEDIA & CONTENT
+                _buildPolicyContainer(
+                  title: "Media & Content",
+                  icon: Icons.perm_media_rounded,
+                  accentColor: Colors.blueAccent,
+                  children: [
+                    _buildSectionTitle(
+                      "1. Quiz Media Storage",
+                      color: Colors.blueAccent,
+                    ),
+                    _buildContentText(
+                      "When you attach images or PDFs to a quiz, these files are stored in a dedicated repository on GitHub and served via their global CDN. "
+                      "Please ensure you have the rights to any media you upload, and do not include sensitive personal information in quiz assets.",
+                    ),
+                    _buildSectionTitle(
+                      "2. Public Access",
+                      color: Colors.blueAccent,
+                    ),
+                    _buildContentText(
+                      "Files uploaded for Public quizzes are accessible via direct URLs to ensure fast delivery to participants. "
+                      "Deleting a quiz will flag its associated media for removal from our storage repository.",
+                    ),
+                  ],
+                ),
+
+                // CONTAINER 3: AI & PERSONALIZATION
                 if (!isMinor)
                   _buildPolicyContainer(
                     title: "AI & Personalization",
@@ -164,8 +189,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         color: Colors.purpleAccent,
                       ),
                       _buildContentText(
-                        "If you explicitly 'Opt-in', we collect and analyze your Age, Grade, Study Goals, and Learning Style. "
-                        "This data is used solely to train our local AI models to generate quizzes that match your educational level.",
+                        "If you explicitly 'Opt-in', we collect and analyze your Grade, Study Goals, Educational Board, Focus Areas, and Tutor preferences. "
+                        "This data is used solely to generate quizzes and explanations that match your curriculum and learning style.",
                       ),
                       _buildSectionTitle(
                         "2. Data Minimization",
@@ -233,7 +258,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    "© 2024 ThinkFast. Challenge Your Mind.",
+                    "© 2026 ThinkFast. Challenge Your Mind.",
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: _labelColor.withValues(alpha: 0.7),
