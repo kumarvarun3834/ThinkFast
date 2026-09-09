@@ -29,7 +29,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       "Queued"; // Queued, Generating, Validating, Saving, Completed
   int _currentStep = 0;
   bool _updateProfileOnFirebase = false;
-  Map<String, dynamic> _examConfigs = {};
+  final Set<String> _multiSelectBuffer = {};
 
   late List<Map<String, dynamic>> _steps;
   final List<String> _typingMessages = [
@@ -41,6 +41,10 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
   ];
   int _typingMessageIndex = 0;
   Timer? _typingTimer;
+
+  // Multi-step tag and module tracking
+  final List<String> _selectedTags = [];
+  final Map<String, Map<String, dynamic>> _moduleConfigs = {};
 
   @override
   void initState() {
@@ -58,17 +62,18 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           '🏆 Competitive Exam',
           '💼 Placement / Interview',
           '🧠 General Learning',
-          '✍ Custom',
+          '✍ Other',
         ],
         'phase': 1,
+        'profile_key': 'goal',
       },
       {
-        'id': 'custom_goal',
-        'question': 'Please describe what you are preparing for:',
+        'id': 'spec_goal',
+        'question': 'Please specify your goal:',
         'type': 'text',
         'hint': 'e.g. Professional Certification, Hobby, etc.',
         'phase': 1,
-        'depends_on': {'goal': '✍ Custom'},
+        'depends_on': {'goal': '✍ Other'},
       },
       {
         'id': 'exam',
@@ -86,19 +91,20 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         ],
         'phase': 1,
         'depends_on': {'goal': '🏆 Competitive Exam'},
+        'profile_key': 'targetExam',
       },
       {
-        'id': 'other_exam_name',
-        'question': 'What is the name of the exam you are preparing for?',
+        'id': 'spec_exam',
+        'question': 'What is the name of the exam?',
         'type': 'text',
-        'hint': 'e.g. GRE, GMAT, SAT, Board Exams...',
+        'hint': 'e.g. GRE, GMAT, SAT...',
         'phase': 1,
         'depends_on': {'exam': 'Other'},
       },
       {
-        'id': 'subject',
-        'question': 'Which subject should I focus on?',
-        'type': 'tag_search',
+        'id': 'tags',
+        'question': 'Select the subjects or topics you want to cover:',
+        'type': 'tag_multi_select',
         'options': [
           'Physics',
           'Chemistry',
@@ -111,47 +117,26 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
         'phase': 1,
       },
       {
-        'id': 'topic',
-        'question': 'Excellent. What specific topic should I cover?',
-        'type': 'tag_search',
-        'options': [],
-        'phase': 1,
-      },
-      {
-        'id': 'quiz_type',
-        'question': 'What kind of quiz would you like?',
-        'type': 'choice',
-        'options': [
-          'Revision Quiz',
-          'Practice Quiz',
-          'Mock Test',
-          'Adaptive Quiz ⭐',
-          'Weak Topics Quiz ⭐',
-          'Previous Year Style',
-          'Concept Builder',
-        ],
-        'phase': 2,
-      },
-      {
-        'id': 'count',
-        'question': 'How many questions do you need?',
-        'type': 'choice',
-        'options': ['5', '10', '20', '30', '50', 'Custom'],
+        'id': 'module_config',
+        'question':
+            "Let's configure your modules. Set the question count and type for each:",
+        'type': 'module_grid_config',
         'phase': 2,
       },
       {
         'id': 'formats',
-        'question': 'Preferred question formats?',
-        'type': 'choice',
-        'options': ['Single Choice', 'Multiple Choice', 'Integer', 'Mixed'],
-        'phase': 2,
+        'question': 'Any overall preferred question formats?',
+        'type': 'multi_choice',
+        'options': ['Single Choice', 'Multiple Choice', 'Integer'],
+        'phase': 3,
       },
       {
         'id': 'difficulty',
-        'question': 'Select the challenge level:',
-        'type': 'choice',
-        'options': ['Easy', 'Medium', 'Hard', 'Random', 'Adaptive AI ⭐'],
-        'phase': 2,
+        'question': 'Select the challenge levels:',
+        'type': 'multi_choice',
+        'options': ['Easy', 'Medium', 'Hard', 'Adaptive AI ⭐'],
+        'phase': 3,
+        'profile_key': 'preferredDifficulty',
       },
       {
         'id': 'coverage',
@@ -165,41 +150,6 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
           'Exam-Oriented',
           'Mixed',
         ],
-        'phase': 3,
-      },
-      {
-        'id': 'personalization',
-        'question':
-            'I found your previous attempts. Should I personalize this quiz?',
-        'type': 'choice',
-        'options': [
-          '✅ Focus on weak areas',
-          '📈 Gradually increase difficulty',
-          '🔄 Mix strong & weak topics',
-          '❌ Ignore history',
-        ],
-        'phase': 3,
-        'condition': () =>
-            (global.currentUserProfile?['attemptCount'] ?? 0) > 0,
-      },
-      {
-        'id': 'learning_objective',
-        'question': "What's your primary goal?",
-        'type': 'choice',
-        'options': [
-          'Revision',
-          'Concept Building',
-          'Speed Practice',
-          'Accuracy',
-          'Exam Simulation',
-        ],
-        'phase': 4,
-      },
-      {
-        'id': 'time_limit',
-        'question': 'Any time limit preferences?',
-        'type': 'choice',
-        'options': ['None', '10 min', '20 min', '30 min', 'Auto'],
         'phase': 4,
       },
       {
@@ -273,7 +223,6 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
       final configs = await settings.getExamConfigs();
       if (mounted) {
         setState(() {
-          _examConfigs = configs;
           // Update the exam_type options with fetched keys
           final List<String> fetchedExams = configs.keys.toList();
           final List<String> defaultExams = [
@@ -313,51 +262,98 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     });
   }
 
-  void _handleInput(String value) async {
-    if (value.trim().isEmpty) return;
+  void _handleInput(dynamic value) async {
+    if (value == null) return;
+    if (value is String && value.trim().isEmpty) return;
 
     final step = _steps[_currentStep];
 
     // Privacy Guard for "starred ⭐" features
-    if (value.contains("⭐")) {
+    bool hasStar = false;
+    if (value is String) {
+      hasStar = value.contains("⭐");
+    } else if (value is List) {
+      hasStar = value.any((e) => e.toString().contains("⭐"));
+    }
+
+    if (hasStar) {
       final user = FirebaseAuth.instance.currentUser;
-      // Force refresh profile if missing
       if (global.currentUserProfile == null && user != null) {
         try {
           global.currentUserProfile = await global.db.getUserProfile(
             user.uid,
             actorId: user.uid,
           );
-        } catch (e) {
-          debugPrint("Profile fetch failed during privacy check: $e");
-        }
+        } catch (_) {}
       }
 
-      final bool hasPrivacyAccepted =
-          global.currentUserProfile?['optInAiAnalysis'] == true;
-      if (!hasPrivacyAccepted) {
+      if (global.currentUserProfile?['optInAiAnalysis'] != true) {
         _showPrivacyRequirementDialog();
         return;
       }
     }
 
-    if (step['id'] == 'count' && value != 'Custom') {
-      final int? val = int.tryParse(value);
-      if (val != null && (val < 1 || val > 50)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Please enter a valid number between 1 and 50"),
-            ),
-          );
-        }
+    // Special Case: Other follow-up logic
+    if (value is String && value.toLowerCase().contains("other")) {
+      // Check if next step is a specification step
+      if (_currentStep + 1 < _steps.length &&
+          _steps[_currentStep + 1]['id'].startsWith('spec_')) {
+        _quizSettings[step['id']] = value;
+        _addUserMessage(value);
+        _inputController.clear();
+        _nextStep();
         return;
       }
     }
 
+    // Special Case: Tag Selection
+    if (step['type'] == 'tag_multi_select') {
+      List<String> tags = [];
+      if (value is String) {
+        tags = value
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      } else if (value is List) {
+        tags = value.cast<String>();
+      }
+
+      if (tags.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Select at least one tag")),
+        );
+        return;
+      }
+
+      _selectedTags.clear();
+      _selectedTags.addAll(tags);
+      _quizSettings['tags'] = _selectedTags;
+      _addUserMessage("Tags: ${_selectedTags.join(', ')}");
+
+      // Initialize Module Configs with defaults
+      _moduleConfigs.clear();
+      for (var tag in _selectedTags) {
+        _moduleConfigs[tag] = {'count': 5, 'type': 'Single Choice'};
+      }
+
+      _inputController.clear();
+      _nextStep();
+      return;
+    }
+
+    if (step['id'] == 'module_config') {
+      // value is expected to be the final map
+      _quizSettings['module_configs'] = value;
+      _addUserMessage("Modules configured.");
+      _nextStep();
+      return;
+    }
+
     _quizSettings[step['id']] = value;
-    _addUserMessage(value);
+    _addUserMessage(value is List ? value.join(', ') : value.toString());
     _inputController.clear();
+    _multiSelectBuffer.clear();
 
     _nextStep();
   }
@@ -422,6 +418,19 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     while (_currentStep < _steps.length) {
       final step = _steps[_currentStep];
       final stepId = step['id'];
+
+      // Profile Pre-fill Logic
+      if (step.containsKey('profile_key')) {
+        final profileVal = global.currentUserProfile?[step['profile_key']];
+        if (profileVal != null && profileVal.toString().isNotEmpty) {
+          final options = List<String>.from(step['options'] ?? []);
+          if (options.contains(profileVal) || step['type'] == 'text') {
+            _quizSettings[stepId] = profileVal;
+            _currentStep++;
+            continue;
+          }
+        }
+      }
 
       // Dependency Check
       if (step.containsKey('depends_on')) {
@@ -1135,6 +1144,230 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
     final double keyboardPadding = MediaQuery.of(context).viewInsets.bottom;
     final double safePadding = MediaQuery.of(context).padding.bottom;
 
+    if (step['type'] == 'tag_multi_select' || step['type'] == 'multi_choice') {
+      final List<String> options = List<String>.from(step['options'] ?? []);
+      return Container(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, safePadding + 20),
+        decoration: BoxDecoration(
+          color: global.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: global.borderColor)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (step['type'] == 'tag_multi_select') ...[
+              _buildTagSuggestions(step),
+              const SizedBox(height: 16),
+            ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: options.map((opt) {
+                final isSelected = _multiSelectBuffer.contains(opt);
+                return FilterChip(
+                  label: Text(opt, style: const TextStyle(fontSize: 12)),
+                  selected: isSelected,
+                  selectedColor: global.primaryAccent.withValues(alpha: 0.2),
+                  checkmarkColor: global.primaryAccent,
+                  onSelected: (v) {
+                    setState(() {
+                      if (v) {
+                        _multiSelectBuffer.add(opt);
+                      } else {
+                        _multiSelectBuffer.remove(opt);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            if (step['type'] == 'tag_multi_select') ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _inputController,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: "Add custom tag...",
+                        hintStyle: const TextStyle(color: global.hintColor),
+                        filled: true,
+                        fillColor: global.bgColor.withValues(alpha: 0.3),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: global.borderColor,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (v) {
+                        if (v.trim().isNotEmpty) {
+                          setState(() {
+                            _multiSelectBuffer.add(v.trim());
+                            _inputController.clear();
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle,
+                      color: global.primaryAccent,
+                    ),
+                    onPressed: () {
+                      final v = _inputController.text.trim();
+                      if (v.isNotEmpty) {
+                        setState(() {
+                          _multiSelectBuffer.add(v);
+                          _inputController.clear();
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _multiSelectBuffer.isEmpty
+                    ? null
+                    : () => _handleInput(_multiSelectBuffer.toList()),
+                child: const Text("CONFIRM SELECTION"),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (step['type'] == 'module_grid_config') {
+      return Container(
+        padding: EdgeInsets.fromLTRB(20, 20, 20, safePadding + 20),
+        decoration: BoxDecoration(
+          color: global.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: global.borderColor)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ..._selectedTags.map((tag) {
+              final config = _moduleConfigs[tag]!;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        tag,
+                        style: GoogleFonts.poppins(
+                          color: global.primaryAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 60,
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: "Qty",
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (v) {
+                          final val = int.tryParse(v);
+                          if (val != null) config['count'] = val;
+                        },
+                        controller: TextEditingController(
+                          text: config['count'].toString(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 3,
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: config['type'],
+                          isDense: true,
+                          dropdownColor: global.cardColor,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          items:
+                              [
+                                    'Single Choice',
+                                    'Multiple Choice',
+                                    'Integer',
+                                    'Mixed',
+                                  ]
+                                  .map(
+                                    (e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text(
+                                        e,
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                          onChanged: (v) {
+                            if (v != null) config['type'] = v;
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _handleInput(_moduleConfigs),
+                child: const Text("CONTINUE TO PHASE 3"),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -1188,7 +1421,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
                           decoration: InputDecoration(
                             hintText: step['type'] == 'tag_search'
                                 ? "Type a subject..."
-                                : step['hint'],
+                                : (step['hint'] ?? "Type here..."),
                             hintStyle: GoogleFonts.poppins(
                               color: global.hintColor,
                               fontSize: 13,
@@ -1198,7 +1431,7 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
                           onChanged: (v) {
                             if (step['type'] == 'tag_search') setState(() {});
                           },
-                          onSubmitted: _handleInput,
+                          onSubmitted: (v) => _handleInput(v),
                         ),
                       ),
                     ),
@@ -1268,7 +1501,9 @@ class _AiQuizGeneratorState extends State<AiQuizGenerator> {
               alignment: WrapAlignment.center,
               children: List<String>.from(step['options']).map((opt) {
                 final bool isDestructive =
-                    opt == 'Generate Now' || opt == 'No limit';
+                    opt == 'Generate Now' ||
+                    opt == 'No limit' ||
+                    opt.contains('Other');
                 return InkWell(
                   onTap: () => _handleInput(opt),
                   borderRadius: BorderRadius.circular(12),
