@@ -219,14 +219,21 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       // 📺 Auto Fullscreen on Start
       web_helper.enterFullScreen();
 
+      // 🚫 Web Anti-Cheat: Disable Copy, Selection, and Context Menu
+      web_helper.disableTextSelection();
+
       // 🕵️ Web Anti-Cheat: Detect Tab Switching / Minimizing
       web_helper.listenToTabSwitch(() {
         _handleAntiCheatViolation("Tab switched or window minimized");
       });
 
-      // 🕵️ Web Anti-Cheat: Detect Fullscreen Exit & Esc Key Intent
+      // 🕵️ Web Anti-Cheat: Detect Fullscreen Exit, Restricted Keys & Combinations
       web_helper.listenToFullScreenChange(
         onExit: () {
+          // 🔄 Auto-Recovery: Attempt to re-enter fullscreen immediately
+          if (!_isSubmitted && !global.isReviewMode) {
+            web_helper.enterFullScreen();
+          }
           _handleAntiCheatViolation("Full screen mode exited");
         },
         onIntentToExit: () {
@@ -234,9 +241,12 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
             "Esc key pressed (Full screen exit intent)",
           );
         },
+        onViolation: (String reason) {
+          _handleAntiCheatViolation(reason);
+        },
       );
 
-      // 🕵️ Web Anti-Cheat: Detect Text Selection
+      // 🕵️ Web Anti-Cheat: Detect Text Selection (Secondary Guard)
       web_helper.listenToTextSelection(() {
         _handleAntiCheatViolation("Text selection detected");
       });
@@ -254,7 +264,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
       _antiCheatWarnings++;
     });
 
-    if (_antiCheatWarnings >= 2) {
+    if (_antiCheatWarnings >= 4) {
       _submitAndFinish();
       _showFinalViolationDialog(reason);
     } else {
@@ -309,7 +319,7 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Warning (Strike 1/2)",
+                        "Warning (Strike $_antiCheatWarnings/3)",
                         style: GoogleFonts.poppins(
                           color: Colors.orangeAccent,
                           fontWeight: FontWeight.bold,
@@ -352,11 +362,17 @@ class _QuestionsState extends State<Questions> with WidgetsBindingObserver {
                     style: TextStyle(color: global.labelColor, fontSize: 13),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    "ANY further violation will result in IMMEDIATE and AUTOMATIC submission of your quiz.",
+                  Text(
+                    _antiCheatWarnings < 3
+                        ? "Further violations will eventually lead to automatic submission. The timer continues to run as a penalty."
+                        : "FINAL WARNING: ONE more violation will result in IMMEDIATE and AUTOMATIC submission of your quiz.",
                     style: TextStyle(
-                      color: global.errorColor,
-                      fontWeight: FontWeight.bold,
+                      color: _antiCheatWarnings < 3
+                          ? global.labelColor
+                          : global.errorColor,
+                      fontWeight: _antiCheatWarnings < 3
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                       fontSize: 13,
                     ),
                   ),
